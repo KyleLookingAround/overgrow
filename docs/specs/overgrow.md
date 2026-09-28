@@ -1,6 +1,6 @@
 # Overgrow: the founding spec
 
-Issue: #2 (the owner's choices) · Status: Proposed · PRs: #PR (this spec)
+Issue: #2 (the owner's choices) · Status: Proposed · PRs: #3 (this spec)
 
 The game's founding spec, from the owner's idea and the design agreed with them on 28 Sep 2026 (`docs/briefs/overgrow-setup.md`; the decision records `docs/decisions/ADR-2026-09-28-scale-free-graph.md` and `docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`). It's longer than a page because it sets the rules every later spec follows; each later feature gets its own one-page spec from `docs/specs/TEMPLATE.md`. Every choice the owner still has to make is in issue #2 with a default, and this spec is written to those defaults, marked *(default, #2)* where it matters.
 
@@ -167,7 +167,7 @@ Each system names the real-world basis its models rest on; the model files repea
 ## How the bot measures pacing and balance from the first build
 
 - The bot (`bot.ts` in `tools/`, `npm run bot`) arrives with the garden, in the same wave. It plays through commands like a sensible player: sow in season, rotate families, water below a moisture line, pick pests above a count, harvest when ripe, buy the next upgrade at three times its price.
-- **It reports**, per seed (1, 2, 3): the game day of each milestone (first harvest, first sale, each upgrade, half the kitchen's need met, the allotment offer, the first swap, the second plot), the sealed garden's totals, money over time, food wasted, carbon, `PLAY` and `ERR`. the baselines file (`baseline.json` in `tools/`) holds a range per milestone; the `balance` playbook compares.
+- **It reports**, per seed (1, 2, 3): the game day of each milestone (first harvest, first sale, each upgrade, half the kitchen's need met, the allotment offer, the first swap, the second plot), the sealed garden's totals, money over time, food wasted, carbon, `PLAY` and `ERR`. The baselines file (`baseline.json` in `tools/`) holds a range per milestone; the `balance` playbook compares.
 - **Proposed first targets** (agreed with the first baselines): first harvest by day 8, first upgrade by day 20, the allotment offer between days 55 and 75 (about 25 minutes at 1×), the allotment's first season in about 20 minutes more.
 - **Strategy tests**, so no single trick wins: a rotating bot beats a one-crop bot by at least 10 % of Output by day 120; a bot that never picks pests reaches the allotment later but still reaches it; a managers-only bot reaches it within 25 % of the hands-on bot's day.
 - **Conservation and carry-over tests:** water, nutrients, carbon and food balance across every tick; a sealed garden's Output matches its last 28 days within 1 %; an event's expected kg lost matches between its home level and one level up within 5 %.
