@@ -72,7 +72,7 @@ if (window.__seed !== undefined)
         frames: st?.frames ?? [], movers: st?.movers ?? [], cam: st?.cam ?? null,
       };
     },
-    bench: (n: number, m?: number) => loop.bench(n, m),
+    bench: (n: number, m?: number, speed?: number) => loop.bench(n, m, speed),
     copyTimes: () => sim.copyTimes(),
   };
 

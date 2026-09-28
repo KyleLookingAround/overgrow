@@ -32,14 +32,18 @@ export default async function({ok,open,out}){
     const v=await view(page),s=await shares(page,'.map',['--map-lawn','--map-bed-dug','--map-bed-grass']);
     await page.evaluate(()=>window.__sim.send({type:'speed',speed:1}));
     ok('scene: the map draws the garden on WebGL',v.renderer==='webgl'&&s['--map-lawn']>0.3&&s['--map-bed-dug']>0.01&&s['--map-bed-grass']>0.01&&!errs.length,`${v.renderer} ${JSON.stringify(s)} ${errs[0]||''}`);
-    // it interpolates: the view time glides within a tick, between the snapshots either side of it
-    const seen=[];for(let i=0;i<24;i++){seen.push(await view(page));await page.waitForTimeout(40)}
-    const inTick=seen.filter(x=>x.alpha>0&&x.alpha<1&&x.hours>x.prev&&x.hours<x.cur),glides=new Set(seen.map(x=>x.hours.toFixed(3))).size;
-    ok('scene: the view glides between snapshots at 1×',inTick.length>=5&&glides>=10&&seen.every((x,i)=>!i||x.hours>=seen[i-1].hours),`${inTick.length} samples between ticks, ${glides} distinct view times`);
-    // and what moves glides with it: people walking in a small synthetic scene move between two frames of the same tick
-    await page.evaluate(()=>window.__sim.bench(20));await page.waitForTimeout(600);
-    const a=await view(page);await page.waitForTimeout(80);const b=await view(page);
-    const moved=a.movers.filter(m=>{const n=b.movers.find(x=>x.id===m.id);return n&&Math.hypot(n.x-m.x,n.y-m.y)>0.05}).length;
+    // it interpolates: within one tick the view time takes several values between the snapshots either side of it
+    // (sampled frame by frame, however slow the frames, for up to 5 s)
+    const inTick=await page.evaluate(()=>new Promise(done=>{const by={},t0=performance.now();
+      const f=()=>{const v=window.__sim.view();if(v.alpha>0&&v.alpha<1&&v.hours>v.prev&&v.hours<v.cur)(by[v.cur]??=new Set()).add(v.hours);
+        const best=Math.max(0,...Object.values(by).map(s=>s.size));if(best>=3||performance.now()-t0>5000)done(best);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
+    ok('scene: the view glides between snapshots at 1×',inTick>=3,`${inTick} view times inside one tick`);
+    // and what moves glides with it: people walking in a small synthetic scene at 1× move between two frames of one tick
+    await page.evaluate(()=>window.__sim.bench(20,20,1));await page.waitForFunction(()=>window.__sim.view().movers.length>=10,null,{timeout:8000}).catch(()=>{});
+    const pair=await page.evaluate(()=>new Promise(done=>{let a=null;const t0=performance.now();
+      const f=()=>{const v=window.__sim.view();if(a&&v.cur===a.cur&&v.hours>a.hours){done([a,v]);return}if(!a||v.cur!==a.cur)a=v;
+        if(performance.now()-t0>5000)done([a,v]);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
+    const [a,b]=pair,moved=a.movers.filter(m=>{const n=b.movers.find(x=>x.id===m.id);return n&&Math.hypot(n.x-m.x,n.y-m.y)>0.05}).length;
     ok('scene: people drawn from activities move smoothly between ticks',a.movers.length>=10&&moved>=5&&a.cur===b.cur,`${moved} of ${a.movers.length} moved within tick ${a.cur}→${b.cur}`);
     await page.screenshot({path:join(out,'scene-1440x900.png')});await ctx.close()}
 

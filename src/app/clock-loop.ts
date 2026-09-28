@@ -4,6 +4,7 @@
 // while the page is open and showing: a hidden tab gets no frames, and a long gap between frames counts as a short one.
 // docs/systems/clock.md says how it works.
 import {hoursPerSecond} from '../sim/clock';
+import type {Speed} from '../data/ladder';
 import type {Snapshot} from '../sim/state';
 import type {SimClient} from './sim-client';
 
@@ -23,8 +24,9 @@ export interface Loop {
   latest(): Snapshot | null;
   /** Called every frame with the view, after the clock moves. */
   onFrame(fn: (v: View, now: number) => void): void;
-  /** Check-only: replace the game with a synthetic scene of n nodes and m people, n by default (0 stops it). */
-  bench(n: number, m?: number): void;
+  /** Check-only: replace the game with a synthetic scene of n nodes and m people (n by default) at a speed (4× by
+   *  default, the busiest the first levels get); 0 nodes stops it. */
+  bench(n: number, m?: number, speed?: number): void;
   /** Whether a bench is running (the panels ignore its snapshots). */
   benching(): boolean;
   /** Movement jumps per tick instead of gliding (prefers-reduced-motion). */
@@ -32,11 +34,9 @@ export interface Loop {
 }
 
 const AHEAD = 2, MAX_STEPS = 8, MAX_GAP = 0.25, JUMP = 4;
-/** The bench runs at the garden's 4×, four ticks a second, the busiest the first levels get. */
-const BENCH_RATE = 4;
 
 export function createLoop(sim: SimClient): Loop {
-  let queue: Snapshot[] = [], target = 0, inFlight = false, last = 0, reduced = false, benchN = 0, benchM = 0;
+  let queue: Snapshot[] = [], target = 0, inFlight = false, last = 0, reduced = false, benchN = 0, benchM = 0, benchRate = 4;
   let game: Snapshot | null = null; // the game's latest, kept while a bench runs
   const frames: ((v: View, now: number) => void)[] = [];
 
@@ -81,7 +81,7 @@ export function createLoop(sim: SimClient): Loop {
     last = now;
     const top = queue[queue.length - 1];
     if (!top) return;
-    const rate = benchN ? BENCH_RATE : hoursPerSecond(top.level, top.speed);
+    const rate = benchN ? benchRate : hoursPerSecond(top.level, top.speed);
     target = Math.min(target + dt * rate, top.hours);
     if (top.hours - target > JUMP * top.step) target = top.hours - top.step; // moved far ahead by a command: catch up at once
     // drop what's behind the view, keeping the one just before it to interpolate from
@@ -98,7 +98,8 @@ export function createLoop(sim: SimClient): Loop {
     onFrame: (fn) => void frames.push(fn),
     setReducedMotion: (on) => void (reduced = on),
     benching: () => benchN > 0,
-    bench(n, m = n) {
+    bench(n, m = n, speed = 4) {
+      benchRate = hoursPerSecond(1, speed as Speed);
       if (n === benchN && m === benchM) return;
       if (!benchN && n) game = queue[queue.length - 1] ?? null;
       benchN = n;
