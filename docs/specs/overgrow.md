@@ -6,7 +6,7 @@ The game's founding spec, from the owner's idea and the design agreed with them 
 
 ## What the player gets
 
-An incremental upgrade game about the food system that keeps zooming out, and an honest simulation of it underneath. You start with two beds in a back garden, learning soil, water, pests and what grows when. Do that well and the garden becomes one plot on an allotment, where the problems are shared water, neighbours and surplus. The allotment becomes a field on a smallholding, the smallholding a farm, the farm a supplier to a market town, the town a link in a supermarket's supply chain, the chain a region of the nation, and the nation a country on the planet, where the climate loop your compost heap started finally closes. The skills carry over but the unit changes; the clock speeds up; now and then something fails far below and you drop back down to fix it by hand. Every effect can be explained: tap it and the game names the mechanism and where it comes from.
+An incremental upgrade game about the food system that keeps zooming out, and an honest simulation of it underneath. **You never do the work yourself: you decide, and people do it.** In the garden you set the plan and buy the tools, and the gardener walks out and sows, waters and picks; on the farm the farmer and the hands do it; in the nation the law does it, through everyone. You start with two beds in a back garden, learning soil, water, pests and what grows when. Do that well and the garden becomes one plot on an allotment, where the problems are shared water, neighbours and surplus. The allotment becomes a field on a smallholding, the smallholding a farm, the farm a supplier to a market town, the town a link in a supermarket's supply chain, the chain a region of the nation, and the nation a country on the planet, where the climate loop your compost heap started finally closes. The skills carry over but the unit changes; the clock speeds up; now and then something fails far below and you drop back down to put it right through the people there. Every effect can be explained: tap it and the game names the mechanism and where it comes from.
 
 ## The model underneath everything
 
@@ -14,7 +14,8 @@ An incremental upgrade game about the food system that keeps zooming out, and an
 
 - **Stocks**, which persist and change slowly: land by use; soil (organic matter, nutrients, structure, water holding); water stores; standing crops and herds; food in storage, with age and temperature; money and kit; people (labour, population, diet, health, trust); the atmosphere's greenhouse gases and the warming they cause; knowledge (upgrades bought, laws in force).
 - **Flows**, which move each tick and are conserved (nothing appears from nowhere), in SI units: water (litres), nutrients (kg N, P, K), carbon (kg CO₂e), food by product (kg), feed (kg), money, labour (hours), energy (kWh), waste (kg), pests and disease (a population), opinion (support points).
-- **Levers**, what the player can pull at that level. The same lever grows as you zoom out: "water the bed" → "share the trough" → "irrigate or not" → "abstraction licences" → "water policy".
+- **Levers**, what the player can pull at that level: a **plan** (what to grow where, when to water, what to do about slugs), an **upgrade** (a tool, a building, a machine), a **policy** (a rule the level's people follow) and, from the nation, a **law**. The same lever grows as you zoom out: "water below this moisture" → "share the trough by rota" → "irrigate or not" → "abstraction licences" → "water policy". The player never acts on a bed, a field or a lorry directly: the level's people do, under the plan, with the tools they have.
+- **Time is the first constraint.** Every level's people have so many hours; a watering-can round takes a morning, a hose half of it, drip lines none. **Money buys tools, tools buy time, time buys yield**, and a law at the top buys or costs the same things for a whole country. Labour hours are a flow from the first bed.
 - **Delays** are the education. Soil takes years, forests decades, the climate a lifetime; prices move in days. Every model states its fast effect and its slow effect, and the Explain card shows both.
 
 **The graph.** A level is a map of nodes with flows between them. At the level you're playing, you run your own nodes in detail; every node on the map, yours or not, carries the same totals. Other people's nodes (neighbours' plots, other farms, other countries) are generated from real-world ranges with the same shape and never had a detail level.
@@ -38,7 +39,7 @@ Eight levels *(how many ship at launch, and their names: default, #2)*. Each is 
 - One continuous save *(default, #2)*: finished levels are never replayed from scratch, only revisited by zooming back in.
 - Nothing above the level you're playing is shown; the next level appears when its offer comes (locked things are hidden).
 - **Politics exists at every level**, only its size changes: the neighbour over the fence, the committee, the parish, the union, the council, the lobby, the parliament, the treaty.
-- **Carbon, land, water and waste are counted at every level from the first bed**, so the national and planetary accounts are sums of things the player already handled by hand.
+- **Carbon, land, water and waste are counted at every level from the first bed**, so the national and planetary accounts are sums of things the player already managed up close.
 
 ## The carry-over rule
 
@@ -62,7 +63,7 @@ From the town up a node also carries **Freshness** (output-weighted shelf life, 
 
 | Where it shows | What the player sees | What they can do |
 | --- | --- | --- |
-| Its home level | the thing itself, drawn: aphids on the beans, a pump that won't start | the hands-on fix |
+| Its home level | the thing itself, drawn: aphids on the beans, a pump that won't start | change the plan or buy the tool, and watch the people act on it |
 | One level up | the node's tile with the event's icon and "Output −20 % for 10 days" | a node-level action: buy biocontrol for the plot, send help |
 | Two or more up | a regional tint and one line: "pest year in the east: veg −5 %" | policy: stock up, switch suppliers, change the mix |
 
@@ -71,8 +72,8 @@ A duration shorter than one tick of the level showing it is rounded up to a tick
 ## Zooming back in
 
 - **The trigger.** From the allotment up, when a shortage at the level you're playing (demand the map can't meet, or a price spike) traces mostly to one node (at least half the shortfall), the map draws the trace: a line from the shortage down the supply to the failing node, which pulses. At most once per game year per level, never in a level's first year. At the planet the trace runs all the way down: a country, a region, a chain, a farm, a field.
-- **Dropping down.** Tap the node, then **Go down**. The camera dives in and the level below opens, inflated from the node's totals and its event. Players who'd rather not get **Send someone**: a manager fixes it for a fee and half the reward.
-- **What they fix.** The event at its home level, by hand, with that level's own tools: blight on the potatoes, a broken cold store, a labour gap at harvest, a slurry leak into the river.
+- **Dropping down.** Tap the node, then **Go down**. The camera dives in and the level below opens, inflated from the node's totals and its event. Players who'd rather not get **Send someone**: an adviser sets it right for a fee and half the reward.
+- **What they fix.** The event at its home level, through that level's people and tools: see what the farm's plan and kit are, change them (cut out the blight, hire the hands, replace the cold store, fix the slurry store), and watch the farmer and the hands act on it.
 - **How long the level above waits.** It doesn't pause: one clock, now running at the lower level's rate, so the level above barely moves. The rescue has a deadline in the lower level's days, shown as a strip across the top with the shortage still counting above. Ten real minutes in a garden is a month on the national map.
 - **What they win.** The node's numbers come back and it earns a lasting mark: Reliability +10 and a **Rescued** badge. A rescue in time pays a reward at the level above (money, or its own currency: goodwill, reputation, political capital), bigger the faster it was done. A missed deadline fixes nothing; the shortage runs its course.
 - The first zoom back in is scripted, in the allotment's first summer: slugs from a neighbour's neglected plot get into your own garden.
@@ -97,7 +98,7 @@ Each system names the real-world basis its models rest on; the model files repea
 | --- | --- | --- | --- |
 | Crops | Sowing windows, growth by degree days, stress from water, nutrients, frost and heat; yield and quality; harvest windows; perennials. | Growing-degree-day phenology; FAO-56 yield response to water; RHS sowing calendars | 1 |
 | Livestock | Species by feed conversion, land and water per kg, methane, manure, welfare and stocking density, disease. The pivot of the diet question. | Poore & Nemecek (2018) for land, water and emissions per kg; IPCC Tier 1 enteric methane; FAO feed conversion ratios | 1 (hens), 3 |
-| Pests, disease and weeds | Populations driven by weather and hosts; spread between neighbours and along trade; controls by hand, biocontrol or chemicals, each with side effects. Animal disease closes borders. | Degree-day insect models; the Smith period for potato blight; UK slug and aphid guidance | 1 |
+| Pests, disease and weeds | Populations driven by weather and hosts; spread between neighbours and along trade; controls by picking, traps, biocontrol or chemicals, each with a cost in time and side effects. Animal disease closes borders. | Degree-day insect models; the Smith period for potato blight; UK slug and aphid guidance | 1 |
 | Nutrients and fertiliser | The nitrogen cycle (fixation, synthetic from gas, manure, leaching, nitrous oxide); finite phosphate from few countries. Links energy prices to food prices. | RB209; IPCC N₂O factors; Haber-Bosch energy intensity | 1 (compost), 3 |
 | Labour | Skills, seasonal peaks, wages, migration; mechanisation as the substitute. | DEFRA farm labour statistics; AHDB gross margins | 3 |
 
@@ -128,45 +129,46 @@ Each system names the real-world basis its models rest on; the model files repea
 | Politics and policy | Levers by level (the committee's rota, the council's markets, the nation's subsidies, taxes, regulation, guidelines, land reform, the world's treaties). Every lever costs **political capital**, replenished by public support and spent faster against lobbies (farm unions, retail, the meat industry, campaigners) and at elections. Policy reaches every node below as a modifier. | The Common Agricultural Policy and its successors; the sugar levy as a worked example; the political-capital model from the policy literature | 2 |
 | Technology and upgrades | The incremental tree: tools, water butts, greenhouses, machinery, precision farming, cold stores, digesters, renewables, varieties, vertical farms, alternative proteins. Each costs money, unlocks by level, and has side effects the other systems feel. | AHDB and industry costings; life-cycle studies for alternative proteins | 1 |
 
-**The game's own systems:** the ladder and sealing (above); managers, recommendations and Explain (a manager per level for players who'd rather not; recommendations that say why; an Explain card on every effect naming the mechanism and its source); events, mostly emergent from the systems above, with a few seeded scripted ones to teach.
+**The game's own systems:** the ladder and sealing (above); advisers, recommendations and Explain (an adviser per level who recommends the plan and can be told to set it, for players who'd rather watch; recommendations that say why; an Explain card on every effect naming the mechanism and its source); events, mostly emergent from the systems above, with a few seeded scripted ones to teach.
 
 **The loops that make it a game.** The diet loop (demand mix → herds versus crops → land, feed, water, methane → warming → yields and prices → demand; politics pushes, culture pushes back or runs ahead). The intensification loop (inputs → yields now → soil, water and biodiversity down over years → yields and regulation later). The trade loop (a failure abroad → imports dry up → prices → unrest → export bans → worse). The energy loop (a gas price → fertiliser and fuel → planting → next year's harvest). The waste loop (cosmetic standards and cheap food → waste → methane and lost land; policy and circularity claw it back). Steering the planet towards plant-based or towards meat is a real strategy with real trade-offs, felt at different speeds in land, emissions, health, prices and votes.
 
 ## The first playable slice: the back garden and the step up to the allotment
 
-**What ships first.** Level 1 complete and level 2's first season, built on the graph, not a garden-shaped special case: the node shape, flows in SI units, sealing, the carry-over rule, carbon and land counted from the first bed, the Explain card, one manager, and the bot.
+**What ships first.** Level 1 complete and level 2's first season, built on the graph, not a garden-shaped special case: the node shape, flows in SI units, sealing, the carry-over rule, carbon and land counted from the first bed, the gardener who does the work, the Explain card, one adviser, and the bot.
 
-**The garden.** A top-down garden behind a house: six beds (two dug at the start), a tap, a water butt, a compost heap, a shed, a lawn, a kitchen.
+**The garden.** A top-down garden behind a house: six beds (two dug at the start), a tap, a water butt, a compost heap, a shed, a lawn, a kitchen, and **the gardener**, who does everything you decide. They have about four hours a day for the garden (more at weekends); each job takes time with the tools they have, and what doesn't fit waits until tomorrow. You see them walk to each job and do it.
 - **Soil per bed:** moisture (FAO-56 water balance, daily), fertility (N-P-K taken by crops, put back by compost and legumes), organic matter (rises with compost and cover, falls bare), health as an index.
 - **Crops:** salad leaves, radishes, lettuce, beans, potatoes, tomatoes, each with a sowing window, degree days to maturity, a crop coefficient, a family for rotation, and the pests it draws. Frost kills tender crops; a cold frame shelters a bed.
 - **Weather:** a mild UK year from early spring with seeded daily noise; drawn, never announced as text.
 - **Pests:** slugs (at night, after rain), aphids (on beans; ladybirds if there are flowers), blight (potatoes and tomatoes in a Smith period).
 - **Harvest and demand:** the kitchen wants about 1 kg of veg a day in a mix; surplus goes to an honesty box at the gate; unpicked crops bolt or rot to compost.
 - **Carbon and land:** the compost heap stores and emits; a bag of peat compost costs carbon; digging the lawn is a land-use change. Shown on a small dial from day one, explained when tapped.
-- **Upgrades** (the shed): more beds, a bigger butt, a compost bin, a cold frame, netting, a hose, drip lines, a hen house. Each hidden until it's worth having.
-- **Managers:** drip lines water; a keen neighbour picks pests for a share; a planting plan resows in rotation. Recommendations say what's worth buying next and why.
+- **The plan** (the Garden tab): what to sow in each bed and when (or "follow the rotation"), the moisture below which the gardener waters, and the pest policy (leave, pick, trap, treat). The gardener follows it with the tools they have.
+- **Upgrades** (the shed): tools that buy time (a hose, then drip lines; a beer trap, then nematodes; a wheelbarrow; a shed light for evenings) and things that buy yield (more beds, a bigger butt, a compost bin, a cold frame, netting, a hen house), each hidden until it's worth having, each with its time saved and its side effects shown before you buy.
+- **Advisers:** recommendations on every tab say what's worth changing or buying next and why; "let them decide" hands a tab's plan to the adviser for players who'd rather watch.
 
-**The first minute.** No menu and no scenario choice: the page opens on the garden, early on a spring morning, day 1.
-1. 0–10 s: "Sow some salad leaves." The two dug beds glow; tap one, then the packet. Seeds go in.
-2. 10–20 s: "Now water them." Tap the can, then the bed: the soil darkens.
-3. 20–45 s: the clock runs; at dusk slugs creep onto the wet bed. Tap them off. Tap the slug trail afterwards: the first Explain card (slugs, moisture, night).
-4. 45–60 s: next morning, green shoots. The goal bar shows "First harvest: 6 days". A shower passes and the other bed darkens by itself.
-- First harvest at about three minutes at 1×, first sale a minute later, first upgrade within ten minutes.
+**The first minute.** No menu and no scenario choice: the page opens on the garden, early on a spring morning, day 1, with the gardener standing by the shed.
+1. 0–10 s: a card offers the first plan: "Salad leaves in bed 1, radishes in bed 2" (or "let them choose"). Accept it. The gardener walks to the beds and sows, drawn.
+2. 10–25 s: they fetch the can and water both beds, a trip each; the soil darkens. The day's hours tick down on their card.
+3. 25–45 s: dusk; slugs creep onto the wet beds. The gardener goes out with a torch and picks them, slowly, and misses some. Tap a slug: the first Explain card (slugs, moisture, night).
+4. 45–60 s: next morning, green shoots, a nibbled leaf. The shed shows the first upgrade: a beer trap, cheap, "catches most slugs, costs no time". The goal bar shows "First harvest: 6 days". A shower passes and both beds darken by themselves; the gardener stays in.
+- First harvest at about three minutes at 1×, first sale a minute later, the beer trap and then the hose within ten minutes.
 
 **What makes the jump feel earned.** The allotment committee offers a plot when your garden, sealed, would be a plot worth having: Output at least 1.5 kg a day and Reliability at least 60 over the last 28 days, with Health at least 50 *(proposed; set with the bot's baselines)*. The goal bar shows the three numbers moving, so a steady, healthy garden is visibly what's wanted, not one lucky harvest. It needs most of the garden's skills at once: a mix for steady output, rotation and compost for Health, pests kept down. The step-up card shows the garden shrinking into a tile with its numbers on it ("This is your plot now"), the camera pulls back, and the tile lands among eleven others. Straight away the old skills return as new problems: one shared trough with a daily limit, surplus to swap for what you can't grow, slugs from a neglected plot next door, and a committee vote on the water rota.
 
-**The allotment's first season.** Twelve plots: yours plus eleven gardeners with names and habits (tidy, lazy, generous, competitive), each a node with the same totals. You run your plot by its plan, can take on a neglected second plot, swap at the shed, and vote. The scripted zoom back in comes in its first summer.
+**The allotment's first season.** Twelve plots: yours plus eleven gardeners with names and habits (tidy, lazy, generous, competitive), each a node with the same totals. Your gardener now has a plot to keep and a trough rota to work round; you set their plan, take on a neglected second plot (and the hours it needs), swap at the shed, and vote. The scripted zoom back in comes in its first summer.
 
 ## The simulation's state and time
 
 - **Saved:** the level; the clock (game hours since the start); money; the ladder (each sealed node's totals and plan); the current level's graph (every node's stocks, flows last tick and levers); upgrades bought; laws in force; goals; settings; what's been seen; and the `Rng` state, so a loaded game plays on exactly as it would have. Versioned JSON in `localStorage['overgrow-save-v1']`, saved every game day and on leaving the page.
 - **Runtime only:** the camera, what's drawn (each slug, the rain, tile animations), panel state, totals rebuilt from the snapshot, toasts. Nothing in it changes play.
 - **One clock.** Game hours since the start; each level sets how many a real second is worth (the ladder), times the speed. The sim advances in fixed steps of an hour (levels 1–2), a day (3–5), a week (6–7) or a month (8); systems register on the ticks (hour, day, week, season, year). Zooming changes the rate, never the clock.
-- **Every action is a command** (`src/sim/index.ts`): the panels, the map's taps, the managers and the bot all go through `apply()`, so the bot plays exactly the game the player does. The page runs the sim in a Web Worker; the tests and the bot call it in Node.
+- **Every action is a command** (`src/sim/index.ts`): a plan, an upgrade, a policy, a law. The panels, the advisers and the bot all go through `apply()`, so the bot plays exactly the game the player does. A tap on the map opens Explain or a node's panel; it never does the work. The page runs the sim in a Web Worker; the tests and the bot call it in Node.
 
 ## How the bot measures pacing and balance from the first build
 
-- The bot (`bot.ts` in `tools/`, `npm run bot`) arrives with the garden, in the same wave. It plays through commands like a sensible player: sow in season, rotate families, water below a moisture line, pick pests above a count, harvest when ripe, buy the next upgrade at three times its price.
+- The bot (`bot.ts` in `tools/`, `npm run bot`) arrives with the garden, in the same wave. It plays through the same commands the player has, like a sensible player: a plan that sows in season and rotates families, a moisture line to water at, a pest policy, and the next upgrade at three times its price. It never touches a bed: the gardener does, in the sim.
 - **It reports**, per seed (1, 2, 3): the game day of each milestone (first harvest, first sale, each upgrade, half the kitchen's need met, the allotment offer, the first swap, the second plot), the sealed garden's totals, money over time, food wasted, carbon, `PLAY` and `ERR`. The baselines file (`baseline.json` in `tools/`) holds a range per milestone; the `balance` playbook compares.
 - **Proposed first targets** (agreed with the first baselines): first harvest by day 8, first upgrade by day 20, the allotment offer between days 55 and 75 (about 25 minutes at 1×), the allotment's first season in about 20 minutes more.
 - **Strategy tests**, so no single trick wins: a rotating bot beats a one-crop bot by at least 10 % of Output by day 120; a bot that never picks pests reaches the allotment later but still reaches it; a managers-only bot reaches it within 25 % of the hands-on bot's day.
@@ -211,10 +213,10 @@ Each part is one PR, from its own brief, in this order. Parts 3 and 4 can build 
 
 1. **The graph and the clock:** nodes, stocks, flows in units, conservation tests, the clock and ticks, commands and snapshots, saving with versions, the page's shell (the WebGL map with interpolation between snapshots, top bar, panel, sheet) at every size. Checks: `conservation`, `layout`, `scene`.
 2. **Weather, soil and water:** the weather generator (with the warming index input), the soil water balance, soil health; rain and frost crossing the beds, soil paling and darkening. Plausibility tests per model.
-3. **Crops and the gardener:** growth, sowing, watering, harvesting, with the gardener walking to do each; the kitchen's demand and the honesty box, with produce carried; carbon and land counted. Check: `garden`.
+3. **Crops and the gardener:** growth, sowing, watering and harvesting done by the gardener under the plan, with their hours as the constraint and each job drawn; the kitchen's demand and the honesty box, with produce carried; carbon and land counted. Check: `garden`.
 4. **The bot and the first baselines:** the bot in `tools/`, `npm run bot`, the Balance workflow, a proposed baselines file for the owner.
-5. **Pests, wildlife and Explain:** slugs, aphids and blight moving on the map, by hand and by manager; bees, ladybirds, the hens and the cat; the Explain card on every effect so far.
-6. **The shed:** upgrades, recommendations, managers, the hen house; the goal bar and the guided first minute.
+5. **Pests, wildlife and Explain:** slugs, aphids and blight moving on the map, and the gardener's pest policy (leave, pick, trap, treat) with what each costs in time and side effects; bees, ladybirds, the hens and the cat; the Explain card on every effect so far.
+6. **The shed and the advisers:** tools that buy time and things that buy yield, each with its time saved and side effects shown before buying; recommendations and "let them decide"; the hen house; the goal bar and the first minute.
 7. **Sealing and the step up:** the carry-over rule, the step-up card and the zoom-out. Check: `carry`.
 8. **The allotment's first season:** the plots and neighbours, the trough, the swap shed, pests spreading, the second plot, the committee vote.
 9. **The first zoom back in:** the trace, Go down or Send someone, the deadline and reward, on the scripted slug outbreak.
