@@ -1,0 +1,104 @@
+# Keeps every open PR from this repo up to date with main, so sessions don't chase it. When main moves, it merges main
+# into each open PR whose base is main, rejoins the joined lists (tools/join.mjs), and pushes if the merge was clean or
+# its only conflicts were inside the joined lists. It never rebases or force-pushes. When a real conflict stops it, it
+# comments once on the PR (one comment, updated in place) and leaves the branch alone. A PR labelled no-catch-up is left
+# alone too.
+#
+# Pushes made with the repo's own token don't start pull_request workflows, so without a CATCH_UP_TOKEN secret it starts
+# Checks itself (never a bot workflow, once there is one: those run once per PR). The repo's token also can't push a
+# merge that brings in a change to .github/workflows/; then it comments instead. A CATCH_UP_TOKEN (a fine-grained token
+# with contents, pull requests and workflows write on this repo) lifts both. docs/decisions/ADR-2026-09-28-one-file-per-entry.md has why.
+name: Catch up
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: catch-up
+  cancel-in-progress: false
+
+jobs:
+  catch-up:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CATCH_UP_TOKEN || github.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Merge main into each open PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWN_TOKEN: ${{ secrets.CATCH_UP_TOKEN != '' }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -u
+          git config user.name 'KyleLookingAround'
+          git config user.email 'KyleMck10@hotmail.com'
+          git fetch --quiet origin '+refs/heads/*:refs/remotes/origin/*'
+          main=$(git rev-parse origin/main)
+          marker='<!-- catch-up -->'
+          # one comment per PR, edited in place
+          say() {
+            local pr=$1 body="$marker"$'\n'"$2"
+            local id
+            id=$(gh api "repos/$REPO/issues/$pr/comments" --paginate --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | tail -n 1)
+            if [ -n "$id" ]; then gh api -X PATCH "repos/$REPO/issues/comments/$id" -f body="$body" > /dev/null
+            elif [ "${3:-}" != quiet ]; then gh pr comment "$pr" --body "$body" > /dev/null; fi
+          }
+          mapfile -t rows < <(gh pr list --repo "$REPO" --state open --base main --limit 200 \
+            --json number,headRefName,isCrossRepository,labels \
+            --jq '.[] | select(.isCrossRepository | not) | select([.labels[].name] | index("no-catch-up") | not) | "\(.number) \(.headRefName)"')
+          for row in "${rows[@]}"; do
+            pr=${row%% *} head=${row#* }
+            echo "::group::#$pr $head"
+            if ! { git checkout --quiet --force -B catch-up "origin/$head" && git reset --quiet --hard "origin/$head" && git clean -fdq; }; then
+              echo "couldn't check out $head"; echo "::endgroup::"; continue
+            fi
+            if git merge-base --is-ancestor "$main" HEAD; then echo "already has main"; echo "::endgroup::"; continue; fi
+            if ! git merge --no-edit -m "Merge main into $head" origin/main > /tmp/merge.log 2>&1; then
+              conflicted=$(git diff --name-only --diff-filter=U)
+              joined=$(node -e "import('./tools/join.mjs').then(m=>console.log(m.joinedFiles().join('\n')))")
+              outside=$(comm -23 <(echo "$conflicted" | sort) <(echo "$joined" | sort))
+              if [ -n "$conflicted" ] && [ -z "$outside" ] && node tools/join.mjs --write && ! grep -lE '^(<{7}|>{7}) ' $conflicted; then
+                git add $conflicted
+                git commit --quiet --no-edit
+                echo "conflicts only inside the joined lists: rejoined"
+              else
+                git merge --abort
+                files=$(echo "${outside:-$conflicted}" | sed 's/^/- `/; s/$/`/')
+                say "$pr" "Catch up couldn't merge \`main\` (${main:0:7}) into \`$head\`: these files conflict outside the joined lists.
+
+          $files
+
+          Merge it by hand: \`git fetch origin main && git merge origin/main\`, resolve those files, and push. A conflict inside a joined list clears with \`node tools/join.mjs --write\`. This comment is updated rather than repeated."
+                echo "::endgroup::"; continue
+              fi
+            fi
+            # a clean merge can still bring in entries from both sides: rebuild the lists from them
+            if [ -f tools/join.mjs ] && node tools/join.mjs --write && [ -n "$(git status --porcelain)" ]; then
+              git add -A
+              git commit --quiet -m "Rejoin the lists after merging main"
+            fi
+            if git push --quiet origin "HEAD:refs/heads/$head"; then
+              echo "pushed"
+              say "$pr" "Caught up with \`main\` (${main:0:7}) automatically; nothing to do." quiet
+              if [ "$OWN_TOKEN" != true ]; then
+                gh workflow run checks.yml --repo "$REPO" --ref "$head" || true
+              fi
+            else
+              say "$pr" "Catch up merged \`main\` (${main:0:7}) into \`$head\` but couldn't push it: the branch moved meanwhile, or \`main\` changed a file in \`.github/workflows/\`, which the repo's token may not push. Merge it by hand: \`git fetch origin main && git merge origin/main\`, then push. This comment is updated rather than repeated."
+            fi
+            echo "::endgroup::"
+          done

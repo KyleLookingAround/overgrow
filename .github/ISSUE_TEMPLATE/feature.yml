@@ -1,0 +1,27 @@
+name: Feature
+description: Something new for players, or a change to how something works
+labels: [enhancement]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: What the player gets
+      description: The player's goal or problem, in a sentence or two.
+    validations:
+      required: true
+  - type: dropdown
+    id: level
+    attributes:
+      label: Level
+      description: Where it sits on the ladder.
+      options: [Back garden, Allotment or community garden, Smallholding or farm, Local distribution, Supermarket supply chain, National or global, Every level, Not sure]
+  - type: textarea
+    id: shows
+    attributes:
+      label: What it looks like
+      description: What changes on the map (not text events), on phones and large screens, and how it shows once the level is zoomed out.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: When it should unlock, what it should cost, ideas you've ruled out.

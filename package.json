@@ -1,0 +1,14 @@
+{
+  "name": "overgrow",
+  "private": true,
+  "type": "module",
+  "description": "Overgrow: a food and farming upgrade game in a single HTML page",
+  "homepage": "https://kylelookingaround.github.io/overgrow/",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "check": "node tools/build.mjs && node tools/check.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
