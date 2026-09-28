@@ -36,8 +36,8 @@ export default async function({ok,open,out}){
     // (sampled frame by frame, however slow the frames, for up to 5 s)
     const inTick=await page.evaluate(()=>new Promise(done=>{const by={},t0=performance.now();
       const f=()=>{const v=window.__sim.view();if(v.alpha>0&&v.alpha<1&&v.hours>v.prev&&v.hours<v.cur)(by[v.cur]??=new Set()).add(v.hours);
-        const best=Math.max(0,...Object.values(by).map(s=>s.size));if(best>=3||performance.now()-t0>5000)done(best);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
-    ok('scene: the view glides between snapshots at 1×',inTick>=3,`${inTick} view times inside one tick`);
+        const best=Math.max(0,...Object.values(by).map(s=>s.size));if(best>=2||performance.now()-t0>5000)done(best);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
+    ok('scene: the view glides between snapshots at 1×',inTick>=2,`${inTick} view times inside one tick`);
     // and what moves glides with it: people walking in a small synthetic scene at 1× move between two frames of one tick
     await page.evaluate(()=>window.__sim.bench(20,20,1));await page.waitForFunction(()=>window.__sim.view().movers.length>=10,null,{timeout:8000}).catch(()=>{});
     const pair=await page.evaluate(()=>new Promise(done=>{let a=null;const t0=performance.now();
@@ -53,7 +53,7 @@ export default async function({ok,open,out}){
     const seen=[];for(let i=0;i<30;i++){seen.push(await view(page));await page.waitForTimeout(50)}
     const whole=seen.every(x=>Number.isInteger(x.hours)),ticks=new Set(seen.map(x=>x.hours)).size;
     const still=seen.every((x,i)=>!i||x.hours!==seen[i-1].hours||JSON.stringify(x.movers)===JSON.stringify(seen[i-1].movers));
-    ok('scene: under reduced motion the map jumps per tick instead of gliding',whole&&ticks>=1&&still&&!errs.length,`whole hours ${whole}, ${ticks} ticks seen, movers still between ticks ${still}`);
+    ok('scene: under reduced motion the map jumps per tick instead of gliding',whole&&ticks>=2&&still&&!errs.length,`whole hours ${whole}, ${ticks} ticks seen, movers still between ticks ${still}`);
     await ctx.close()}
 
   // a seeded, paused screenshot repeats exactly

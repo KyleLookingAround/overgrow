@@ -22,13 +22,12 @@ export interface SnapshotDelta {
 
 /** The stocks that changed from a to b, null if none; all of b's if one of a's is gone. */
 const stockChanges = (a: Record<string, Stock>, b: Record<string, Stock>): {stocks: Record<string, Stock>; allStocks?: true} | null => {
-  let out: Record<string, Stock> | null = null, n = 0;
+  let out: Record<string, Stock> | null = null;
+  for (const k in a) if (!(k in b)) return {stocks: b, allStocks: true};
   for (const k in b) {
     const x = a[k], y = b[k]!;
-    if (!x || x.amount !== y.amount || x.cap !== y.cap) (out ??= {})[k] = y;
-    n++;
+    if (!x || x.amount !== y.amount || x.cap !== y.cap || x.unit !== y.unit || x.product !== y.product) (out ??= {})[k] = y;
   }
-  if (n !== Object.keys(a).length) return {stocks: b, allStocks: true};
   return out && {stocks: out};
 };
 const sameLevers = (a: Record<string, LeverValue>, b: Record<string, LeverValue>) => {

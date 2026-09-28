@@ -3,6 +3,7 @@
 // shown once it has something in it) it lists the garden's places and what the selected one holds.
 import type {GraphNode, NodeId} from '../sim/graph';
 import {amount} from './format';
+import {isDug} from './map/draw';
 
 const ORDER = ['bed', 'kitchen', 'shed', 'butt', 'tap', 'heap', 'path', 'lawn'];
 const rank = (n: GraphNode) => (ORDER.indexOf(n.kind) + 1 || ORDER.length + 1);
@@ -12,7 +13,7 @@ const LAND: Record<string, string> = {crops: 'crops', grass: 'grass', built: 'bu
 
 function about(n: GraphNode): string {
   if (n.kind !== 'bed') return '';
-  return (n.stocks['land.crops']?.amount ?? 0) > 0 ? 'Dug, ready to sow' : 'Under grass, not dug yet';
+  return isDug(n) ? 'Dug, ready to sow' : 'Under grass, not dug yet';
 }
 
 function Place({n}: {n: GraphNode}) {
@@ -23,7 +24,7 @@ function Place({n}: {n: GraphNode}) {
     return [name, amount(s)] as const;
   }).filter((r): r is readonly [string, string] => !!r);
   return (
-    <section class="place" aria-live="polite">
+    <section class="place">
       <h3>{n.name}</h3>
       {about(n) && <p class="soft">{about(n)}</p>}
       <dl>

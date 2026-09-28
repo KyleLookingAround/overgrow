@@ -22,8 +22,8 @@ export interface Loop {
   view(): View | null;
   /** The newest snapshot, up to two steps ahead of the view: the speed the player last set is read here. */
   latest(): Snapshot | null;
-  /** Called every frame with the view, after the clock moves. */
-  onFrame(fn: (v: View, now: number) => void): void;
+  /** Called every frame with the view, after the clock moves; returns a function that stops it. */
+  onFrame(fn: (v: View, now: number) => void): () => void;
   /** Check-only: replace the game with a synthetic scene of n nodes and m people (n by default) at a speed (4× by
    *  default, the busiest the first levels get); 0 nodes stops it. */
   bench(n: number, m?: number, speed?: number): void;
@@ -58,10 +58,13 @@ export function createLoop(sim: SimClient): Loop {
     if (steps < 1) return;
     inFlight = true;
     const done = () => void (inFlight = false);
-    if (benchN) sim.bench(benchN, benchM, top.hours + top.step).then((s) => {
-      done();
-      if (benchN) take(s);
-    }, done);
+    if (benchN) {
+      const n = benchN, m = benchM;
+      sim.bench(n, m, top.hours + top.step).then((s) => {
+        done();
+        if (benchN === n && benchM === m) take(s);
+      }, done);
+    }
     else sim.send({type: 'tick', hours: steps * top.step}).then(done, done);
   };
 
@@ -95,7 +98,10 @@ export function createLoop(sim: SimClient): Loop {
   return {
     view,
     latest: () => queue[queue.length - 1] ?? null,
-    onFrame: (fn) => void frames.push(fn),
+    onFrame(fn) {
+      frames.push(fn);
+      return () => void frames.splice(frames.indexOf(fn) >>> 0, 1);
+    },
     setReducedMotion: (on) => void (reduced = on),
     benching: () => benchN > 0,
     bench(n, m = n, speed = 4) {

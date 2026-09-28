@@ -10,7 +10,7 @@ import {createRenderer, type MapRenderer} from './map/renderer';
 export function MapView({loop, onSelect, onReady}: {loop: Loop; onSelect: (id: NodeId) => void; onReady: (r: MapRenderer) => void}) {
   const box = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null), renderer = useRef<MapRenderer | null>(null);
   useEffect(() => {
-    let gone = false;
+    let gone = false, stop = () => {};
     const el = box.current!, size = () => ({w: Math.max(1, el.clientWidth), h: Math.max(1, el.clientHeight)});
     const ro = new ResizeObserver(() => {
       const {w, h} = size();
@@ -27,11 +27,12 @@ export function MapView({loop, onSelect, onReady}: {loop: Loop; onSelect: (id: N
       renderer.current = made;
       el.dataset.renderer = made.kind;
       ro.observe(el);
-      loop.onFrame((v) => renderer.current?.draw(v));
+      stop = loop.onFrame((v) => renderer.current?.draw(v));
       onReady(made);
     });
     return () => {
       gone = true;
+      stop();
       ro.disconnect();
       scheme.removeEventListener('change', repaint);
       motion.removeEventListener('change', still);

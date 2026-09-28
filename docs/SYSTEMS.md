@@ -7,11 +7,11 @@ Today the game is the empty back garden on the graph, with the clock, saving and
 ## Systems
 
 <!-- joined:systems from docs/systems/ by tools/join.mjs: don't edit between these lines -->
-- [The clock](systems/clock.md) (`src/sim/clock.ts`, `src/data/ladder.ts`)
-- [Commands and snapshots](systems/commands.md) (`src/sim/commands.ts`, `src/sim/index.ts`, `src/sim/state.ts`)
-- [The graph](systems/graph.md) (`src/sim/graph.ts`, `src/sim/state.ts`, `src/data/garden.ts`)
-- [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`)
-- [Saving](systems/saving.md)
+- [The clock](systems/clock.md) (`src/sim/clock.ts`, `src/data/ladder.ts`, `src/sim/systems.ts`, `src/app/clock-loop.ts`)
+- [Commands and snapshots](systems/commands.md) (`src/sim/commands.ts`, `src/sim/index.ts`, `src/sim/state.ts`, `src/sim/activity.ts`, `src/app/sim.worker.ts`, `src/app/sim-client.ts`, `src/app/delta.ts`, `src/app/bench.ts`)
+- [The graph](systems/graph.md) (`src/sim/graph.ts`, `src/sim/state.ts`, `src/data/garden.ts`, `src/sim/churn.ts`)
+- [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`)
+- [Saving](systems/saving.md) (`src/sim/save.ts`, `src/sim/random.ts`, `src/app/storage.ts`, `src/app/main.tsx`)
 <!-- /joined:systems -->
 
 ## Layers

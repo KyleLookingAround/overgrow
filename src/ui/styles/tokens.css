@@ -47,6 +47,13 @@
   --radius: 10px;
   --gap: 12px;
   --gap-small: 6px;
+  --gap-tiny: 4px;
+  --gap-hair: 2px;
+  --text-heading: 1.15rem;
+  --dial-arc: 5; /* the dial's arcs and needle, in its 44-unit drawing */
+  --dial-needle: 2.5;
+  --pause-squeeze: -2px; /* draws the pause bars close together */
+  --focus-offset: 1px;
   --touch: 40px; /* the smallest tap target on touch screens */
   --panel-w: 360px; /* the panel's width beside the map on wide screens */
   --panel-w-landscape: 40%; /* beside the map on a phone on its side */

@@ -47,7 +47,7 @@ button[aria-pressed='true'] {
 }
 :focus-visible {
   outline: var(--focus-ring) solid var(--focus);
-  outline-offset: 1px;
+  outline-offset: var(--focus-offset);
 }
 .soft {
   color: var(--soft);
@@ -75,7 +75,7 @@ button[aria-pressed='true'] {
 .dial {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--gap-tiny);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -85,7 +85,7 @@ button[aria-pressed='true'] {
 }
 .dial path {
   fill: none;
-  stroke-width: 5;
+  stroke-width: var(--dial-arc);
 }
 .dial-sink {
   stroke: var(--sink);
@@ -95,12 +95,12 @@ button[aria-pressed='true'] {
 }
 .dial-needle {
   stroke: var(--ink);
-  stroke-width: 2.5;
+  stroke-width: var(--dial-needle);
   stroke-linecap: round;
 }
 .speeds {
   display: inline-flex;
-  gap: 4px;
+  gap: var(--gap-tiny);
   margin-left: auto;
 }
 .speed {
@@ -108,7 +108,7 @@ button[aria-pressed='true'] {
 }
 .pause {
   font-size: var(--text-small);
-  letter-spacing: -2px;
+  letter-spacing: var(--pause-squeeze);
 }
 
 /* the map and the panel */
@@ -146,7 +146,7 @@ button[aria-pressed='true'] {
 }
 .panel-head h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--text-heading);
 }
 .panel-body {
   overflow: auto;
@@ -166,10 +166,10 @@ button[aria-pressed='true'] {
 }
 .place h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text);
 }
 .place p {
-  margin: 2px 0 var(--gap-small);
+  margin: var(--gap-hair) 0 var(--gap-small);
 }
 .place dl {
   margin: 0;
@@ -178,7 +178,7 @@ button[aria-pressed='true'] {
   display: flex;
   justify-content: space-between;
   gap: var(--gap);
-  padding: 4px 0;
+  padding: var(--gap-tiny) 0;
   border-bottom: 1px solid var(--line);
 }
 .place dd {
@@ -191,9 +191,6 @@ button[aria-pressed='true'] {
 @media (max-width: 699px) {
   .panel {
     max-height: var(--sheet-max);
-  }
-  .level {
-    display: none;
   }
 }
 /* wide screens and tablets: the panel beside the map */
@@ -229,8 +226,5 @@ button[aria-pressed='true'] {
   }
   .panel.folded .panel-body {
     display: block;
-  }
-  .level {
-    display: none;
   }
 }

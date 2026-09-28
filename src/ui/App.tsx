@@ -17,7 +17,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const [open, setOpen] = useState(true);
   useEffect(() => {
     let snap: Snapshot | null = null, hour = -1, speed = -1;
-    loop.onFrame((v) => {
+    return loop.onFrame((v) => {
       if (loop.benching()) return;
       const h = Math.floor(v.hours + 1e-9), s = loop.latest()?.speed ?? v.cur.speed;
       if (v.cur !== snap || h !== hour || s !== speed) {

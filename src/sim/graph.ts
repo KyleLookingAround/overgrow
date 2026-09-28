@@ -290,5 +290,5 @@ export function mergeFlows(flows: readonly Flow[]): Flow[] {
 export function copyNode(n: GraphNode): GraphNode {
   const stocks: Record<string, Stock> = {};
   for (const k in n.stocks) stocks[k] = {...n.stocks[k]!};
-  return {...n, stocks, levers: {...n.levers}, totals: {...n.totals, land: {...n.totals.land}}};
+  return {...n, box: n.box && {...n.box}, stocks, levers: {...n.levers}, totals: {...n.totals, land: {...n.totals.land}}};
 }

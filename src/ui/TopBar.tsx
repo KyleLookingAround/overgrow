@@ -34,7 +34,7 @@ export function TopBar({snap, hours, speed, onSpeed}: {snap: Snapshot; hours: nu
         <time>{dayName(d)}</time> <span class="time">{clockTime(d)}</span>
         {d.year > 1 && <span class="year"> · year {d.year}</span>}
       </span>
-      <span class="money" aria-label={`Money: ${money(snap.money)}`}>{money(snap.money)}</span>
+      <span class="money" title="Money">{money(snap.money)}</span>
       <CarbonDial kg={snap.carbon} />
       <span class="speeds" role="group" aria-label="Speed">
         {SPEEDS.map((s) => (

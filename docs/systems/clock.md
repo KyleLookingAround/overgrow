@@ -1,6 +1,6 @@
 # The clock
 
-One clock for every level, in game hours since the start (`src/sim/clock.ts`), with the ladder's rates in `src/data/ladder.ts`.
+One clock for every level, in game hours since the start (`src/sim/clock.ts`), with the ladder's rates in `src/data/ladder.ts`, the systems that run on it listed in `src/sim/systems.ts`, and the real-time loop on the page in `src/app/clock-loop.ts`.
 
 - **Steps.** The sim advances in fixed steps of the level's `stepHours`: an hour at levels 1 and 2, a day at 3 to 5, a week at 6 and 7, a month at 8. A `tick` command runs whole steps (any part of a step left over is dropped).
 - **The calendar.** Day 1 is 06:00 on Monday 15 March, early spring, on a UTC calendar so every date repeats. `calendar(hours)` gives the date, weekday, time, day of the year, season (meteorological: spring from 1 March) and the game year, counted from 1 and turning on the anniversary of the start. The top bar shows it.

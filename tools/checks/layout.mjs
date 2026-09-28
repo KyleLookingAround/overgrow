@@ -14,11 +14,11 @@ export default async function({ok,open,out}){
     await page.waitForSelector('[data-sim="ready"]',{timeout:8000}).catch(()=>{});
     await page.waitForTimeout(300);
     const [top,map,panel,head]=await Promise.all(['.topbar','.map','.panel','.panel-head'].map(s=>box(page,s)));
-    const parts=await page.evaluate(()=>[...document.querySelectorAll('.topbar .date,.topbar .money,.topbar .dial,.topbar .speed')].map(e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}}));
+    const parts=await page.evaluate(()=>[...document.querySelectorAll('.topbar .level,.topbar .date,.topbar .money,.topbar .dial,.topbar .speed')].map(e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}}));
     const flow=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,sh:document.documentElement.scrollHeight,ch:document.documentElement.clientHeight}));
     const sheet=w<700&&!(h<=500&&w>=500);
     const placed=sheet?panel&&map&&panel.y>=map.b-1&&panel.b<=h+0.5:panel&&map&&panel.x>=map.r-1&&panel.y>=top.b-1;
-    const bad=[!inside(top,w,h)&&'the top bar isn\'t in view',parts.length!==7&&`${parts.length} of 7 top-bar parts`,parts.some(p=>!inside(p,w,h))&&'a top-bar part is out of view',
+    const bad=[!inside(top,w,h)&&'the top bar isn\'t in view',parts.length!==8&&`${parts.length} of 8 top-bar parts`,parts.some(p=>!inside(p,w,h))&&'a top-bar part is out of view',
       !inside(map,w,h)&&'the map isn\'t in view',map&&(map.w<150||map.h<120)&&`the map is only ${map&&Math.round(map.w)}×${map&&Math.round(map.h)}`,
       !inside(panel,w,h)&&'the panel isn\'t in view',!inside(head,w,h)&&'the panel\'s heading isn\'t in view',!placed&&(sheet?'the sheet isn\'t below the map':'the panel isn\'t beside the map'),
       map&&top&&map.y<top.b-1&&'the map is under the top bar',flow.sw>flow.cw&&`scroll width ${flow.sw}`,flow.sh>flow.ch&&`scroll height ${flow.sh}`,errs[0]].filter(Boolean);

@@ -29,6 +29,19 @@ export function camera(nodes: readonly GraphNode[], w: number, h: number): Camer
   return {x: (w - bw * s) / 2 - x0 * s, y: (h - bh * s) / 2 - y0 * s, s};
 }
 
+/** A bed plot is dug once most of it is cropland rather than grass (the panel and the map agree on this). */
+export const isDug = (n: GraphNode) => {
+  const crops = n.stocks['land.crops']?.amount ?? 0;
+  return crops > 0 && crops >= (n.stocks['land.grass']?.amount ?? 0);
+};
+
+/** What the ground's drawing depends on besides the graph's rev: which bed plots are dug. */
+export function groundKey(nodes: readonly GraphNode[]): string {
+  let k = '';
+  for (const n of nodes) if (n.kind === 'bed') k += isDug(n) ? '1' : '0';
+  return k;
+}
+
 const px = (b: Box, c: Camera) => ({x: c.x + b.x * c.s, y: c.y + b.y * c.s, w: b.w * c.s, h: b.h * c.s});
 
 /** A soft shadow, offset down and to the right, then the shape. */
@@ -67,7 +80,7 @@ export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette) {
       g.roundRect(r.x, r.y, r.w, r.h, 0.2 * c.s).fill(pal.path);
       return;
     case 'bed': {
-      const dug = (n.stocks['land.crops']?.amount ?? 0) >= (n.stocks['land.grass']?.amount ?? 0);
+      const dug = isDug(n);
       soft(g, r, round, c, pal);
       g.roundRect(r.x, r.y, r.w, r.h, round).fill(dug ? pal['bed-dug'] : pal['bed-grass']);
       if (!dug) dashes(g, r, c, pal);

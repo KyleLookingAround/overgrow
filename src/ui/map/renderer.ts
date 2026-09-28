@@ -10,7 +10,7 @@ import {calendar} from '../../sim/clock';
 import type {Box, GraphNode, NodeId} from '../../sim/graph';
 import type {View} from '../../app/clock-loop';
 import {darkness} from './daylight';
-import {camera, drawLive, drawNode, drawPerson, type Camera} from './draw';
+import {camera, drawLive, drawNode, drawPerson, groundKey, type Camera} from './draw';
 import type {Palette} from './palette';
 
 export interface MapRenderer {
@@ -37,7 +37,8 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   const ground = new Graphics(), live = new Graphics(), night = new Graphics();
   const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
   app.stage.addChild(ground, live, movers, night);
-  let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, person: Texture | null = null;
+  let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null;
+  let person: Texture | null = null;
   let boxes = new Map<NodeId, Box>(), drawn: GraphNode[] = [];
   const pool: Particle[] = [], frames: number[] = [];
   let lastMovers: {id: string; x: number; y: number}[] = [];
@@ -102,10 +103,14 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     },
     draw(v) {
       const t0 = performance.now(), cur = v.cur;
-      if (cur.rev !== drawnRev || !cam) {
+      // the ground: redrawn when the graph changes, or a bed plot is dug (checked once a snapshot)
+      const key = keyOf === cur.nodes ? drawnKey : groundKey(cur.nodes);
+      if (cur.rev !== drawnRev || key !== drawnKey || !cam) {
         rebuild(cur.nodes);
         drawnRev = cur.rev;
       }
+      drawnKey = key;
+      keyOf = cur.nodes;
       const c = cam!;
       live.clear();
       drawLive(live, v, c, pal);

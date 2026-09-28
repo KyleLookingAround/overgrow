@@ -21,6 +21,14 @@ describe('delta', () => {
     const b = sim.apply({type: 'tick', hours: 5});
     expect(diff(b, sim.apply({type: 'load', save})).whole).toBeDefined();
   });
+  it('sends every stock again when one is gone', () => {
+    const sim = createSim(4), a = sim.snapshot(), b = structuredClone(a), patch = patcher();
+    const bed = b.nodes.find((n) => n.id === 'bed-1')!;
+    delete bed.stocks['land.crops'];
+    bed.stocks.water = {unit: 'L', amount: 1 as never};
+    patch(diff(null, a));
+    expect(patch(structuredClone(diff(a, b)))).toEqual(b);
+  });
   it('sends only the nodes that changed', () => {
     const sim = createSim(4), a = sim.apply({type: 'tick', hours: 1}), b = sim.apply({type: 'tick', hours: 1});
     expect(diff(a, b).changed).toEqual([]);
