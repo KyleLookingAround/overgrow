@@ -35,7 +35,7 @@ export function build(){
 // file references in a piece of docs: `12-garden.js`, src/game/…, tools/…, docs/…, .claude/skills/<name>, and `feature` playbook mentions
 function refsIn(s){
   s=s.replace(/`[^`]*\bNN-[^`]*`/g,''); // placeholders such as src/game/NN-name.js
-  return uniq([...all(s,/\b(\d\d-[\w-]+\.js)\b/g).map(f=>'src/game/'+f),...all(s,/\b((?:src|tools|docs|\.github)\/[\w./-]+\.(?:js|mjs|md|json|html|yml))\b/g),
+  return uniq([...all(s,/\b(\d\d-[\w-]+\.js)\b/g).map(f=>'src/game/'+f),...all(s,/(?<![\w.])((?:src|tools|docs|\.github)\/[\w./-]+\.(?:js|mjs|md|json|html|yml))\b/g),
     ...all(s,/`(\w+)` playbook/g).map(p=>'.claude/skills/'+p+'/SKILL.md'),...all(s,/\.claude\/skills\/(\w+)/g).map(p=>'.claude/skills/'+p+'/SKILL.md')]);
 }
 // docs/systems/: each file is a system, named by its "# " line; its files are the game files its text names

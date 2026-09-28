@@ -35,8 +35,8 @@ One clock for every level. `update(dt)` advances game time in fixed steps; each 
 ## Headless sim
 
 - `R.sim=true` means no DOM work and no saving. Everything reachable from `update()` must work that way, so the bot can play a long game in Node-driven Chromium without a screen.
-- **Randomness.** Anything that can change the game uses `rnd()` (`00-random.js`, seeded from `window.__seed`), never `Math.random()`, so a seed repeats a run exactly. The build rejects `Math.random()` on any line that doesn't end with `// cosmetic`.
-- **`window.__sim`.** Tests and the bot reach the game through it, in `build/test.html` only. `tools/build.mjs` builds it from every top-level name that `tools/*.mjs`, `tools/checks/*.mjs` or a throwaway `build/*.mjs` reaches as `S.<name>` or `__sim.<name>`, so there's no list to add to. A top-level `let` gets a getter and a setter, so it stays live.
+- **Randomness.** Anything that can change the game uses `rnd()` (`00-random.js`, seeded from `window.__seed`), never `Math.random()`, so a seed repeats a run exactly. The build rejects `Math.random()` outside `00-random.js` on any line that doesn't end with `// cosmetic`.
+- **`window.__sim`.** Tests and the bot reach the game through it, in `build/test.html` only. `tools/build.mjs` builds it from every top-level name that a script in `tools/`, `tools/checks/`, `tools/checks/lib/` or a throwaway one in `build/` (`.js` or `.mjs`) reaches as `S.<name>` or `__sim.<name>`, so there's no list to add to. A top-level `let` gets a getter and a setter, so it stays live.
 
 ## Build
 
@@ -49,7 +49,7 @@ One clock for every level. `update(dt)` advances game time in fixed steps; each 
 
 - **A group is a file.** Each file in `tools/checks/` is a group named after it. It exports a default async function that gets the helpers from `tools/check.mjs` (`open`, `ok`, `root`, `out`, `url`, `SAVE_KEY`, `browser`) and reports through `ok(name, pass, info)`. Its opening comment says what it covers, and the list below is built from those comments: add a group by adding a file.
 - **Playwright** is pinned to 1.56.1, whose Chromium (build 1194) the web image already has. If Chromium is missing, set `CHROMIUM_PATH` to an existing binary (the session-start hook does this for `/opt/pw-browsers/chromium`). Change the pin only together with the lock file. CI caches `~/.cache/ms-playwright`, keyed on the pin.
-- **Looking at UI changes.** Write a small Playwright script in `build/` (git-ignored) that opens `build/test.html` at phone (320×568 and 390×844, `hasTouch`, `isMobile`), a phone on its side (844×390), tablet (768×1024) and desktop (1440×900) sizes, screenshots it and read the images. Measure before fixing a layout bug, not after each attempt.
+- **Looking at UI changes.** Write a small Playwright script in `build/` (git-ignored) that opens `build/test.html` at phone (320×568 and 390×844, `hasTouch`, `isMobile`), a phone on its side (568×320 and 844×390), tablet (768×1024) and desktop (1440×900) sizes, screenshots it and read the images. Measure before fixing a layout bug, not after each attempt.
 - **CI's limit.** The `check` job has `timeout-minutes: 25`, well over a local run: a busy runner or a Chromium cache miss can eat most of that.
 
 <!-- joined:checks from tools/checks/, each file's opening comment by tools/join.mjs: don't edit between these lines -->

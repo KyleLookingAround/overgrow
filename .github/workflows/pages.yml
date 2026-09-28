@@ -8,7 +8,10 @@ on:
       - 'src/**'
       - 'tools/build.mjs'
       - 'tools/sources.mjs'
+      - 'tools/join.mjs'
+      - 'tools/graph.mjs'
       - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 

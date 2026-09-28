@@ -35,7 +35,7 @@ Keep them true: a PR that changes how something works updates that topic's file 
 1. Nothing reaches `main` directly: everything ships as a PR, merged with Squash and merge. Once the owner adds a ruleset that requires the `check` status check and turns on "Allow auto-merge", sessions use auto-merge (the `steward` playbook); until then the session merges by hand once Checks and the Description check are green.
 2. Push a branch and open a PR with a plain title and description. The Checks workflow runs on PRs that aren't drafts, and a newer push cancels the older run: run `npm run check` locally first rather than using CI to find failures.
 3. Write the look back into the PR before it merges (the `steward` playbook). Don't merge a PR that needs the owner's judgement: a balance change beyond the baselines' tolerance, or a spec question the brief doesn't settle.
-4. Once merged, confirm the "Publish to GitHub Pages" run finished; it skips pushes that only change docs, tools or playbooks. The site is at `https://kylelookingaround.github.io/overgrow/`.
+4. Once merged, confirm the "Publish to GitHub Pages" run finished; it skips pushes that only change docs, playbooks or tools other than the build's. The site is at `https://kylelookingaround.github.io/overgrow/`.
 
 ## How we work
 
@@ -63,7 +63,7 @@ Every change goes round the same loop, and each round leaves something that make
 
 - The game is one strict IIFE over the files in `src/game/`, joined in file-name order. A new system goes in its own numbered file before `99-start.js`, and its notes in its own `docs/systems/` file.
 - `G` is the saved state and `R` is runtime only. New saved state gets its line in the saved-fields table with its default, and a migration step only if older saves need more than the default. Never rename or remove saved fields: old saves must keep loading.
-- Anything that can change the game state uses `rnd()`, never `Math.random()` (the build rejects it on a line that doesn't end with `// cosmetic`).
+- Anything that can change the game state uses `rnd()`, never `Math.random()` (the build rejects it outside `00-random.js` on a line that doesn't end with `// cosmetic`).
 - Everything reachable from `update()` must work with `R.sim=true`: no DOM work and no saving. Keep the long headless simulation working.
 - Saves stay on the device (`localStorage['overgrow-save-v1']`).
 

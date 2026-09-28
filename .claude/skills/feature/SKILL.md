@@ -34,7 +34,7 @@ Work through these steps in order. Small fixes (a label, a nit, an obvious bug) 
 - `npm run build`, then `npm run check -- <group>` while iterating and the full `npm run check` before pushing.
 - Add a check for each new rule, as a new group in `tools/checks/` with an opening comment saying what it covers, or in an existing group; update any rule you changed on purpose.
 - **Measure before you fix a layout bug.** Screenshot and measure (bounding boxes, computed styles) at every size first, then fix everything the measurement found in one pass. Final Call's #124 ran to five times its estimate fixing one geometry bug per round.
-- Look at UI at 320×568, 390×844, 844×390, 768×1024 and 1440×900 with a Playwright script in `build/`.
+- Look at UI at 320×568, 568×320, 390×844, 844×390, 768×1024 and 1440×900 with a Playwright script in `build/`.
 - Pacing or economy: follow the `balance` playbook.
 - If a check fails, reproduce it (pages are seeded, so it repeats) and fix the cause. Never weaken or skip a check to get green.
 

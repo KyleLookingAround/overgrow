@@ -20,7 +20,7 @@ export const page=(sh,js)=>HEAD+sh.replace('/*GAME*/',()=>js);
 export function randomSlips(ps){
   const out=[];
   for(const p of ps){if(p.file==='src/game/00-random.js')continue;
-    p.text.split('\n').forEach((l,i)=>{if(/Math\.random\(/.test(l)&&!/\/\/ cosmetic$/.test(l))out.push(`${p.file}:${i+1}`)})}
+    p.text.split('\n').forEach((l,i)=>{if(/Math\.random\(/.test(l)&&!/\/\/ cosmetic\s*$/.test(l))out.push(`${p.file}:${i+1}`)})}
   return out;
 }
 

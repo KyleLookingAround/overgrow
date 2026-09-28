@@ -28,7 +28,7 @@ description: Drive an Overgrow pull request to green and merged - reading CI fai
 ## Catching up with `main`
 
 - The Catch up workflow (`catch-up.yml`) runs whenever `main` moves. It merges `main` into every open PR from this repo, rejoins the joined lists, and pushes if the merge was clean or the only conflicts were inside the joined lists. It never rebases or force-pushes. On a real conflict it comments once on the PR, naming the files, and leaves the branch alone. A PR labelled `no-catch-up` is left alone.
-- Its pushes use the repo's token, which doesn't start `pull_request` workflows, so it dispatches Checks itself. Without a `CATCH_UP_TOKEN` secret, read that dispatched run's result, not the `pull_request` one beside it. The Description check runs again at your next description edit.
+- Without a `CATCH_UP_TOKEN` secret, its pushes start no `pull_request` runs, so it dispatches Checks itself: read that run. The Description check runs again at your next description edit.
 - So the branch on GitHub may be ahead of yours: `git pull --no-rebase origin <branch>` before you commit more, and never force-push over it.
 - After its comment, merge by hand: `git fetch origin main && git merge origin/main`, resolve what it named, and push. A conflict inside a joined list needs nothing by hand: `node tools/join.mjs --write` rebuilds the list and clears it.
 - Count the merges from `main` your PR needed, by you and by the workflow, for the look back.

@@ -6,7 +6,7 @@ Accepted (the runbook PR, `docs/briefs/overgrow-setup.md`).
 
 ## Context
 
-Final Call (`KyleLookingAround/final-call`) reached version 34 in three days with a runbook of project notes, five playbooks, briefs, specs, one-file-per-entry docs, 60 check groups and eight workflows, and 70-odd look backs recording what each part of it cost or saved. Overgrow starts empty. Copying all of it would bring rules for an airport, a save format with 30 fixtures and experiments measured on work Overgrow will never have. Copying none would repeat mistakes Final Call already paid for.
+Final Call (`KyleLookingAround/final-call`) reached version 34 in three days with a runbook of project notes, five playbooks, briefs, specs, one-file-per-entry docs, 59 check groups and seven workflows, and 70-odd look backs recording what each part of it cost or saved. Overgrow starts empty. Copying all of it would bring rules for an airport, a save format with 30 fixtures and experiments measured on work Overgrow will never have. Copying none would repeat mistakes Final Call already paid for.
 
 ## Options Considered
 
@@ -24,13 +24,13 @@ Final Call (`KyleLookingAround/final-call`) reached version 34 in three days wit
 Option 3.
 
 **Kept, because Final Call's lessons proved them:**
-- The attribution rules, the commit-msg hook, attribution off in the editor settings, and the Description check that strips a trailing footer itself (four look backs fixed that footer by hand before the check did it; `main-overnight-stall.md`).
+- The attribution rules, the commit-msg hook, attribution off in the editor settings, and the Description check that strips a trailing footer itself (four look backs fixed that footer by hand before the check did it; Final Call's overnight-stall lesson).
 - One file per entry for lessons, roadmap items, decisions, systems' notes, check groups and What's new fragments, joined by `tools/join.mjs`, plus the Catch up workflow. Before it, one PR needed eight merges from `main` and several ran to 2–5× their estimate on merge-chasing alone (#46, #54, #64, #94).
 - Briefs from a template that `tools/brief.mjs` checks, with a dollar estimate and a rule past twice it (#36), the `needs-owner` queue with a 12-hour default, and one PR-sized item per session.
-- Subscribing to a PR's events with one `send_later` as the fallback, instead of polling (`main-overnight-stall.md`).
+- Subscribing to a PR's events with one `send_later` as the fallback, instead of polling (Final Call's overnight-stall lesson).
 - A fresh review before `create_pull_request`, not after (#47, #114, #124, #140), told to use the three-dot diff (#140).
 - `tools/graph.mjs` and the `graph` check, trimmed to what an empty game has (files, names, check groups, the docs' links), so a brief can say "read only what this lists".
-- A cap of about four default-model sessions at once, staggered starts, and nothing new on `allowed_warning` unless a brief says otherwise (`main-overnight-stall.md`: ten sessions spent the five-hour allowance in 80 minutes).
+- A cap of about four default-model sessions at once, staggered starts, and nothing new on `allowed_warning` unless a brief says otherwise (Final Call's overnight-stall lesson: ten sessions spent the five-hour allowance in 80 minutes).
 - Checks on `main` before Pages deploys, with a "main is red" issue.
 - The lessons tidy at 8 new lessons, with #131's addition: spot-check that each → really landed.
 
