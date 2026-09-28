@@ -27,4 +27,4 @@ Option 2. `pixi.js` is the fourth and last runtime dependency without a further 
 
 - The first roadmap part builds the shell on PixiJS with interpolation, and the `scene` check measures a frame with 5,000 moving things on a throttled CPU.
 - The page's size budget is 500 KB gzipped without the map data (the spec's speed budget).
-- `src/ui/MapCanvas.tsx`'s Canvas 2D placeholder is replaced by the first slice; a Canvas 2D fallback stays only for browsers without WebGL.
+- The placeholder's Canvas 2D map (`MapCanvas.tsx`) was replaced by the first slice's part 1 (`src/ui/map/renderer.ts`); a Canvas 2D fallback stays only for browsers without WebGL, through Pixi's own Canvas 2D renderer.

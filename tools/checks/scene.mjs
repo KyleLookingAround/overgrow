@@ -1,0 +1,98 @@
+// The map (src/ui/map/): it draws the garden in the owner's style on WebGL, and on Canvas 2D where WebGL is missing;
+// it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; a seeded,
+// paused screenshot repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the
+// speed budget's figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
+import {join} from 'node:path';
+
+// the share of a screenshot's pixels near each of some CSS colours, measured in the page
+async function shares(page,sel,vars){
+  const png=(await page.locator(sel).screenshot()).toString('base64');
+  return page.evaluate(async([png,vars])=>{
+    const img=new Image();img.src='data:image/png;base64,'+png;await img.decode();
+    const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const x=c.getContext('2d');x.drawImage(img,0,0);
+    const d=x.getImageData(0,0,c.width,c.height).data,cs=getComputedStyle(document.documentElement);
+    return Object.fromEntries(vars.map(v=>{const h=cs.getPropertyValue(v).trim().slice(1,7),t=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16));let n=0;
+      for(let i=0;i<d.length;i+=4)if(Math.abs(d[i]-t[0])+Math.abs(d[i+1]-t[1])+Math.abs(d[i+2]-t[2])<40)n++;return [v,n/(d.length/4)]}));
+  },[png,vars]);
+}
+const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
+const view=page=>page.evaluate(()=>window.__sim.view());
+// a new game run to midday and paused, so the light is full and every colour is the token's own
+async function midday(page){
+  await page.evaluate(()=>window.__sim.send({type:'new-game',seed:1,speed:4}));
+  await page.waitForFunction(()=>window.__sim.view().hours>=6,null,{timeout:8000}).catch(()=>{});
+  await page.evaluate(()=>window.__sim.send({type:'speed',speed:0}));await page.waitForTimeout(200);
+}
+const median=a=>{const s=[...a].sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:NaN};
+const p95=a=>{const s=[...a].sort((x,y)=>x-y);return s.length?s[Math.floor(s.length*0.95)]:NaN};
+
+export default async function({ok,open,out}){
+  // it draws: the lawn, the dug beds and the grass plots, on WebGL, with nothing drawn from elsewhere
+  {const {ctx,page,errs}=await open({width:1440,height:900});await ready(page);await midday(page);
+    const v=await view(page),s=await shares(page,'.map',['--map-lawn','--map-bed-dug','--map-bed-grass']);
+    await page.evaluate(()=>window.__sim.send({type:'speed',speed:1}));
+    ok('scene: the map draws the garden on WebGL',v.renderer==='webgl'&&s['--map-lawn']>0.3&&s['--map-bed-dug']>0.01&&s['--map-bed-grass']>0.01&&!errs.length,`${v.renderer} ${JSON.stringify(s)} ${errs[0]||''}`);
+    // it interpolates: within one tick the view time takes several values between the snapshots either side of it
+    // (sampled frame by frame, however slow the frames, for up to 5 s)
+    const inTick=await page.evaluate(()=>new Promise(done=>{const by={},t0=performance.now();
+      const f=()=>{const v=window.__sim.view();if(v.alpha>0&&v.alpha<1&&v.hours>v.prev&&v.hours<v.cur)(by[v.cur]??=new Set()).add(v.hours);
+        const best=Math.max(0,...Object.values(by).map(s=>s.size));if(best>=2||performance.now()-t0>5000)done(best);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
+    ok('scene: the view glides between snapshots at 1×',inTick>=2,`${inTick} view times inside one tick`);
+    // and what moves glides with it: people walking in a small synthetic scene at 1× move between two frames of one tick
+    await page.evaluate(()=>window.__sim.bench(20,20,1));await page.waitForFunction(()=>window.__sim.view().movers.length>=10,null,{timeout:8000}).catch(()=>{});
+    const pair=await page.evaluate(()=>new Promise(done=>{let a=null;const t0=performance.now();
+      const f=()=>{const v=window.__sim.view();if(a&&v.cur===a.cur&&v.hours>a.hours){done([a,v]);return}if(!a||v.cur!==a.cur)a=v;
+        if(performance.now()-t0>5000)done([a,v]);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
+    const [a,b]=pair,moved=a.movers.filter(m=>{const n=b.movers.find(x=>x.id===m.id);return n&&Math.hypot(n.x-m.x,n.y-m.y)>0.05}).length;
+    ok('scene: people drawn from activities move smoothly between ticks',a.movers.length>=10&&moved>=5&&a.cur===b.cur,`${moved} of ${a.movers.length} moved within tick ${a.cur}→${b.cur}`);
+    await page.screenshot({path:join(out,'scene-1440x900.png')});await ctx.close()}
+
+  // prefers-reduced-motion: the view jumps from tick to tick
+  {const {ctx,page,errs}=await open({width:1440,height:900});await page.emulateMedia({reducedMotion:'reduce'});await ready(page);
+    await page.evaluate(()=>window.__sim.bench(20));await page.waitForTimeout(600);
+    const seen=[];for(let i=0;i<30;i++){seen.push(await view(page));await page.waitForTimeout(50)}
+    const whole=seen.every(x=>Number.isInteger(x.hours)),ticks=new Set(seen.map(x=>x.hours)).size;
+    const still=seen.every((x,i)=>!i||x.hours!==seen[i-1].hours||JSON.stringify(x.movers)===JSON.stringify(seen[i-1].movers));
+    ok('scene: under reduced motion the map jumps per tick instead of gliding',whole&&ticks>=2&&still&&!errs.length,`whole hours ${whole}, ${ticks} ticks seen, movers still between ticks ${still}`);
+    await ctx.close()}
+
+  // a seeded, paused screenshot repeats exactly
+  {const shot=async()=>{const {ctx,page}=await open({width:844,height:390},{touch:true});await ready(page);
+      await page.evaluate(()=>window.__sim.send({type:'new-game',seed:1,speed:0}));await page.waitForTimeout(500);
+      const b=await page.locator('.map').screenshot();await ctx.close();return b};
+    const a=await shot(),b=await shot();
+    ok('scene: a seeded screenshot of the paused map repeats exactly',a.length>1000&&a.equals(b),`${a.length} and ${b.length} bytes`)}
+
+  // no WebGL: Pixi's Canvas 2D renderer draws the same garden
+  {const {ctx,page,errs}=await open({width:390,height:844},{touch:true});
+    await ctx.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,...a){return /webgl/.test(t)?null:get.call(this,t,...a)}});
+    await page.reload();await ready(page);await midday(page);
+    const v=await view(page),s=await shares(page,'.map',['--map-lawn','--map-bed-dug']);
+    ok('scene: without WebGL the map falls back to Canvas 2D and still draws',v.renderer==='canvas'&&s['--map-lawn']>0.15&&s['--map-bed-dug']>0.01&&!errs.length,`${v.renderer} ${JSON.stringify(s)} ${errs[0]||''}`);
+    await page.screenshot({path:join(out,'scene-canvas-390x844.png')});await ctx.close()}
+
+  // the speed budget's figures (docs/SYSTEMS.md, "Speed budget"), logged: the garden's frame at 1440×900; 5,000 people
+  // over 5,000 nodes at 1440×900, and on a phone-sized page at 4× CPU throttling, and 50 people over the same nodes
+  // there, with each tick's copy across the worker boundary. The perf check (part 15) will assert them; this only
+  // proves the scene runs.
+  const measure=async(vp,touch,throttle,n,m=n)=>{
+    const {ctx,page,errs}=await open(vp,{touch});await ready(page);
+    const cdp=await ctx.newCDPSession(page);if(throttle)await cdp.send('Emulation.setCPUThrottlingRate',{rate:throttle});
+    if(n)await page.evaluate(([n,m])=>window.__sim.bench(n,m),[n,m]);
+    await page.waitForTimeout(1500);
+    const c0=(await page.evaluate(()=>window.__sim.copyTimes())).read.length,f0=await page.evaluate(()=>{window.__fps=0;const f=()=>{window.__fps++;requestAnimationFrame(f)};requestAnimationFrame(f);return performance.now()});
+    await page.waitForTimeout(3000);
+    const r=await page.evaluate(([c0,f0])=>{const c=window.__sim.copyTimes();return {v:window.__sim.view(),read:c.read.slice(c0),patched:c.patched.slice(c0),written:c.written.slice(c0),fps:window.__fps/((performance.now()-f0)/1000)}},[c0,f0]);
+    await ctx.close();
+    return {movers:r.v.movers.length,frame:median(r.v.frames),frame95:p95(r.v.frames),read:median(r.read.map((x,i)=>x+r.patched[i])),read95:p95(r.read.map((x,i)=>x+r.patched[i])),reading:median(r.read),patching:median(r.patched),written:median(r.written),ticks:r.read.length,fps:r.fps,errs};
+  };
+  const fmt=m=>`draw ${m.frame.toFixed(2)} ms a frame (p95 ${m.frame95.toFixed(2)}), ${m.fps.toFixed(0)} fps here; copy on the page ${m.read.toFixed(2)} ms a tick (p95 ${m.read95.toFixed(2)}; reading ${m.reading.toFixed(2)}, patching ${m.patching.toFixed(2)}), written in the worker ${m.written.toFixed(2)} ms, over ${m.ticks} ticks`;
+  const garden=await measure({width:1440,height:900},false,0,0);
+  ok('scene: speed, the garden at 1440×900',garden.frame>0&&!garden.errs.length,fmt(garden));
+  const big=await measure({width:1440,height:900},false,0,5000);
+  ok('scene: speed, 5,000 people over 5,000 nodes at 1440×900',big.movers>=16&&!big.errs.length,fmt(big));
+  const phone=await measure({width:390,height:844},true,4,5000);
+  ok('scene: speed, 5,000 people over 5,000 nodes on a phone at 4× CPU throttling',phone.movers>=16&&!phone.errs.length,fmt(phone));
+  const nodes=await measure({width:390,height:844},true,4,5000,50);
+  ok('scene: speed, 50 people over 5,000 nodes on a phone at 4× CPU throttling',nodes.movers>=16&&!nodes.errs.length,fmt(nodes));
+}

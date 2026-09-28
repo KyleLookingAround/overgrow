@@ -16,4 +16,8 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Spec
 
 - [The founding spec (#3) · 28 Sep 2026](lessons/3-game-spec.md)
+
+### Not sorted yet
+
+- [The graph and the clock, the first slice's part 1 (#5) · 28 Sep 2026](lessons/5-graph-and-clock.md)
 <!-- /joined:lessons -->
