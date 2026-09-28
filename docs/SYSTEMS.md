@@ -19,7 +19,7 @@ Four folders under `src/`, and the `rules` check keeps them apart:
 | `src/sim/` | The simulation: the graph, the clock, the models (`src/sim/models/`, one file per mechanism), commands and snapshots. Pure TypeScript, no DOM, no `Math.random()` outside `src/sim/random.ts` except on a `// cosmetic` line. | `src/sim/`, `src/data/` |
 | `src/data/` | Real-world parameters: crops, soils, climate normals, countries. Plain typed data. | `src/data/` |
 | `src/app/` | The page's glue: the worker that runs the sim (`sim.worker.ts`), the client that talks to it (`sim-client.ts`), the clock loop, saving, `main.tsx`. | anything |
-| `src/ui/` | Preact panels and the canvas map, with every colour and size in `src/ui/styles/tokens.css`. Drawing is cosmetic and may use `Math.random()` on a `// cosmetic` line. | `src/ui/`, `src/app/`, the sim's types and pure functions (by convention; not checked) |
+| `src/ui/` | Preact panels and the map (PixiJS from the first slice; a Canvas 2D placeholder today), with every colour and size in `src/ui/styles/tokens.css`. Drawing is cosmetic, derived from the sim's flows, and may use `Math.random()` on a `// cosmetic` line. | `src/ui/`, `src/app/`, the sim's types and pure functions (by convention; not checked) |
 
 The `rules` check enforces the first two rows: the sim and its data import nothing from `src/ui/` or `src/app/`, and data nothing from the sim. Every source file starts with a `//` comment saying what's in it; the table below shows each one's first sentence. `index.html` is the page's skeleton and loads `src/app/main.tsx`.
 
@@ -57,7 +57,7 @@ One clock for every level, in game hours since the start. Each level sets how mu
 
 - `npm run build` (`tools/build.mjs`) refuses to run on a broken rule (`tools/rules.mjs`), runs `vite build` into `dist/`, writes `docs/graph.json`, and rejoins the joined lists. `dist/` is the static site Pages publishes; every asset is referenced relatively (`base: './'` in `vite.config.ts`) so it works under the repo's sub-path.
 - `npm run dev` starts Vite's dev server with hot reload.
-- Runtime dependencies are exactly `preact` and `d3-geo`, plus the Natural Earth data once the planet level exists (`docs/decisions/ADR-2026-09-28-static-site-typescript.md`). A fourth needs a decision record.
+- Runtime dependencies are exactly `preact`, `d3-geo` and `pixi.js`, plus the Natural Earth data once the planet level exists (`docs/decisions/ADR-2026-09-28-static-site-typescript.md`, `docs/decisions/ADR-2026-09-28-webgl-map.md`). Another needs a decision record.
 
 ## Checks
 

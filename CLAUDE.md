@@ -1,6 +1,6 @@
 # Overgrow
 
-Overgrow is an incremental upgrade game about the food system, and an educational simulation of it: every mechanism is a real one, with rough numbers. Every level is a zoom-out: what the player micromanaged in one level becomes a single building block in the next, from a back garden up to the whole planet, with carbon, climate, diet and politics in the loop, and the clock speeds up as they go. It's a static site: TypeScript built by Vite, a Preact UI of a canvas map plus HTML panels, and the simulation in a Web Worker. GitHub Actions publishes `dist/` to GitHub Pages on every push to `main` that can change it.
+Overgrow is an incremental upgrade game about the food system, and an educational simulation of it: every mechanism is a real one, with rough numbers. Every level is a zoom-out: what the player micromanaged in one level becomes a single building block in the next, from a back garden up to the whole planet, with carbon, climate, diet and politics in the loop, and the clock speeds up as they go. It's a static site: TypeScript built by Vite, a Preact UI of a living map (people, vehicles, food and animals moving, every impact on the map first) plus HTML panels, and the simulation in a Web Worker. GitHub Actions publishes `dist/` to GitHub Pages on every push to `main` that can change it.
 
 Today the page is a placeholder over a seeded clock. The founding spec (`docs/specs/overgrow.md`) sets the game; nothing beyond the placeholder is built until the owner approves it.
 
@@ -67,7 +67,7 @@ Every change goes round the same loop, and each round leaves something that make
 - **Every change to the game is a command** through the sim, from the player, a manager or the bot alike. The UI never reaches into the sim's state.
 - Saved state is versioned JSON with a migration step per version. Never rename or remove saved fields: old saves must keep loading. Saves stay on the device (`localStorage['overgrow-save-v1']`).
 - Anything that can change the game draws from the game's `Rng` (`src/sim/random.ts`), never `Math.random()` (the `rules` check rejects it on a line that doesn't end with `// cosmetic`). The long headless run (`src/sim/index.test.ts`) must keep passing.
-- Every colour and size lives in `src/ui/styles/tokens.css`; panels are Preact components; the map is Canvas 2D drawn by hand.
+- Every colour and size lives in `src/ui/styles/tokens.css`; panels are Preact components; the map is drawn with PixiJS (`docs/decisions/ADR-2026-09-28-webgl-map.md`), and everything that moves on it is drawn from a flow the sim has: nothing drawn changes the game.
 
 ## Owner's preferences
 

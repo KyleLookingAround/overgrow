@@ -5,7 +5,7 @@ What's being worked on, what's next, and ideas not yet agreed. Now, Next, the ru
 ## Now
 
 <!-- joined:now from docs/roadmap.d/ (Section: now) by tools/join.mjs: don't edit between these lines -->
-- **The founding spec** (`docs/specs/overgrow.md`, branch `feature/game-spec`): the ladder, the carry-over rule, zooming back in, the first playable slice (the back garden and its step up to the allotment), state and time, the bot, the food-system effects, the look and the first roadmap, with a `needs-owner` issue for the owner's choices. Nothing is built until the owner approves it.
+- **The founding spec** (`docs/specs/overgrow.md`, #2): the model (one graph at every scale), the eight-level ladder, the carry-over rule, zooming back in, the systems map with each system's real-world basis, the first playable slice (the back garden and its step up to the allotment), state and time, the bot, the living map and the first roadmap, with #2's `needs-owner` issue for the owner's choices. Nothing is built until the owner approves it.
 <!-- /joined:now -->
 
 ## Next

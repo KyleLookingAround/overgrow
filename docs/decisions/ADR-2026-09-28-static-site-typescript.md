@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (the runbook PR, with the owner on 28 Sep 2026).
+Accepted (the runbook PR, with the owner on 28 Sep 2026). Amended the same day by `docs/decisions/ADR-2026-09-28-webgl-map.md`: `pixi.js` is a fourth runtime dependency, for the living map.
 
 ## Context
 
