@@ -1,5 +1,7 @@
-/* Design tokens: every colour, size and font the UI uses, in one place. Panels and the canvas read these; nothing
-   else declares a colour. Light and dark follow the device. */
+/* Design tokens: every colour, size and font the UI uses, in one place. Panels and the map read these; nothing
+   else declares a colour. Light and dark follow the device. The map's colours (--map-*) are the owner's pick of art
+   style, flat, top-down and soft (docs/specs/overgrow/art-styles.html, style A); the map reads them at start and when
+   the scheme changes. A colour with a shadow's softness carries its alpha as #rrggbbaa. */
 :root {
   --bg: #f4efe3;
   --ink: #1e2a22;
@@ -9,18 +11,49 @@
   --accent: #2f7a45;
   --accent-ink: #ffffff;
   --warn: #b7521e;
-  --soil: #6b4a2b;
-  --soil-line: #5a3d22;
-  --leaf: #4c8b3a;
-  --water: #3b7ca8;
+  --focus: #1d5fa8;
+  --sink: #2f7a45; /* carbon taken out of the air */
+  --source: #b7521e; /* carbon put into it */
+
+  /* the map */
+  --map-edge: #6f9f57; /* around the garden: the hedge */
+  --map-lawn: #8fbf72;
+  --map-house: #d9cdb4;
+  --map-house-edge: #b9a98c;
+  --map-path: #d8caa6;
+  --map-shadow: #00000014;
+  --map-shadow-deep: #0000001f;
+  --map-bed-dug: #7a5533;
+  --map-bed-wet: #5a3c22;
+  --map-bed-grass: #79aa5e;
+  --map-plot-line: #ffffff59;
+  --map-shed: #8c6b4a;
+  --map-shed-roof: #6f5238;
+  --map-butt: #55707f;
+  --map-water: #3b7ca8;
+  --map-tap: #8d9aa3;
+  --map-heap-rim: #3f2c1a;
+  --map-heap: #5b4229;
+  --map-person: #4a6fa5;
+  --map-skin: #e7c39a;
+  --map-hat: #d98a2b;
+  --map-night: #141e3c;
+  --map-night-max: 0.35; /* how dark the map gets at night */
 
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
   --text: 16px;
+  --text-small: 0.85rem;
   --radius: 10px;
   --gap: 12px;
+  --gap-small: 6px;
   --touch: 40px; /* the smallest tap target on touch screens */
   --panel-w: 360px; /* the panel's width beside the map on wide screens */
+  --panel-w-landscape: 40%; /* beside the map on a phone on its side */
+  --panel-min-landscape: 220px;
+  --sheet-max: 45vh; /* the sheet's most height on a portrait phone */
+  --dial: 40px; /* the carbon dial */
+  --focus-ring: 3px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -31,7 +64,25 @@
     --line: #2e3b32;
     --accent: #5db06f;
     --accent-ink: #0d160f;
-    --soil: #4a3320;
-    --soil-line: #3a2717;
+    --focus: #8ab8ff;
+    --sink: #5db06f;
+    --source: #e0874f;
+
+    --map-edge: #3f5f33;
+    --map-lawn: #5f8a4c;
+    --map-house: #a79d88;
+    --map-house-edge: #857a64;
+    --map-path: #a89c7c;
+    --map-bed-dug: #5e4127;
+    --map-bed-wet: #43301b;
+    --map-bed-grass: #557d44;
+    --map-plot-line: #ffffff40;
+    --map-shed: #6f5439;
+    --map-shed-roof: #574029;
+    --map-butt: #435a66;
+    --map-water: #2f6a92;
+    --map-tap: #74828b;
+    --map-heap-rim: #2e2013;
+    --map-heap: #47331f;
   }
 }

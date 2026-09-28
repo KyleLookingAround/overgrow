@@ -1,0 +1,2 @@
+Section: now
+- **The graph and the clock** (the first slice's part 1, `docs/briefs/graph-and-clock.md`, #4): nodes, stocks and flows in units with a conservation test, the clock and its ticks, commands and snapshots with activities, saving with versions, and the page's shell (the PixiJS map in the owner's style interpolating between snapshots, the top bar, the panel and the phone sheet) at every size, with the `layout` and `scene` checks and the speed budget's shares (`docs/SYSTEMS.md`, "Speed budget").

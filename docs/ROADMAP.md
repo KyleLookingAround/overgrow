@@ -5,7 +5,7 @@ What's being worked on, what's next, and ideas not yet agreed. Now, Next, the ru
 ## Now
 
 <!-- joined:now from docs/roadmap.d/ (Section: now) by tools/join.mjs: don't edit between these lines -->
-- **The founding spec** (`docs/specs/overgrow.md`, #2): the model (one graph at every scale), the eight-level ladder, the carry-over rule, zooming back in, the systems map with each system's real-world basis, the first playable slice (the back garden and its step up to the allotment), state and time, the bot, the living map and the first roadmap, with #2's `needs-owner` issue for the owner's choices. Nothing is built until the owner approves it.
+- **The graph and the clock** (the first slice's part 1, `docs/briefs/graph-and-clock.md`, #4): nodes, stocks and flows in units with a conservation test, the clock and its ticks, commands and snapshots with activities, saving with versions, and the page's shell (the PixiJS map in the owner's style interpolating between snapshots, the top bar, the panel and the phone sheet) at every size, with the `layout` and `scene` checks and the speed budget's shares (`docs/SYSTEMS.md`, "Speed budget").
 <!-- /joined:now -->
 
 ## Next
@@ -37,4 +37,5 @@ How sessions work, not the game. Each item is small and measured in the lessons 
 ## Done
 
 <!-- joined:done from docs/roadmap.d/ (Section: done) by tools/join.mjs: don't edit between these lines -->
+- **The founding spec** (`docs/specs/overgrow.md`, #2): the model (one graph at every scale), the eight-level ladder, the carry-over rule, zooming back in, the systems map with each system's real-world basis, the first playable slice (the back garden and its step up to the allotment), state and time, the bot, the living map and the first roadmap, with #2's `needs-owner` issue for the owner's choices. Nothing is built until the owner approves it.
 <!-- /joined:done -->
