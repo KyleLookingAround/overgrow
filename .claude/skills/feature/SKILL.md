@@ -54,7 +54,7 @@ Never edit between the `joined` markers in `docs/LESSONS.md`, `docs/ROADMAP.md`,
 - Before `create_pull_request`, not after, start one fresh reviewer that hasn't seen the work: a helper agent (`Agent`) or the `code-review` skill, at medium effort. Give it the three-dot diff (`git diff origin/main...HEAD`; the two-dot form shows `main`'s newer commits as if you'd reverted them), the brief and the project notes, and ask for bugs; broken rules (the owner's preferences, saved fields, the layers, the seeded `Rng`, a model without sources, UK English); lines outside the diff the change makes wrong (the README, code comments, the project notes, `docs/SYSTEMS.md`); and anything in the PR's title or description the project notes don't allow.
 - Describe any tool call a playbook tells sessions to make in its exact shape (which tool, which parameters), so the reviewer can check it against the tool's contract.
 - Fix what you agree with. Say in the PR what the review found and what was fixed or left, without naming the tool or saying "AI" or "assistant".
-- Helpers are for reviewing and reading, never for building.
+- Helpers are for reviewing and reading, never for building, with one exception: a workflow (the Workflow tool, opted in with the word "ultracode") may fan out independent files inside this PR (one agent per model's plausibility test or data file) and may run this fresh review along its dimensions in parallel with a verify pass. A workflow never opens a PR, pushes, or writes files another part owns, and its cost counts against the brief's estimate.
 
 ## 7. Ship
 

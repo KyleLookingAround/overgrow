@@ -1,0 +1,497 @@
+<title>Overgrow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#f3eee2;--paper-2:#e9e2d1;--ink:#1f2a22;--ink-soft:#5b6a5e;--line:#cfc6b0;
+  --soil:#6b4a2b;--leaf:#3f7f3a;--leaf-soft:#cfe0c5;--water:#3b7ca8;--marigold:#d98a2b;--berry:#a8433b;--sky:#dfe9ee;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;--body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --paper:#141b16;--paper-2:#1c2620;--ink:#ece6d6;--ink-soft:#a9b4a8;--line:#324034;--leaf-soft:#25402a;--sky:#1f2e36;--marigold:#e6a04a;--berry:#d4685f;--water:#5da0cc;--leaf:#6fb45f;--soil:#a8764b}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --paper:#141b16;--paper-2:#1c2620;--ink:#ece6d6;--ink-soft:#a9b4a8;--line:#324034;--leaf-soft:#25402a;--sky:#1f2e36;--marigold:#e6a04a;--berry:#d4685f;--water:#5da0cc;--leaf:#6fb45f;--soil:#a8764b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.55 var(--body);padding-inline:16px}
+.wrap{max-width:980px;margin:0 auto;padding-block:32px 80px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.1;margin:0}
+h1{font-size:clamp(2.6rem,7vw,4.4rem);font-weight:700;font-variation-settings:"opsz" 144}
+h2{font-size:clamp(1.6rem,3.4vw,2.2rem);font-weight:600;margin-top:64px;padding-top:24px;border-top:2px solid var(--soil)}
+h3{font-size:1.2rem;font-weight:600;margin-top:28px}
+p,li{max-width:68ch}
+.lede{font-size:1.25rem;color:var(--ink-soft);max-width:60ch;margin-top:16px}
+.eyebrow{font:500 .75rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--leaf);margin-bottom:12px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:28px;padding:14px 0;border-block:1px solid var(--line);font-size:.95rem}
+nav.toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--marigold);outline:none}
+a{color:var(--water)}
+figure{margin:28px 0;padding:0}
+figure svg{display:block;width:100%;max-width:100%;height:auto;color:var(--ink)}
+figure{position:relative}
+.figscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:760px){.figscroll svg{width:760px;max-width:none}.figscroll{scrollbar-width:thin}}
+.zoombtn{position:absolute;top:8px;right:8px;z-index:2;font:500 .72rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;min-height:36px}
+.zoombtn:hover,.zoombtn:focus-visible{border-color:var(--marigold)}
+.hint{font-size:.8rem;color:var(--ink-soft);margin:6px 0 0}
+@media (min-width:761px){.hint{display:none}}
+.lb{position:fixed;inset:0;z-index:50;background:var(--paper);display:none;flex-direction:column}
+.lb.open{display:flex}
+.lb-bar{display:flex;gap:8px;align-items:center;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top,0px));border-bottom:1px solid var(--line);flex-wrap:wrap}
+.lb-bar .t{font:600 1rem var(--display);margin-right:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-bar button{font:500 .8rem var(--mono);min-width:40px;min-height:40px;padding:0 12px;border-radius:6px;border:1px solid var(--line);background:var(--paper-2);color:var(--ink);cursor:pointer}
+.lb-bar button:focus-visible{outline:2px solid var(--marigold)}
+.lb-view{flex:1;overflow:hidden;touch-action:none;position:relative;cursor:grab}
+.lb-view.drag{cursor:grabbing}
+.lb-inner{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.lb-inner svg{display:block;color:var(--ink)}
+.lb-cap{padding:8px 12px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);font-size:.85rem;color:var(--ink-soft);max-height:22vh;overflow:auto}
+figcaption{font-size:.92rem;color:var(--ink-soft);margin-top:10px;max-width:70ch}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem;margin-top:16px}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font:500 .72rem/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+td.n,th.n{font-family:var(--mono);font-size:.88rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rule{background:var(--paper-2);border-left:4px solid var(--marigold);padding:14px 18px;margin:22px 0;max-width:72ch}
+.rule strong{font-family:var(--display);font-weight:600}
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:18px}
+.tile{background:var(--paper-2);padding:16px 18px;border-radius:6px}
+.tile h3{margin-top:0;font-size:1.05rem}
+.tile p{font-size:.95rem;margin:8px 0 0}
+.pill{display:inline-block;font:500 .7rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:var(--leaf-soft);color:var(--ink);margin-right:6px}
+.pill.slow{background:var(--sky)}
+ol.mins{padding-left:1.2em}
+ol.mins li{margin:6px 0}
+.mono{font-family:var(--mono);font-size:.9em}
+footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:.9rem}
+:focus-visible{outline:2px solid var(--marigold);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.pulse{animation:pulse 2.4s ease-in-out infinite}@keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}}
+</style>
+
+<div class="wrap">
+<div class="eyebrow">A game, and a simulation of the food system</div>
+<h1>Overgrow</h1>
+<p class="lede">Grow food from two beds behind a house to the whole planet. Every level is a zoom-out: what you managed up close becomes one building block in the next map, the clock speeds up, and the same real-world mechanisms run underneath the whole way, from a compost heap to the climate.</p>
+
+<nav class="toc" aria-label="Sections">
+<a href="#ladder">The ladder</a><a href="#loop">How you play</a><a href="#node">The model</a><a href="#systems">The systems</a><a href="#loops">The loops</a><a href="#carry">Zooming out and back in</a><a href="#slice">What ships first</a><a href="#arch">How it's built</a><a href="#choices">Choices</a>
+</nav>
+
+<h2 id="ladder">Eight levels, one game</h2>
+<p>Each level's unit is the level below, sealed into one node. The garden becomes a plot; twelve plots are an allotment; the allotment becomes a field; and so on up to a country on the world map. The core problem changes at every scale, and so does how fast the clock runs.</p>
+
+<figure>
+<button class="zoombtn" type="button" aria-label="Zoom this diagram">Zoom</button>
+<div class="figscroll">
+<svg viewBox="0 0 940 300" role="img" aria-label="Eight nested levels from the Back Garden inside the Allotment inside the Smallholding, out to the Planet, with the clock speeding up from 24 seconds per day to 1/300 of a second per day.">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+<g font-family="Atkinson Hyperlegible, sans-serif" font-size="12">
+<rect x="20" y="20" width="900" height="230" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="32" y="40" font-weight="700">8 · The Planet</text><text x="32" y="55" fill="var(--ink-soft)" font-size="11">a country</text>
+<rect x="132" y="48" width="788" height="202" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="144" y="68" font-weight="700">7 · The Nation</text><text x="144" y="83" fill="var(--ink-soft)" font-size="11">a region</text>
+<rect x="244" y="76" width="676" height="174" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="256" y="96" font-weight="700">6 · Supply Chain</text><text x="256" y="111" fill="var(--ink-soft)" font-size="11">a depot, a store</text>
+<rect x="356" y="104" width="564" height="146" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="368" y="124" font-weight="700">5 · Market Town</text><text x="368" y="139" fill="var(--ink-soft)" font-size="11">a shop, a road</text>
+<rect x="468" y="132" width="452" height="118" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="480" y="152" font-weight="700">4 · Farm</text><text x="480" y="167" fill="var(--ink-soft)" font-size="11">an enterprise</text>
+<rect x="580" y="160" width="340" height="90" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="592" y="180" font-weight="700">3 · Smallholding</text><text x="592" y="195" fill="var(--ink-soft)" font-size="11">a field</text>
+<rect x="692" y="188" width="228" height="62" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="704" y="208" font-weight="700">2 · Allotment</text><text x="704" y="223" fill="var(--ink-soft)" font-size="11">a plot</text>
+<rect x="804" y="212" width="112" height="34" rx="8" fill="var(--leaf-soft)" stroke="var(--leaf)" stroke-width="1.6"/>
+<text x="860" y="226" text-anchor="middle" font-weight="700" font-size="11">1 · Back Garden</text><text x="860" y="239" text-anchor="middle" fill="var(--ink-soft)" font-size="10">a bed · start here</text>
+<line x1="40" y1="272" x2="900" y2="272" stroke="currentColor" stroke-width="1" marker-end="url(#arr)"/>
+<text x="40" y="292" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-soft)">out: 1/300 s per game day, a century in two minutes</text>
+<text x="900" y="292" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-soft)" text-anchor="end">in: 24 s per game day, an hour a second</text>
+</g>
+</svg>
+</div>
+<figcaption>Nesting, not a staircase: the garden you play in level 1 sits, sealed, inside every level above it. Zooming back in is opening one of these boxes again. The clock slows as you go in and speeds up as you go out.</figcaption>
+<p class="hint">Scroll sideways, or tap Zoom to pinch and pan.</p>
+</figure>
+
+<div class="scroll"><table>
+<thead><tr><th class="n">#</th><th>Level</th><th>A node is</th><th>The core problem</th><th>What it adds</th><th class="n">Clock at 1×</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td>Back Garden</td><td>a bed</td><td>keep the soil alive and the plants watered, fed and unpicked-at; eat what you grow</td><td>weather, soil, water, crops, pests, waste, carbon (the compost heap), the kitchen, three hens</td><td class="n">24 s / day</td></tr>
+<tr><td class="n">2</td><td>Allotment</td><td>a plot</td><td>shared water, other people, surplus</td><td>neighbours, the trough, the swap shed, pests spreading, the committee</td><td class="n">4 s / day</td></tr>
+<tr><td class="n">3</td><td>Smallholding</td><td>a field</td><td>seasons, animals and labour: plan a year</td><td>rotation, livestock, labour, machinery, energy, the first market, spoilage, hedgerows</td><td class="n">1 s / day</td></tr>
+<tr><td class="n">4</td><td>Farm</td><td>an enterprise</td><td>weather risk at scale, and the buyer</td><td>insurance, contracts, abstraction licences, animal disease, the full carbon account, the union</td><td class="n">⅔ s / day</td></tr>
+<tr><td class="n">5</td><td>Market Town</td><td>a shop, a market, a road</td><td>field to fork before it spoils, at a price both ends can bear</td><td>storage and spoilage, routes, retail margins, local demand, waste, the council</td><td class="n">⅓ s / day</td></tr>
+<tr><td class="n">6</td><td>Supply Chain</td><td>a supplier, depot or store</td><td>demand spikes, the cold chain, waste at scale; you are now the buyer</td><td>logistics, buyer power, imports, packaging, reputation</td><td class="n">⅙ s / day</td></tr>
+<tr><td class="n">7</td><td>The Nation</td><td>a region</td><td>feed the country, keep it healthy and solvent, through governments you don't choose</td><td>diet and health, the land budget, the carbon target, food security, elections</td><td class="n">1/30 s / day</td></tr>
+<tr><td class="n">8</td><td>The Planet</td><td>a country</td><td>the climate loop closed; trade transmits every failure</td><td>geopolitics, treaties, commodity prices, sea level, shifting crop zones</td><td class="n">1/300 s / day</td></tr>
+</tbody></table></div>
+
+<h2 id="loop">How you play: you decide, people do</h2>
+<p>You never touch a bed, a field or a lorry. You set a plan, buy a tool, set a policy or, at the top, change a law; the gardener, the farmer, the hands, the drivers and eventually the whole country act on it, and you watch it happen on the map. Their time is the first constraint: a watering-can round takes the gardener a morning, a hose half of it, drip lines none.</p>
+<div class="rule"><strong>Money buys tools, tools buy time, time buys yield.</strong> At the top a law buys or costs the same things for a whole country, with consequences you can trace back down.</div>
+
+<figure>
+<button class="zoombtn" type="button" aria-label="Zoom this diagram">Zoom</button>
+<div class="figscroll">
+<svg viewBox="0 0 940 260" role="img" aria-label="The play loop: the player sets a plan, an upgrade, a policy or a law; the people act on it with the tools and hours they have; the map shows the result; the Explain card names the mechanism; the player decides again.">
+<g font-family="Atkinson Hyperlegible, sans-serif" font-size="12">
+<rect x="20" y="90" width="170" height="80" rx="8" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="105" y="122" text-anchor="middle" font-weight="700">You</text><text x="105" y="140" text-anchor="middle" fill="var(--ink-soft)" font-size="11">plan · upgrade · policy · law</text>
+<rect x="270" y="90" width="190" height="80" rx="8" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="365" y="116" text-anchor="middle" font-weight="700">The people</text><text x="365" y="134" text-anchor="middle" fill="var(--ink-soft)" font-size="11">gardener · farmer · hands · drivers</text><text x="365" y="150" text-anchor="middle" fill="var(--ink-soft)" font-size="11">their hours × their tools</text>
+<rect x="540" y="90" width="170" height="80" rx="8" fill="var(--leaf-soft)" stroke="var(--leaf)" stroke-width="1.6"/>
+<text x="625" y="122" text-anchor="middle" font-weight="700">The map</text><text x="625" y="140" text-anchor="middle" fill="var(--ink-soft)" font-size="11">things move; impacts show here first</text>
+<rect x="770" y="90" width="150" height="80" rx="8" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="845" y="122" text-anchor="middle" font-weight="700">Explain</text><text x="845" y="140" text-anchor="middle" fill="var(--ink-soft)" font-size="11">the mechanism, its source</text>
+<line x1="190" y1="130" x2="268" y2="130" stroke="currentColor" marker-end="url(#arr)"/><text x="229" y="122" text-anchor="middle" font-size="11">commands</text>
+<line x1="460" y1="130" x2="538" y2="130" stroke="currentColor" marker-end="url(#arr)"/><text x="499" y="122" text-anchor="middle" font-size="11">act</text>
+<line x1="710" y1="130" x2="768" y2="130" stroke="currentColor" marker-end="url(#arr)"/><text x="739" y="122" text-anchor="middle" font-size="11">tap</text>
+<path d="M845 170 V215 H105 V172" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<text x="475" y="232" text-anchor="middle" font-size="11">you decide again, knowing why</text>
+<path d="M365 90 V50 H625 V88" fill="none" stroke="var(--berry)" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+<text x="495" y="42" text-anchor="middle" font-size="11" fill="var(--berry)">their report may differ from what the map shows: people have goals of their own</text>
+</g>
+</svg>
+</div>
+<figcaption>The loop at every level. The dashed edge is the agency problem: what a manager or adviser tells you is a report, not the truth, and the map is where you check it.</figcaption>
+<p class="hint">Scroll sideways, or tap Zoom to pinch and pan.</p>
+</figure>
+
+<h3>People have goals, and later you don't choose them</h3>
+<p>Everyone you delegate to has skills you can see, goals you can only infer (money, an easy life, status, a belief in cheap food or the countryside) and an integrity you can't see at all. A good manager with the wrong goal is the wrong hire. From the smallholding up you hire; from the town up the people who matter most are chosen by others: the council by voters, the supermarket's buyer by the supermarket, the government by an election. Their goals can differ from yours and they can undo your work. The levers change from <em>choose</em> to <em>persuade, ally, trade favours, wait for the election, or change what voters want</em>. You are the constant across governments: the steward of the food system at each scale.</p>
+
+<h2 id="node">The model underneath: one graph at every scale</h2>
+<p>A bed, a herd, a shop, a country: to the engine they are all the same kind of thing, a node with stocks, flows and levers. That's what lets the planet be the same game as the garden, and lets the national carbon account be the sum of things you handled with a compost heap.</p>
+
+<figure>
+<button class="zoombtn" type="button" aria-label="Zoom this diagram">Zoom</button>
+<div class="figscroll">
+<svg viewBox="0 0 940 340" role="img" aria-label="A node: stocks inside (land, soil, water, crops and herds, food in store, money and kit, people, greenhouse gases); flows in and out (water, nutrients, carbon, food, feed, money, labour, energy, waste, pests, opinion); levers on top (plan, upgrade, policy, law); delays marked fast and slow.">
+<g font-family="Atkinson Hyperlegible, sans-serif" font-size="12">
+<rect x="265" y="70" width="410" height="215" rx="12" fill="var(--paper-2)" stroke="currentColor" stroke-width="1.4"/>
+<text x="470" y="95" text-anchor="middle" font-weight="700" font-size="14">A node</text>
+<text x="470" y="112" text-anchor="middle" fill="var(--ink-soft)" font-size="11">a bed · a plot · a field · a farm · a herd · a depot · a region · a country</text>
+<text x="285" y="140" font-weight="700" font-size="11">Stocks (persist, change slowly)</text>
+<text x="285" y="158" font-size="11">land by use · soil: organic matter, N-P-K, structure, water holding</text>
+<text x="285" y="174" font-size="11">water stores · crops and herds · food in store, with age and temperature</text>
+<text x="285" y="190" font-size="11">money and kit · people: labour, diet, health, trust · greenhouse gases</text>
+<text x="285" y="206" font-size="11">knowledge: upgrades bought, laws in force</text>
+<text x="285" y="236" font-weight="700" font-size="11">Totals when sealed</text>
+<text x="285" y="252" font-family="IBM Plex Mono, monospace" font-size="11">output · quality · reliability · upkeep</text>
+<text x="285" y="268" font-family="IBM Plex Mono, monospace" font-size="11">health · carbon · land</text>
+<g stroke="var(--water)" fill="none"><line x1="120" y1="130" x2="263" y2="130" marker-end="url(#arr)"/><line x1="120" y1="160" x2="263" y2="160" marker-end="url(#arr)"/><line x1="120" y1="190" x2="263" y2="190" marker-end="url(#arr)"/><line x1="120" y1="220" x2="263" y2="220" marker-end="url(#arr)"/><line x1="120" y1="250" x2="263" y2="250" marker-end="url(#arr)"/></g>
+<text x="112" y="134" text-anchor="end" font-size="11">water (litres)</text><text x="112" y="164" text-anchor="end" font-size="11">nutrients (kg N, P, K)</text><text x="112" y="194" text-anchor="end" font-size="11">labour (hours)</text><text x="112" y="224" text-anchor="end" font-size="11">energy (kWh), money</text><text x="112" y="254" text-anchor="end" font-size="11">feed, pests, opinion</text>
+<g stroke="var(--leaf)" fill="none"><line x1="677" y1="130" x2="820" y2="130" marker-end="url(#arr)"/><line x1="677" y1="160" x2="820" y2="160" marker-end="url(#arr)"/><line x1="677" y1="190" x2="820" y2="190" marker-end="url(#arr)"/><line x1="677" y1="220" x2="820" y2="220" marker-end="url(#arr)"/><line x1="677" y1="250" x2="820" y2="250" marker-end="url(#arr)"/></g>
+<text x="828" y="134" font-size="11">food by product (kg)</text><text x="828" y="164" font-size="11">carbon (kg CO₂e), sinks</text><text x="828" y="194" font-size="11">waste (kg)</text><text x="828" y="224" font-size="11">runoff, nitrate</text><text x="828" y="254" font-size="11">money, opinion</text>
+<rect x="360" y="14" width="220" height="30" rx="15" fill="var(--marigold)" stroke="none"/>
+<text x="470" y="33" text-anchor="middle" font-weight="700" fill="#1f2a22">levers: plan · upgrade · policy · law</text>
+<line x1="470" y1="44" x2="470" y2="68" stroke="currentColor" marker-end="url(#arr)"/>
+<text x="470" y="312" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Flows are conserved: nothing appears from nowhere. Every model states its fast effect and its slow one.</text>
+<text x="470" y="330" text-anchor="middle" font-size="11" fill="var(--ink-soft)">prices move in days · soil takes years · forests decades · the climate a lifetime</text>
+</g>
+</svg>
+</div>
+<figcaption>Every node has this shape whatever its size. Flows are counted in real units so they add up across levels; the delays are the education, because most mistakes in the real food system are a fast gain against a slow loss.</figcaption>
+<p class="hint">Scroll sideways, or tap Zoom to pinch and pan.</p>
+</figure>
+
+<h2 id="systems">The systems, and how they talk</h2>
+<p>Twenty-five systems in five groups. Each implements a real mechanism (FAO-56 for water, degree days for growth, IPCC factors for gases, the principal–agent problem for people) with rough numbers tuned inside the size those sources give. The picture below shows the connections the game turns on; the table under it says where each system first appears.</p>
+
+<figure>
+<button class="zoombtn" type="button" aria-label="Zoom this diagram">Zoom</button>
+<div class="figscroll">
+<svg viewBox="0 0 980 600" role="img" aria-label="Five groups of systems and the main flows between them: the physical world feeds growing; growing feeds moving and selling; people and power set demand and policy that reach every group; energy, carbon and climate close the loop back to weather.">
+<g font-family="Atkinson Hyperlegible, sans-serif" font-size="12">
+<rect x="40" y="20" width="250" height="200" rx="10" fill="var(--sky)" stroke="currentColor"/>
+<text x="54" y="42" font-weight="700" font-size="13">The physical world</text>
+<text x="54" y="64" font-size="11">Calendar and climate · Soil · Water</text><text x="54" y="80" font-size="11">Land use · Biodiversity</text>
+<text x="54" y="106" fill="var(--ink-soft)" font-size="11">Met Office normals, a weather</text><text x="54" y="120" fill="var(--ink-soft)" font-size="11">generator, FAO-56, Saxton &amp; Rawls,</text><text x="54" y="134" fill="var(--ink-soft)" font-size="11">IPCC land-use guidelines</text>
+<rect x="365" y="20" width="250" height="200" rx="10" fill="var(--leaf-soft)" stroke="var(--leaf)"/>
+<text x="379" y="42" font-weight="700" font-size="13">Growing food</text>
+<text x="379" y="64" font-size="11">Crops · Livestock · Pests and disease</text><text x="379" y="80" font-size="11">Nutrients and fertiliser · Labour</text>
+<text x="379" y="106" fill="var(--ink-soft)" font-size="11">degree days, Poore &amp; Nemecek, the</text><text x="379" y="120" fill="var(--ink-soft)" font-size="11">Smith period, RB209, feed conversion</text>
+<rect x="690" y="20" width="270" height="200" rx="10" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="704" y="42" font-weight="700" font-size="13">Moving and selling</text>
+<text x="704" y="64" font-size="11">Storage and spoilage · Transport</text><text x="704" y="80" font-size="11">Markets and prices · Trade · Waste</text>
+<text x="704" y="106" fill="var(--ink-soft)" font-size="11">WRAP, Q10 spoilage, FAOSTAT trade,</text><text x="704" y="120" fill="var(--ink-soft)" font-size="11">demand elasticities, export bans</text>
+<rect x="40" y="340" width="400" height="200" rx="10" fill="var(--paper-2)" stroke="var(--marigold)" stroke-width="1.6"/>
+<text x="54" y="362" font-weight="700" font-size="13">Energy, carbon and climate</text>
+<text x="54" y="384" font-size="11">Energy · Greenhouse gases · Climate feedback</text>
+<text x="54" y="410" fill="var(--ink-soft)" font-size="11">gas → fertiliser, fuel → lorries; emissions per node</text><text x="54" y="424" fill="var(--ink-soft)" font-size="11">summed to the atmosphere; a warming index</text><text x="54" y="438" fill="var(--ink-soft)" font-size="11">(roughly linear in cumulative CO₂, IPCC AR6)</text><text x="54" y="452" fill="var(--ink-soft)" font-size="11">that bends the weather generator</text>
+<rect x="520" y="340" width="440" height="200" rx="10" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="534" y="362" font-weight="700" font-size="13">People and power</text>
+<text x="534" y="384" font-size="11">Nutrition and health · Population and culture</text><text x="534" y="400" font-size="11">Agency and trust · Politics and policy · Technology</text>
+<text x="534" y="426" fill="var(--ink-soft)" font-size="11">EAT-Lancet, ONS, the principal–agent problem,</text><text x="534" y="440" fill="var(--ink-soft)" font-size="11">regulatory capture, political capital, elections</text>
+<line x1="290" y1="95" x2="363" y2="95" stroke="currentColor" marker-end="url(#arr)"/><text x="327" y="82" text-anchor="middle" font-size="10">weather,</text><text x="327" y="110" text-anchor="middle" font-size="10">soil, water</text>
+<line x1="615" y1="95" x2="688" y2="95" stroke="currentColor" marker-end="url(#arr)"/><text x="652" y="82" text-anchor="middle" font-size="10">harvest,</text><text x="652" y="110" text-anchor="middle" font-size="10">kg by product</text>
+<path d="M490 220 V300 H200 V338" fill="none" stroke="var(--marigold)" stroke-width="1.6" marker-end="url(#arr)"/>
+<text x="345" y="294" text-anchor="middle" font-size="10">methane, N₂O, fuel, cleared land</text>
+<path d="M700 220 V318 H300 V338" fill="none" stroke="var(--marigold)" stroke-width="1.6" marker-end="url(#arr)"/>
+<text x="420" y="331" text-anchor="middle" font-size="10">lorries, cold chain, landfill</text>
+<path d="M100 340 V280 H60 V222" fill="none" stroke="var(--marigold)" stroke-width="1.6" marker-end="url(#arr)"/>
+<text x="110" y="284" font-size="10" fill="var(--marigold)" font-weight="700">warming → weather, yields, pests, sea level</text>
+<path d="M600 340 V260 H550 V222" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<text x="560" y="256" font-size="10">diet mix → what's grown, what's wanted</text>
+<path d="M900 220 V338" fill="none" stroke="currentColor" marker-end="url(#arr)"/><text x="892" y="290" font-size="10" text-anchor="end">prices, shortages, waste → votes</text>
+<path d="M520 470 H442" fill="none" stroke="currentColor" marker-end="url(#arr)"/><text x="481" y="460" text-anchor="middle" font-size="10">carbon price,</text><text x="481" y="486" text-anchor="middle" font-size="10">targets</text>
+<path d="M620 540 V570 H20 V150 H38" fill="none" stroke="currentColor" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+<text x="320" y="586" text-anchor="middle" font-size="10">policy reaches every node as a modifier: subsidies, taxes, rules, welfare law, trade deals</text>
+</g>
+</svg>
+</div>
+<figcaption>The orange edges are the climate loop: everything that grows, moves or rots emits, the sum sets a warming index, and warming comes back into the weather every node grows under. The dashed edge is policy, which reaches every node as a modifier. Diet is the hinge between people and growing.</figcaption>
+<p class="hint">Scroll sideways, or tap Zoom to pinch and pan.</p>
+</figure>
+
+<div class="scroll"><table>
+<thead><tr><th>System</th><th>What it does in the game</th><th>Real basis</th><th class="n">From level</th></tr></thead>
+<tbody>
+<tr><td>Calendar and climate</td><td>real dates and seasons; a weather generator from climate normals, bent by the warming index</td><td>Met Office normals; Richardson-type generator; IPCC AR6</td><td class="n">1</td></tr>
+<tr><td>Soil</td><td>organic matter, nutrients, structure, moisture; stores carbon; leaks nitrate</td><td>Saxton &amp; Rawls; RothC; RB209</td><td class="n">1</td></tr>
+<tr><td>Water</td><td>rain → moisture → evapotranspiration; stores, bans, floods; shared at every scale</td><td>FAO-56 Penman-Monteith</td><td class="n">1</td></tr>
+<tr><td>Land use</td><td>crops, pasture, forest, margins, built; changing it moves carbon and biodiversity</td><td>IPCC land-use guidelines</td><td class="n">1, 4 in earnest</td></tr>
+<tr><td>Biodiversity</td><td>pollinators and natural enemies raise yields and suppress pests</td><td>Klein et al. 2007</td><td class="n">1</td></tr>
+<tr><td>Crops</td><td>sowing windows, degree days, stress, yield and quality</td><td>degree-day phenology; FAO-56 yield response</td><td class="n">1</td></tr>
+<tr><td>Livestock</td><td>feed conversion, land and water per kg, methane, manure, welfare</td><td>Poore &amp; Nemecek 2018; IPCC Tier 1</td><td class="n">1 (hens), 3</td></tr>
+<tr><td>Pests and disease</td><td>populations from weather and hosts; spread; controls with side effects</td><td>degree-day models; the Smith period</td><td class="n">1</td></tr>
+<tr><td>Nutrients</td><td>the nitrogen cycle; finite phosphate; gas prices become food prices</td><td>RB209; IPCC N₂O; Haber-Bosch</td><td class="n">1, 3</td></tr>
+<tr><td>Labour</td><td>hours, skills, peaks, wages, migration; machinery as the substitute</td><td>DEFRA, AHDB</td><td class="n">1 (the gardener's hours), 3</td></tr>
+<tr><td>Storage and spoilage</td><td>shelf life by product and temperature; losses at every stage</td><td>WRAP; Q10 kinetics</td><td class="n">3</td></tr>
+<tr><td>Transport</td><td>routes, vehicles, fuel, disruption</td><td>DfT freight statistics</td><td class="n">5</td></tr>
+<tr><td>Markets and demand</td><td>diet mix by culture, income, price and trend; contracts; cosmetic standards; imports</td><td>demand elasticities; DEFRA Family Food</td><td class="n">1 (the kitchen), 5</td></tr>
+<tr><td>Trade</td><td>countries' production, stocks, imports and exports; tariffs, export bans</td><td>FAOSTAT; 2007–8 and 2010 episodes</td><td class="n">8</td></tr>
+<tr><td>Waste</td><td>waste at every stage → landfill methane, compost, digestion, redistribution</td><td>WRAP; IPCC waste factors</td><td class="n">1</td></tr>
+<tr><td>Energy</td><td>fuel, electricity, gas for fertiliser; on-farm renewables</td><td>DEFRA and BEIS factors</td><td class="n">3</td></tr>
+<tr><td>Greenhouse gases</td><td>emissions and sinks per node, summed to the atmosphere</td><td>IPCC AR6; national inventory methods</td><td class="n">1</td></tr>
+<tr><td>Climate feedback</td><td>warming shifts weather, crop zones, pests and sea level; failures abroad</td><td>IPCC AR6 (TCRE); crop-model responses</td><td class="n">counted from 1, felt at 7, closed at 8</td></tr>
+<tr><td>Nutrition and health</td><td>diet → deficiencies, obesity, health cost; food security</td><td>EAT-Lancet; NHS, ONS, DEFRA</td><td class="n">1, 7</td></tr>
+<tr><td>Population and culture</td><td>growth, urbanisation, income, food culture, trust</td><td>ONS projections; dietary trend surveys</td><td class="n">2, 7</td></tr>
+<tr><td>Agency and trust</td><td>skills, goals and hidden integrity; reports vs the truth; hiring, audits, regulation</td><td>principal–agent problem; regulatory capture; the Groceries Code Adjudicator</td><td class="n">2, 3 (hiring), 5 (people you don't choose)</td></tr>
+<tr><td>Politics and policy</td><td>levers by level, paid for in political capital; lobbies; elections that change the government's goals</td><td>the CAP and its successors; the sugar levy; veto-player models</td><td class="n">2 (the committee)</td></tr>
+<tr><td>Technology and upgrades</td><td>the incremental tree: tools, buildings, machines, varieties, alternative proteins</td><td>AHDB costings; life-cycle studies</td><td class="n">1</td></tr>
+</tbody></table></div>
+
+<h2 id="loops">The loops that make it a game</h2>
+<p>Steering the planet towards plant-based or towards meat is a real strategy with real trade-offs, felt at different speeds. These are the loops the player learns to see.</p>
+
+<figure>
+<button class="zoombtn" type="button" aria-label="Zoom this diagram">Zoom</button>
+<div class="figscroll">
+<svg viewBox="0 0 940 320" role="img" aria-label="Three loops: the diet loop (demand mix, herds versus crops, land and methane, warming, yields and prices, back to demand); the intensification loop (inputs, yields now, soil and water down over years, regulation); the agency loop (delegate, delegates have goals, watch and audit costs time, captured rules cost everyone).">
+<g font-family="Atkinson Hyperlegible, sans-serif" font-size="11">
+<g transform="translate(20 0)">
+<text x="140" y="24" text-anchor="middle" font-weight="700" font-size="13">The diet loop</text>
+<circle cx="140" cy="170" r="105" fill="none" stroke="currentColor" stroke-dasharray="3 4"/>
+<rect x="85" y="50" width="110" height="28" rx="14" fill="var(--paper-2)" stroke="currentColor"/><text x="140" y="68" text-anchor="middle">demand mix</text>
+<rect x="195" y="120" width="100" height="28" rx="14" fill="var(--leaf-soft)" stroke="var(--leaf)"/><text x="245" y="138" text-anchor="middle">herds vs crops</text>
+<rect x="170" y="230" width="120" height="28" rx="14" fill="var(--paper-2)" stroke="var(--marigold)"/><text x="230" y="248" text-anchor="middle">land, feed, CH₄</text>
+<rect x="40" y="255" width="90" height="28" rx="14" fill="var(--paper-2)" stroke="var(--marigold)"/><text x="85" y="273" text-anchor="middle">warming</text>
+<rect x="-10" y="150" width="110" height="28" rx="14" fill="var(--paper-2)" stroke="currentColor"/><text x="45" y="168" text-anchor="middle">yields, prices</text>
+<path d="M195 70 Q240 90 240 118" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M250 148 Q255 200 245 228" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M170 250 Q150 275 132 268" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M50 255 Q35 220 40 180" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M45 150 Q55 90 83 68" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<text x="140" y="180" text-anchor="middle" fill="var(--ink-soft)">politics pushes,</text><text x="140" y="194" text-anchor="middle" fill="var(--ink-soft)">culture pushes back</text>
+<text x="140" y="305" text-anchor="middle" fill="var(--ink-soft)">fast: prices · slow: land, methane, warming</text>
+</g>
+<g transform="translate(330 0)">
+<text x="140" y="24" text-anchor="middle" font-weight="700" font-size="13">The intensification loop</text>
+<circle cx="140" cy="170" r="105" fill="none" stroke="currentColor" stroke-dasharray="3 4"/>
+<rect x="70" y="50" width="140" height="28" rx="14" fill="var(--paper-2)" stroke="currentColor"/><text x="140" y="68" text-anchor="middle">fertiliser, chemicals</text>
+<rect x="200" y="140" width="90" height="28" rx="14" fill="var(--leaf-soft)" stroke="var(--leaf)"/><text x="245" y="158" text-anchor="middle">yields now ↑</text>
+<rect x="60" y="255" width="160" height="28" rx="14" fill="var(--paper-2)" stroke="var(--berry)"/><text x="140" y="273" text-anchor="middle">soil, water, bees ↓ (years)</text>
+<rect x="-10" y="140" width="110" height="28" rx="14" fill="var(--paper-2)" stroke="currentColor"/><text x="45" y="158" text-anchor="middle">rules, yields ↓</text>
+<path d="M210 70 Q250 95 245 138" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M245 168 Q240 235 222 262" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M60 268 Q30 230 42 170" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M45 140 Q50 85 70 68" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<text x="140" y="175" text-anchor="middle" fill="var(--ink-soft)">a fast gain</text><text x="140" y="189" text-anchor="middle" fill="var(--ink-soft)">against a slow loss</text>
+</g>
+<g transform="translate(640 0)">
+<text x="140" y="24" text-anchor="middle" font-weight="700" font-size="13">The agency loop</text>
+<circle cx="140" cy="170" r="105" fill="none" stroke="currentColor" stroke-dasharray="3 4"/>
+<rect x="80" y="50" width="120" height="28" rx="14" fill="var(--paper-2)" stroke="currentColor"/><text x="140" y="68" text-anchor="middle">delegate: buy time</text>
+<rect x="195" y="140" width="100" height="28" rx="14" fill="var(--paper-2)" stroke="var(--berry)"/><text x="245" y="158" text-anchor="middle">their own goals</text>
+<rect x="70" y="255" width="140" height="28" rx="14" fill="var(--paper-2)" stroke="currentColor"/><text x="140" y="273" text-anchor="middle">watch, audit: costs time</text>
+<rect x="-10" y="140" width="110" height="28" rx="14" fill="var(--paper-2)" stroke="var(--berry)"/><text x="45" y="158" text-anchor="middle">a captured rule</text>
+<path d="M200 70 Q245 95 245 138" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M245 168 Q240 235 212 262" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M70 268 Q30 230 42 170" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<path d="M45 140 Q50 85 80 68" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+<text x="140" y="175" text-anchor="middle" fill="var(--ink-soft)">the map shows the truth;</text><text x="140" y="189" text-anchor="middle" fill="var(--ink-soft)">the report may not</text>
+</g>
+</g>
+</svg>
+</div>
+<figcaption>Two more run the same way: the trade loop (a failure abroad → imports dry up → prices → unrest → export bans elsewhere → worse) and the energy loop (a gas price → fertiliser and fuel → planting → next year's harvest).</figcaption>
+<p class="hint">Scroll sideways, or tap Zoom to pinch and pan.</p>
+</figure>
+
+<h2 id="carry">Zooming out, and back in</h2>
+<p>When you step up, the level you played is sealed into one node of the next map, keeping its totals over its last full cycle: output, quality, reliability, upkeep, health, carbon and land. A sealed node keeps running by those numbers alone; nothing inside it is simulated in detail. Events keep their <em>effect</em> and lose their <em>detail</em>: the expected food lost is the same whichever level shows it.</p>
+
+<figure>
+<button class="zoombtn" type="button" aria-label="Zoom this diagram">Zoom</button>
+<div class="figscroll">
+<svg viewBox="0 0 940 250" role="img" aria-label="One pest outbreak seen at three scales: slugs drawn on a bed in the garden; a plot tile reading output minus 20 percent for 10 days on the allotment; a region tinted with the line pest year in the east, veg minus 5 percent at the nation.">
+<g font-family="Atkinson Hyperlegible, sans-serif" font-size="12">
+<rect x="20" y="30" width="270" height="150" rx="8" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="155" y="52" text-anchor="middle" font-weight="700">Level 1 · the garden</text>
+<rect x="60" y="70" width="190" height="60" rx="4" fill="var(--soil)"/>
+<g fill="var(--leaf)"><circle cx="90" cy="100" r="9"/><circle cx="130" cy="100" r="9"/><circle cx="170" cy="100" r="9"/><circle cx="210" cy="100" r="9"/></g>
+<g fill="var(--berry)"><ellipse cx="112" cy="118" rx="7" ry="4"/><ellipse cx="190" cy="82" rx="7" ry="4"/><ellipse cx="232" cy="112" rx="7" ry="4"/></g>
+<text x="155" y="160" text-anchor="middle" font-size="11">slugs, drawn; the gardener's pest policy fixes it</text>
+<rect x="335" y="30" width="270" height="150" rx="8" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="470" y="52" text-anchor="middle" font-weight="700">Level 2 · the allotment</text>
+<g><rect x="380" y="70" width="40" height="40" fill="var(--leaf-soft)" stroke="currentColor"/><rect x="425" y="70" width="40" height="40" fill="var(--leaf-soft)" stroke="currentColor"/><rect x="470" y="70" width="40" height="40" fill="var(--paper)" stroke="var(--berry)" stroke-width="2"/><rect x="515" y="70" width="40" height="40" fill="var(--leaf-soft)" stroke="currentColor"/></g>
+<circle cx="503" cy="77" r="6" fill="var(--berry)"/>
+<text x="470" y="132" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11">output −20 % for 10 days</text>
+<text x="470" y="160" text-anchor="middle" font-size="11">a tile with a badge; buy biocontrol for the plot</text>
+<rect x="650" y="30" width="270" height="150" rx="8" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="785" y="52" text-anchor="middle" font-weight="700">Level 7 · the nation</text>
+<path d="M690 120 Q700 70 750 72 Q800 60 840 80 Q880 100 860 130 Q820 150 760 140 Q700 150 690 120z" fill="var(--sky)" stroke="currentColor"/>
+<path d="M800 78 Q850 75 860 105 Q850 135 810 140 Q790 110 800 78z" fill="var(--berry)" opacity=".35"/>
+<text x="785" y="160" text-anchor="middle" font-size="11">"pest year in the east: veg −5 %"; only policy</text>
+<line x1="290" y1="105" x2="333" y2="105" stroke="currentColor" marker-end="url(#arr)"/><line x1="605" y1="105" x2="648" y2="105" stroke="currentColor" marker-end="url(#arr)"/>
+<text x="470" y="215" text-anchor="middle" font-size="12" font-weight="700">the same kilograms lost at every scale · the detail only exists at home</text>
+<text x="470" y="236" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Zooming back in: a shortage traced to one node lets you open it, change its plan and tools, and watch its people act, against a deadline</text>
+</g>
+</svg>
+</div>
+<figcaption>The carry-over rule for events. Zooming back in reverses it: the sealed node is inflated from its totals on a seeded layout, so the same farm always looks the same, and the level above barely moves while you're down there because there is one clock.</figcaption>
+<p class="hint">Scroll sideways, or tap Zoom to pinch and pan.</p>
+</figure>
+
+<h2 id="slice">What ships first: the garden, the allotment and the smallholding</h2>
+<p>The owner chose three levels for launch: the Back Garden complete, the Allotment complete (a full year, sealed at the end) and the Smallholding's first year, built on the graph rather than as a garden-shaped special case: the node shape, flows in real units, sealing, carbon and land counted from the first bed, the Explain card, one adviser, the gardener who does the work, and the bot. Places are invented everywhere: a generated, UK-flavoured world from the seed, with real datasets behind the numbers and never as names.</p>
+
+<h3>The first minute</h3>
+<p>No menu and no scenario choice. The page opens on the garden early on a spring morning with the gardener standing by the shed. At 1× a game hour is a real second, so the first real minute is two and a half game days.</p>
+<figure>
+<button class="zoombtn" type="button" aria-label="Zoom this diagram">Zoom</button>
+<div class="figscroll">
+<svg viewBox="0 0 940 190" role="img" aria-label="A timeline of the first sixty seconds: the plan card while paused; the gardener sows and waters; dusk and slugs picked by torchlight; morning shoots and the beer trap on offer; a shower waters the beds by itself.">
+<g font-family="Atkinson Hyperlegible, sans-serif" font-size="11">
+<line x1="40" y1="70" x2="900" y2="70" stroke="currentColor" stroke-width="1.4"/>
+<g fill="var(--leaf)"><circle cx="40" cy="70" r="6"/><circle cx="183" cy="70" r="6"/><circle cx="384" cy="70" r="6"/><circle cx="527" cy="70" r="6"/><circle cx="614" cy="70" r="6"/><circle cx="900" cy="70" r="6"/></g>
+<text x="40" y="50" text-anchor="middle" font-family="IBM Plex Mono, monospace">0 s</text><text x="183" y="50" text-anchor="middle" font-family="IBM Plex Mono, monospace">10 s</text><text x="384" y="50" text-anchor="middle" font-family="IBM Plex Mono, monospace">24 s</text><text x="527" y="50" text-anchor="middle" font-family="IBM Plex Mono, monospace">34 s</text><text x="614" y="50" text-anchor="middle" font-family="IBM Plex Mono, monospace">40 s</text><text x="900" y="50" text-anchor="middle" font-family="IBM Plex Mono, monospace">60 s</text>
+<line x1="40" y1="76" x2="40" y2="92" stroke="currentColor" stroke-width=".8"/><text x="40" y="106" text-anchor="start">plan card, paused:</text><text x="40" y="120" text-anchor="start">"salad in bed 1, radishes in 2"</text>
+<line x1="183" y1="76" x2="183" y2="130" stroke="currentColor" stroke-width=".8"/><text x="183" y="144" text-anchor="middle">the gardener sows,</text><text x="183" y="158" text-anchor="middle">fetches the can, waters</text>
+<line x1="384" y1="76" x2="384" y2="92" stroke="currentColor" stroke-width=".8"/><text x="384" y="106" text-anchor="middle">dusk: slugs; picked by</text><text x="384" y="120" text-anchor="middle">torchlight, some missed</text>
+<line x1="527" y1="76" x2="527" y2="130" stroke="currentColor" stroke-width=".8"/><text x="527" y="144" text-anchor="middle">day 2: shoots, a nibbled</text><text x="527" y="158" text-anchor="middle">leaf; the beer trap on offer</text>
+<line x1="614" y1="76" x2="614" y2="92" stroke="currentColor" stroke-width=".8"/><text x="660" y="106" text-anchor="middle">a shower waters both beds;</text><text x="660" y="120" text-anchor="middle">the gardener stays in</text>
+<line x1="900" y1="76" x2="900" y2="130" stroke="currentColor" stroke-width=".8"/><text x="900" y="144" text-anchor="end">day 3: the kitchen's</text><text x="900" y="158" text-anchor="end">first ask</text>
+<text x="470" y="184" text-anchor="middle" fill="var(--ink-soft)">first harvest on day 7 (about three minutes) · the beer trap, then the hose, inside ten minutes · the allotment offer at days 55–75</text>
+</g>
+</svg>
+</div>
+<figcaption>The first upgrade decision arrives inside the first minute, and it's a time decision: the trap catches most slugs and costs the gardener no evenings.</figcaption>
+<p class="hint">Scroll sideways, or tap Zoom to pinch and pan.</p>
+</figure>
+
+<h3>What makes the step up feel earned</h3>
+<p>The allotment committee offers a plot when your garden, sealed, would be a plot worth having: steady output, reliability and health over the last 28 days, shown on the goal bar so you can see that a steady, healthy garden is what's wanted rather than one lucky harvest. The step-up card shows the garden shrinking into a tile with its numbers on it, and the tile lands among eleven neighbours'. The old skills come straight back as new problems: one shared trough with a rota, surplus to swap, slugs from the neglected plot next door, a committee vote, and a neighbour who helps with your second plot and takes a little more than their share, which the map shows and the totals don't.</p>
+
+<div class="grid">
+<div class="tile"><h3>The first roadmap</h3><p>Fifteen PR-sized parts: the graph and the clock; weather, soil and water; crops and the gardener; the bot and the first baselines; pests, wildlife and Explain; the shed and the advisers; sealing and the step up; the allotment's first season; the first zoom back in; the allotment's year; fields and the year plan; livestock; labour, machinery and energy; the first market and the road; the first release.</p></div>
+<div class="tile"><h3>How balance is measured</h3><p>A bot plays the same commands a player has, on seeds 1, 2 and 3, and reports the day of each milestone against agreed baselines. Strategy tests make sure no single trick wins: rotation beats one crop; "leave the pests" still gets there, later; handing everything to the advisers gets there within a quarter of the planning bot's time.</p></div>
+<div class="tile"><h3>Real mechanisms, rough numbers</h3><p>Every model names its sources and what it simplifies, and has a test asserting the direction and rough size of its effect: tomatoes in a hot dry week need more water than lettuce in cool rain; a day at 2 °C grows nothing. Constants are tuned inside the size the sources give.</p></div>
+</div>
+
+<h2 id="arch">How it's built</h2>
+<p>A static site on GitHub Pages: strict TypeScript built by Vite, Preact panels beside a WebGL map, and the simulation running in a Web Worker so a planet-sized graph never stalls the map on a phone. The same simulation module runs in Node for the tests and the bot.</p>
+
+<figure>
+<button class="zoombtn" type="button" aria-label="Zoom this diagram">Zoom</button>
+<div class="figscroll">
+<svg viewBox="0 0 940 330" role="img" aria-label="Architecture: the UI (Preact panels and a PixiJS map) sends commands to the simulation in a Web Worker and receives snapshots with flows and activities; the same sim module runs in Node for Vitest tests and the bot; data files feed the sim; a rules check keeps the sim free of the UI and the DOM.">
+<g font-family="Atkinson Hyperlegible, sans-serif" font-size="12">
+<rect x="20" y="40" width="300" height="200" rx="10" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="34" y="62" font-weight="700" font-size="13">The page (main thread)</text>
+<rect x="40" y="80" width="120" height="60" rx="6" fill="var(--paper)" stroke="currentColor"/><text x="100" y="105" text-anchor="middle" font-weight="700">Panels</text><text x="100" y="121" text-anchor="middle" font-size="11">Preact · Explain</text>
+<rect x="180" y="80" width="120" height="60" rx="6" fill="var(--leaf-soft)" stroke="var(--leaf)"/><text x="240" y="105" text-anchor="middle" font-weight="700">The map</text><text x="240" y="121" text-anchor="middle" font-size="11">PixiJS · interpolates</text>
+<rect x="40" y="160" width="260" height="60" rx="6" fill="var(--paper)" stroke="currentColor"/><text x="170" y="185" text-anchor="middle" font-weight="700">app: clock loop · save · sim client</text><text x="170" y="201" text-anchor="middle" font-size="11">versioned JSON on the device</text>
+<rect x="400" y="40" width="240" height="200" rx="10" fill="var(--sky)" stroke="currentColor"/>
+<text x="414" y="62" font-weight="700" font-size="13">Web Worker</text>
+<rect x="420" y="80" width="200" height="140" rx="6" fill="var(--paper)" stroke="currentColor" stroke-width="1.4"/>
+<text x="520" y="104" text-anchor="middle" font-weight="700">src/sim</text>
+<text x="520" y="124" text-anchor="middle" font-size="11">the graph · the clock · models</text><text x="520" y="140" text-anchor="middle" font-size="11">pure TypeScript, no DOM</text><text x="520" y="156" text-anchor="middle" font-size="11">seeded Rng, never Math.random</text>
+<text x="520" y="180" text-anchor="middle" font-size="11" fill="var(--ink-soft)">reads src/data:</text><text x="520" y="196" text-anchor="middle" font-size="11" fill="var(--ink-soft)">crops, soils, normals, countries</text>
+<line x1="320" y1="120" x2="398" y2="120" stroke="currentColor" marker-end="url(#arr)"/><text x="359" y="112" text-anchor="middle" font-size="11">commands</text>
+<line x1="398" y1="170" x2="320" y2="170" stroke="currentColor" marker-end="url(#arr)"/><text x="359" y="190" text-anchor="middle" font-size="11">snapshots:</text><text x="359" y="204" text-anchor="middle" font-size="10">stocks, flows, activities</text>
+<rect x="700" y="40" width="220" height="200" rx="10" fill="var(--paper-2)" stroke="currentColor"/>
+<text x="714" y="62" font-weight="700" font-size="13">Node (no browser)</text>
+<rect x="720" y="80" width="180" height="50" rx="6" fill="var(--paper)" stroke="currentColor"/><text x="810" y="101" text-anchor="middle" font-weight="700">Vitest</text><text x="810" y="117" text-anchor="middle" font-size="11">years in milliseconds</text>
+<rect x="720" y="150" width="180" height="50" rx="6" fill="var(--paper)" stroke="currentColor"/><text x="810" y="171" text-anchor="middle" font-weight="700">The bot</text><text x="810" y="187" text-anchor="middle" font-size="11">seeds 1–3, milestones</text>
+<line x1="640" y1="140" x2="698" y2="140" stroke="currentColor" marker-end="url(#arr)"/><text x="669" y="132" text-anchor="middle" font-size="10">same module</text>
+<rect x="20" y="270" width="900" height="40" rx="8" fill="none" stroke="var(--marigold)" stroke-dasharray="5 3"/>
+<text x="470" y="295" text-anchor="middle" font-size="11">the rules check, run by the build: sim and data never import the UI or name the DOM · Math.random only in the seeded generator or on a cosmetic line · every model names its sources</text>
+</g>
+</svg>
+</div>
+<figcaption>Every way of changing the game is a command, so the bot plays exactly the game the player does. The one real risk in this shape is the snapshot's size at the planet; the first part measures it and moves to deltas if a tick's copy passes 2 ms on a phone.</figcaption>
+<p class="hint">Scroll sideways, or tap Zoom to pinch and pan.</p>
+</figure>
+
+<h2 id="choices">Choices, made and open</h2>
+<p>Each choice was looked at again with the whole design in view. They stand, each for a reason.</p>
+<div class="scroll"><table>
+<thead><tr><th>Choice</th><th>Stands because</th><th>Would change if</th></tr></thead>
+<tbody>
+<tr><td>TypeScript, strict, built by Vite</td><td>typed stocks, flows and units keep a planet-sized model honest across sessions; a static site with no server</td><td>never</td></tr>
+<tr><td>The sim in a Web Worker, the same module in Node</td><td>a big graph never stalls the map; the bot and the tests run the identical code</td><td>the snapshot copy proves too costly and deltas don't fix it: rendering moves into the worker too</td></tr>
+<tr><td>Preact for the panels</td><td>thirty-odd panels with Explain cards need a declarative UI; 4 KB</td><td>never</td></tr>
+<tr><td>PixiJS for the map</td><td>thousands of moving things on a phone; one renderer from the bed to the globe</td><td>a device without WebGL: Canvas 2D fallback, fewer moving things</td></tr>
+<tr><td>D3-geo over a generated world</td><td>projections and a globe for an invented planet, no map service and no boundary data; the owner chose invented places everywhere</td><td>never</td></tr>
+<tr><td>Saves in localStorage</td><td>sealed nodes are compact; the checks seed saves through it easily</td><td>a save passes 1 MB: IndexedDB, behind the same save module</td></tr>
+<tr><td>Real mechanisms, rough numbers</td><td>an educational sim that stays a game; every model sourced, tuned inside the rough size</td><td>never</td></tr>
+</tbody></table></div>
+
+<h3>Decided</h3>
+<p>The owner answered on 28 Sep: three levels ship at launch (through the Smallholding); one continuous save; the level names as above; no fail state that ends the game; invented places everywhere; the clock stops while the page is closed; £; the proposed allotment thresholds, tuned with the bot; the gardener's four hours a day. Every preference kept. And the art style: flat top-down and soft, picked from drawn examples of four. The spec is approved.</p>
+
+<footer>Overgrow, founding spec of 28 Sep 2026. The full spec is <span class="mono">docs/specs/overgrow.md</span> on pull request #3; the decision records in <span class="mono">docs/decisions/</span> say why each choice was made.</footer>
+</div>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Zoomed diagram" hidden>
+  <div class="lb-bar"><span class="t" id="lb-title">Diagram</span><button type="button" id="lb-out" aria-label="Zoom out">−</button><button type="button" id="lb-in" aria-label="Zoom in">+</button><button type="button" id="lb-fit">Fit</button><button type="button" id="lb-close">Close</button></div>
+  <div class="lb-view" id="lb-view"><div class="lb-inner" id="lb-inner"></div></div>
+  <div class="lb-cap" id="lb-cap"></div>
+</div>
+<script>
+(function(){
+  var lb=document.getElementById('lb'),view=document.getElementById('lb-view'),inner=document.getElementById('lb-inner'),cap=document.getElementById('lb-cap'),title=document.getElementById('lb-title');
+  var s=1,tx=0,ty=0,w=0,h=0,lastFocus=null;
+  function apply(){inner.style.transform='translate('+tx+'px,'+ty+'px) scale('+s+')'}
+  function clamp(){var vw=view.clientWidth,vh=view.clientHeight,cw=w*s,ch=h*s;
+    if(cw<=vw)tx=(vw-cw)/2;else tx=Math.min(0,Math.max(vw-cw,tx));
+    if(ch<=vh)ty=(vh-ch)/2;else ty=Math.min(0,Math.max(vh-ch,ty));}
+  function fit(){var vw=view.clientWidth,vh=view.clientHeight;s=Math.min(vw/w,vh/h);if(s<1)s=Math.max(s,0.2);tx=0;ty=0;clamp();apply()}
+  function zoomAt(f,cx,cy){var ns=Math.min(8,Math.max(0.2,s*f));tx=cx-(cx-tx)*(ns/s);ty=cy-(cy-ty)*(ns/s);s=ns;clamp();apply()}
+  function open(fig){var svg=fig.querySelector('svg');if(!svg)return;lastFocus=document.activeElement;
+    var vb=(svg.getAttribute('viewBox')||'0 0 940 400').split(/\s+/).map(Number);w=vb[2];h=vb[3];
+    var c=svg.cloneNode(true);c.setAttribute('width',w);c.setAttribute('height',h);c.style.width=w+'px';c.style.height=h+'px';c.removeAttribute('id');
+    inner.innerHTML='';inner.appendChild(c);
+    var fc=fig.querySelector('figcaption');cap.textContent=fc?fc.textContent:'';title.textContent=svg.getAttribute('aria-label')?svg.getAttribute('aria-label').split(':')[0].split('.')[0]:'Diagram';
+    lb.hidden=false;lb.classList.add('open');document.body.style.overflow='hidden';
+    requestAnimationFrame(function(){fit();if(s<1){s=Math.max(s,1);clamp();apply()}document.getElementById('lb-close').focus()});}
+  function close(){lb.classList.remove('open');lb.hidden=true;document.body.style.overflow='';if(lastFocus&&lastFocus.focus)lastFocus.focus()}
+  document.querySelectorAll('figure .zoombtn').forEach(function(b){b.addEventListener('click',function(){open(b.closest('figure'))})});
+  document.getElementById('lb-close').addEventListener('click',close);
+  document.getElementById('lb-fit').addEventListener('click',fit);
+  document.getElementById('lb-in').addEventListener('click',function(){zoomAt(1.4,view.clientWidth/2,view.clientHeight/2)});
+  document.getElementById('lb-out').addEventListener('click',function(){zoomAt(1/1.4,view.clientWidth/2,view.clientHeight/2)});
+  document.addEventListener('keydown',function(e){if(lb.hidden)return;if(e.key==='Escape')close();if(e.key==='+'||e.key==='=')zoomAt(1.4,view.clientWidth/2,view.clientHeight/2);if(e.key==='-')zoomAt(1/1.4,view.clientWidth/2,view.clientHeight/2)});
+  view.addEventListener('wheel',function(e){e.preventDefault();var r=view.getBoundingClientRect();zoomAt(e.deltaY<0?1.15:1/1.15,e.clientX-r.left,e.clientY-r.top)},{passive:false});
+  var pts=new Map(),lastD=0,lastMid=null,lastTap=0;
+  view.addEventListener('pointerdown',function(e){view.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});view.classList.add('drag');
+    if(pts.size===2){var a=Array.from(pts.values());lastD=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);lastMid={x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2}}
+    if(pts.size===1&&e.pointerType==='touch'){var now=Date.now();if(now-lastTap<300){var r=view.getBoundingClientRect();zoomAt(s<2?2:1/s,e.clientX-r.left,e.clientY-r.top)}lastTap=now}});
+  view.addEventListener('pointermove',function(e){if(!pts.has(e.pointerId))return;var prev=pts.get(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1){tx+=e.clientX-prev.x;ty+=e.clientY-prev.y;clamp();apply()}
+    else if(pts.size===2){var a=Array.from(pts.values()),d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),mid={x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2},r=view.getBoundingClientRect();
+      if(lastD>0)zoomAt(d/lastD,mid.x-r.left,mid.y-r.top);tx+=mid.x-lastMid.x;ty+=mid.y-lastMid.y;clamp();apply();lastD=d;lastMid=mid}});
+  function up(e){pts.delete(e.pointerId);if(pts.size<2){lastD=0;lastMid=null}if(!pts.size)view.classList.remove('drag')}
+  view.addEventListener('pointerup',up);view.addEventListener('pointercancel',up);
+  window.addEventListener('resize',function(){if(!lb.hidden){clamp();apply()}});
+})();
+</script>
