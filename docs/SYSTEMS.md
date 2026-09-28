@@ -57,7 +57,7 @@ One clock for every level, in game hours since the start. Each level sets how mu
 
 - `npm run build` (`tools/build.mjs`) refuses to run on a broken rule (`tools/rules.mjs`), runs `vite build` into `dist/`, writes `docs/graph.json`, and rejoins the joined lists. `dist/` is the static site Pages publishes; every asset is referenced relatively (`base: './'` in `vite.config.ts`) so it works under the repo's sub-path.
 - `npm run dev` starts Vite's dev server with hot reload.
-- Runtime dependencies are exactly `preact`, `d3-geo` and `pixi.js`, plus the Natural Earth data once the planet level exists (`docs/decisions/ADR-2026-09-28-static-site-typescript.md`, `docs/decisions/ADR-2026-09-28-webgl-map.md`). Another needs a decision record.
+- Runtime dependencies are exactly `preact`, `d3-geo` and `pixi.js` (`docs/decisions/ADR-2026-09-28-static-site-typescript.md`, `docs/decisions/ADR-2026-09-28-webgl-map.md`). The world is generated from the seed, so there is no map data to ship. Another dependency needs a decision record.
 
 ## Checks
 

@@ -2,7 +2,7 @@
 
 Issue: #2 (the owner's choices) · Status: Proposed · PRs: #3 (this spec)
 
-The game's founding spec, from the owner's idea and the design agreed with them on 28 Sep 2026 (`docs/briefs/overgrow-setup.md`; the decision records `docs/decisions/ADR-2026-09-28-scale-free-graph.md` and `docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`). It's longer than a page because it sets the rules every later spec follows; each later feature gets its own one-page spec from `docs/specs/TEMPLATE.md`. Every choice the owner still has to make is in issue #2 with a default, and this spec is written to those defaults, marked *(default, #2)* where it matters.
+The game's founding spec, from the owner's idea and the design agreed with them on 28 Sep 2026 (`docs/briefs/overgrow-setup.md`; the decision records `docs/decisions/ADR-2026-09-28-scale-free-graph.md` and `docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`). It's longer than a page because it sets the rules every later spec follows; each later feature gets its own one-page spec from `docs/specs/TEMPLATE.md`. The owner answered issue #2 on 28 Sep 2026: three levels ship at launch, places are invented everywhere, and every other default and preference is confirmed; the art style is chosen from drawn examples ("The look"). Markers *(confirmed, #2)* show where.
 
 ## What the player gets
 
@@ -25,7 +25,7 @@ An incremental upgrade game about the food system that keeps zooming out, and an
 
 ## The ladder
 
-Eight levels *(how many ship at launch, and their names: default, #2)*. Each is built from the one below: the unit is the level below sealed into a node, and each adds the systems in **bold**.
+Eight levels, named by the owner *(confirmed, #2)*; the first three ship at launch. Each is built from the one below: the unit is the level below sealed into a node, and each adds the systems in **bold**.
 
 | # | Level | A node is | The core problem | Adds | Clock at 1× (seconds per game day) |
 | --- | --- | --- | --- | --- | --- |
@@ -38,8 +38,8 @@ Eight levels *(how many ship at launch, and their names: default, #2)*. Each is 
 | 7 | **The Nation** | a region | feed the country, keep it healthy and solvent, in a warming world, through governments you don't choose | diet and health, population and culture, the land budget, the national carbon account and target, water at basin scale, food security, trade deals; elections that change the government's goals; politics as the game | 1/30 s: a year in twelve seconds, a decade in two minutes |
 | 8 | **The Planet** | a country | the climate loop closed; trade transmits every failure; politics is many governments | geopolitics, treaties and carbon prices, commodity prices, sea level, shifting crop zones, strategic imports, migration | 1/300 s: a year in 1.2 seconds, a century in two minutes |
 
-- One rule for the clock: each level sets how many real seconds a game day takes at 1×, and every other figure follows from it. Speeds are pause, 1×, 2× and 4× at every level. The game doesn't run while the page is closed *(default, #2)*.
-- One continuous save *(default, #2)*: finished levels are never replayed from scratch, only revisited by zooming back in.
+- One rule for the clock: each level sets how many real seconds a game day takes at 1×, and every other figure follows from it. Speeds are pause, 1×, 2× and 4× at every level. The game doesn't run while the page is closed *(confirmed, #2)*.
+- One continuous save *(confirmed, #2)*: finished levels are never replayed from scratch, only revisited by zooming back in.
 - Nothing above the level you're playing is shown; the next level appears when its offer comes (locked things are hidden).
 - **Politics exists at every level**, only its size changes: the neighbour over the fence, the committee, the parish, the union, the council, the lobby, the parliament, the treaty.
 - **Carbon, land, water and waste are counted at every level from the first bed**, so the national and planetary accounts are sums of things the player already managed up close.
@@ -137,9 +137,9 @@ Each system names the real-world basis its models rest on; the model files repea
 
 **The loops that make it a game.** The diet loop (demand mix → herds versus crops → land, feed, water, methane → warming → yields and prices → demand; politics pushes, culture pushes back or runs ahead). The intensification loop (inputs → yields now → soil, water and biodiversity down over years → yields and regulation later). The trade loop (a failure abroad → imports dry up → prices → unrest → export bans → worse). The energy loop (a gas price → fertiliser and fuel → planting → next year's harvest). The waste loop (cosmetic standards and cheap food → waste → methane and lost land; policy and circularity claw it back). Steering the planet towards plant-based or towards meat is a real strategy with real trade-offs, felt at different speeds in land, emissions, health, prices and votes. And the agency loop: delegating buys time, every delegate has interests, watching and auditing costs time again, and a captured rule costs everyone.
 
-## The first playable slice: the back garden and the step up to the allotment
+## The first playable slice: the garden, the allotment and the smallholding
 
-**What ships first.** Level 1 complete and level 2's first season, built on the graph, not a garden-shaped special case: the node shape, flows in SI units, sealing, the carry-over rule, carbon and land counted from the first bed, the gardener who does the work, the Explain card, one adviser, and the bot.
+**What ships first** *(the owner chose three levels, #2)*: the Back Garden complete, the Allotment complete (a full year, sealed at the end), and the Smallholding's first year, built on the graph, not a garden-shaped special case: the node shape, flows in SI units, sealing, the carry-over rule, carbon and land counted from the first bed, the gardener who does the work, the Explain card, one adviser, and the bot.
 
 **The garden.** A top-down garden behind a house: six beds (two dug at the start), a tap, a water butt, a compost heap, a shed, a lawn, a kitchen, and **the gardener**, who does everything you decide. They have about four hours a day for the garden (more at weekends); each job takes time with the tools they have, and what doesn't fit waits until tomorrow. You see them walk to each job and do it.
 - **Soil per bed:** moisture (FAO-56 water balance, daily), fertility (N-P-K taken by crops, put back by compost and legumes), organic matter (rises with compost and cover, falls bare), health as an index.
@@ -163,7 +163,9 @@ At 1× a game hour is a real second, so the first real minute is two and a half 
 
 **What makes the jump feel earned.** The allotment committee offers a plot when your garden, sealed, would be a plot worth having: Output at least 1.5 kg a day and Reliability at least 60 over the last 28 days, with Health at least 50 *(proposed; set with the bot's baselines)*. The goal bar shows the three numbers moving, so a steady, healthy garden is visibly what's wanted, not one lucky harvest. It needs most of the garden's skills at once: a mix for steady output, rotation and compost for Health, pests kept down. The step-up card shows the garden shrinking into a tile with its numbers on it ("This is your plot now"), the camera pulls back, and the tile lands among eleven others. Straight away the old skills return as new problems: one shared trough with a daily limit, surplus to swap for what you can't grow, slugs from a neglected plot next door, and a committee vote on the water rota.
 
-**The allotment's first season.** Twelve plots: yours plus eleven gardeners with names and habits (tidy, lazy, generous, competitive), each a node with the same totals. Your gardener now has a plot to keep and a trough rota to work round; you set their plan, take on a neglected second plot (and the hours it needs), swap at the shed, and vote. One neighbour offers to help with the second plot for a share of its harvest and takes a little more than their share, which the map shows and the totals don't; the first lesson that a report isn't the truth. The scripted zoom back in comes in its first summer.
+**The allotment.** Twelve plots: yours plus eleven gardeners with names and habits (tidy, lazy, generous, competitive), each a node with the same totals. Your gardener now has a plot to keep and a trough rota to work round; you set their plan, take on a neglected second plot (and the hours it needs), swap at the shed, and vote. One neighbour offers to help with the second plot for a share of its harvest and takes a little more than their share, which the map shows and the totals don't; the first lesson that a report isn't the truth. The scripted zoom back in comes in its first summer. Over the year the plot-holder learns the committee (three votes: the water rota, the bonfire ban, letting a plot go to bees), takes on the second plot, and seals the allotment when the smallholding offer comes: a year of steady supply beyond the household and the committee's trust.
+
+**The smallholding's first year.** A few hectares as fields, your allotment skills as one of them, the first machine and the first animals. The year is the loop: a rotation planned over years (legumes, cover crops, fallow), a small flock and a few pigs or sheep (feed, welfare, manure, methane), your own hours now finite at scale and a hand hired at harvest (the first hire, with goals of their own), a second-hand tractor (fuel, breakdowns, compaction), energy and fuel as costs, a box scheme or farm shop as the first market beyond the gate with spoilage on the way, hedgerows and margins for pollinators, and the parish: the planning office for the polytunnel, a subsidy scheme with forms, a neighbour who objects. It ends with a year's rotation run at a profit with the soil and the flock healthy, which is the farm offer; the slice stops there.
 
 ## The simulation's state and time
 
@@ -177,7 +179,7 @@ At 1× a game hour is a real second, so the first real minute is two and a half 
 
 - The bot (`bot.ts` in `tools/`, `npm run bot`) arrives with the garden, in the same wave. It plays through the same commands the player has, like a sensible player: a plan that sows in season and rotates families, a moisture line to water at, a pest policy, and the next upgrade at three times its price. It never touches a bed: the gardener does, in the sim.
 - **It reports**, per seed (1, 2, 3): the game day of each milestone (first harvest, first sale, each upgrade, half the kitchen's need met, the allotment offer, the first swap, the second plot), the sealed garden's totals, money over time, food wasted, carbon, `PLAY` and `ERR`. The baselines file (`baseline.json` in `tools/`) holds a range per milestone; the `balance` playbook compares.
-- **Proposed first targets** (agreed with the first baselines): first harvest by day 8, first upgrade by day 20, the allotment offer between days 55 and 75 (about 25 minutes at 1×), the allotment's first season in about 20 minutes more.
+- **Proposed first targets** (agreed with the first baselines): first harvest by day 8, first upgrade by day 20, the allotment offer between days 55 and 75 (about 25 minutes at 1×), the allotment's year in about 25 minutes more (the smallholding offer at its end), and the smallholding's first year in about 10 minutes at 1×, with the first hire by its first harvest and the year closing at a profit on every seed.
 - **Strategy tests**, so no single trick wins: a rotating bot beats a one-crop bot by at least 10 % of Output by day 120; a bot whose pest policy is "leave" reaches the allotment later but still reaches it; a bot that hands every tab to the advisers reaches it within 25 % of the planning bot's day.
 - **Conservation and carry-over tests:** water, nutrients, carbon and food balance across every tick; a sealed garden's Output matches its last 28 days within 1 %; an event's expected kg lost matches between its home level and one level up within 5 %.
 - **The long run:** `src/sim/index.test.ts` grows to play a new game two game years headless through the step up.
@@ -185,7 +187,7 @@ At 1× a game hour is a real second, so the first real minute is two and a half 
 
 ## The look: a living map
 
-- **One static page:** a map with Preact panels beside it (wide screens and tablets) or below it as a sheet (portrait phones), side by side on a phone on its side. Every colour and size in `src/ui/styles/tokens.css`, light and dark. Art drawn in code: flat, top-down, soft, a natural palette *(art style: default, #2)*. Real geography from Natural Earth at levels 7 and 8.
+- **One static page:** a map with Preact panels beside it (wide screens and tablets) or below it as a sheet (portrait phones), side by side on a phone on its side. Every colour and size in `src/ui/styles/tokens.css`, light and dark. Art drawn in code; the style is the owner's pick from drawn examples of each candidate (flat top-down, pixel art, isometric, ink and wash), with flat top-down as the fallback *(#2, open)*. **Places are invented everywhere** *(the owner's choice, #2)*: a generated, UK-flavoured garden, allotment, farm, town and region, and at the top an invented nation on an invented planet, generated from the seed, with real-world ranges behind every number (FAOSTAT and the like as parameter sources, never as names).
 - **Things move.** The map is alive at every level, and the owner wants to see it: people, vehicles, food and animals moving, and every impact on the map first.
   - Garden: the gardener walking to the bed you tapped with the can, slugs at dusk, aphids clustering, bees and ladybirds when there are flowers, hens scratching, the cat, rain and frost crossing the beds, produce carried to the kitchen and the gate.
   - Allotment: neighbours walking their plots with barrows and cans, a queue at the trough in a dry spell, swaps carried between sheds, slugs crossing the path from the neglected plot.
@@ -211,7 +213,7 @@ Each choice made on 28 Sep was looked at again with the whole spec in view. They
 | The sim in a Web Worker, the same module in Node | a big graph never stalls the map; the bot and the tests run the identical code | the snapshot copy proves too costly and deltas don't fix it: then rendering moves into the worker too (OffscreenCanvas) |
 | Preact for the panels | thirty-odd panels with Explain cards and tables need a declarative UI; React-shaped code is what sessions write most reliably; 4 KB | never |
 | PixiJS for the map | thousands of moving things on a phone; interpolation and batching solved; one renderer from the bed to the globe | WebGL is missing on a target device: Canvas 2D fallback, fewer moving things |
-| D3-geo with Natural Earth | real geography with no map service; a few hundred KB | never |
+| D3-geo, over a generated world | projections and a globe for an invented planet with no map service and no boundary data to license; the world is generated from the seed with real-world ranges behind its countries | never (Natural Earth was the plan while real countries were; the owner chose invented places) |
 | `localStorage` saves | sealed nodes are compact; the checks seed saves through it easily | a save passes 1 MB: IndexedDB, behind the same save module |
 | Real mechanisms, rough numbers | an educational sim that stays a game; every model sourced, tuned inside the rough size | never |
 | The runbook from Final Call | briefs, one file per entry, the checks and the look backs proved themselves there | one thing done differently in hindsight: design the systems before porting the tooling, not after (`docs/lessons/1-runbook.md`) |
@@ -234,7 +236,7 @@ New under `src/sim/`: `graph.ts` (nodes, stocks, flows, units), `clock.ts`, `lad
 
 ## The first roadmap
 
-Each part is one PR, from its own brief, in this order. Parts 3 and 4 can build side by side once part 2 has merged; the rest follow each other.
+Each part is one PR, from its own brief, in this order. Parts 3 and 4 can build side by side once part 2 has merged, and parts 12, 13 and 14 once 11 has; the rest follow each other.
 
 1. **The graph and the clock:** nodes, stocks, flows in units, conservation tests, the clock and ticks, commands and snapshots, saving with versions, the page's shell (the WebGL map with interpolation between snapshots, top bar, panel, sheet) at every size. Checks: `conservation`, `layout`, `scene`.
 2. **Weather, soil and water:** the weather generator (with the warming index input), the soil water balance, soil health; rain and frost crossing the beds, soil paling and darkening. Plausibility tests per model.
@@ -245,12 +247,17 @@ Each part is one PR, from its own brief, in this order. Parts 3 and 4 can build 
 7. **Sealing and the step up:** the carry-over rule, the step-up card and the zoom-out. Check: `carry`.
 8. **The allotment's first season:** the plots and neighbours, the trough, the swap shed, pests spreading, the second plot, the committee vote.
 9. **The first zoom back in:** the trace, Go down or Send someone, the deadline and reward, on the scripted slug outbreak.
-10. **The first release:** What's new, the version history, save fixtures and the `migrate` check, `perf` and `scene` for the speed budget, a link preview.
+10. **The allotment's year:** the seasons through, the three committee votes, the neighbour who helps and over-takes, sealing the allotment and the smallholding offer.
+11. **Fields and the year plan:** the smallholding's map, rotation over years (legumes, cover crops, fallow), the year plan as the lever, soil at field scale.
+12. **Livestock:** the flock and the first pigs or sheep; feed, welfare, manure, methane and land per kg; the vet.
+13. **Labour, machinery and energy:** hours at scale, the first hire and their goals, the tractor (fuel, breakdowns, compaction), energy as a cost.
+14. **The first market and the road:** the box scheme and the farm shop, spoilage on the way, hedgerows and pollinators, the parish and the subsidy form.
+15. **The first release:** What's new, the version history, save fixtures and the `migrate` check, `perf` and `scene` for the speed budget, a link preview.
 
 ## Left out
 
-- Levels 3 to 8: each gets its own spec once the slice has been played, keeping this spec's model and carry-over rule. The systems map above is their brief.
+- Levels 4 to 8: each gets its own spec once the slice has been played, keeping this spec's model and carry-over rule. The systems map above is their brief.
 - Sound, a save code, progress while the page is closed, multiplayer.
-- Real places, brands or live data below the nation *(default, #2)*; real countries and data from Natural Earth (public domain) and FAOSTAT (CC BY 4.0) at levels 7 and 8, and Met Office normals (Open Government Licence) for the weather, with each dataset's licence noted beside it in `src/data/`.
+- Real places, brands, names or live data at any level *(the owner's choice, #2)*. Real datasets still set the ranges the generated world draws from (FAOSTAT, CC BY 4.0; Met Office normals, Open Government Licence; Poore & Nemecek and the rest), with each dataset's licence noted beside it in `src/data/`.
 - Offline play through a service worker, and languages other than UK English.
-- A fail state that ends the game *(default, #2)*: setbacks cost food, money and votes, never the save.
+- A fail state that ends the game *(confirmed, #2)*: setbacks cost food, money and votes, never the save.
