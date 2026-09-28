@@ -2,7 +2,7 @@
 
 Issue: #<number> · Status: Proposed | Approved | Built · PRs: #<number>, … (added as they open)
 
-Copy this file to `docs/specs/<short-name>.md`. Keep it to a page. The owner approves it before building starts.
+Copy this file to `docs/specs/<short-name>.md`. Keep it to a page: the founding spec (`docs/specs/overgrow.md`) is the one exception, and a feature spec points at its model and systems map rather than restating them. The owner approves it before building starts.
 
 ## What the player gets
 
