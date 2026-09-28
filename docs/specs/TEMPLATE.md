@@ -31,7 +31,7 @@ The real-world mechanism behind it, its sources, what this simplifies, and its f
 
 ## Saved state
 
-- New fields in `G` and their defaults; how an older save without them loads.
+- New fields in the saved state (`src/sim/`) and their defaults; how an older save without them loads.
 - Nothing is renamed or removed.
 
 ## Balance

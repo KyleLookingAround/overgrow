@@ -31,7 +31,7 @@ export function lastTidy(){const p='docs/lessons/.last-tidy';return existsSync(j
 export const newLessons=()=>{const seen=new Set(lastTidy());return lessons().filter(l=>!seen.has(l.file))};
 const SECTIONS=['now','next','runbook','done'];
 export function roadmap(){
-  return ls('docs/roadmap.d').filter(f=>f.endsWith('.md')).map(f=>{const s=rd('docs/roadmap.d/'+f),m=s.match(/^Section:\s*(\w+)\s*\n/);
+  return ls('docs/roadmap.d').filter(f=>f.endsWith('.md')).map(f=>{const s=rd('docs/roadmap.d/'+f),m=s.match(/^Section:\s*(\w+)\s*(\n|$)/);
     return {file:f,section:m?m[1].toLowerCase():null,body:m?s.slice(m[0].length).trim():s.trim()}});
 }
 export const updates=()=>ls('src/updates.d').filter(f=>f.endsWith('.md')&&f!=='README.md').map(f=>({file:f,text:rd('src/updates.d/'+f)}));
@@ -67,10 +67,11 @@ function checkList(){
   return ls('tools/checks').filter(f=>f.endsWith('.mjs')).map(f=>`- \`${f.slice(0,-4)}\`: ${comment(rd('tools/checks/'+f))||'(no opening comment yet)'}`).join('\n');
 }
 function fileTable(){
-  const rows=walk('src').filter(f=>/\.(tsx?|css)$/.test(f)&&!/\.test\.ts$/.test(f)).map(f=>{const first=rd(f).split('\n')[0];
-    const t=first.replace(/^(\/\/|\/\*)\s*/,'').replace(/\s*\*\/\s*$/,'').trim();
-    return `| \`${f}\` | ${t||'(no opening comment yet)'} |`});
-  return ['| File | What\'s in it (its first line) |','| --- | --- |',...rows].join('\n');
+  // each file's opening comment block (// lines, or one /* */ block), cut at its first sentence
+  const opener=s=>{const out=[];for(const l of s.split('\n')){const m=l.match(/^\s*(?:\/\/|\/\*|\*)\s?(.*?)\s*(\*\/)?\s*$/);if(!m)break;out.push(m[1]);if(m[2]!==undefined)break}
+    const t=out.join(' ').replace(/\s+/g,' ').trim();const i=t.search(/\.(\s|$)/);return i<0?t:t.slice(0,i+1)};
+  const rows=walk('src').filter(f=>/\.(tsx?|css)$/.test(f)&&!/\.test\.ts$/.test(f)).map(f=>`| \`${f}\` | ${opener(rd(f))||'(no opening comment yet)'} |`);
+  return ['| File | What\'s in it (its opening comment) |','| --- | --- |',...rows].join('\n');
 }
 export const LISTS=[
   ['docs/LESSONS.md','lessons','docs/lessons/',lessonIndex],
@@ -81,7 +82,7 @@ export const LISTS=[
   ['docs/decisions/README.md','decisions','the ADR files here',decisionTable],
   ['docs/SYSTEMS.md','systems','docs/systems/',systemList],
   ['docs/SYSTEMS.md','checks','tools/checks/, each file\'s opening comment',checkList],
-  ['docs/SYSTEMS.md','files','src/, each file\'s first line',fileTable],
+  ['docs/SYSTEMS.md','files','src/, each file\'s opening comment',fileTable],
 ];
 
 // a file with each of its joined lists rebuilt; throws on a conflict marker outside them

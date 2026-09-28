@@ -3,8 +3,9 @@
 //   node tools/rules.mjs      lists the problems, exit code 1 if any
 // The rules:
 //   randomness  Math.random() only in src/sim/random.ts, or on a line ending with `// cosmetic` (drawing, sound).
-//   layers      src/sim/ and src/data/ import nothing from src/ui/ or src/app/, and never name window, document,
-//               localStorage, self or postMessage: the sim runs the same in a worker, in Node and in a test.
+//   layers      src/sim/ and src/data/ import nothing from src/ui/ or src/app/ (and src/data/ nothing from src/sim/), and
+//               never name window, document, localStorage, sessionStorage, self, postMessage or requestAnimationFrame:
+//               the sim runs the same in a worker, in Node and in a test.
 //   sources     every model in src/sim/models/ has a `// Sources:` block naming what it's based on and a
 //               `// Simplifies:` line saying what it leaves out (docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md).
 import {readFileSync,readdirSync,statSync,existsSync} from 'node:fs';
@@ -19,20 +20,28 @@ export function walk(dir){
   return out;
 }
 const rd=p=>readFileSync(join(root,p),'utf8');
+// a line with its comments taken out: a `//` at the start or after a space (not inside a string such as a URL), and
+// any `/* … */` on the line; a line inside a block comment (starting with `*`) is empty
+const code=l=>/^\s*\*/.test(l)?'':l.replace(/\/\*.*?\*\//g,'').replace(/(^|\s)\/\/.*$/,'');
 
 export function randomSlips(files=walk('src')){
   const out=[];
   for(const f of files){if(f==='src/sim/random.ts'||!/\.tsx?$/.test(f))continue;
-    rd(f).split('\n').forEach((l,i)=>{if(/Math\.random\(/.test(l.replace(/\/\/.*$/,''))&&!/\/\/ cosmetic\s*$/.test(l))out.push(`${f}:${i+1} uses Math.random(); draw from the game's Rng, or end the line with // cosmetic if it only affects drawing or sound`)})}
+    rd(f).split('\n').forEach((l,i)=>{if(/Math\.random\(/.test(code(l))&&!/\/\/ cosmetic\s*$/.test(l))out.push(`${f}:${i+1} uses Math.random(); draw from the game's Rng, or end the line with // cosmetic if it only affects drawing or sound`)})}
   return out;
 }
 export function layerSlips(files=walk('src')){
   const out=[];
   for(const f of files){if(!/^src\/(sim|data)\//.test(f)||!/\.tsx?$/.test(f))continue;
-    rd(f).split('\n').forEach((l,i)=>{
-      if(/^\s*import\b.*from\s+['"][^'"]*\/(ui|app)\//.test(l)||/^\s*import\b.*from\s+['"]preact/.test(l))out.push(`${f}:${i+1} imports the UI or the app; the sim and its data stay pure`);
-      if(/\b(window|document|localStorage|sessionStorage|postMessage|requestAnimationFrame)\b/.test(l)&&!/^\s*\/\//.test(l))out.push(`${f}:${i+1} names ${RegExp.$1}; the sim runs the same in a worker, in Node and in a test`);
-      if(/(^|[^\w.])self\b/.test(l)&&!/^\s*\/\//.test(l))out.push(`${f}:${i+1} names self; the worker boundary lives in src/app/`);
+    const data=f.startsWith('src/data/');
+    rd(f).split('\n').forEach((l,i)=>{const c=code(l);
+      // an import or re-export of a module in ui/ or app/ (a file, a folder, or a side-effect import), or of preact
+      const from=(c.match(/^\s*(?:import|export)\b[^'"]*['"]([^'"]+)['"]/)||[])[1];
+      if(from&&(/(^|\/)(ui|app)(\/|$)/.test(from)||/^preact/.test(from)))out.push(`${f}:${i+1} imports the UI or the app; the sim and its data stay pure`);
+      if(data&&from&&/(^|\/)sim(\/|$)/.test(from))out.push(`${f}:${i+1} imports the sim; data is plain typed values the sim reads`);
+      const m=c.match(/\b(window|document|localStorage|sessionStorage|postMessage|requestAnimationFrame)\b/);
+      if(m)out.push(`${f}:${i+1} names ${m[1]}; the sim runs the same in a worker, in Node and in a test`);
+      if(/(^|[^\w.])self\b/.test(c))out.push(`${f}:${i+1} names self; the worker boundary lives in src/app/`);
     })}
   return out;
 }

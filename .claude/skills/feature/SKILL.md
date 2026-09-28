@@ -43,7 +43,7 @@ Work through these steps in order. Small fixes (a label, a nit, an obvious bug) 
 
 Never edit between the `joined` markers in `docs/LESSONS.md`, `docs/ROADMAP.md`, `docs/decisions/README.md` or `docs/SYSTEMS.md`: `npm run build` rebuilds them from the files.
 
-- **The system's notes.** A change to how a system works updates its file in `docs/systems/`; a new system adds one (`# Name`, then how it works, naming its files). `npm run check -- graph` fails on a broken link or a system that names no game files, and warns when a system's game file changed but its notes didn't.
+- **The system's notes.** A change to how a system works updates its file in `docs/systems/`; a new system adds one (`# Name`, then how it works, naming its files). `node tools/check.mjs graph` fails on a broken link or a system that names no game files, and warns when a system's game file changed but its notes didn't.
 - **The roadmap item.** Add or edit its own file in `docs/roadmap.d/` (`<date>-<short-name>.md`, first line `Section: now`, `next`, `runbook` or `done`): move it along by changing that line.
 - **What's new.** A change players will notice adds `src/updates.d/<short-name>.md` (the format is in that folder's README), never a version number: the `release` playbook gives those.
 - **Decisions.** Add a record in `docs/decisions/` if the change sets a rule other changes must follow.

@@ -16,25 +16,25 @@ Four folders under `src/`, and the `rules` check keeps them apart:
 
 | Folder | What's in it | May import |
 | --- | --- | --- |
-| `src/sim/` | The simulation: the graph, the clock, the models (`src/sim/models/`, one file per mechanism), commands and snapshots. Pure TypeScript, no DOM, no `Math.random()` outside `src/sim/random.ts`. | `src/sim/`, `src/data/` |
+| `src/sim/` | The simulation: the graph, the clock, the models (`src/sim/models/`, one file per mechanism), commands and snapshots. Pure TypeScript, no DOM, no `Math.random()` outside `src/sim/random.ts` except on a `// cosmetic` line. | `src/sim/`, `src/data/` |
 | `src/data/` | Real-world parameters: crops, soils, climate normals, countries. Plain typed data. | `src/data/` |
 | `src/app/` | The page's glue: the worker that runs the sim (`sim.worker.ts`), the client that talks to it (`sim-client.ts`), the clock loop, saving, `main.tsx`. | anything |
-| `src/ui/` | Preact panels and the canvas map, with every colour and size in `src/ui/styles/tokens.css`. Drawing is cosmetic and may use `Math.random()` on a `// cosmetic` line. | `src/ui/`, `src/app/`, the sim's types |
+| `src/ui/` | Preact panels and the canvas map, with every colour and size in `src/ui/styles/tokens.css`. Drawing is cosmetic and may use `Math.random()` on a `// cosmetic` line. | `src/ui/`, `src/app/`, the sim's types and pure functions (by convention; not checked) |
 
-Every source file starts with a one-line `//` comment saying what's in it; the table below is built from those lines. `index.html` is the page's skeleton and loads `src/app/main.tsx`.
+The `rules` check enforces the first two rows: the sim and its data import nothing from `src/ui/` or `src/app/`, and data nothing from the sim. Every source file starts with a `//` comment saying what's in it; the table below shows each one's first sentence. `index.html` is the page's skeleton and loads `src/app/main.tsx`.
 
-<!-- joined:files from src/, each file's first line by tools/join.mjs: don't edit between these lines -->
-| File | What's in it (its first line) |
+<!-- joined:files from src/, each file's opening comment by tools/join.mjs: don't edit between these lines -->
+| File | What's in it (its opening comment) |
 | --- | --- |
 | `src/app/main.tsx` | Starts the page: the stylesheet, the simulation worker, and the UI. |
-| `src/app/sim-client.ts` | The page's end of the simulation: commands go to the worker (src/app/sim.worker.ts) and snapshots come back. The |
-| `src/app/sim.worker.ts` | The simulation in a Web Worker: the page posts commands, the worker answers with snapshots, so a big graph ticking |
-| `src/sim/index.ts` | The simulation: pure TypeScript with no DOM, so the same code runs in a Web Worker (the game, src/app/sim.worker.ts), |
-| `src/sim/random.ts` | The seeded random generator. Anything that can change the game draws from an Rng made from the game's seed, never |
-| `src/ui/App.tsx` | The page: a canvas for the map and HTML panels beside or below it (the founding spec, "The look"). Until the first |
-| `src/ui/MapCanvas.tsx` | The map: one canvas that fills its box at the device's pixel ratio. Drawing is cosmetic and may use Math.random(); |
+| `src/app/sim-client.ts` | The page's end of the simulation: commands go to the worker (src/app/sim.worker.ts) and snapshots come back. |
+| `src/app/sim.worker.ts` | The simulation in a Web Worker: the page posts commands, the worker answers with snapshots, so a big graph ticking never stalls the map on a phone. |
+| `src/sim/index.ts` | The simulation: pure TypeScript with no DOM, so the same code runs in a Web Worker (the game, src/app/sim.worker.ts), in Node (the checks and the bot) and in a Vitest test. |
+| `src/sim/random.ts` | The seeded random generator. |
+| `src/ui/App.tsx` | The page: a canvas for the map and HTML panels beside or below it (the founding spec, "The look"). |
+| `src/ui/MapCanvas.tsx` | The map: one canvas that fills its box at the device's pixel ratio. |
 | `src/ui/styles/page.css` | The page's skeleton: the map fills the screen and the panel sits beside it on wide screens, below it on portrait |
-| `src/ui/styles/tokens.css` | Design tokens: every colour, size and font the UI uses, in one place. Panels and the canvas read these; nothing |
+| `src/ui/styles/tokens.css` | Design tokens: every colour, size and font the UI uses, in one place. |
 <!-- /joined:files -->
 
 ## State
@@ -50,8 +50,8 @@ One clock for every level, in game hours since the start. Each level sets how mu
 
 - The page runs the sim in a Web Worker (`src/app/sim.worker.ts`): the UI posts commands and gets snapshots back, so a big graph never stalls the map on a phone.
 - The checks and the bot skip the worker and call `createSim()` from `src/sim/index.ts` in Node directly. The sim never has two ways of being driven: **every player action, manager action and bot action is a command.**
-- **Randomness.** Anything that can change the game draws from the game's `Rng` (`src/sim/random.ts`, seeded from the save or `window.__seed`), so a seed repeats a run exactly. The `rules` check rejects `Math.random()` anywhere else on a line that doesn't end with `// cosmetic`.
-- **`window.__sim`.** When the game exposes names for the browser checks, it does so on `window.__sim` in the built page only when `window.__seed` is set; the spec's first slice says what.
+- **Randomness.** Anything that can change the game draws from the game's `Rng` (`src/sim/random.ts`). The page's first command is `new-game` with `window.__seed` when the checks set it, or a fresh seed (`src/app/main.tsx`; a save will carry its own), so a seeded run repeats exactly. The `rules` check rejects `Math.random()` anywhere else on a line that doesn't end with `// cosmetic`.
+- **`window.__sim`.** Not wired yet. When the game exposes names for the browser checks, it does so on `window.__sim` only when `window.__seed` is set; the spec's first slice says what.
 
 ## Build
 
@@ -83,7 +83,7 @@ One clock for every level, in game hours since the start. Each level sets how mu
 
 `tools/rules.mjs` (the `rules` check, and the build refuses to run on a slip):
 - **Randomness:** `Math.random()` only in `src/sim/random.ts` or on a line ending with `// cosmetic`.
-- **Layers:** `src/sim/` and `src/data/` import nothing from `src/ui/` or `src/app/` and never name `window`, `document`, `localStorage`, `self` or `postMessage`.
+- **Layers:** `src/sim/` and `src/data/` import nothing from `src/ui/` or `src/app/` (and `src/data/` nothing from `src/sim/`), and never name `window`, `document`, `localStorage`, `sessionStorage`, `self`, `postMessage` or `requestAnimationFrame`.
 - **Sources:** every model in `src/sim/models/` has a `// Sources:` block and a `// Simplifies:` line.
 
 ## The bot

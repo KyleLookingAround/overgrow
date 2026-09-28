@@ -6,7 +6,7 @@ import {createSim, type Command, type Snapshot} from '../sim/index';
 export type ToWorker = {id: number; cmd: Command};
 export type FromWorker = {id: number; snap: Snapshot};
 
-const sim = createSim(1);
+const sim = createSim(1); // the page's first command is new-game with the real seed
 self.onmessage = (e: MessageEvent<ToWorker>) => {
   const reply: FromWorker = {id: e.data.id, snap: sim.apply(e.data.cmd)};
   self.postMessage(reply);

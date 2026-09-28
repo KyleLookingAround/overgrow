@@ -32,7 +32,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 ## 5. A cap on sessions
 
-- At most about four default-model sessions at once; put the rest on the cheaper model (`create_session` with `model` set to the current Sonnet id) and stagger their starts. On `allowed_warning`, start nothing new unless the brief says to ignore it; on `rejected` or `isUsingOverage`, book a `send_later` for a minute after `resetsAt` and end the turn. Final Call's ten default-model sessions started within 45 minutes spent the five-hour allowance in 80 minutes and stalled every one of them for five hours.
+- At most about four default-model sessions at once; put the rest on the cheaper model (`create_session` with `model` set to the cheaper model's current id, from the owner) and stagger their starts. On `allowed_warning`, start nothing new unless the brief says to ignore it; on `rejected` or `isUsingOverage`, book a `send_later` for a minute after `resetsAt` and end the turn. Final Call's ten default-model sessions started within 45 minutes spent the five-hour allowance in 80 minutes and stalled every one of them for five hours.
 - Small changes and routine jobs (look backs, save fixtures, doc moves, screenshot reviews) go to the cheaper model.
 - Only parts that edit the same game code are ordered, in the spec's order of work. A refactor that changes what other files call runs in a quiet window, never alongside a wave of feature sessions.
 

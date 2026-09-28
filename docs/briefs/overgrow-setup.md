@@ -1,5 +1,7 @@
 # Brief: Overgrow, the runbook and the game's spec
 
+*Kept as the owner wrote it. The architecture it describes for PR 1 (plain JavaScript joined into one page) was replaced with the owner on 28 Sep by the TypeScript scaffold: `docs/decisions/ADR-2026-09-28-runbook-from-final-call.md`, "Changed rather than copied".*
+
 The owner, 28 Sep 2026, on a new game in the empty repo `KyleLookingAround/overgrow`:
 
 > An upgrade sim game like Final Call, but based on agriculture, farming, food systems and anything that affects them, and the effects that has. Every level is a zoom-out, and what you micromanaged in one level becomes a single building block in the next. Your back garden becomes one plot in the community garden, the community garden becomes one field on the farm, and the farm becomes one supplier on the supermarket's map. A rough ladder, with the core problem changing at each scale:

@@ -7,7 +7,8 @@
 # Pushes made with the repo's own token don't start pull_request workflows, so without a CATCH_UP_TOKEN secret it starts
 # Checks itself (never a bot workflow, once there is one: those run once per PR). The repo's token also can't push a
 # merge that brings in a change to .github/workflows/; then it comments instead. A CATCH_UP_TOKEN (a fine-grained token
-# with contents, pull requests and workflows write on this repo) lifts both. docs/decisions/ADR-2026-09-28-one-file-per-entry.md has why.
+# with contents, pull requests and workflows write on this repo) lifts both. docs/decisions/ADR-2026-09-28-one-file-per-entry.md has why the workflow exists, and
+# docs/decisions/ADR-2026-09-28-runbook-from-final-call.md why the token is the owner's to add.
 name: Catch up
 
 on:

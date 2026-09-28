@@ -8,7 +8,7 @@
 // seed in window.__seed, so a failure repeats. Exit code 1 if anything fails. Screenshots of failures go to build/check/.
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
-import {existsSync,mkdirSync,readdirSync,readFileSync} from 'node:fs';
+import {existsSync,mkdirSync,readdirSync,readFileSync,statSync} from 'node:fs';
 import {dirname,extname,join,normalize} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 
@@ -17,9 +17,12 @@ mkdirSync(out,{recursive:true});
 const only=process.argv[2];
 const SAVE_KEY='overgrow-save-v1'; // the one localStorage key the game saves to (the project notes)
 const TYPES={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.map':'application/json','.svg':'image/svg+xml','.png':'image/png'};
-const server=createServer((req,res)=>{const p=join(dist,normalize(decodeURIComponent(req.url.split('?')[0])).replace(/^\/+/,'')||'index.html');
-  if(!p.startsWith(dist)||!existsSync(p)){res.writeHead(404);res.end();return}
-  res.writeHead(200,{'content-type':TYPES[extname(p)]||'application/octet-stream'});res.end(readFileSync(p))});
+const server=createServer((req,res)=>{try{
+    let p=join(dist,normalize(decodeURIComponent(req.url.split('?')[0])).replace(/^\/+/,'')||'index.html');
+    if(existsSync(p)&&statSync(p).isDirectory())p=join(p,'index.html');
+    if(!p.startsWith(dist)||!existsSync(p)||!statSync(p).isFile()){res.writeHead(404);res.end();return}
+    res.writeHead(200,{'content-type':TYPES[extname(p)]||'application/octet-stream'});res.end(readFileSync(p));
+  }catch(e){res.writeHead(404);res.end()}});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const url=`http://127.0.0.1:${server.address().port}/`;
 const exe=process.env.CHROMIUM_PATH;
