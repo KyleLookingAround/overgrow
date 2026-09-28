@@ -52,11 +52,11 @@ export default async function({ok,open,out}){
     const reach=async(test)=>{for(let i=0;i<30;i++){await page.keyboard.press('Tab');if(await page.evaluate(test))return true}return false};
     const toPause=await reach(()=>document.activeElement?.getAttribute('aria-label')==='Pause');
     if(toPause)await page.keyboard.press('Enter');
-    await page.waitForTimeout(200);
-    const paused=await page.evaluate(()=>document.querySelector('.pause')?.getAttribute('aria-pressed')==='true'&&window.__sim.snapshot().speed===0);
+    // the top bar follows the map's frames, which software WebGL on CI draws a few times a second: wait for it
+    const paused=await page.waitForFunction(()=>document.querySelector('.pause')?.getAttribute('aria-pressed')==='true'&&window.__sim.snapshot()?.speed===0,null,{timeout:5000}).then(()=>true,()=>false);
     const toBed=await reach(()=>document.activeElement?.textContent==='Bed 1');
     if(toBed)await page.keyboard.press('Enter');
-    await page.waitForTimeout(100);
+    await page.waitForFunction(()=>document.querySelector('.place h3'),null,{timeout:5000}).catch(()=>{});
     const shown=await page.evaluate(()=>document.querySelector('.place h3')?.textContent);
     const ring=await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle);
     ok('layout: by keyboard alone, pause the clock and open a place, with the focus shown',toPause&&paused&&toBed&&shown==='Bed 1'&&ring!=='none'&&!errs.length,`pause ${toPause}/${paused}, bed ${toBed}, shown ${shown}, outline ${ring} ${errs[0]||''}`);
