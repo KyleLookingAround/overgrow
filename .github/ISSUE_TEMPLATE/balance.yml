@@ -1,0 +1,21 @@
+name: Balance
+description: Something feels too slow, too fast, too cheap or too hard
+labels: [balance]
+body:
+  - type: textarea
+    id: feel
+    attributes:
+      label: What feels off
+      description: For example "the allotment takes too long to unlock", or "watering costs nothing".
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: When in the game
+      description: The level, or roughly how many game days in.
+  - type: textarea
+    id: change
+    attributes:
+      label: What would feel right
+      description: Optional. The bot measures changes against its baselines, so a target helps (for example "the allotment by about day 20").

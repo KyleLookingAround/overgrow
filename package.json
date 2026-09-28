@@ -1,0 +1,26 @@
+{
+  "name": "overgrow",
+  "private": true,
+  "type": "module",
+  "description": "Overgrow: a food-system game from a back garden to the planet, in one static page",
+  "homepage": "https://kylelookingaround.github.io/overgrow/",
+  "scripts": {
+    "dev": "vite",
+    "build": "node tools/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "node tools/build.mjs && tsc --noEmit && vitest run && node tools/check.mjs"
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@types/d3-geo": "^3.1.1",
+    "playwright": "1.56.1",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.7"
+  }
+}

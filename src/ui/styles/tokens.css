@@ -1,0 +1,37 @@
+/* Design tokens: every colour, size and font the UI uses, in one place. Panels and the canvas read these; nothing
+   else declares a colour. Light and dark follow the device. */
+:root {
+  --bg: #f4efe3;
+  --ink: #1e2a22;
+  --soft: #5b6b5d;
+  --panel: #fffdf7;
+  --line: #d9d2c0;
+  --accent: #2f7a45;
+  --accent-ink: #ffffff;
+  --warn: #b7521e;
+  --soil: #6b4a2b;
+  --soil-line: #5a3d22;
+  --leaf: #4c8b3a;
+  --water: #3b7ca8;
+
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --text: 16px;
+  --radius: 10px;
+  --gap: 12px;
+  --touch: 40px; /* the smallest tap target on touch screens */
+  --panel-w: 360px; /* the panel's width beside the map on wide screens */
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131a15;
+    --ink: #eee8d8;
+    --soft: #a7b3a5;
+    --panel: #1c2620;
+    --line: #2e3b32;
+    --accent: #5db06f;
+    --accent-ink: #0d160f;
+    --soil: #4a3320;
+    --soil-line: #3a2717;
+  }
+}
