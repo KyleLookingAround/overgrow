@@ -31,7 +31,7 @@ From the owner's idea (28 Sep 2026, `docs/briefs/overgrow-setup.md`). Every leve
 How sessions work, not the game. Each item is small and measured in the lessons (`docs/lessons/`); it stays only if it clearly helps.
 
 <!-- joined:runbook from docs/roadmap.d/ (Section: runbook) by tools/join.mjs: don't edit between these lines -->
-- **The runbook, from Final Call** (`docs/briefs/overgrow-setup.md`, `docs/decisions/ADR-2026-09-28-runbook-from-final-call.md`): project notes, five playbooks, briefs and specs from templates, one file per entry, the build, the checks and four workflows, trimmed to an empty game. Measure on the first slice: questions a session asks that its brief should have answered, merges from `main` by hand per PR (target zero or one), and cost against each brief's estimate.
+- **The runbook, from Final Call** (`docs/briefs/overgrow-setup.md`, `docs/decisions/ADR-2026-09-28-runbook-from-final-call.md`): project notes, five playbooks, briefs and specs from templates, one file per entry, the build, the checks and four workflows, trimmed to an empty game and reworked with the owner onto a TypeScript scaffold (`docs/decisions/ADR-2026-09-28-static-site-typescript.md`). Measure on the first slice: questions a session asks that its brief should have answered, merges from `main` by hand per PR (target zero or one), and cost against each brief's estimate.
 <!-- /joined:runbook -->
 
 ## Done

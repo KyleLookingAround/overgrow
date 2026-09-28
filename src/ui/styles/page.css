@@ -1,0 +1,71 @@
+/* The page's skeleton: the map fills the screen and the panel sits beside it on wide screens, below it on portrait
+   phones, and beside a narrower map on a phone on its side. No page scroll and no sideways overflow at any size. */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font: var(--text) / 1.4 var(--font);
+}
+#app,
+.page {
+  height: 100%;
+}
+.page {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+}
+.map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  align-self: stretch;
+}
+.panel {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: var(--gap) 16px;
+  max-height: 50vh;
+  overflow: auto;
+}
+h1 {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+}
+p {
+  margin: 4px 0;
+}
+.soft {
+  color: var(--soft);
+}
+/* wide screens and tablets: the panel beside the map */
+@media (min-width: 700px) {
+  .page {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: 1fr var(--panel-w);
+  }
+  .panel {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    max-height: none;
+  }
+}
+/* a phone on its side: beside, but narrower */
+@media (max-height: 500px) and (min-width: 500px) {
+  .page {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: 1fr minmax(200px, 40%);
+  }
+  .panel {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    max-height: none;
+  }
+}

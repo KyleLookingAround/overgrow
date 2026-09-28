@@ -10,7 +10,7 @@ Copy this file to `docs/briefs/<short-name>.md` for every session or part you st
 
 ## Read first
 
-- The project notes, then `node tools/graph.mjs <fill: system, file or function>`, and only the files that lists.
+- The project notes, then `node tools/graph.mjs <fill: system, file or function>`, and only the files that lists. For a model, the founding spec's systems map entry and its sources.
 - <fill: any spec, decision or lesson that matters>
 
 ## Speed budget

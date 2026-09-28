@@ -11,13 +11,14 @@
 //                                       sets it). docs/lessons/.last-tidy lists the files the last tidy saw.
 //   docs/roadmap.d/<date>-<name>.md     a roadmap item; first line "Section: now|next|runbook|done", then the item
 //   src/updates.d/<short-name>.md       a What's new entry waiting for a release (no version: the release gives it one)
-//   docs/decisions/ADR-*.md, docs/systems/*.md, tools/checks/*.mjs, src/game/*.js   read for their indexes
+//   docs/decisions/ADR-*.md, docs/systems/*.md, tools/checks/*.mjs, src/**/*.ts   read for their indexes
 // Each joined list sits between <!-- joined:<name> … --> and <!-- /joined:<name> --> in the file that shows it.
 import {readFileSync,readdirSync,writeFileSync,existsSync} from 'node:fs';
-import {dirname,join} from 'node:path';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {root,walk} from './rules.mjs';
 
-export const root=join(dirname(fileURLToPath(import.meta.url)),'..');
+export {root};
 const rd=p=>readFileSync(join(root,p),'utf8'),ls=d=>existsSync(join(root,d))?readdirSync(join(root,d)).sort():[];
 export const TIDY_AT=8; // a tidy of the lessons runs once this many are new since the last one
 
@@ -59,16 +60,16 @@ function decisionTable(){
 }
 function systemList(){
   return ls('docs/systems').filter(f=>f.endsWith('.md')).map(f=>{const s=rd('docs/systems/'+f),t=(s.match(/^# (.+)$/m)||[])[1]||f;
-    const files=[...new Set([...s.split('\n\n')[1]?.matchAll(/\b(\d\d-[\w-]+\.js)\b/g)??[]].map(m=>m[1]))];
+    const files=[...new Set([...s.split('\n\n')[1]?.matchAll(/(?<![\w.])(src\/[\w./-]+\.tsx?)\b/g)??[]].map(m=>m[1]))];
     return `- [${t}](systems/${f})${files.length?' ('+files.map(x=>'`'+x+'`').join(', ')+')':''}`}).join('\n');
 }
 function checkList(){
   return ls('tools/checks').filter(f=>f.endsWith('.mjs')).map(f=>`- \`${f.slice(0,-4)}\`: ${comment(rd('tools/checks/'+f))||'(no opening comment yet)'}`).join('\n');
 }
 function fileTable(){
-  const rows=ls('src/game').filter(f=>f.endsWith('.js')).map(f=>{const first=rd('src/game/'+f).split('\n')[0];
-    const t=first.replace(/^\/\*\s*[=-]+\s*/,'').replace(/\s*[=-]+\s*(\*\/)?\s*$/,'').replace(/\*\/$/,'').trim();
-    return `| \`${f}\` | ${t.startsWith('/*')?'the `/*SIM_HOOK*/` marker and the call that starts the game':t} |`});
+  const rows=walk('src').filter(f=>/\.(tsx?|css)$/.test(f)&&!/\.test\.ts$/.test(f)).map(f=>{const first=rd(f).split('\n')[0];
+    const t=first.replace(/^(\/\/|\/\*)\s*/,'').replace(/\s*\*\/\s*$/,'').trim();
+    return `| \`${f}\` | ${t||'(no opening comment yet)'} |`});
   return ['| File | What\'s in it (its first line) |','| --- | --- |',...rows].join('\n');
 }
 export const LISTS=[
@@ -80,7 +81,7 @@ export const LISTS=[
   ['docs/decisions/README.md','decisions','the ADR files here',decisionTable],
   ['docs/SYSTEMS.md','systems','docs/systems/',systemList],
   ['docs/SYSTEMS.md','checks','tools/checks/, each file\'s opening comment',checkList],
-  ['docs/SYSTEMS.md','files','src/game/, each file\'s first line',fileTable],
+  ['docs/SYSTEMS.md','files','src/, each file\'s first line',fileTable],
 ];
 
 // a file with each of its joined lists rebuilt; throws on a conflict marker outside them

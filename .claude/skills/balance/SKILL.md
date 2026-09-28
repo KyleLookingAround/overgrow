@@ -9,10 +9,10 @@ The bot doesn't exist yet: the first slice builds it with the back garden (the f
 
 ## What the bot is
 
-- `tools/bot.js` plays the game headless (`R.sim=true`) through `window.__sim`, making the choices a sensible player would, and `tools/run-bot.mjs` (`npm run bot -- <game time> --seed <n>`) drives it in Chromium.
+- `tools/bot.ts` plays the game headless in Node through `createSim()` and the same commands the player uses, making the choices a sensible player would; `npm run bot -- <game time> --seed <n>` drives it.
 - It prints, at the end: `SEED`, `REACHED {milestone: game time}` (each level's step up, and the spec's milestones inside a level), `PLAY` (a fingerprint of the saved state that affects play), `ERR [...]`, and a table against `tools/baseline.json`.
 - The same seed and code always give the same run. Any change to the code can shift the dice, so judge a change on several seeds, before and after.
-- It must also play a long headless game (the spec says how long) without errors: that's the `sim` check.
+- It must also play a long headless game (the spec says how long) without errors: `src/sim/index.test.ts` plays two game years on every check.
 
 ## 1. Before
 
@@ -38,6 +38,7 @@ Make the change, rebuild, and run the same three seeds into `build/after-$s.log`
 ## Tips
 
 - Once the Balance workflow exists (it comes with the bot), it runs the seeds on a PR once when it opens or leaves draft, and again when the `balance` label is added. Report its tables rather than repeating the runs, unless you're tuning.
+- Tune a constant only inside the rough size its model's sources give (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`); outside it is a design change for the owner.
 - A part of a split feature reports its numbers and tunes only outside 15% of the baselines; the whole feature is rebalanced once, with every part in.
 - A level zoomed out is fed by the level below's numbers (the spec's carry-over rule), so a change to the garden can move the allotment's pacing too: compare every milestone, not only the one you changed.
 

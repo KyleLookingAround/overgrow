@@ -13,7 +13,9 @@ The list is joined from the files here by `node tools/join.mjs` (`npm run build`
 | Record | Decision |
 | --- | --- |
 | [ADR-2026-09-28-one-file-per-entry](ADR-2026-09-28-one-file-per-entry.md) | One file per entry, joined lists, and Catch up |
-| [ADR-2026-09-28-one-page-no-dependencies](ADR-2026-09-28-one-page-no-dependencies.md) | The game ships as one HTML page with no runtime dependencies |
+| [ADR-2026-09-28-real-mechanisms-rough-numbers](ADR-2026-09-28-real-mechanisms-rough-numbers.md) | Real mechanisms, rough numbers |
 | [ADR-2026-09-28-runbook-from-final-call](ADR-2026-09-28-runbook-from-final-call.md) | The runbook comes from Final Call, trimmed to an empty game |
+| [ADR-2026-09-28-scale-free-graph](ADR-2026-09-28-scale-free-graph.md) | One scale-free graph of nodes and flows, simulated in a worker |
 | [ADR-2026-09-28-seeded-randomness](ADR-2026-09-28-seeded-randomness.md) | A seeded random generator and a headless simulation from the first line |
+| [ADR-2026-09-28-static-site-typescript](ADR-2026-09-28-static-site-typescript.md) | A static site built with Vite from TypeScript, with three runtime dependencies |
 <!-- /joined:decisions -->

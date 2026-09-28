@@ -1,15 +1,15 @@
 # Overgrow
 
-Overgrow is an upgrade game about growing food, in one HTML page made of a canvas plus HTML panels. Every level is a zoom-out: what the player micromanaged in one level becomes a single building block in the next, from a back garden up to a nation's food supply, and the clock speeds up as they go. The source is `src/game/*.js` (the game, in numbered files) and `src/shell.html` (CSS and HTML). `tools/build.mjs` joins them into `dist/index.html`. GitHub Actions publishes that page to GitHub Pages on every push to `main` that can change it.
+Overgrow is an incremental upgrade game about the food system, and an educational simulation of it: every mechanism is a real one, with rough numbers. Every level is a zoom-out: what the player micromanaged in one level becomes a single building block in the next, from a back garden up to the whole planet, with carbon, climate, diet and politics in the loop, and the clock speeds up as they go. It's a static site: TypeScript built by Vite, a Preact UI of a canvas map plus HTML panels, and the simulation in a Web Worker. GitHub Actions publishes `dist/` to GitHub Pages on every push to `main` that can change it.
 
-Today the page is a placeholder. The founding spec (`docs/specs/overgrow.md`, from the `feature/game-spec` PR) sets the game; nothing is built until the owner approves it.
+Today the page is a placeholder over a seeded clock. The founding spec (`docs/specs/overgrow.md`) sets the game; nothing beyond the placeholder is built until the owner approves it.
 
 These notes are the short core every session needs. The details live with their topic, so a change to one system edits that system's notes, not this file:
 
 | Topic | Where |
 | --- | --- |
 | How each system works | `docs/systems/<system>.md` (one file each) |
-| Files, state, time, the headless sim, build, checks, the bot and the workflows | `docs/SYSTEMS.md` |
+| Layers, state, time, the sim in a worker, build, checks, the rules, the bot and the workflows | `docs/SYSTEMS.md` |
 | Building a change, from issue to merged PR | `.claude/skills/feature/SKILL.md` |
 | Getting a PR to green, merging, and the look back | `.claude/skills/steward/SKILL.md` |
 | Measuring with the bot, and the balance baselines | `.claude/skills/balance/SKILL.md` |
@@ -54,22 +54,24 @@ Every change goes round the same loop, and each round leaves something that make
 
 ## Build and test
 
-- `npm run build` builds `dist/index.html` and `build/test.html` (with `window.__sim`), and rejoins the lists. It needs no dependencies and fails, naming the file and line, on a slip in the source.
-- `npm run check` (after `npm install`; web sessions do it at start-up) runs every check group; `npm run check -- <group>` runs one. Each group is a file in `tools/checks/`, listed with what it covers in `docs/SYSTEMS.md`. Every page is seeded, so a failure repeats. When you change a rule on purpose, update its check in the same PR; add a check when you add a rule.
-- For UI changes, look at the result: a small Playwright script in `build/` at phone, tablet and desktop sizes (`docs/SYSTEMS.md`, "Checks").
+- `npm run build` builds the site into `dist/` with Vite, then rejoins the lists. It refuses to run on a broken rule (`tools/rules.mjs`), naming the file and line.
+- `npm run check` (after `npm install`; web sessions do it at start-up) builds, typechecks, runs the Vitest tests (`src/**/*.test.ts`, the sim in Node) and then the browser check groups; `node tools/check.mjs <group>` runs one group. Each group is a file in `tools/checks/`, listed with what it covers in `docs/SYSTEMS.md`. Every page is seeded, so a failure repeats. When you change a rule on purpose, update its check in the same PR; add a check when you add a rule.
+- `npm run dev` for a live page while working. For UI changes, look at the result: a small Playwright script in `build/` at phone, tablet and desktop sizes (`docs/SYSTEMS.md`, "Checks").
 - For pacing or economy changes, run the bot on seeds 1, 2 and 3 (the `balance` playbook). A change meant to leave the game as it is must leave `PLAY` identical on seeds 1–3 against a build of `main`. Keep pacing within about 15% of the baselines unless the owner asks for a change.
 
 ## Rules every change keeps
 
-- The game is one strict IIFE over the files in `src/game/`, joined in file-name order. A new system goes in its own numbered file before `99-start.js`, and its notes in its own `docs/systems/` file.
-- `G` is the saved state and `R` is runtime only. New saved state gets its line in the saved-fields table with its default, and a migration step only if older saves need more than the default. Never rename or remove saved fields: old saves must keep loading.
-- Anything that can change the game state uses `rnd()`, never `Math.random()` (the build rejects it outside `00-random.js` on a line that doesn't end with `// cosmetic`).
-- Everything reachable from `update()` must work with `R.sim=true`: no DOM work and no saving. Keep the long headless simulation working.
-- Saves stay on the device (`localStorage['overgrow-save-v1']`).
+- **Four layers** (`docs/SYSTEMS.md`, "Layers"): `src/sim/` (the simulation, pure), `src/data/` (real-world parameters), `src/app/` (the worker, the clock, saving) and `src/ui/` (Preact panels and the canvas). The sim and its data import nothing from the UI and never name the DOM; the `rules` check enforces it. A new system is its own file in `src/sim/`, a model its own file in `src/sim/models/`, and its notes its own `docs/systems/` file.
+- **Real mechanisms, rough numbers** (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`): every model implements a real-world mechanism, names its sources and what it simplifies in its header, and has a plausibility test asserting the direction and rough size of its effect. Every model says its fast effect and its slow effect.
+- **One graph at every scale** (`docs/decisions/ADR-2026-09-28-scale-free-graph.md`): a node is stocks, flows and levers whatever its size; flows are conserved and carried in SI units; carbon and land are flows on every node; the weather takes a warming index the graph produces.
+- **Every change to the game is a command** through the sim, from the player, a manager or the bot alike. The UI never reaches into the sim's state.
+- Saved state is versioned JSON with a migration step per version. Never rename or remove saved fields: old saves must keep loading. Saves stay on the device (`localStorage['overgrow-save-v1']`).
+- Anything that can change the game draws from the game's `Rng` (`src/sim/random.ts`), never `Math.random()` (the `rules` check rejects it on a line that doesn't end with `// cosmetic`). The long headless run (`src/sim/index.test.ts`) must keep passing.
+- Every colour and size lives in `src/ui/styles/tokens.css`; panels are Preact components; the map is Canvas 2D drawn by hand.
 
 ## Owner's preferences
 
-Carried over from Final Call as defaults; the founding spec's `needs-owner` issue asks the owner to confirm them.
+From Final Call and from the owner's brief for Overgrow (`docs/briefs/overgrow-setup.md`).
 
 - No choice of scenario at the start.
 - Hide locked things instead of greying them out.
@@ -80,3 +82,5 @@ Carried over from Final Call as defaults; the founding spec's `needs-owner` issu
 - Phones (portrait and landscape, including 320 px), tablets and large screens must all work.
 - Players who don't want the details get managers and recommendations; players who want them can take control themselves.
 - Saves stay on the device.
+- Every effect can be explained: an Explain card names the mechanism and its source. That's the educational point of the game.
+- It stays an incremental upgrade game: buy the next thing, unlock the next level.

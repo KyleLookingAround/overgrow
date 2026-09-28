@@ -8,6 +8,10 @@ Copy this file to `docs/specs/<short-name>.md`. Keep it to a page. The owner app
 
 The goal or problem in two or three sentences, from the player's side.
 
+## The mechanism
+
+The real-world mechanism behind it, its sources, what this simplifies, and its fast and slow effects (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`).
+
 ## Where it sits on the ladder
 
 - The level it belongs to (back garden, allotment, farm, local distribution, supply chain, national), and what the player does with it there.
@@ -37,12 +41,12 @@ The goal or problem in two or three sentences, from the player's side.
 
 ## Checks
 
-- New check groups or checks that prove it works, headless (`R.sim`) where they can be.
+- The plausibility test for each model (direction and rough size), Vitest tests for the rules, and any browser check group the page needs.
 - What to look at in the screenshots.
 
 ## Files
 
-Which `src/game/` files change, and whether it needs a new file.
+Which files under `src/sim/`, `src/data/`, `src/app/` and `src/ui/` change, and whether it needs a new file.
 
 ## Left out
 

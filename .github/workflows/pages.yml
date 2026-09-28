@@ -6,8 +6,11 @@ on:
     # only what goes into the page: a docs-only merge publishes nothing new
     paths:
       - 'src/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
       - 'tools/build.mjs'
-      - 'tools/sources.mjs'
+      - 'tools/rules.mjs'
       - 'tools/join.mjs'
       - 'tools/graph.mjs'
       - 'package.json'

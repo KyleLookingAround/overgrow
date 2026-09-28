@@ -29,7 +29,7 @@ Option 3.
 - Briefs from a template that `tools/brief.mjs` checks, with a dollar estimate and a rule past twice it (#36), the `needs-owner` queue with a 12-hour default, and one PR-sized item per session.
 - Subscribing to a PR's events with one `send_later` as the fallback, instead of polling (Final Call's overnight-stall lesson).
 - A fresh review before `create_pull_request`, not after (#47, #114, #124, #140), told to use the three-dot diff (#140).
-- `tools/graph.mjs` and the `graph` check, trimmed to what an empty game has (files, names, check groups, the docs' links), so a brief can say "read only what this lists".
+- `tools/graph.mjs` and the `graph` check, trimmed to what an empty game has (files, names, imports, check groups, the docs' links), so a brief can say "read only what this lists".
 - A cap of about four default-model sessions at once, staggered starts, and nothing new on `allowed_warning` unless a brief says otherwise (Final Call's overnight-stall lesson: ten sessions spent the five-hour allowance in 80 minutes).
 - Checks on `main` before Pages deploys, with a "main is red" issue.
 - The lessons tidy at 8 new lessons, with #131's addition: spot-check that each → really landed.
@@ -46,6 +46,8 @@ Option 3.
 - **Stacked PRs, groundwork-branch merges and refactor quiet windows** in the playbooks. They answer problems of many sessions on one big codebase. One line each stays in the `coordinator` playbook as a warning.
 - **Launch-week release rules.** No launch yet.
 - **A `CATCH_UP_TOKEN` secret.** It's the owner's to add; without it Catch up dispatches Checks itself, as in Final Call.
+
+**Changed rather than copied:** the game's own architecture. Final Call's one hand-joined page of plain JavaScript was replaced, with the owner, by a Vite build from TypeScript with the simulation in a worker (`docs/decisions/ADR-2026-09-28-static-site-typescript.md`, `docs/decisions/ADR-2026-09-28-scale-free-graph.md`), and its balance-by-bot rule was widened into real mechanisms with rough numbers (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`). `tools/build.mjs` became a wrapper over `vite build`; `tools/check.mjs` serves `dist/` over HTTP and keeps only the browser checks, with Vitest for the sim.
 
 ## Consequences
 

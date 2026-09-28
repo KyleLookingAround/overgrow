@@ -8,8 +8,7 @@ description: Drive an Overgrow pull request to green and merged - reading CI fai
 ## Checks workflow (`checks.yml`)
 
 - It runs `npm run check` on every PR that isn't a draft, and on demand; a newer push cancels the older run. Failure screenshots are in the `check-failures` artifact.
-- Every page is seeded, so a failure repeats locally: `npm run check -- <group>`.
-- A line number from an error in the built page: `node tools/where.mjs <line>`.
+- Every page is seeded, so a failure repeats locally: `npx vitest run` for the sim, `node tools/check.mjs <group>` for a browser group. The build ships source maps, so an error in the built page names the source line.
 - Fix the cause. Never skip, weaken or delete a check to get green, and never push an empty commit to re-run CI.
 - A run that installs Chromium from scratch (a cache miss, or the first run after a version bump) is slower, not failed.
 - GitHub runs no `pull_request` workflow at all while a PR's `mergeable_state` is `dirty`: a push with zero runs, not even queued, after a few minutes is a merge conflict with `main`. Check `mergeable_state` before waiting on CI.

@@ -11,5 +11,5 @@ After a PR merges, look back at the session that built it: what it cost, what sl
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
 ### Runbook
 
-- [The runbook, from Final Call (#1) · 28 Sep 2026](lessons/1-runbook.md)
+- [The runbook, from Final Call, then reworked with the owner (#1) · 28 Sep 2026](lessons/1-runbook.md)
 <!-- /joined:lessons -->
