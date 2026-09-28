@@ -54,7 +54,7 @@ Never edit between the `joined` markers in `docs/LESSONS.md`, `docs/ROADMAP.md`,
 - Before `create_pull_request`, not after, start one fresh reviewer that hasn't seen the work: a helper agent (`Agent`) or the `code-review` skill, at medium effort. Give it the three-dot diff (`git diff origin/main...HEAD`; the two-dot form shows `main`'s newer commits as if you'd reverted them), the brief and the project notes, and ask for bugs; broken rules (the owner's preferences, saved fields, the layers, the seeded `Rng`, a model without sources, UK English); lines outside the diff the change makes wrong (the README, code comments, the project notes, `docs/SYSTEMS.md`); and anything in the PR's title or description the project notes don't allow.
 - Describe any tool call a playbook tells sessions to make in its exact shape (which tool, which parameters), so the reviewer can check it against the tool's contract.
 - Fix what you agree with. Say in the PR what the review found and what was fixed or left, without naming the tool or saying "AI" or "assistant".
-- Helpers are for reviewing and reading, never for building.
+- Helpers are for reviewing and reading, never for building, with one exception: a workflow (the Workflow tool, opted in with the word "ultracode") may fan out independent files inside this PR (one agent per model's plausibility test or data file) and may run this fresh review along its dimensions in parallel with a verify pass. A workflow never opens a PR, pushes, or writes files another part owns, and its cost counts against the brief's estimate.
 
 ## 7. Ship
 
@@ -73,6 +73,7 @@ Never edit between the `joined` markers in `docs/LESSONS.md`, `docs/ROADMAP.md`,
 - If something is truly ambiguous, take the safer option (the one easier to undo, or that changes the game less), say so in the PR, and carry on.
 - Stop and ask only for something irreversible or outside the brief.
 - **The needs-owner queue.** When the owner truly has to decide, open an issue labelled `needs-owner` with the question, the options, and the one you'll take by default. Carry on with other work, look at the issue at each stopping point, and take the default after 12 hours with no answer; say so on the issue and in the PR, and close the issue.
+- When the choice is between things the owner can look at (a layout, a style, a set of options with trade-offs), also publish a page that shows them with the default pre-selected and saves the pick where the session can read it back, and link it from the issue: the founding spec's ten choices and its art style were answered that way in minutes after an hour of silence on the issue.
 - Read an issue's current state before writing about it: an owner's answer can overtake a brief's default.
 - At each stopping point (a PR opened or merged, a spec written, CI back), read `get_session`. If `rate_limit_info` says "rejected" or `isUsingOverage`, schedule a `send_later` for a minute after `resetsAt` and end the turn.
 - **The cost budget.** Compare `usage.cost_usd` with the brief's estimate at each stopping point; a 0 means not yet known, not free. Past twice the estimate, say why in the PR and in its lesson, and trim or split what's left.
