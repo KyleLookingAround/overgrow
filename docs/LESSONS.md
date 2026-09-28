@@ -12,4 +12,8 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Runbook
 
 - [The runbook, from Final Call, then reworked with the owner (#1) · 28 Sep 2026](lessons/1-runbook.md)
+
+### Spec
+
+- [The founding spec (#3) · 28 Sep 2026](lessons/3-game-spec.md)
 <!-- /joined:lessons -->

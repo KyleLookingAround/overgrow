@@ -1,0 +1,8 @@
+Theme: spec
+# The founding spec (#3) · 28 Sep 2026
+
+- **Numbers:** the session's estimate was $25 for the runbook and the spec together; $30 by the time this PR opened, past the estimate but under twice it. About 440k of 1M context. The spec PR opened at 19:06 UTC, 64 minutes after the runbook PR, with issue #2 for the owner's choices. The overage is the design work the brief didn't ask for: the owner joined the session, the architecture was reworked (`docs/lessons/1-runbook.md`), and the spec grew from a six-level ladder to an eight-level one with a systems map, the climate loop, politics and a living map.
+- **Went well:** designing in the conversation before writing (the systems map, then the ladder level by level, each confirmed by the owner) meant the spec was written once. The graph check caught three full paths in the spec to files that don't exist yet; naming future files without their folder, as the decision records do, was enough.
+- **Lessons:**
+  - A founding spec for a systems game is a different document from a feature spec: the model and the systems map come before the first slice, and the template's one-page rule doesn't apply. → The spec template says the founding spec is the one exception; later specs point at its systems map instead of restating it (`docs/specs/TEMPLATE.md`).
+  - When the owner is present, a design conversation is cheaper than a design document: three rounds of chat settled the stack, the systems and the ladder in under an hour, where a written proposal would have taken a round trip each. Worth remembering for the first slice's parts: ask the owner while they're here.
