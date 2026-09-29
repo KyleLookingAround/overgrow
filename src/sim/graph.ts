@@ -117,7 +117,9 @@ export type Boundary =
   | 'wild' // creatures arriving from and leaving for beyond the level (winged aphids on the wind)
   | 'wages' // pay from a household member's employer
   | 'shop' // the shop a household buys its food from, and where that food's farm-to-shop footprint came from
-  | 'rest of life'; // everything else a household spends on: housing, bills, travel, savings
+  | 'rest of life' // everything else a household spends on: housing, bills, travel, savings
+  | 'given' // food given away, over the fence to a neighbour
+  | 'preserving'; // fresh produce frozen, bottled or pickled: it leaves as itself and comes back as preserves
 
 export type End = {node: NodeId; stock: string} | {boundary: Boundary};
 

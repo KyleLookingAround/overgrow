@@ -49,3 +49,8 @@ Who lives in the household, their jobs, hours and wages, the weekly shop, what s
 ## Numbers and what they simplify
 
 The footprint figures are Poore & Nemecek's global means read to about two figures and rounded, and the weighting of dairy and eggs and of meat and fish to a UK basket is this file's own; when 6b wires the model, check them against the supplementary tables. The basket's veg is the kitchen's NHS-portions ask, higher than Family Food's household purchases alone; the rest of life's outgoing is one flat number by role; a job is three days or five, with no overtime, sick days or holidays; prices are one national average with a flat multiple by decile. Partners and children have no goals or trust yet: the agency and neighbours models, later, add them.
+
+## The playable garden, round two
+
+- **The garden's budget:** the rest of life for the gardener is £550 a week (`REST_SPEND`), so after the weekly shop about £10 a week is left for the garden: a keen grower's, about twice the average household's spending on gardens, plants and flowers (ONS Family Spending, COICOP 09.3.3, about £4 a week). The purse grows on that, the groceries the garden saves (a smaller shop) and the honesty box's takings, and pays for seed, digging, the shed's kit and the hens' feed. Before, the purse gained about £80 a week and piled up to thousands with nothing to spend it on.
+- **Eggs and fruit** the kitchen ate count against the dairy and eggs and the fruit groups in the tally, so the week's shop buys less of them.

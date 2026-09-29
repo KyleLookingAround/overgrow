@@ -40,6 +40,14 @@
   --map-bin: #2f4a32; /* the compost bin's lid */
   --map-trap: #3a2a18; /* a beer trap's pot, sunk to its rim */
   --map-hose: #3f8f4c; /* the hose on its reel */
+  --map-timber: #a87c4e; /* a raised bed's boards */
+  --map-tank: #3e4c52; /* the rainwater tank against the house */
+  --map-run: #b3a778; /* the hens' run, pecked bare in places */
+  --map-hen-house: #c08a55;
+  --map-hen: #9c4f24; /* brown hybrid hens */
+  --map-comb: #d13b2a;
+  --map-net: #2c3a2c59; /* the fruit cage's net */
+  --map-berry: #c2255c; /* ripe raspberries */
   --map-person: #4a6fa5;
   --map-skin: #e7c39a;
   --map-hat: #d98a2b;
@@ -154,6 +162,14 @@
     --map-bin: #24382a;
     --map-trap: #2a1e11;
     --map-hose: #32733c;
+    --map-timber: #7f5c38;
+    --map-tank: #2f3a3f;
+    --map-run: #8c825c;
+    --map-hen-house: #93683f;
+    --map-hen: #7d3f1d;
+    --map-comb: #a82e20;
+    --map-net: #1a241a73;
+    --map-berry: #9c1d4a;
     --map-frost: #c9d6de;
     --map-frost-max: 0.45;
     --map-rain: #b9cad899;

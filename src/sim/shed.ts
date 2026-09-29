@@ -7,7 +7,9 @@
 // The hose (src/sim/gardener.ts), the compost bin (src/sim/models/carbon.ts), the frame's frost, rain and sowing
 // windows (src/sim/models/crops.ts, src/sim/models/water.ts) are read where they act. docs/systems/shed.md says how.
 import {CROPS, type CropId} from '../data/crops';
-import {BEER_TRAP, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, type UpgradeId} from '../data/shed';
+import {BEER_TRAP, CATALOGUE, CHIT, FLEECE, WARM, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, type UpgradeId, type Variety} from '../data/shed';
+import type {CalendarDate} from './clock';
+import {cropOf} from './models/crops';
 import type {System, TickContext} from './clock';
 import {note} from './effects';
 import {SITES, SITE_WAYS} from '../data/garden';
@@ -78,11 +80,72 @@ function buy(g: Graph, id: UpgradeId) {
   }
 }
 
-/** What a bed's sowing of a crop costs from the purse, £: its seed, plants or sets (src/data/crops.ts). */
-export const seedCost = (g: Graph, crop: CropId) => {
-  void g;
-  return CROPS[crop].seed;
-};
+/** What a bed's sowing of a crop costs from the purse, £: its seed, plants or sets (src/data/crops.ts), or nothing when
+ *  the winter catalogue's order covers this garden year. */
+export const seedCost = (g: Graph, crop: CropId, year: number) => (kitOf(g).seeds?.year === year ? 0 : CROPS[crop].seed);
+
+/** The catalogue's order for next year: its price, from the dug beds and the variety. */
+export const cataloguePrice = (g: Graph, variety: Variety) => dugBeds(g).length * CATALOGUE.perBed * (variety === 'resistant' ? CATALOGUE.resistant : 1);
+/** Whether the catalogue is open on a date (December to February) and next year's seed isn't ordered yet. */
+export const catalogueOpen = (g: Graph, d: CalendarDate) =>
+  (d.month >= CATALOGUE.from || d.month <= CATALOGUE.to) && kitOf(g).seeds?.year !== d.year + 1;
+/** Orders next year's seed from the catalogue: the price from the purse, the order into the kit. Why not, or null. */
+export function orderSeeds(g: Graph, variety: Variety, d: CalendarDate): string | null {
+  if (!catalogueOpen(g, d)) return 'the catalogue’s order goes in from December to February';
+  const price = cataloguePrice(g, variety);
+  if (purse(g) < price) return `next year’s seed costs £${price.toFixed(2)}`;
+  applyFlow(g, {what: 'seed catalogue', unit: 'GBP', amount: qty(price, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
+  setKit(g, {seeds: {year: d.year + 1, variety}});
+  return null;
+}
+/** Whether it's the time to chit seed potatoes (February and March) and they aren't chitting already. */
+export const chitOpen = (g: Graph, d: CalendarDate, hours: number) =>
+  d.month >= CHIT.from && d.month <= CHIT.to && !(kitOf(g).chitted !== null && hours - kitOf(g).chitted! <= CHIT.days * 24);
+/** Sets the seed potatoes out to chit. Why not, or null. */
+export function chit(g: Graph, d: CalendarDate, hours: number): string | null {
+  if (!chitOpen(g, d, hours)) return 'seed potatoes are chitted in February and March';
+  setKit(g, {chitted: hours});
+  return null;
+}
+
+/** The empty dug beds in the open whose soil could be warmed for an early sowing now (February to mid-April), not warmed
+ *  already this spring. */
+export const warmBeds = (g: Graph, d: CalendarDate) =>
+  d.month >= WARM.from && d.month <= WARM.to && !(d.month === WARM.to && d.day > 15)
+    ? dugBeds(g).filter((b) => !cropOf(b) && !b.levers.cover && !(typeof b.levers.warmed === 'number' && d.dayIndex - b.levers.warmed < 120))
+    : [];
+/** Fleece laid over the empty beds to warm their soil, the roll bought the first time. Why not, or null. */
+export function warmSoil(g: Graph, d: CalendarDate): string | null {
+  const beds = warmBeds(g, d);
+  if (!beds.length) return 'no empty bed to warm';
+  const r = buyFleece(g);
+  if (r) return r;
+  for (const b of beds) b.levers.warmed = d.dayIndex;
+  return null;
+}
+/** The roll of fleece, bought from the purse the first time it's needed. Why not, or null. */
+function buyFleece(g: Graph): string | null {
+  if (kitOf(g).fleece) return null;
+  if (purse(g) < FLEECE.gbp) return `a roll of fleece costs £${FLEECE.gbp.toFixed(2)}`;
+  applyFlow(g, {what: 'fleece', unit: 'GBP', amount: qty(FLEECE.gbp, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
+  setKit(g, {fleece: true});
+  return null;
+}
+
+/** The tender crops up in the open that a frost tonight would hurt. */
+export const frostBeds = (g: Graph) => Object.values(g.nodes).filter((n) => {
+  const s = n.kind === 'bed' ? cropOf(n) : null;
+  return s && !s.dead && CROPS[s.id].frost !== 'none' && s.dd >= CROPS[s.id].dd.emerge && !n.levers.cover;
+});
+/** Fleece laid over the tender beds for tonight, the roll bought the first time. Why not, or null. */
+export function fleece(g: Graph, hours: number): string | null {
+  const beds = frostBeds(g);
+  if (!beds.length) return 'nothing tender is up in the open';
+  const r = buyFleece(g);
+  if (r) return r;
+  for (const b of beds) b.levers.fleece = hours + FLEECE.hours;
+  return null;
+}
 
 /** Pays for a sowing's seed from the purse, as far as it goes (the gardener checked it had the price that morning). */
 export function paySeed(c: TickContext, gbp: number) {

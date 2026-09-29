@@ -26,3 +26,19 @@ export const EXTRAS = [
   {product: 'berries', name: 'Soft fruit', group: 'fruit', perWeek: 1, keeps: 4, box: 8},
 ] as const;
 export type Extra = (typeof EXTRAS)[number];
+
+/** A glut: more than this many kg over what the kitchen will eat while it's fresh, all at once. A new one starts after
+ *  this many days without one (the glut card asks once a glut, not every day of it). */
+export const GLUT = {kg: 3, gapDays: 5};
+/** What the household does with a glut: sell it at the box (the default), preserve it (freeze, bottle or pickle) or give
+ *  it to a neighbour. */
+export type GlutPolicy = 'sell' | 'preserve' | 'give';
+export const GLUT_POLICIES: GlutPolicy[] = ['sell', 'preserve', 'give'];
+/** Preserving: about 25 minutes of washing, blanching and bagging a kg (WRAP, "Love Food Hate Waste": freezing veg), jars,
+ *  bags and the freezer's electricity about 30p a kg, keeping about ten months, up to a freezer drawer's 20 kg; eaten
+ *  in place of fresh veg the garden can't meet, most in the lean months. A household that preserves or gives its gluts
+ *  keeps only `freshDays` of the ask fresh and deals with the rest while it's fresh. WRAP counts fresh veg as a third of household
+ *  food waste, most of it thrown out for not being used in time. */
+export const PRESERVE = {hoursPerKg: 0.4, gbpPerKg: 0.3, keeps: 300, cap: 20, freshDays: 3};
+/** Given over the fence: the neighbour's thanks, counted as goodwill (the allotment's currency, part 8). */
+export const GIFT = {goodwillPerKg: 1};

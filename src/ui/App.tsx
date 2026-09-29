@@ -15,6 +15,8 @@ import {hourOf, type WeatherDay} from '../sim/models/weather';
 import {calendar} from '../sim/clock';
 import type {Snapshot} from '../sim/state';
 import {badgesOf} from './badges';
+import {bedCardOf} from './bed-card';
+import {decisionsOf} from './decisions';
 import {EffectsLog} from './effects-log';
 import {Explain, type Explaining} from './Explain';
 import {FirstPlan} from './FirstPlan';
@@ -105,10 +107,19 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
     id: -1, at: 0, choice: true, text: 'The first harvest is in. Try 2× to watch the season go by faster.',
     actions: [{label: 'Try 2×', run: () => send({type: 'card', id: 'try-faster', answer: 'yes'})}],
   } : null;
+  // the bed card: an empty bed without the player's say asks what's next, in the queue like the rest
+  const bed = snap && !first ? bedCardOf(snap) : null;
+  const bedNotice: Notice | null = bed ? {
+    id: -2, at: 0, choice: true, text: bed.text,
+    actions: bed.actions.map((a) => ({label: a.label, run: () => a.cmds.forEach(send)})),
+  } : null;
+  // the week's decisions: the most pressing one due, in the queue like the rest
+  const due = snap && !first ? decisionsOf(snap)[0] ?? null : null;
+  const dueNotice: Notice | null = due ? {id: -3, at: 0, choice: true, text: due.text, actions: due.actions.map((a) => ({label: a.label, run: () => send(a.cmd)}))} : null;
   const nodes = snap?.nodes ?? [];
   const badges = snap ? badgesOf(nodes, hourNow(snap, shown!.hour), snap.seen, all) : [];
   // the nudge is a notice like the rest, waiting its turn in the queue
-  const shownNotices = first ? [] : faster ? [...notices, faster] : notices;
+  const shownNotices = first ? [] : [...notices, ...(faster ? [faster] : []), ...(dueNotice ? [dueNotice] : []), ...(bedNotice ? [bedNotice] : [])];
   return (
     <div class="page" data-sim={shown ? 'ready' : 'waiting'}>
       <h1 class="visually-hidden">Overgrow</h1>
@@ -118,6 +129,8 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
           pulse={first ? null : explain?.at ?? null}>
           <Notices list={shownNotices} onDismiss={(id) => {
             if (id === -1) send({type: 'card', id: 'try-faster', answer: 'no'});
+            else if (id === -2) bed?.dismiss.forEach(send);
+            else if (id === -3 && due) send(due.dismiss);
             else setNotices((l) => l.filter((n) => n.id !== id));
           }} />
           {first ? <FirstPlan onAnswer={(answer) => send({type: 'card', id: 'first-plan', answer})} />

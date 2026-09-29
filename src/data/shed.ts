@@ -149,3 +149,23 @@ export const HENS = {head: 3, area: 12, sackGbp: 13, sackKg: 20, feedDays: 7, da
 
 /** The hose: litres a minute from the tap, and minutes to run it out and reel it back. */
 export const HOSE = {perMin: 12, setup: 5};
+
+/** The winter seed catalogue: next year's seed ordered in winter, by post, about a third cheaper than the garden centre's
+ *  packets at sowing time (a catalogue's collection prices against single packets, rough 2027): about £5.50 a dug bed
+ *  for its year's sowings. Blight-resistant varieties (Sarpo Mira potatoes, Crimson Crush tomatoes: bred to resist
+ *  Phytophthora infestans; the Sarpo Potatoes trust and the RHS's trials) cost about a quarter more and let through about
+ *  a third of blight's start and spread (`resists`). Ordered from December to February, for the garden year from March. */
+export const CATALOGUE = {perBed: 5.5, resistant: 1.25, resists: 0.3, crops: ['potatoes', 'tomatoes'], from: 12, to: 2};
+export type Variety = 'standard' | 'resistant';
+/** Horticultural fleece: a 17 g/m² sheet laid over a bed keeps about 2 °C of frost off (RHS, "Frost protection"); it's
+ *  left on through a cold spell, four nights, then taken off to let the light in; a roll for the garden's beds costs
+ *  about £6, bought the first time it's needed and kept. */
+export const FLEECE = {frost: 2, gbp: 6, hours: 4 * 24};
+/** Chitting seed potatoes: set out in egg boxes on a cool, light windowsill from February, they sprout short green shoots
+ *  and come up about two weeks sooner once planted (RHS, "Potatoes: chitting"); about 70 degree days of a spring
+ *  start. A chitting lasts until the planting, up to about a hundred days. */
+export const CHIT = {dd: 70, days: 100, from: 2, to: 3};
+/** Warming the soil: fleece (or polythene) laid over an empty bed for a fortnight before sowing warms it a few degrees,
+ *  so the first sowings go in about two weeks sooner (RHS, "Soil: warming"); asked from February to mid-April, and the
+ *  sowing season stays early for a month after. */
+export const WARM = {days: 14, lasts: 45, from: 2, to: 4};

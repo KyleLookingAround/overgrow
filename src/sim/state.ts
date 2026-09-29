@@ -47,6 +47,9 @@ export interface State {
   settings: Record<string, LeverValue>;
   /** Cards, hints and instruments already shown: what has unfolded (src/data/unfold.ts). */
   seen: string[];
+  /** The game hour each of the week's decision cards was last answered (the glut, the catalogue, a frost, a dry spell),
+   *  so each asks once for what it's about (src/sim/commands.ts). */
+  answered: Record<string, number>;
   /** Why the last command was refused, or null. Not saved. */
   rejected: string | null;
   /** Flows a system tried that couldn't move, in the last tick. Not saved; the long run asserts there are none. */
@@ -79,7 +82,7 @@ export function gardenGraph(): Graph {
     if (p.kind === 'bed') spec.levers = {...BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS()};
     if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
     // the kitchen's ledger, and the level's history for the goal, started on the first Monday (src/sim/goal.ts)
-    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: null, quality: {}};
+    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: null, quality: {}, glut: 'sell'};
     if (p.id === 'gate') spec.levers = {quality: {}};
     // the garden's kit: what's been bought from the shed (src/sim/kit.ts)
     if (p.id === 'shed') spec.levers = {kit: {...NO_KIT, owned: []} as unknown as LeverValue};
@@ -90,7 +93,7 @@ export function gardenGraph(): Graph {
   // the household beside the garden: the gardener alone, in a full-time job (src/sim/models/household.ts)
   nodes.push(householdNode());
   // the air carries the level's weather (src/sim/models/weather.ts), drawn from the first hour
-  nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null}});
+  nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null, forecast: null}});
   const edges: Edge[] = WAYS.map((w, i) => ({id: `way-${i + 1}`, from: w.from, to: w.to, carries: [...w.carries]}));
   for (const p of PLACES) edges.push({id: `air-${p.id}`, from: p.id, to: ATMOSPHERE, carries: ['kgCO2e']});
   // slugs crawl between the lawn's edge and every bed
@@ -115,7 +118,7 @@ export function newState(seed: number, speed: Speed = 1): State {
     seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], ladder: [],
     // the gardener stands by the shed on the first morning
     activities: [{id: 'g-start', who: GARDENER, kind: 'person', doing: 'rest', from: 'shed', to: 'shed', start: 0, end: 0.5}],
-    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], rejected: null, errors: [], effects: [],
+    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], answered: {}, rejected: null, errors: [], effects: [],
   };
 }
 
@@ -144,6 +147,8 @@ export interface Snapshot {
   seen: string[];
   /** The page's saved settings ('details': show every number early). */
   settings: Record<string, LeverValue>;
+  /** The game hour each decision card was last answered (State's `answered`). */
+  answered: Record<string, number>;
   activities: Activity[];
   /** The kitchen's ledger: the day's ask and what met it, and what's been picked, eaten, wasted, sold and earned. */
   kitchen: Ledger | null;
@@ -221,7 +226,7 @@ export function snapshotOf(s: State): Snapshot {
     seed: s.seed, hours: s.hours, level: s.level, step: levelClock(s.level).stepHours, speed: s.speed,
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
-    rev: s.graph.rev, nodes, edges: edgesOf(s.graph), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings,
+    rev: s.graph.rev, nodes, edges: edgesOf(s.graph), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings, answered: s.answered,
     // an activity never changes once started (src/sim/activity.ts): the list is copied, the activities shared
     activities: s.activities.slice(),
     kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,

@@ -21,7 +21,7 @@
 //   household's veg the garden grows, week by week, and the food wasted along the way.
 import {CROPS, type Group} from '../../data/crops';
 import {BASKET, FOOD_GROUPS, VEG, type FoodGroup} from '../../data/household';
-import {BOX, EXTRAS, KEEP_DAYS, MEAL_HOUR, STORE, STRETCH} from '../../data/kitchen';
+import {BOX, EXTRAS, GIFT, GLUT, KEEP_DAYS, MEAL_HOUR, PRESERVE, STORE, STRETCH, type GlutPolicy} from '../../data/kitchen';
 import {calendar, type System, type TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type Graph, type GraphNode, type LeverValue} from '../graph';
@@ -45,6 +45,13 @@ export interface Ledger {
   /** Game hours of the first produce picked and the first sale, or null. */
   firstHarvest: number | null;
   firstSale: number | null;
+  /** Since the start, kg preserved and given to a neighbour, and the neighbour's goodwill. */
+  preserved: number;
+  given: number;
+  goodwill: number;
+  /** Game hours the current glut began and was last seen, or null: the glut card asks once a glut. */
+  glutFrom: number | null;
+  glutAt: number | null;
 }
 
 export const KITCHEN = 'kitchen', GATE = 'gate';
@@ -75,6 +82,7 @@ export const shopProduct = (g: FoodGroup) => ((VEG as readonly string[]).include
 
 export const newLedger = (): Ledger => ({
   day: -1, ask: total(kitchenAsk(1)), ate: {}, met: 0, week: [], picked: 0, eaten: 0, wasted: 0, sold: 0, earned: 0, firstHarvest: null, firstSale: null,
+  preserved: 0, given: 0, goodwill: 0, glutFrom: null, glutAt: null,
 });
 export const ledgerOf = (g: Graph): Ledger => (g.nodes[KITCHEN]?.levers.ledger as unknown as Ledger | undefined) ?? newLedger();
 function update(g: Graph, change: (l: Ledger) => Partial<Ledger>) {
@@ -83,6 +91,46 @@ function update(g: Graph, change: (l: Ledger) => Partial<Ledger>) {
   const l = ledgerOf(g);
   k.levers.ledger = {...l, ...change(l)} as unknown as LeverValue;
 }
+/** The kitchen's preserves: the glut frozen, bottled or pickled (src/data/kitchen.ts's PRESERVE). */
+export const PRESERVES = 'preserves';
+/** What the household does with a glut: the kitchen's `glut` lever. */
+export const glutPolicy = (g: Graph): GlutPolicy => (g.nodes[KITCHEN]?.levers.glut as GlutPolicy | undefined) ?? 'sell';
+/** Room left in the freezer, kg. */
+export const preserveRoom = (g: Graph) => Math.max(0, PRESERVE.cap - (g.nodes[KITCHEN]?.stocks[`food.${PRESERVES}`]?.amount ?? 0));
+/** Notes a glut on a day: the kitchen has more than GLUT.kg over its need; a new glut after GLUT.gapDays without one. */
+export function recordGlut(g: Graph, hours: number) {
+  update(g, (l) => ({glutFrom: l.glutAt !== null && hours - l.glutAt <= GLUT.gapDays * 24 ? l.glutFrom : hours, glutAt: hours}));
+}
+/** Preserves a glut in the kitchen: each product out as itself and back as preserves, the jars and bags from the purse. */
+export function preserve(c: TickContext, items: {product: string; kg: number}[]) {
+  const k = c.graph.nodes[KITCHEN];
+  if (!k) return;
+  let done = 0;
+  for (const it of items) {
+    const kg = Math.min(it.kg, stockOf(k, it.product), preserveRoom(c.graph) - done);
+    if (kg <= 1e-9) continue;
+    c.flow({what: 'preserving', unit: 'kgFood', product: it.product, amount: qty(kg, 'kgFood'), from: {node: k.id, stock: `food.${it.product}`}, to: {boundary: 'preserving'}});
+    c.flow({what: 'preserving', unit: 'kgFood', product: PRESERVES, amount: qty(kg, 'kgFood'), from: {boundary: 'preserving'}, to: {node: k.id, stock: `food.${PRESERVES}`}});
+    done += kg;
+  }
+  const gbp = Math.min(done * PRESERVE.gbpPerKg, Math.max(0, k.stocks.money?.amount ?? 0));
+  if (gbp > 1e-9) c.flow({what: 'jars and bags', unit: 'GBP', amount: qty(gbp, 'GBP'), from: {node: k.id, stock: 'money'}, to: {boundary: 'bought'}});
+  if (done > 0) update(c.graph, (l) => ({preserved: l.preserved + done}));
+}
+/** Gives a glut over the fence to a neighbour: the food leaves the garden, and the neighbour's goodwill grows. */
+export function give(c: TickContext, items: {product: string; kg: number}[]) {
+  const k = c.graph.nodes[KITCHEN];
+  if (!k) return;
+  let done = 0;
+  for (const it of items) {
+    const kg = Math.min(it.kg, stockOf(k, it.product));
+    if (kg <= 1e-9) continue;
+    c.flow({what: 'given to a neighbour', unit: 'kgFood', product: it.product, amount: qty(kg, 'kgFood'), from: {node: k.id, stock: `food.${it.product}`}, to: {boundary: 'given'}});
+    done += kg;
+  }
+  if (done > 0) update(c.graph, (l) => ({given: l.given + done, goodwill: l.goodwill + done * GIFT.goodwillPerKg}));
+}
+
 /** Counts food that went off, in the garden or the kitchen. */
 export const recordWaste = (g: Graph, kg: number) => update(g, (l) => ({wasted: l.wasted + kg}));
 /** Counts produce the gardener brought in, and mixes its quality into the kitchen's. */
@@ -105,6 +153,12 @@ export function mixQuality(g: Graph, at: string, product: string, kg: number, q:
 }
 
 const PRODUCTS = Object.values(CROPS);
+/** What's over the kitchen's need now, as the household's glut policy keeps it (src/sim/gardener.ts carries it off). */
+export const surplusOf = (g: Graph) => {
+  const k = g.nodes[KITCHEN];
+  return k ? surplus(k, askOf(g), glutPolicy(g) !== 'sell') : [];
+};
+
 /** Everything the kitchen keeps and the box sells: the crops at the box's price, and the eggs and fruit at theirs. */
 const SOLD: {product: string; keeps: number; price: number}[] = [
   ...PRODUCTS.map((c) => ({product: c.product, keeps: c.keeps.kitchen, price: BOX.price})),
@@ -116,14 +170,15 @@ const stockOf = (n: GraphNode, product: string) => n.stocks[`food.${product}`]?.
 /** What's in the kitchen beyond what the household will eat while it's fresh, by product: the gardener carries it to the
  *  honesty box. The kitchen keeps a group's stretched ask for half each product's shelf life, up to three weeks, and what
  *  stores (STORE) for up to five months. */
-export function surplus(k: GraphNode, ask: Record<Group, number>): {product: string; kg: number}[] {
+export function surplus(k: GraphNode, ask: Record<Group, number>, tight = false): {product: string; kg: number}[] {
   const out: {product: string; kg: number}[] = [];
   for (const group of VEG) {
     let room = ask[group] * STRETCH * STORE.days;
-    // the longest-keeping first, each for as long as it keeps
+    // the longest-keeping first, each for as long as it keeps; a household that preserves or gives away its gluts keeps
+    // only a few days' ask of what doesn't store, and freezes or gives the rest while it's fresh (WRAP)
     for (const c of inGroup(group).reverse()) {
-      const cap = c.keeps.kitchen >= STORE.keeps ? STORE.days : KEEP_DAYS;
-      const have = stockOf(k, c.product), keep = Math.min(have, room, ask[group] * STRETCH * Math.min(cap, c.keeps.kitchen / 2));
+      const cap = c.keeps.kitchen >= STORE.keeps ? STORE.days : tight ? PRESERVE.freshDays : KEEP_DAYS, stretch = tight && c.keeps.kitchen < STORE.keeps ? 1 : STRETCH;
+      const have = stockOf(k, c.product), keep = Math.min(have, room, ask[group] * stretch * Math.min(cap, c.keeps.kitchen / 2));
       room -= keep;
       if (have - keep > 0.05) out.push({product: c.product, kg: have - keep});
     }
@@ -155,8 +210,14 @@ function meal(c: TickContext, k: GraphNode, day: number) {
   const ask = askOf(c.graph), want = total(ask);
   let eaten = 0;
   for (const g of VEG) eaten += eat(g, ask[g]);
-  // a short group made up by more of another, up to its stretch
+  // a short group made up by more of another, up to its stretch; then what's been preserved
   for (const g of VEG) if (eaten < want - 1e-9) eaten += eat(g, Math.min(want - eaten, ask[g] * (STRETCH - 1)));
+  const jar = Math.min(Math.max(0, want - eaten), stockOf(k, PRESERVES));
+  if (jar > 1e-9) {
+    c.flow({what: 'eating', unit: 'kgFood', product: PRESERVES, amount: qty(jar, 'kgFood'), from: {node: k.id, stock: `food.${PRESERVES}`}, to: {boundary: 'eaten'}});
+    ate[PRESERVES] = jar;
+    eaten += jar;
+  }
   const met = Math.min(1, eaten / want);
   // what the garden didn't meet comes from the shop's veg; then the rest of the diet, a seventh of the week's basket,
   // less the garden's eggs and fruit eaten in its place
@@ -231,12 +292,19 @@ export const kitchen: System = {
         if (gate) sales(c, gate, k, d.weekday >= 5);
         goingOff(c, k, 1, true);
         if (gate) goingOff(c, gate, 1, false);
+        const jars = stockOf(k, PRESERVES) * (1 - Math.exp(-1 / PRESERVE.keeps));
+        if (jars > 1e-6) {
+          c.flow({what: 'going off', unit: 'kgFood', product: PRESERVES, amount: qty(jars, 'kgFood'), from: {node: k.id, stock: `food.${PRESERVES}`}, to: {boundary: 'decay'}});
+          recordWaste(c.graph, jars);
+        }
       }
     },
   },
   command(cmd, g) {
     if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && cmd.node === KITCHEN && cmd.lever === 'ledger') return 'the kitchen’s ledger is kept, not set';
     if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && (cmd.node === KITCHEN || cmd.node === GATE) && cmd.lever === 'quality') return 'quality is the produce’s, not set';
+    if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && cmd.node === KITCHEN && cmd.lever === 'glut')
+      return cmd.type !== 'policy' ? 'a glut is the household’s policy' : ['sell', 'preserve', 'give'].includes(String(cmd.value)) ? null : 'sell, preserve or give';
     return undefined;
   },
 };

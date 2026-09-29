@@ -123,6 +123,8 @@ export interface TickContext {
   flow(f: Flow): string | null;
   /** Starts an activity the map can animate: who is doing what, where, from when to when. */
   activity(a: Activity): void;
+  /** This system's dice for the same tick at another hour: what it will draw then (the weather's forecast of tomorrow). */
+  rngAt?(hours: number): Rng;
 }
 
 /** A system: its own file, listed in src/sim/systems.ts, subscribing to the ticks it needs. */
@@ -171,6 +173,9 @@ class Context implements TickContext {
   }
   get rng(): Rng {
     return (this.dice ??= systemRng(this.seed, this.system, this.tick, this.hours));
+  }
+  rngAt(hours: number): Rng {
+    return systemRng(this.seed, this.system, this.tick, hours);
   }
 }
 

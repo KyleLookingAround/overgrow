@@ -14,7 +14,14 @@ The person who does everything the plan decides (`src/sim/gardener.ts`, with its
 ## The playable garden (#54)
 
 - **The hose** is a tool (`TOOLS.hose`): when it's the fastest the gardener has for watering, a bed is watered in one job from the tap (`unreel`, `hose`, `water`, `reel`), sowing's watering-in too.
-- **Digging** a plot takes the purse's edging (£1.50 a m², `DIG` in `src/data/garden.ts`) as well as the hour a m²: a square metre isn't dug when the purse can't pay for its edging.
-- **A green manure** is dug in where it stands (`dig in`, 0.3 of digging turf, `DIG_IN`) when the summer plan's next crop is due; the bed is sown the next day.
+- **Digging** a plot takes the purse's edging and compost (`digCost`, `DIG` in `src/data/garden.ts`) as well as the spade's time: a quarter of a square metre isn't dug when the purse can't pay for it.
+- **A green manure** is dug in where it stands (`dig in`, 0.06 of digging turf, `DIG_IN`, about 25 minutes a m²) when the summer plan's next crop is due; the bed is sown the next day.
 - **Two notes** from each new day's plan: `long watering` (more than 45 minutes by can, `LONG_WATERING`) and `butt dry` (the can filled at the tap with the butt empty), which unfold the hose and the second butt.
 - **Sowing across the beds:** each bed's planned crop is chosen knowing what the other beds grow and what's going in today (`src/sim/models/crops.ts`'s `summerCrop()`).
+
+## The playable garden, round two
+
+- **Seed** comes out of the purse at each sowing (`seedCost` and `paySeed` in `src/sim/shed.ts`, each crop's `seed` in `src/data/crops.ts`): a sowing waits in the day's plan until the purse has its price, and so does a border of flowers.
+- **Digging is a project:** seven hours a m² with the spade (lifting the turf, digging out roots and stones, forking in compost), about 21 hours for a 3 m² bed, most of a week's spare hours, and £37 of edging and bagged compost. The gardener digs one bed at a time, the first the plan wants dug, a quarter of a square metre a job.
+- **The hens** (once bought): first thing each day a `hens` job (10 minutes, and 30 more on a Saturday for the clean-out) tops up their feed to a week's, bought from the purse as it's used (`hen feed`), fills the trough from the tap, carries the eggs to the kitchen (`collecting eggs`, counted as picked in the kitchen's ledger) and on a Saturday clears the droppings to the heap (`clearOut`, `src/sim/models/livestock.ts`).
+- **Soft fruit** (once the cage is bought): ripe fruit is picked at two kilos an hour and carried in a basket at a time (`pickFruit`).

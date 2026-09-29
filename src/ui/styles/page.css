@@ -518,6 +518,10 @@ meter {
   width: var(--meter-w);
   height: var(--meter-h);
 }
+.offer meter.saving {
+  display: block;
+  width: 100%;
+}
 .bed-plan {
   margin: var(--gap-small) 0;
 }

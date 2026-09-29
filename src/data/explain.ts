@@ -93,6 +93,11 @@ export const CAUSES = {
   droppings: {kind: 'carbon', causes: ['droppings', 'droppings carbon', 'droppings nitrogen', 'clearing out', 'manure methane and nitrous oxide']},
   fruit: {kind: 'crop', causes: ['fruit ripening', 'fruit dropping']},
   building: {kind: 'household', causes: ['building']},
+  glut: {kind: 'kitchen', causes: ['glut']},
+  preserving: {kind: 'kitchen', causes: ['preserving', 'jars and bags']},
+  gift: {kind: 'household', causes: ['given to a neighbour']},
+  catalogue: {kind: 'household', causes: ['seed catalogue']},
+  fleece: {kind: 'weather', causes: ['fleece']},
 } satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
 
 export type Entry = keyof typeof CAUSES;
@@ -571,6 +576,46 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
     slow: 'The garden’s land put to work: food where there was grass.',
     source: 'The garden’s own layout.',
   },
+  glut: {
+    title: 'A glut',
+    says: 'More is ready than the household will eat while it’s fresh.',
+    mechanism: 'Crops sown together come ready together; what the kitchen can’t eat in a few days goes off unless it’s sold, preserved or given away.',
+    fast: 'A choice: sell it at the box, preserve it, or give it to a neighbour.',
+    slow: 'Fresh produce is a third of what UK households throw away; a planned glut feeds the lean months.',
+    source: 'WRAP, household food waste studies.',
+  },
+  preserving: {
+    title: 'Preserving',
+    says: 'The glut was frozen, bottled or pickled in the kitchen.',
+    mechanism: 'Blanched and frozen, or bottled and pickled, veg keeps for most of a year; it costs about 25 minutes a kilo, and jars, bags and the freezer’s electricity.',
+    fast: 'The gardener’s time and a little money now, and nothing to waste.',
+    slow: 'Food from the freezer in the lean months, when the beds give little.',
+    source: 'WRAP, “Love Food Hate Waste”: freezing vegetables.',
+  },
+  gift: {
+    title: 'A gift over the fence',
+    says: 'The glut went over the fence to a neighbour.',
+    mechanism: 'Food given away is eaten, not wasted; a neighbour remembers it.',
+    fast: 'No money, no waste, and a neighbour’s thanks.',
+    slow: 'Goodwill: at the allotment, swaps and favours are the currency.',
+    source: 'WRAP on redistributing surplus food.',
+  },
+  catalogue: {
+    title: 'The seed catalogue',
+    says: 'Next year’s seed was ordered from the winter catalogue.',
+    mechanism: 'Ordered in winter by post, seed costs about a third less than packets at sowing time; resistant varieties cost a little more and fight off blight.',
+    fast: 'One payment now for the year’s sowings.',
+    slow: 'Seed paid for through the year; with resistant potatoes and tomatoes, less blight.',
+    source: 'Seed catalogue prices, 2027; the Sarpo Potatoes trust and the RHS on blight resistance.',
+  },
+  fleece: {
+    title: 'Fleece',
+    says: 'Fleece went over the tender crops for a frosty night.',
+    mechanism: 'A thin sheet of horticultural fleece keeps about 2 °C of frost off the plants under it for the night.',
+    fast: 'Tender crops through a light frost.',
+    slow: 'A roll lasts for years.',
+    source: 'RHS, “Frost protection”.',
+  },
 };
 
 /** The lever that helps, in a line: what the Explain card offers after what happened. */
@@ -634,6 +679,11 @@ export const HELPS: Record<Entry, string> = {
   droppings: 'Clean out weekly: the heap turns it into compost.',
   fruit: 'Nothing to do: the gardener picks it as it ripens.',
   building: 'Choose what the lawn is worth most as.',
+  glut: 'Sow in turns, a little every few weeks, so crops don’t all come at once.',
+  preserving: 'Preserve a glut to eat in the winter.',
+  gift: 'Give a glut away when the box can’t sell it in time.',
+  catalogue: 'Order in winter, before the spring rush.',
+  fleece: 'Fleece the tender crops when a frost is forecast.',
 };
 
 /** The kind of each cause: all the sim needs of the table. */

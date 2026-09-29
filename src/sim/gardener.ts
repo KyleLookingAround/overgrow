@@ -28,8 +28,10 @@ import {HENS} from '../data/shed';
 import {SPECIES} from '../data/livestock';
 import {BERRIES, ripeFruit} from './models/fruit';
 import {clearOut, herdOf, LIVE} from './models/livestock';
+import {chitStart} from './kit';
 import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
-import {askOf, GATE, KITCHEN, mixQuality, qualityAt, recordPick, surplus} from './models/kitchen';
+import {GATE, give, glutPolicy, KITCHEN, mixQuality, preserve, preserveRoom, qualityAt, recordGlut, recordPick, surplusOf} from './models/kitchen';
+import {GLUT, PRESERVE} from '../data/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
 import {hourOf, sunOn, weatherOf} from './models/weather';
 
@@ -53,7 +55,9 @@ export type Effect =
   | {kind: 'pest'; bed: NodeId; pest: PestId; how: Policy}
   | {kind: 'border'; bed: NodeId; flower: CropId; seed: number}
   | {kind: 'home'; shop: boolean}
-  | {kind: 'hens'; clean: boolean};
+  | {kind: 'hens'; clean: boolean}
+  | {kind: 'preserve' | 'give'; items: {product: string; kg: number}[]}
+  | {kind: 'mulch'; bed: NodeId; kg: number};
 
 /** One step of the day: an activity to show when it starts, and its effect when it ends. */
 export interface Step {
@@ -81,17 +85,17 @@ export interface Day {
 }
 
 export const dayOf = (g: Graph): Day | null => (g.nodes[GARDENER]?.levers.day as unknown as Day | null | undefined) ?? null;
-export const GARDENER_LEVERS = (): Record<string, LeverValue> => ({waterBelow: 0.5, ...START_POLICY, tools: [...START_TOOLS], day: null});
+export const GARDENER_LEVERS = (): Record<string, LeverValue> => ({waterBelow: 0.5, ...START_POLICY, tools: [...START_TOOLS], day: null, mulch: []});
 const PESTS = Object.keys(POLICIES) as PestId[];
 /** What the plan's pest policy says for a pest. */
 export const policyOf = (g: Graph, pest: PestId): Policy => (g.nodes[GARDENER]?.levers[pest] as Policy | undefined) ?? START_POLICY[pest];
-const OWN = new Set(['tools', 'day']);
+const OWN = new Set(['tools', 'day', 'mulch']);
 
 /** The plan the day's jobs come from: the watering line and every bed's plan (its winter line and cover too). Written out
  *  again only when one of them is a different value from the last time (levers are replaced, never changed in place). */
 const planned = new WeakMap<Graph, {parts: LeverValue[]; key: string}>();
 function planKey(g: Graph): string {
-  const me = g.nodes[GARDENER]?.levers, parts: LeverValue[] = [me?.waterBelow ?? null];
+  const me = g.nodes[GARDENER]?.levers, parts: LeverValue[] = [me?.waterBelow ?? null, me?.mulch ?? null];
   for (const p of PESTS) parts.push(me?.[p] ?? null);
   for (const id in g.nodes) {
     const n = g.nodes[id]!;
@@ -103,6 +107,20 @@ function planKey(g: Graph): string {
   planned.set(g, {parts, key});
   return key;
 }
+
+/** The dug beds a winter mulch goes on: empty ones and those with a crop standing the winter (compost spread around the
+ *  plants; RHS, "Mulches"), not the greenhouse's border. */
+export const mulchBeds = (g: Graph) => Object.values(g.nodes).filter((n) => n.kind === 'bed' && (n.stocks['land.crops']?.amount ?? 0) > 0 && n.levers.cover !== 'greenhouse');
+/** Asks the gardener to mulch the empty beds with the heap's compost (the mulch card). Why not, or null. */
+export function askMulch(g: Graph): string | null {
+  const me = g.nodes[GARDENER], beds = mulchBeds(g);
+  if (!me || !beds.length) return 'no bed is dug';
+  if (compostOn(g) < MULCH_MIN) return 'the heap has too little compost';
+  me.levers.mulch = beds.map((b) => b.id);
+  return null;
+}
+/** The least compost on the heap, kg, worth a winter mulch. */
+export const MULCH_MIN = 10;
 
 /** The hours the gardener has for the garden on a day: the household's garden hours that weekday, to the minute. */
 export const hoursOn = (h: Household, d: CalendarDate) => Math.round(householdGardenHours(h, d.weekday) * 60) / 60;
@@ -356,7 +374,7 @@ function clear(p: Planner, from: GraphNode, bed: boolean): boolean {
 function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
   const spec = CROPS[crop], area = areaOf(bed), how = best(p.g, spec.how), bucket = best(p.g, 'spread'), cans = best(p.g, 'water');
   if (!how) return false;
-  const kg = bucket ? Math.min(p.compost, COMPOST_PER_M2 * area) : 0, seed = seedCost(p.g, crop);
+  const kg = bucket ? Math.min(p.compost, COMPOST_PER_M2 * area) : 0, seed = seedCost(p.g, crop, calendar(p.t).year);
   // the seed comes out of the purse: a sowing waits until it has the price
   if (p.money < seed) return false;
   let fromButt = 0;
@@ -491,11 +509,28 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
     const crop = plannedCrop(b, date, [...neighbours(dug, b), ...today]);
     if (crop && sowBed(p, b, crop)) sown.add(b.id), today.push(crop);
   }
+  // a winter mulch of the heap's compost on the beds the household asked for (the mulch card), a bed at a time
+  const mulch = ((g.nodes[GARDENER]?.levers.mulch as string[] | undefined) ?? []).map((id) => g.nodes[id]).filter((b): b is GraphNode => !!b);
+  const bucket = best(g, 'spread');
+  for (const b of mulch) {
+    const kg = bucket ? Math.min(p.compost, COMPOST_PER_M2 * areaOf(b)) : 0;
+    if (kg < 0.5) break;
+    if (p.job((j) => {
+      for (let left = kg; left >= 0.5; ) {
+        const load = Math.min(left, bucket!.trip ?? left);
+        j.walk('heap', 'fetch');
+        j.work('load', bucket!.load ?? 0, {unit: 'kgWaste', amount: load, product: 'compost'});
+        j.walk(b.id, 'carry', {unit: 'kgWaste', amount: load, product: 'compost'});
+        j.work('spread', load * bucket!.per, {unit: 'kgWaste', amount: load, product: 'compost'}, {kind: 'mulch', bed: b.id, kg: load});
+        left -= load;
+      }
+    })) p.compost -= kg;
+  }
   // and a border of flowers along a bed's edge, where the plan wants one and it's their season
   for (const b of dug) {
     const want = b.levers.edge;
     if (typeof want !== 'string' || !(want in CROPS) || borderOf(b) || !inSeason(CROPS[want as CropId], date)) continue;
-    const seed = seedCost(g, want as CropId);
+    const seed = seedCost(g, want as CropId, date.year);
     if (p.money < seed) continue;
     if (p.job((j) => {
       j.walk(HOME, 'fetch');
@@ -506,7 +541,28 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   // 4. carry: the kitchen's surplus to the honesty box, scraps and waste to the heap
   const kitchen = g.nodes[KITCHEN], carry = best(g, 'carry');
   if (kitchen && g.nodes[GATE] && carry) {
-    let items = surplus(kitchen, askOf(g));
+    let items = surplusOf(g);
+    // the household's glut policy first: preserved in the kitchen while the freezer has room, or given over the fence
+    const policy = glutPolicy(g);
+    if (policy === 'preserve' && items.length) {
+      let room = preserveRoom(g);
+      const jar: {product: string; kg: number}[] = [], rest: {product: string; kg: number}[] = [];
+      for (const it of items) {
+        const kg = Math.min(it.kg, room);
+        if (kg > 0.05) jar.push({product: it.product, kg});
+        room -= Math.max(0, kg);
+        if (it.kg - kg > 0.05) rest.push({product: it.product, kg: it.kg - kg});
+      }
+      const kg = jar.reduce((a, x) => a + x.kg, 0);
+      if (kg > 0 && p.money >= kg * PRESERVE.gbpPerKg && p.job((j) => {
+        j.walk(KITCHEN);
+        j.work('preserve', kg * PRESERVE.hoursPerKg, undefined, {kind: 'preserve', items: jar});
+      })) {
+        p.money -= kg * PRESERVE.gbpPerKg;
+        items = rest;
+      }
+    }
+    const neighbour = policy === 'give';
     while (items.length) {
       let room = carry.trip ?? Infinity;
       const load: {product: string; kg: number}[] = [], rest: {product: string; kg: number}[] = [];
@@ -520,7 +576,8 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
       const ok = p.job((j) => {
         j.walk(KITCHEN);
         j.work('load', carry.load ?? 0, {unit: 'kgFood', amount: kg, product: load[0]!.product});
-        j.walk(GATE, 'carry', {unit: 'kgFood', amount: kg, product: load[0]!.product}, {kind: 'box', items: load});
+        // to the box by the gate, or over the fence there to the neighbour
+        j.walk(GATE, neighbour ? 'give' : 'carry', {unit: 'kgFood', amount: kg, product: load[0]!.product}, neighbour ? {kind: 'give', items: load} : {kind: 'box', items: load});
       });
       if (!ok) break;
       items = rest;
@@ -576,7 +633,7 @@ function apply(c: TickContext, e: Effect) {
     case 'sow': {
       const bed = g.nodes[e.bed];
       if (bed && !cropOf(bed)) {
-        sow(bed, e.crop, c.hours);
+        sow(bed, e.crop, c.hours, chitStart(g, e.crop, c.hours));
         paySeed(c, e.seed);
       }
       return;
@@ -631,6 +688,20 @@ function apply(c: TickContext, e: Effect) {
     case 'hens':
       keepHens(c, e.clean);
       return;
+    case 'preserve':
+      preserve(c, e.items);
+      return;
+    case 'mulch': {
+      const bed = g.nodes[e.bed], me = g.nodes[GARDENER];
+      if (bed) spread(c, bed, e.kg);
+      // a bed mulched comes off the list
+      const list = (me?.levers.mulch as string[] | undefined) ?? [];
+      if (me && list.includes(e.bed)) me.levers.mulch = list.filter((id) => id !== e.bed);
+      return;
+    }
+    case 'give':
+      give(c, e.items);
+      return;
     case 'home':
       // home from work: the day's commute (noted from the second day, with the kitchen's first ask, so the first minute
       // stays the garden's), and the week's shop, pay and the rest of life on its day
@@ -675,6 +746,12 @@ export const gardener: System = {
         const made = plan(c.graph, start, HOME, from, hoursLeft(me), day?.day === start.dayIndex ? day.next : 0);
         day = {day: start.dayIndex, key, next: made.next, steps: made.steps};
         waterNotes(c, made.steps);
+        // a glut: more ready in the kitchen than it will eat while it's fresh (the glut card asks what to do with it)
+        const glut = surplusOf(c.graph).reduce((a, x) => a + x.kg, 0);
+        if (glut >= GLUT.kg) {
+          note(c, 'glut', KITCHEN, glut, 'kgFood');
+          recordGlut(c.graph, c.hours);
+        }
       } else if ((working || (listed && start.hour >= HOURS.start)) && day && day.key !== key) {
         // the plan changed: keep what's under way, plan the rest from where they'll be
         const started = new Set(day.steps.filter((s) => s.start < from && s.doing !== 'rest').map((s) => s.job));

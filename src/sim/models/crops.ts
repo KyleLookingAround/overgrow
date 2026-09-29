@@ -29,7 +29,7 @@
 //   plan has nothing in season, and a green manure is dug in where it stands when the summer plan's next crop is due.
 //   Fast effect: shoots in a week or two, a first cut of salad in about a month in spring, and frost blackening the
 //   beans on a cold night. Slow effect: a cropped bed drawing its nutrients down year by year unless compost goes back.
-import {RAISED} from '../../data/shed';
+import {FLEECE, RAISED, WARM} from '../../data/shed';
 import {COVERS, CROPS, GROWTH_PACE, PRODUCE, ROTATION, STEP_OF, type CropId, type CropSpec, type Family} from '../../data/crops';
 import {calendar, type CalendarDate, type System, type TickContext} from '../clock';
 import {note} from '../effects';
@@ -173,6 +173,12 @@ export function inSeason(c: CropSpec, d: CalendarDate, extend = 0): boolean {
 
 /** The days a bed's cover and a raised bed's frame widen its sowing windows by (none for a bed in the open ground). */
 export const coverDays = (n: GraphNode) => (COVERS[String(n.levers.cover ?? '')]?.days ?? 0) + (n.levers.raised === true ? RAISED.days : 0);
+/** The days a bed's soil warmed under fleece moves its spring sowings earlier: from a fortnight after it went on, for a
+ *  month or so (src/data/shed.ts's WARM). */
+export const warmDays = (n: GraphNode, d: {dayIndex: number}) => {
+  const t = n.levers.warmed, since = typeof t === 'number' ? d.dayIndex - t : -1;
+  return since >= WARM.days && since <= WARM.lasts ? WARM.days : 0;
+};
 /** Degrees warmer a bed's growing days run under its cover (the greenhouse's). */
 export const coverWarmth = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')]?.warm ?? 0;
 /** The share of blight's start and spread a bed's cover lets through (under glass the leaves stay dry). */
@@ -188,7 +194,7 @@ export const neighbours = (beds: readonly GraphNode[], n: GraphNode): CropId[] =
  *  last family, taking the first step with something in season; across the beds, it takes the step and the crop the
  *  other beds are growing least, as a gardener planning a mix would (RHS, "Crop rotation"). */
 export function summerCrop(n: GraphNode, d: CalendarDate, others: Neighbours = []): CropId | null {
-  const plan = n.levers.sow, from = n.levers.sowFrom, extend = coverDays(n);
+  const plan = n.levers.sow, from = n.levers.sowFrom, extend = coverDays(n) + warmDays(n, d);
   if (typeof from === 'number' && d.dayOfYear < from) return null;
   if (plan === 'rotation') {
     // the last step of the rotation the bed grew (a green manure isn't in it)
@@ -234,9 +240,41 @@ export function nextSowing(n: GraphNode, d: CalendarDate): {day: number; crop: C
   return null;
 }
 
-/** Sows (or plants) a crop in a bed: the gardener calls it when the job's done. */
-export function sow(n: GraphNode, id: CropId, hours: number) {
-  setCrop(n, {id, sown: hours, dd: 0, eta: 0, etc: 0, need: 0, got: 0, made: 0, ks: 1, hurt: 0, lost: 0});
+/** Days ahead a sowing can be and a bed still not count as idle: it's about to go in. */
+const SOON = 3;
+
+/** Whether a dug bed stands empty without the player's say: nothing in it, nothing in its plan sows in the next few days,
+ *  and the player hasn't said to leave it empty (its `fallow` lever). The bed card asks what's next (src/ui). */
+export function idle(n: GraphNode, d: CalendarDate): boolean {
+  if (n.kind !== 'bed' || cropOf(n) || n.levers.fallow === true) return false;
+  if ((n.stocks['land.crops']?.amount ?? 0) <= 0 || (n.stocks['land.grass']?.amount ?? 0) > 1e-6) return false;
+  const next = nextSowing(n, d);
+  return !next || (next.day - d.dayOfYear + 365) % 365 > SOON;
+}
+
+/** The crop the bed card suggests for an empty bed today: the rotation's pick in season if it has one, else a winter
+ *  crop in season whose family the bed didn't just grow (food first, the green manure last); and the lever it goes on. */
+export function suggestion(n: GraphNode, d: CalendarDate, others: Neighbours = []): {lever: 'sow' | 'winter'; crop: CropId} | null {
+  const summer = summerCrop({...n, levers: {...n.levers, sow: 'rotation', sowFrom: null}}, d, others);
+  if (summer) return {lever: 'sow', crop: summer};
+  const pick = winterPick(n, d, others);
+  return pick ? {lever: 'winter', crop: pick} : null;
+}
+/** The winter crop the bed card suggests for a bed on a date: in season, not the family the bed last grew nor what the
+ *  other beds grow if it can help it; or null out of season. */
+export function winterPick(n: GraphNode, d: CalendarDate, others: Neighbours = []): CropId | null {
+  const history = (n.levers.history as Family[] | undefined) ?? [], last = history[history.length - 1];
+  const winter = WINTER_ORDER.filter((c) => inSeason(CROPS[c], d, coverDays(n)));
+  return winter.find((c) => CROPS[c].family !== last && !others.includes(c)) ?? winter.find((c) => CROPS[c].family !== last) ?? winter[0] ?? null;
+}
+/** The winter crops in the order the bed card suggests them. */
+const WINTER_ORDER: CropId[] = ['winter-salad', 'onions', 'garlic', 'broad-beans', 'green-manure'];
+
+/** Sows (or plants) a crop in a bed: the gardener calls it when the job's done, with any head start it has (chitted
+ *  seed potatoes' degree days). */
+export function sow(n: GraphNode, id: CropId, hours: number, dd = 0) {
+  n.levers.fallow = false;
+  setCrop(n, {id, sown: hours, dd, eta: 0, etc: 0, need: 0, got: 0, made: 0, ks: 1, hurt: 0, lost: 0});
 }
 
 /**
@@ -250,8 +288,8 @@ export function overwintered(n: GraphNode, id: CropId, sownHoursAgo: number, ddT
 }
 
 /** The levers the crop model declares on every bed: the plan's (what to sow, from when, and whether to dig it) and its own. */
-export const BED_LEVERS = (sow: string): Record<string, LeverValue> => ({sow, sowFrom: null, winter: 'none', cover: null, dig: false, raised: false, crop: null, history: []});
-const OWN = new Set(['crop', 'history']);
+export const BED_LEVERS = (sow: string): Record<string, LeverValue> => ({sow, sowFrom: null, winter: 'none', cover: null, dig: false, raised: false, fallow: false, fleece: null, warmed: null, crop: null, history: []});
+const OWN = new Set(['crop', 'history', 'fleece', 'warmed']);
 
 // ---- the day ----
 
@@ -353,8 +391,10 @@ function cropDay(c: TickContext, n: GraphNode, s0: CropState) {
   else if (spec.harvest === 'once' && stage === 'ready' && s.made > 0 && ripe(n) < PICK_MIN) finish(c, n, s, 'picked');
 }
 
-/** Degrees of frost a bed's cover keeps off (the cold frame's, src/data/crops.ts's COVERS). */
-export const shelter = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')]?.frost ?? 0;
+/** Degrees of frost a bed's cover keeps off (the cold frame's and the greenhouse's, src/data/crops.ts's COVERS), and
+ *  fleece laid over it for the night (src/data/shed.ts's FLEECE) while it's there. */
+export const shelter = (n: GraphNode, hours = -Infinity) =>
+  (COVERS[String(n.levers.cover ?? '')]?.frost ?? 0) + (typeof n.levers.fleece === 'number' && n.levers.fleece > hours ? FLEECE.frost : 0);
 
 /** A frost reaching a crop this hour: kills a tender one, blackens potatoes' tops and sets them back a week or so. */
 function cropFrost(c: TickContext, n: GraphNode, s: CropState) {
@@ -383,7 +423,7 @@ export const crops: System = {
       note(c, 'frost', 'lawn', -ground, '°C');
       for (const n of Object.values(c.graph.nodes)) {
         const s = n.kind === 'bed' ? cropOf(n) : null;
-        if (s && ground + shelter(n) < 0) cropFrost(c, n, s);
+        if (s && ground + shelter(n, c.hours) < 0) cropFrost(c, n, s);
       }
     },
     day(c) {
@@ -411,12 +451,13 @@ export const crops: System = {
     const n = g.nodes[cmd.node];
     if (n?.kind !== 'bed') return undefined;
     if (OWN.has(cmd.lever)) return `the ${cmd.lever} in a bed is the garden's, not the plan's`;
-    if (!['sow', 'sowFrom', 'dig', 'winter'].includes(cmd.lever)) return undefined;
+    if (!['sow', 'sowFrom', 'dig', 'winter', 'fallow'].includes(cmd.lever)) return undefined;
     if (cmd.type !== 'plan') return `what's sown is the plan's`;
     const v = cmd.value;
     if (cmd.lever === 'sow') return v === 'rotation' || v === 'none' || (typeof v === 'string' && v in CROPS && !CROPS[v as CropId].winter) ? null : `no summer crop ${String(v)}`;
     if (cmd.lever === 'winter') return v === 'none' || (typeof v === 'string' && CROPS[v as CropId]?.winter) ? null : `no winter crop ${String(v)}`;
     if (cmd.lever === 'dig' && v === true && (n.stocks['land.grass']?.amount ?? 0) <= 1e-6) return `${n.name} is dug already`;
+    if (cmd.lever === 'fallow') return typeof v === 'boolean' ? null : 'fallow is true or false';
     if (cmd.lever === 'sowFrom') return v === null || (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 366) ? null : 'a day of the year from 1 to 366, or null';
     return typeof v === 'boolean' ? null : 'dig is true or false';
   },
