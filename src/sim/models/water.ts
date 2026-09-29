@@ -1,6 +1,6 @@
 // Water: the FAO-56 soil water balance for each bed and the lawn, every step. Rain falls in; water goes back to the air
-// by evapotranspiration, the reference rate for the weather times the ground's coefficient (bare soil or grass today,
-// the crops' from part 3); what's above field capacity drains below the roots, taking nitrate with it (the soil model's
+// by evapotranspiration, the reference rate for the weather times the ground's coefficient (bare soil, grass, or the
+// crop growing there, src/sim/models/crops.ts); what's above field capacity drains below the roots, taking nitrate with it (the soil model's
 // leach()); and what's above saturation runs off. The shed's roof fills the water butt, which overflows once full.
 // Every litre moves as a flow to or from a named boundary. docs/systems/water.md says how it works.
 //
@@ -23,6 +23,7 @@ import {ROOF} from '../../data/garden';
 import {STATION} from '../../data/climate-normals';
 import {calendar, type System, type TickContext} from '../clock';
 import {qty, type GraphNode} from '../graph';
+import {cropCover} from './crops';
 import {areaOf, grassShare, hasSoil, leach, limitsOf, SOIL, type Limits} from './soil';
 import {lightBetween, rainBetween, sunOn, weatherOf, type WeatherDay} from './weather';
 
@@ -72,15 +73,15 @@ const P_GRASS = 0.5;
 
 /**
  * How fast a place's ground gives water back relative to the reference rate, at its current dryness: grass by its
- * coefficient and water stress, bare soil by FAO-56's evaporation reduction, in proportion to their areas. Part 3 adds
- * the crops' coefficients here, by crop and stage, for the ground they cover.
+ * coefficient and water stress, a crop by its coefficient at its stage and its own water stress (its p) over the
+ * ground it covers, and bare soil by FAO-56's evaporation reduction over the rest, in proportion to their areas.
  */
 export function groundCoefficient(n: GraphNode, lim: Limits): number {
   const water = n.stocks[SOIL.water]?.amount ?? 0, depleted = Math.max(0, lim.fc - water), taw = Math.max(1e-9, lim.fc - lim.wp);
-  const ks = depleted <= P_GRASS * taw ? 1 : Math.max(0, (taw - depleted) / ((1 - P_GRASS) * taw));
+  const ks = (p: number) => (depleted <= p * taw ? 1 : Math.max(0, (taw - depleted) / ((1 - p) * taw)));
   const kr = depleted <= lim.rew ? 1 : Math.max(0, (lim.tew - depleted) / Math.max(1e-9, lim.tew - lim.rew));
-  const g = grassShare(n);
-  return g * KC_GRASS * ks + (1 - g) * KE_BARE * kr;
+  const g = grassShare(n), crop = n.kind === 'bed' ? cropCover(n) : null, cover = crop?.cover ?? 0;
+  return g * KC_GRASS * ks(P_GRASS) + (1 - g) * (cover * (crop ? crop.kc * ks(crop.p) : 0) + (1 - cover) * KE_BARE * kr);
 }
 
 // ---- the balance ----

@@ -2,28 +2,6 @@ import {describe, expect, it} from 'vitest';
 import {churn} from './churn';
 import {createSim} from './index';
 import {fromSave, migrate, SAVE_VERSION, SaveError, toSave} from './save';
-import {organicMatter, SOIL, specOf} from './models/soil';
-
-/**
- * A save as part 1's build wrote it (version 1): the garden with no soil and no weather. Made from this build by taking
- * them away; checked byte for byte against a save written by part 1's build (#5) from the same seed and hours.
- */
-function partOneSave(seed: number, hours: number): string {
-  const sim = createSim(seed, []);
-  sim.apply({type: 'speed', speed: 2});
-  sim.apply({type: 'tick', hours});
-  const s = JSON.parse(sim.save());
-  s.version = 1;
-  for (const n of Object.values<{id: string; stocks: Record<string, {amount: number}>; levers: Record<string, unknown>}>(s.graph.nodes)) {
-    for (const k of Object.keys(n.stocks)) {
-      if (k.startsWith('land.') || (n.id === 'butt' && k === 'water') || (n.id === 'kitchen' && k === 'money')) continue;
-      if (k === 'carbon') n.stocks[k]!.amount = 0;
-      else delete n.stocks[k];
-    }
-    delete n.levers.weather;
-  }
-  return JSON.stringify(s);
-}
 
 describe('save', () => {
   it('round-trips a game, the generator included', () => {
@@ -47,26 +25,28 @@ describe('save', () => {
     };
     expect(migrate({version: 1, seed: 1}, steps, 3)).toEqual({version: 3, seed: 1, beds: 7, hens: 3});
     expect(migrate({version: 2, beds: 1}, steps, 3)).toEqual({version: 3, beds: 2, hens: 3});
-    expect(() => migrate({version: 1}, {1: steps[1]}, 3)).toThrow(/no step/);
+    expect(() => migrate({version: 1}, {1: steps[1]}, 3)).toThrow(/earlier build/);
     expect(migrate({version: SAVE_VERSION, seed: 1})).toEqual({version: SAVE_VERSION, seed: 1}); // this build's chain
   });
 
-  it('loads a save from part 1 and plays on, with the soils and the weather it lacked', () => {
-    const old = partOneSave(21, 30), sim = createSim(1);
-    expect(sim.apply({type: 'load', save: old}).rejected).toBeNull();
-    const s = sim.snapshot(), bed = s.nodes.find((n) => n.id === 'bed-1')!, air = s.nodes.find((n) => n.id === 'atmosphere')!;
-    expect(s.hours).toBe(30);
-    expect(s.speed).toBe(2);
-    for (const k of Object.values(SOIL)) expect(bed.stocks[k]!.amount).toBeGreaterThan(0);
-    expect(organicMatter(bed)).toBeCloseTo(specOf('bed-1').organicMatter);
-    expect(air.levers).toHaveProperty('weather', null);
-    // it plays on: two months of the weather, water and soil with nothing refused
-    for (let i = 0; i < 24 * 60; i++) expect(sim.apply({type: 'tick', hours: 1}).errors).toEqual([]);
-    expect((sim.snapshot().nodes.find((n) => n.id === 'atmosphere')!.levers.weather as {day: number}).day).toBeGreaterThan(0);
-    expect(JSON.parse(sim.save()).version).toBe(SAVE_VERSION);
-    expect(sim.snapshot().nodes.find((n) => n.id === 'bed-1')!.stocks.water!.amount).toBeGreaterThan(0);
-    // the saved stocks and weather come back exactly
-    expect(fromSave(sim.save()).graph).toEqual(JSON.parse(sim.save()).graph);
+  it('refuses a save from an earlier build before the first release, so the page starts a new game', () => {
+    // no compatibility before the first release (docs/decisions/ADR-2026-09-29-no-save-compatibility-before-release.md)
+    const old = JSON.parse(createSim(21).save());
+    old.version = SAVE_VERSION - 1;
+    expect(() => fromSave(JSON.stringify(old))).toThrow(/earlier build/);
+    const sim = createSim(1);
+    expect(sim.apply({type: 'load', save: JSON.stringify(old)}).rejected).toMatch(/can't be read/);
+  });
+
+  it('saves the plan, the crops, the gardener’s day and the kitchen, and plays on from them exactly', () => {
+    const sim = createSim(5);
+    sim.apply({type: 'plan', node: 'bed-2', lever: 'sow', value: 'lettuce'});
+    sim.apply({type: 'tick', hours: 24 * 40 + 3});
+    const text = sim.save(), again = createSim(1);
+    again.apply({type: 'load', save: text});
+    const bed = again.snapshot().nodes.find((n) => n.id === 'bed-2')!;
+    expect((bed.levers.crop as {id: string}).id).toBe('lettuce');
+    expect(again.apply({type: 'tick', hours: 24 * 30})).toEqual(sim.apply({type: 'tick', hours: 24 * 30}));
   });
 
   it('refuses a save it can’t read, and leaves the game as it was', () => {

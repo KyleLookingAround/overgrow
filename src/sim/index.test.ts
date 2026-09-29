@@ -13,6 +13,10 @@ describe('sim', () => {
     const a = play(), b = play();
     expect(a).toEqual(b);
     expect(a.hours).toBe(24 * 365 * 2);
+    // and the garden grows food all the while: picked, eaten, and a glut sold at the box
+    expect(a.kitchen!.picked).toBeGreaterThan(40);
+    expect(a.kitchen!.eaten).toBeGreaterThan(20);
+    expect(a.kitchen!.sold).toBeGreaterThan(0);
   });
 
   it('plays on exactly as it would have after a save and load mid-run', () => {

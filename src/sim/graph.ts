@@ -111,7 +111,9 @@ export type Boundary =
   | 'sold' // anything sold out of it
   | 'eaten' // food eaten (it leaves the model as people)
   | 'time' // the hours people have
-  | 'grid'; // energy from the grid
+  | 'grid' // energy from the grid
+  | 'growth' // plants making food and matter from air, water and sun, and the nutrients they take up from the soil
+  | 'decay'; // matter breaking down: food going off (out as food, back as waste), and what a heap loses to the air
 
 export type End = {node: NodeId; stock: string} | {boundary: Boundary};
 

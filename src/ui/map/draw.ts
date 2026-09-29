@@ -1,11 +1,15 @@
 // How each kind of node is drawn, in the owner's pick of art style (docs/specs/overgrow/art-styles.html, style A):
 // flat, top-down and soft, rounded shapes with no outlines and soft shadows, in greens, soil browns and cream. Shapes
 // are drawn in CSS pixels through the camera, so they stay crisp at any zoom. Colours come from the tokens (palette.ts).
-// The weather and the soil are drawn from the snapshot's day of weather and each bed's water, never announced.
+// The weather and the soil are drawn from the snapshot's day of weather and each bed's water, never announced; the crops
+// from each bed's crop (its stage, its water stress, frost) and the produce waiting on it; and what the gardener carries
+// from their activity.
 import type {Graphics} from 'pixi.js';
 import {START} from '../../data/ladder';
 import {calendar} from '../../sim/clock';
+import type {CropId} from '../../data/crops';
 import type {Box, GraphNode} from '../../sim/graph';
+import {cropOf, foodKey, progress, specOf, stageOf, type Stage} from '../../sim/models/crops';
 import {limitsOf} from '../../sim/models/soil';
 import {hourOf, type WeatherDay, type WeatherHour} from '../../sim/models/weather';
 import type {Snapshot} from '../../sim/state';
@@ -111,6 +115,13 @@ export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette) {
       g.roundRect(r.x + inset, r.y + inset, r.w - 2 * inset, r.h - 2 * inset, 0.125 * c.s).fill(pal.heap);
       return;
     }
+    case 'gate': {
+      // the honesty box on its post, by the side gate
+      g.roundRect(r.x + 0.04 * c.s, r.y + 0.06 * c.s, r.w, r.h, 0.06 * c.s).fill(pal.shadow);
+      g.roundRect(r.x, r.y, r.w, r.h, 0.06 * c.s).fill(pal.gate);
+      g.roundRect(r.x + r.w * 0.25, r.y + r.h * 0.4, r.w * 0.5, r.h * 0.14, 0.02 * c.s).fill(pal['gate-slot']);
+      return;
+    }
     case 'bench':
       g.rect(r.x, r.y, r.w, r.h).fill(pal['bed-dug']);
       return;
@@ -174,8 +185,55 @@ export function surfaceWet(w: {day: WeatherDay; t: number} | null): number {
 }
 export const soilColour = (wet: number, pal: Palette) => (wet < 0 ? mix(pal['bed-dug'], pal['bed-dry'], -wet) : mix(pal['bed-dug'], pal['bed-wet'], wet));
 
-/** What changes tick by tick without moving: the soil in the dug beds, the water in a butt, and the frost. */
-export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weatherAt(v)): {soil: Record<string, number>; frost: number} {
+/** How a crop sits in a 2 × 1.5 m bed: rows by plants in a row. */
+const GRID: Record<CropId, [number, number]> = {salad: [4, 9], radish: [4, 8], lettuce: [3, 5], beans: [2, 6], potatoes: [2, 4], tomatoes: [2, 3]};
+const LIGHT = new Set<CropId>(['lettuce', 'radish', 'salad']);
+
+/** A bed's crop, drawn from its state: drills before the shoots, plants growing to their size, drooping and yellowing
+ *  as the soil dries past their stress point, blackened by frost, and the ripe produce showing. Returns its stage. */
+function drawCrop(g: Graphics, n: GraphNode, hours: number, c: Camera, pal: Palette): Stage | null {
+  const s = cropOf(n);
+  if (!s) return null;
+  const spec = specOf(s), stage = stageOf(s), [rows, cols] = GRID[s.id], r = px(n.box!, c), pad = 0.12 * c.s;
+  const cw = (r.w - 2 * pad) / cols, ch = (r.h - 2 * pad) / rows;
+  if (stage === 'sown') {
+    const t = Math.max(1, 0.03 * c.s);
+    for (let i = 0; i < rows; i++) g.rect(r.x + pad, r.y + pad + ch * (i + 0.5) - t / 2, r.w - 2 * pad, t);
+    g.fill(pal.drill);
+    return stage;
+  }
+  const size = 0.2 + 0.8 * progress(s), stress = Math.max(0, Math.min(1, (0.75 - s.ks) / 0.75));
+  const burnt = s.dead ? 1 : s.frosted !== undefined ? Math.max(0, 1 - (hours - s.frosted) / (24 * 7)) : 0;
+  const leaf = LIGHT.has(s.id) ? pal['leaf-light'] : pal.leaf;
+  const top = burnt > 0 ? mix(leaf, pal.blackened, burnt) : mix(leaf, pal.wilt, stress);
+  const under = burnt > 0 ? mix(pal['leaf-dark'], pal.blackened, burnt) : mix(pal['leaf-dark'], pal.wilt, stress * 0.7);
+  const rad = Math.min(cw, ch) * 0.5 * size * (1 - 0.2 * stress);
+  for (let i = 0; i < rows; i++)
+    for (let j = 0; j < cols; j++) g.circle(r.x + pad + cw * (j + 0.5), r.y + pad + ch * (i + 0.5), rad);
+  g.fill(under);
+  for (let i = 0; i < rows; i++)
+    for (let j = 0; j < cols; j++) g.circle(r.x + pad + cw * (j + 0.5) - rad * 0.15, r.y + pad + ch * (i + 0.5) - rad * 0.2, rad * 0.72);
+  g.fill(top);
+  // what's ripe, where it shows: tomatoes and radishes by colour, beans as pods
+  const ripe = n.stocks[foodKey(spec.product)]?.amount ?? 0;
+  if (ripe > 0.01 && !s.dead && (s.id === 'tomatoes' || s.id === 'radish' || s.id === 'beans')) {
+    const dot = Math.max(1.5, rad * 0.28), per = s.id === 'radish' ? 1 : 3;
+    for (let i = 0; i < rows; i++)
+      for (let j = 0; j < cols; j++)
+        for (let k = 0; k < per; k++) {
+          const a = (k / per) * Math.PI * 2 + i + j, x = r.x + pad + cw * (j + 0.5) + Math.cos(a) * rad * (per > 1 ? 0.5 : 0), y = r.y + pad + ch * (i + 0.5) + Math.sin(a) * rad * (per > 1 ? 0.5 : 0) + (per > 1 ? 0 : rad * 0.55);
+          if (s.id === 'beans') g.roundRect(x - dot * 0.4, y - dot * 1.2, dot * 0.8, dot * 2.4, dot * 0.4);
+          else g.circle(x, y, dot);
+        }
+    g.fill(s.id === 'tomatoes' ? pal['fruit-red'] : s.id === 'radish' ? pal['fruit-pink'] : pal['leaf-dark']);
+  }
+  return stage;
+}
+
+/** What changes tick by tick without moving: the soil in the dug beds and what grows in them, the water in a butt, and
+ *  the frost. */
+export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weatherAt(v)): {soil: Record<string, number>; frost: number; crops: Record<string, Stage>} {
+  const crops: Record<string, Stage> = {};
   const soil: Record<string, number> = {}, film = surfaceWet(w);
   const cur = lookup(v.cur), before = lookup(v.prev);
   for (const n of cur.dug) {
@@ -184,6 +242,8 @@ export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weat
     const r = px(n.box!, c);
     g.roundRect(r.x, r.y, r.w, r.h, 0.175 * c.s).fill(soilColour(wet, pal));
     soil[n.id] = wet;
+    const stage = drawCrop(g, n, v.hours, c, pal);
+    if (stage) crops[n.id] = stage;
   }
   for (const n of cur.butts) {
     const fill = (node: GraphNode | undefined) => {
@@ -201,8 +261,24 @@ export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weat
     const r = px(lawn, c);
     g.rect(r.x, r.y, r.w, r.h).fill({color: pal.frost.color, alpha: frost});
   }
-  return {soil, frost};
+  return {soil, frost, crops};
 }
+
+/** What a person carries, from above, about 0.25 m across: a watering can, a basket of produce, or a bucket of compost
+ *  or waste. */
+export type Item = 'can' | 'basket' | 'compost';
+export function drawItem(g: Graphics, item: Item, x: number, y: number, s: number, pal: Palette) {
+  if (item === 'can') {
+    g.roundRect(x - 0.09 * s, y - 0.07 * s, 0.18 * s, 0.14 * s, 0.03 * s).fill(pal.can);
+    g.rect(x + 0.08 * s, y - 0.015 * s, 0.1 * s, 0.03 * s).fill(pal.can);
+  } else if (item === 'basket') {
+    g.circle(x, y, 0.11 * s).fill(pal.basket);
+    g.circle(x, y, 0.07 * s).fill(pal['leaf-light']);
+  } else g.circle(x, y, 0.1 * s).fill(pal.compost);
+}
+/** The item an activity's carry is drawn as, or null. */
+export const itemOf = (carry: {unit: string; product?: string} | undefined): Item | null =>
+  !carry ? null : carry.unit === 'L' ? 'can' : carry.unit === 'kgFood' ? 'basket' : carry.unit === 'kgWaste' ? 'compost' : null;
 
 /** A person from above, about 0.4 m across, drawn at a scale in pixels per metre, centred on (0, 0) at their feet. */
 export function drawPerson(g: Graphics, s: number, pal: Palette) {

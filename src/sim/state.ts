@@ -6,6 +6,9 @@ import type {Speed} from '../data/ladder';
 import type {Activity} from './activity';
 import {levelClock} from './clock';
 import {copyNode, makeGraph, qty, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec} from './graph';
+import {GARDENER, GARDENER_LEVERS} from './gardener';
+import {BED_LEVERS, overwintered} from './models/crops';
+import {newLedger, type Ledger} from './models/kitchen';
 import {rng, type Rng} from './random';
 import {startingSoil} from './models/soil';
 
@@ -47,6 +50,13 @@ export interface State {
 /** The air above the level: emissions go to its carbon stock and sinks draw from it, so carbon balances in the graph. */
 export const ATMOSPHERE = 'atmosphere';
 
+/** The first plan: bed 1 follows the rotation once its overwintered salad leaves are done, and radishes are sown in
+ *  bed 2 on the first morning. */
+export const DEFAULT_PLAN: Record<string, string> = {'bed-1': 'rotation', 'bed-2': 'radish'};
+/** The head start (the owner's pick, #11): bed 1 has salad leaves sown last September, a few degree days from their first
+ *  cut, so the first harvest comes in the first week while the spring sowings grow at the real pace. */
+export const HEAD_START = {bed: 'bed-1', crop: 'salad', sownHoursAgo: 24 * 176, ddToGo: 12} as const;
+
 /** The back garden on day 1 (src/data/garden.ts), as the level-1 graph. */
 export function gardenGraph(): Graph {
   const area = (b: {w: number; h: number}) => b.w * b.h;
@@ -56,18 +66,26 @@ export function gardenGraph(): Graph {
     if (p.id === 'butt') spec.stocks = {water: {unit: 'L', amount: qty(BUTT_LITRES.start, 'L'), cap: qty(BUTT_LITRES.cap, 'L')}};
     if (p.id === 'kitchen') spec.stocks = {money: {unit: 'GBP', amount: qty(START_MONEY, 'GBP')}};
     if (p.soil) spec.stocks = startingSoil(p.soil, spec.land![p.land]!, p.land === 'grass');
+    if (p.kind === 'bed') spec.levers = BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none');
+    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue};
     return spec;
   });
+  // the gardener: their hours for the day, the watering line, their tools and the day's jobs (src/sim/gardener.ts)
+  nodes.push({id: GARDENER, kind: 'person', name: 'The gardener', box: null, stocks: {hours: {unit: 'h', amount: qty(0, 'h')}}, levers: GARDENER_LEVERS()});
   // the air carries the level's weather (src/sim/models/weather.ts), drawn from the first hour
   nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null}});
   const edges: Edge[] = WAYS.map((w, i) => ({id: `way-${i + 1}`, from: w.from, to: w.to, carries: [...w.carries]}));
   for (const p of PLACES) edges.push({id: `air-${p.id}`, from: p.id, to: ATMOSPHERE, carries: ['kgCO2e']});
-  return makeGraph(nodes, edges);
+  const g = makeGraph(nodes, edges);
+  overwintered(g.nodes[HEAD_START.bed]!, HEAD_START.crop, HEAD_START.sownHoursAgo, HEAD_START.ddToGo);
+  return g;
 }
 
 export function newState(seed: number, speed: Speed = 1): State {
   return {
-    seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], activities: [], ladder: [],
+    seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], ladder: [],
+    // the gardener stands by the shed on the first morning
+    activities: [{id: 'g-start', who: GARDENER, kind: 'person', doing: 'rest', from: 'shed', to: 'shed', start: 0, end: 0.5}],
     upgrades: [], laws: [], goals: {}, settings: {}, seen: [], rejected: null, errors: [],
   };
 }
@@ -92,6 +110,8 @@ export interface Snapshot {
   /** The flows of the last tick command, merged. */
   flows: Flow[];
   activities: Activity[];
+  /** The kitchen's ledger: the day's ask and what met it, and what's been picked, eaten, wasted, sold and earned. */
+  kitchen: Ledger | null;
   rejected: string | null;
   errors: string[];
 }
@@ -103,6 +123,7 @@ export function snapshotOf(s: State): Snapshot {
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
     rev: s.graph.rev, nodes: nodes.map(copyNode), edges: s.graph.edges.slice(), flows: s.flows,
-    activities: s.activities.map((a) => ({...a})), rejected: s.rejected, errors: s.errors,
+    activities: s.activities.map((a) => ({...a})),
+    kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,
   };
 }
