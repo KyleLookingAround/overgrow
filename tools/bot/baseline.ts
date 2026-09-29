@@ -31,7 +31,8 @@ export const NEAR = 0.15;
 
 export function verdict(v: number | undefined, r: Range | undefined): Verdict {
   if (!r) return '';
-  if (v === undefined) return 'off';
+  // not reached within the run: later than any day, so fine for a range with no end, off for one that has one
+  if (v === undefined) return r.max === undefined ? 'ok' : 'off';
   const lo = r.min ?? -Infinity, hi = r.max ?? Infinity;
   if (v >= lo && v <= hi) return 'ok';
   if (v >= lo - NEAR * Math.abs(lo) && v <= hi + NEAR * Math.abs(hi)) return 'near';

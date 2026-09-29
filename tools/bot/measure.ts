@@ -1,10 +1,10 @@
-// What the bot measures as it plays: each game day's food delivered, sold and wasted, the household's money and the
-// dug beds' soil health, read only from the snapshots and the flows the sim reports (never from the sim's state). The
+// What the bot measures as it plays: each game day's food harvested, eaten, sold and wasted, the household's money and
+// the dug beds' soil health, read only from the snapshots (never from the sim's state): the food from the kitchen's
+// ledger (src/sim/models/kitchen.ts), which counts every kg picked, eaten, gone off or left to rot, and sold. The
 // sealed garden's would-be totals (the founding spec, "The carry-over rule") are worked out here over the last 28 days,
 // the way part 7's sealing will: Output as food delivered a day, Reliability as 100 × (1 − its coefficient of
 // variation), Health as the dug beds' mean soil health.
 import {calendar} from '../../src/sim/clock';
-import type {Flow} from '../../src/sim/graph';
 import type {Snapshot} from '../../src/sim/state';
 
 /** The window the sealed totals are taken over (the founding spec, "What makes the jump feel earned"). */
@@ -35,16 +35,10 @@ export interface Day {
 /** The game day a step ending at `hours` belongs to: the step from 23:00 to midnight is still the day before. */
 export const dayOf = (hours: number, step = 1) => calendar(hours - step / 2).dayIndex + 1;
 
-const kindsOf = (s: Snapshot) => new Map(s.nodes.map((n) => [n.id, n.kind]));
-const fromKind = (f: Flow, kinds: Map<string, string>) => ('node' in f.from ? kinds.get(f.from.node) : undefined);
-const toBoundary = (f: Flow) => ('boundary' in f.to ? f.to.boundary : undefined);
-
-/** How each flow the sim reports counts towards a day. */
-export const COUNTS = {
-  harvested: (f: Flow, kinds: Map<string, string>) => f.unit === 'kgFood' && fromKind(f, kinds) === 'bed' && !('boundary' in f.to),
-  eaten: (f: Flow) => f.unit === 'kgFood' && toBoundary(f) === 'eaten',
-  sold: (f: Flow) => f.unit === 'kgFood' && toBoundary(f) === 'sold',
-  wasted: (f: Flow) => (f.unit === 'kgFood' || f.unit === 'kgWaste') && /rot|bolt|spoil|waste/i.test(f.what) && f.product !== undefined,
+/** The kitchen's running totals since the start (its ledger, carried in the snapshot), kg. */
+const totalsOf = (s: Snapshot) => {
+  const k = s.kitchen;
+  return {harvested: k?.picked ?? 0, eaten: k?.eaten ?? 0, sold: k?.sold ?? 0, wasted: k?.wasted ?? 0};
 };
 
 /** A dug bed: one with land under crops. */
@@ -59,24 +53,24 @@ export function meanHealth(s: Snapshot): number {
 export class Diary {
   readonly days: Day[] = [];
   private today: Day | null = null;
+  /** The ledger's totals at the end of the last closed day. */
+  private before = {harvested: 0, eaten: 0, sold: 0, wasted: 0};
 
-  /** One tick's snapshot: its flows go to the day the tick belongs to, and a day closes when the next one starts. */
+  /** One tick's snapshot: it goes to the day the tick belongs to, and a day closes when the next one starts. */
   add(s: Snapshot): void {
     const day = dayOf(s.hours, s.step);
     if (this.today && this.today.day !== day) this.close();
     const t = (this.today ??= {day, delivered: 0, eaten: 0, sold: 0, harvested: 0, wasted: 0, money: 0, health: 0, carbon: 0});
-    const kinds = kindsOf(s);
-    for (const f of s.flows) {
-      if (COUNTS.harvested(f, kinds)) t.harvested += f.amount;
-      if (COUNTS.eaten(f)) t.eaten += f.amount;
-      if (COUNTS.sold(f)) t.sold += f.amount;
-      if (COUNTS.wasted(f)) t.wasted += f.amount;
-    }
+    const now = totalsOf(s);
+    for (const k of ['harvested', 'eaten', 'sold', 'wasted'] as const) t[k] = now[k] - this.before[k];
     t.delivered = t.eaten + t.sold;
     t.money = s.money;
     t.health = meanHealth(s);
     t.carbon = s.carbon;
+    this.last = now;
   }
+
+  private last = this.before;
 
   /** The day being added to, if any. */
   get current(): Day | null {
@@ -86,6 +80,7 @@ export class Diary {
   close(): void {
     if (this.today) this.days.push(this.today);
     this.today = null;
+    this.before = this.last;
   }
 }
 

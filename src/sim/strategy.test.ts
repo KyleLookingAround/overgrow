@@ -7,6 +7,7 @@ import {describe, expect, it} from 'vitest';
 import {table, verdict, type Baseline} from '../../tools/bot/baseline';
 import {sealed, type Day} from '../../tools/bot/measure';
 import {fingerprint, parseGameTime, play, playState} from '../../tools/bot/play';
+import {PLAYERS} from '../../tools/bot/player';
 import baselineText from '../../tools/baseline.json?raw';
 import {createSim} from './index';
 
@@ -52,6 +53,7 @@ describe('the bot', () => {
     const r = {min: 10, max: 20, unit: 'day'};
     expect([verdict(15, r), verdict(22, r), verdict(9, r), verdict(24, r), verdict(undefined, r), verdict(5, undefined)]).toEqual(['ok', 'near', 'near', 'off', 'off', '']);
     expect(verdict(8, {max: 8, unit: 'day'})).toBe('ok');
+    expect([verdict(undefined, {min: 100, unit: 'day'}), verdict(90, {min: 100, unit: 'day'})]).toEqual(['ok', 'near']);
   });
 
   it('has a baselines file the table reads', () => {
@@ -60,5 +62,18 @@ describe('the bot', () => {
     expect(() => parseGameTime(base.gameTime)).not.toThrow();
     const t = table([play({seed: 1, hours: parseGameTime('3d')})], base, 'markdown');
     expect(t.split('\n')[0]).toContain(`baseline (${base.status})`);
+  });
+});
+
+describe('strategies', () => {
+  const output = (player: string, seed: number) => play({seed, hours: parseGameTime('120d'), player: PLAYERS[player]}).sealed.output;
+
+  // The founding spec's rotation test, on each of seeds 1-3. In part 3's garden nothing makes growing one family bed
+  // after bed cost anything within 120 days (the pests that follow a family from one crop to the next are part 5's),
+  // so salad leaves in both beds keep up with the rotation or beat it: on seed 1 the sensible bot makes 0.10 kg a day
+  // to one-crop's 0.21. It's marked as failing until then: when part 5 makes it pass, Vitest says so, and that part
+  // turns it into a plain test.
+  it.fails('a rotating bot beats a one-crop bot by at least 10 % of Output by day 120, on every seed (fails until part 5)', () => {
+    for (const seed of [1, 2, 3]) expect(output('sensible', seed)).toBeGreaterThanOrEqual(1.1 * output('one-crop', seed));
   });
 });

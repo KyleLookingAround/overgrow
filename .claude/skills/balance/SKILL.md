@@ -43,4 +43,19 @@ Make the change and run the same three seeds into `build/after.log`.
 
 ## Baselines
 
-None yet. The first slice sets them from its own bot runs, with the owner's agreement, and writes them here and in `tools/baseline.json`.
+`tools/baseline.json`, **proposed** (not yet agreed by the owner; the `needs-owner` issue from part 4 asks): the sensible bot on seeds 1–3 through day 120 of the garden, with part 3's crops and the owner's head start. A milestone not reached within the run counts as later than any day.
+
+| Milestone or measure | Range | Seeds 1, 2, 3 |
+| --- | --- | --- |
+| First sowing | day 1 | 1, 1, 1 |
+| First harvest | day 2–8 (the spec's by day 8) | 5, 6, 3 |
+| First sale | not by day 120 | none, none, none |
+| Half the kitchen's need met, a week | day 105 or later | none, 114, 113 |
+| Output, last 28 days | 0.08–0.35 kg/day | 0.10, 0.30, 0.32 |
+| Reliability, last 28 days | 0–10 | 0, 0, 0 |
+| Health, last 28 days | 83–92 | 87, 88, 88 |
+| Money on days 30, 60, 90 and 120 | £20 | £20 on each |
+| Food wasted | 0.4–1.5 kg | 0.5, 1.1, 1.3 |
+| Carbon into the air | 0–5 kg CO₂e | 4.2, 0.2, 2.8 |
+
+The spec's other first targets (the first upgrade by day 20, the allotment offer between days 55 and 75) get their ranges with the parts that bring them (6 and 7).
