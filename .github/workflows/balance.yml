@@ -1,0 +1,48 @@
+name: Balance
+
+# Runs the bot (npm run bot) on seeds 1, 2 and 3 through the baselines' game time, and puts its table against
+# tools/baseline.json in the run's summary (the `balance` playbook). It runs once when a PR opens or leaves draft, again
+# whenever the `balance` label is added, and on demand; not on every push, since a balance change is judged once its
+# code is in. It never fails a PR on a number: only a seed whose ERR isn't empty fails it. Catch up never starts it.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, labeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  balance:
+    # the label runs it even on a draft; otherwise, like Checks, only a PR that isn't a draft
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'balance') ||
+      (github.event.action != 'labeled' && !github.event.pull_request.draft)
+    # a newer run for the same PR cancels the older one; on the job, so a skipped run (another label) cancels nothing
+    concurrency:
+      group: balance-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Play seeds 1, 2 and 3
+        run: |
+          time=$(node -p "require('./tools/baseline.json').gameTime" 2>/dev/null || echo 120d)
+          npm run bot -- "$time" --seed 1 --seed 2 --seed 3 --markdown build/balance.md --json build/balance.json
+      - name: Report the table
+        if: always()
+        run: |
+          if [ -f build/balance.md ]; then cat build/balance.md >> "$GITHUB_STEP_SUMMARY"; else echo "The bot stopped before its table: see the log." >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: balance
+          path: build/balance.*
+          if-no-files-found: ignore
