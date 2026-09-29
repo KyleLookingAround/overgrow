@@ -16,6 +16,7 @@ import {GARDENER, hoursOn} from '../sim/gardener';
 import type {GraphNode, LeverValue} from '../sim/graph';
 import {cropOf, nextSowing, PICK_MIN, progress, ripe, stageOf} from '../sim/models/crops';
 import {kitIn} from './ShedTab';
+import {sowForWinter} from './bed-card';
 import {commute, HOUSEHOLD, membersIn} from '../sim/models/household';
 import {calendar, type CalendarDate} from '../sim/clock';
 import {START} from '../data/ladder';
@@ -91,6 +92,12 @@ export function describe(a: Activity | null, nodes: GraphNode[]): string {
       return `Spraying ${to}`;
     case 'deleaf':
       return `Picking blighted leaves off ${to}`;
+    case 'hens':
+      return 'Seeing to the hens';
+    case 'preserve':
+      return 'Freezing and bottling the glut';
+    case 'give':
+      return `Taking ${what} over the fence to the neighbour`;
     default:
       return `Walking to ${the(a.to)}`;
   }
@@ -174,10 +181,10 @@ function BedPlan({n, onPlan, flowers, winter, frame, date, hours}: {
   n: GraphNode; onPlan: (lever: string, value: LeverValue) => void; flowers: boolean; winter: boolean; frame: boolean; date: CalendarDate; hours: number;
 }) {
   const sow = String(n.levers.sow ?? 'none'), from = n.levers.sowFrom as number | null, id = `plan-${n.id}`, edge = String(n.levers.edge ?? 'none');
-  const cold = String(n.levers.winter ?? 'none'), covered = n.levers.cover === 'cold-frame';
+  const cold = String(n.levers.winter ?? 'none'), covered = n.levers.cover === 'cold-frame', glass = n.levers.cover === 'greenhouse';
   return (
     <div class="bed-plan" data-bed={n.id}>
-      <label for={id}>{n.name}{covered ? ', under the cold frame' : ''}</label>
+      <label for={id}>{n.name}{covered ? ', under the cold frame' : ''}{n.levers.raised === true ? ', raised' : ''}</label>
       <p class="soft bed-status">{status(n, date, hours)}</p>
       {sow in CROPS && <p class="soft">{CROPS[sow as CropId].name} {windowOf(sow as CropId)}{covered ? ', three weeks either side under the frame' : ''}</p>}
       {rotationLine(n) && <p class="soft consequence">{rotationLine(n)}</p>}
@@ -199,16 +206,16 @@ function BedPlan({n, onPlan, flowers, winter, frame, date, hours}: {
           {from !== null && !FROM.some(([, v]) => v === from) && <option value={String(from)}>From day {from}</option>}
         </select>
       </div>
-      {winter && cold in CROPS && <p class="soft">{CROPS[cold as CropId].name} {windowOf(cold as CropId)}</p>}
-      {winter && <div class="pair winter-line">
+      {winter && <details class="winter-line">
+        <summary class="soft">{cold in CROPS ? `In winter: ${lower(CROPS[cold as CropId].name)}, ${windowOf(cold as CropId)}` : 'Nothing planned for the winter'}</summary>
         <select aria-label={`${n.name}: in the winter`} value={cold} onChange={(e) => onPlan('winter', (e.target as HTMLSelectElement).value)}>
           <option value="none">Nothing over the winter</option>
           {WINTER_IDS.map((c) => (
             <option value={c}>In winter: {lower(CROPS[c].name)}</option>
           ))}
         </select>
-      </div>}
-      {frame && !covered && <button type="button" class="plain move-frame" onClick={() => onPlan('cover', 'cold-frame')}>Move the cold frame here</button>}
+      </details>}
+      {frame && !covered && !glass && <button type="button" class="plain move-frame" onClick={() => onPlan('cover', 'cold-frame')}>Move the cold frame here</button>}
       {flowers && <label class="check">
         <input type="checkbox" checked={edge !== 'none'} onChange={(e) => onPlan('edge', (e.target as HTMLInputElement).checked ? FLOWER_IDS[0]! : 'none')} />
         {CROPS[FLOWER_IDS[0]!].name} along the edge
@@ -264,7 +271,7 @@ export function GardenTab({nodes, acts, hours, seen, job = false, send, onExplai
 }) {
   const pests = drawn(nodes).filter((p) => unfolded(seen, `garden.${p}`));
   const beds = nodes.filter((n) => n.kind === 'bed' && isDug(n)), me = nodes.find((n) => n.id === GARDENER);
-  const line = Number(me?.levers.waterBelow ?? 0.5);
+  const line = Number(me?.levers.waterBelow ?? 0.5), winterAll = sowForWinter({nodes, hours, seen});
   return (
     <>
       <GardenerCard nodes={nodes} acts={acts} hours={hours} job={job} onExplain={onExplain} />
@@ -274,6 +281,7 @@ export function GardenTab({nodes, acts, hours, seen, job = false, send, onExplai
           <BedPlan n={n} flowers={unfolded(seen, 'garden.flowers')} winter={unfolded(seen, 'garden.winter')} frame={kitIn(nodes).owned.includes('cold-frame')}
             date={calendar(hours)} hours={hours} onPlan={(lever, value) => send({type: 'plan', node: n.id, lever, value})} />
         ))}
+        {winterAll.length > 0 && <button type="button" class="plain sow-winter" onClick={() => winterAll.forEach(send)}>Sow the empty beds for winter</button>}
         {unfolded(seen, 'garden.water') && <div class="bed-plan">
           <label for="plan-water">Water when the soil’s moisture is</label>
           <select id="plan-water" value={String(line)} onChange={(e) => send({type: 'plan', node: GARDENER, lever: 'waterBelow', value: Number((e.target as HTMLSelectElement).value)})}>

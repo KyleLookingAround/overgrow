@@ -29,6 +29,9 @@
 // both stand hard frosts and are picked a few leaves or a few leeks at a time from autumn to spring (RHS, "Kale" and
 // "Leeks"). In the rotation, onions, garlic and leeks go with the legumes (RHS, "Crop rotation": a four-bed plan of
 // potatoes, legumes and onions, brassicas, and roots and salads).
+// Seed prices are a bed's worth from a UK seed catalogue or garden centre, rough 2027 prices (Suttons, Thompson & Morgan):
+// a packet of seed about £2–3, seed potatoes £4.50 for a bed's dozen tubers, onion sets and garlic bulbs, and a tray of
+// young tomato, leek or marigold plants. A packet usually holds more than a bed needs; the rest is taken as going stale.
 
 export type CropId = 'salad' | 'radish' | 'lettuce' | 'beans' | 'potatoes' | 'tomatoes' | 'kale' | 'leeks' | 'marigolds' | 'winter-salad' | 'broad-beans' | 'garlic' | 'onions' | 'green-manure';
 /** For rotation: the botanical family (a bed shouldn't grow the same one twice running). */
@@ -39,6 +42,8 @@ export type Group = 'salads' | 'potatoes' | 'tomatoes' | 'greens';
 export interface CropSpec {
   id: CropId;
   name: string;
+  /** £ for a bed's sowing: a packet of seed, a bag of seed potatoes, sets or cloves, or a tray of young plants. */
+  seed: number;
   /** The food it makes, kept by product ('food.<product>' stocks, kg). */
   product: string;
   family: Family;
@@ -91,85 +96,85 @@ export interface CropSpec {
 
 export const CROPS: Record<CropId, CropSpec> = {
   salad: {
-    id: 'salad', name: 'Salad leaves', product: 'salad', family: 'brassica', group: 'salads', sow: {from: [3, 1], to: [9, 15]}, how: 'sow',
+    id: 'salad', name: 'Salad leaves', seed: 2.5, product: 'salad', family: 'brassica', group: 'salads', sow: {from: [3, 1], to: [9, 15]}, how: 'sow',
     base: 2, dd: {emerge: 55, mature: 230, picking: 650}, harvest: 'repeat', first: 0.3, keeps: {plant: 6, kitchen: 4},
     kc: {ini: 0.7, mid: 1.0, end: 0.95}, p: 0.3, ky: 1.0, yield: 2.2, residue: 0.3, uptake: {n: 90, p: 12, k: 100}, harvestIndex: 0.75, frost: 'none', pick: 0.4,
     pests: ['slugs', 'flea beetle'],
   },
   radish: {
-    id: 'radish', name: 'Radishes', product: 'radish', family: 'brassica', group: 'salads', sow: {from: [3, 1], to: [8, 31]}, how: 'sow',
+    id: 'radish', name: 'Radishes', seed: 1.8, product: 'radish', family: 'brassica', group: 'salads', sow: {from: [3, 1], to: [8, 31]}, how: 'sow',
     base: 2, dd: {emerge: 45, mature: 330, picking: 130}, harvest: 'once', keeps: {plant: 0, kitchen: 10},
     kc: {ini: 0.7, mid: 0.9, end: 0.85}, p: 0.3, ky: 1.0, yield: 2.0, residue: 0.4, uptake: {n: 60, p: 8, k: 70}, harvestIndex: 0.5, frost: 'none', pick: 0.2,
     pests: ['slugs', 'flea beetle'],
   },
   lettuce: {
-    id: 'lettuce', name: 'Lettuce', product: 'lettuce', family: 'daisy', group: 'salads', sow: {from: [3, 1], to: [8, 15]}, how: 'sow',
+    id: 'lettuce', name: 'Lettuce', seed: 2.2, product: 'lettuce', family: 'daisy', group: 'salads', sow: {from: [3, 1], to: [8, 15]}, how: 'sow',
     base: 2, dd: {emerge: 60, mature: 620, picking: 200}, harvest: 'once', keeps: {plant: 0, kitchen: 7},
     kc: {ini: 0.7, mid: 1.0, end: 0.95}, p: 0.3, ky: 1.0, yield: 3.0, residue: 0.6, uptake: {n: 100, p: 15, k: 150}, harvestIndex: 0.8, frost: 'none', pick: 0.1,
     pests: ['slugs', 'aphids'],
   },
   beans: {
-    id: 'beans', name: 'French beans', product: 'beans', family: 'legume', group: 'greens', sow: {from: [5, 15], to: [7, 15]}, how: 'sow',
+    id: 'beans', name: 'French beans', seed: 2.8, product: 'beans', family: 'legume', group: 'greens', sow: {from: [5, 15], to: [7, 15]}, how: 'sow',
     base: 8, dd: {emerge: 70, mature: 520, picking: 450}, harvest: 'repeat', first: 0, keeps: {plant: 5, kitchen: 5},
     kc: {ini: 0.5, mid: 1.05, end: 0.9}, p: 0.45, ky: 1.15, yield: 2.0, residue: 1.0, uptake: {n: 40, p: 12, k: 60}, harvestIndex: 0.45, frost: 'plant', pick: 0.5,
     pests: ['slugs', 'aphids'], pollinated: 0.05,
   },
   potatoes: {
-    id: 'potatoes', name: 'Potatoes', product: 'potatoes', family: 'solanum', group: 'potatoes', sow: {from: [3, 15], to: [5, 15]}, how: 'plant',
+    id: 'potatoes', name: 'Potatoes', seed: 4.5, product: 'potatoes', family: 'solanum', group: 'potatoes', sow: {from: [3, 15], to: [5, 15]}, how: 'plant',
     base: 5, dd: {emerge: 180, mature: 800, picking: 700}, harvest: 'once', keeps: {plant: 0, kitchen: 60},
     kc: {ini: 0.5, mid: 1.15, end: 0.75}, p: 0.35, ky: 1.1, yield: 3.5, residue: 1.0, uptake: {n: 160, p: 25, k: 220}, harvestIndex: 0.75, frost: 'tops', pick: 0.1,
     pests: ['slugs', 'blight'],
   },
   tomatoes: {
-    id: 'tomatoes', name: 'Tomatoes', product: 'tomatoes', family: 'solanum', group: 'tomatoes', sow: {from: [5, 20], to: [6, 30]}, how: 'plant',
+    id: 'tomatoes', name: 'Tomatoes', seed: 6, product: 'tomatoes', family: 'solanum', group: 'tomatoes', sow: {from: [5, 20], to: [6, 30]}, how: 'plant',
     base: 10, dd: {emerge: 0, mature: 560, picking: 550}, harvest: 'repeat', first: 0, keeps: {plant: 7, kitchen: 7},
     kc: {ini: 0.6, mid: 1.15, end: 0.8}, p: 0.4, ky: 1.05, yield: 4.0, residue: 1.5, uptake: {n: 150, p: 25, k: 250}, harvestIndex: 0.6, frost: 'plant', pick: 0.15,
     pests: ['aphids', 'blight'], pollinated: 0.05,
   },
   kale: {
-    id: 'kale', name: 'Kale', product: 'kale', family: 'brassica', group: 'greens', sow: {from: [4, 1], to: [6, 30]}, how: 'sow',
+    id: 'kale', name: 'Kale', seed: 2.2, product: 'kale', family: 'brassica', group: 'greens', sow: {from: [4, 1], to: [6, 30]}, how: 'sow',
     base: 4, dd: {emerge: 80, mature: 900, picking: 1300}, harvest: 'repeat', first: 0.1, keeps: {plant: 30, kitchen: 5},
     kc: {ini: 0.7, mid: 1.05, end: 0.95}, p: 0.45, ky: 1.0, yield: 2.5, residue: 1.0, uptake: {n: 150, p: 20, k: 150}, harvestIndex: 0.5, frost: 'none', pick: 0.4,
     pests: ['slugs'],
   },
   leeks: {
-    id: 'leeks', name: 'Leeks', product: 'leeks', family: 'allium', group: 'greens', sow: {from: [6, 1], to: [7, 31]}, how: 'plant',
+    id: 'leeks', name: 'Leeks', seed: 4.5, product: 'leeks', family: 'allium', group: 'greens', sow: {from: [6, 1], to: [7, 31]}, how: 'plant',
     base: 3, dd: {emerge: 0, mature: 1100, picking: 1000}, harvest: 'repeat', first: 0.1, keeps: {plant: 40, kitchen: 10},
     kc: {ini: 0.7, mid: 1.0, end: 0.95}, p: 0.3, ky: 1.1, yield: 3.0, residue: 0.5, uptake: {n: 130, p: 18, k: 140}, harvestIndex: 0.7, frost: 'none', pick: 0.15,
     pests: ['slugs'],
   },
   marigolds: {
-    id: 'marigolds', name: 'French marigolds', product: 'marigolds', family: 'daisy', flower: true, sow: {from: [5, 20], to: [6, 30]}, how: 'plant',
+    id: 'marigolds', name: 'French marigolds', seed: 4, product: 'marigolds', family: 'daisy', flower: true, sow: {from: [5, 20], to: [6, 30]}, how: 'plant',
     base: 8, dd: {emerge: 0, mature: 250, picking: 1100}, harvest: 'repeat', first: 0, keeps: {plant: 0, kitchen: 1},
     kc: {ini: 0.6, mid: 0.9, end: 0.8}, p: 0.5, ky: 1.0, yield: 0, residue: 0.8, uptake: {n: 40, p: 8, k: 50}, harvestIndex: 0, frost: 'plant', pick: 0,
     pests: ['slugs'],
   },
   'winter-salad': {
-    id: 'winter-salad', name: 'Winter salad leaves', product: 'winter-salad', family: 'brassica', group: 'salads', winter: true, sow: {from: [8, 15], to: [10, 15]}, how: 'sow',
+    id: 'winter-salad', name: 'Winter salad leaves', seed: 2.5, product: 'winter-salad', family: 'brassica', group: 'salads', winter: true, sow: {from: [8, 15], to: [10, 15]}, how: 'sow',
     base: 0, dd: {emerge: 70, mature: 420, picking: 1100}, harvest: 'repeat', first: 0.2, keeps: {plant: 12, kitchen: 5},
     kc: {ini: 0.7, mid: 0.95, end: 0.9}, p: 0.3, ky: 1.0, yield: 1.4, residue: 0.3, uptake: {n: 70, p: 10, k: 80}, harvestIndex: 0.75, frost: 'none', pick: 0.5,
     pests: ['slugs'],
   },
   'broad-beans': {
-    id: 'broad-beans', name: 'Broad beans', product: 'broad-beans', family: 'legume', group: 'greens', winter: true, sow: {from: [10, 15], to: [11, 30]}, how: 'sow',
+    id: 'broad-beans', name: 'Broad beans', seed: 3, product: 'broad-beans', family: 'legume', group: 'greens', winter: true, sow: {from: [10, 15], to: [11, 30]}, how: 'sow',
     base: 0, dd: {emerge: 150, mature: 1250, picking: 350}, harvest: 'repeat', first: 0, keeps: {plant: 6, kitchen: 5},
     kc: {ini: 0.5, mid: 1.15, end: 1.1}, p: 0.45, ky: 1.15, yield: 1.6, residue: 1.2, uptake: {n: 20, p: 15, k: 70}, harvestIndex: 0.4, frost: 'none', pick: 0.4,
     pests: ['slugs', 'aphids'], pollinated: 0.05,
   },
   garlic: {
-    id: 'garlic', name: 'Garlic', product: 'garlic', family: 'allium', group: 'greens', winter: true, sow: {from: [10, 1], to: [12, 15]}, how: 'plant',
+    id: 'garlic', name: 'Garlic', seed: 5, product: 'garlic', family: 'allium', group: 'greens', winter: true, sow: {from: [10, 1], to: [12, 15]}, how: 'plant',
     base: 1, dd: {emerge: 160, mature: 1750, picking: 200}, harvest: 'once', keeps: {plant: 0, kitchen: 180},
     kc: {ini: 0.7, mid: 1.0, end: 0.7}, p: 0.3, ky: 1.1, yield: 1.1, residue: 0.3, uptake: {n: 100, p: 15, k: 90}, harvestIndex: 0.7, frost: 'none', pick: 0.2,
     pests: ['slugs'],
   },
   onions: {
-    id: 'onions', name: 'Overwintering onions', product: 'onions', family: 'allium', group: 'greens', winter: true, sow: {from: [9, 15], to: [10, 31]}, how: 'plant',
+    id: 'onions', name: 'Overwintering onions', seed: 2.5, product: 'onions', family: 'allium', group: 'greens', winter: true, sow: {from: [9, 15], to: [10, 31]}, how: 'plant',
     base: 1, dd: {emerge: 120, mature: 1700, picking: 200}, harvest: 'once', keeps: {plant: 0, kitchen: 150},
     kc: {ini: 0.7, mid: 1.05, end: 0.75}, p: 0.3, ky: 1.1, yield: 2.2, residue: 0.3, uptake: {n: 110, p: 20, k: 120}, harvestIndex: 0.75, frost: 'none', pick: 0.1,
     pests: ['slugs'],
   },
   'green-manure': {
-    id: 'green-manure', name: 'Green manure (rye and vetch)', product: 'green-manure', family: 'cover', winter: true, dugIn: true, sow: {from: [8, 15], to: [10, 31]}, how: 'sow',
+    id: 'green-manure', name: 'Green manure (rye and vetch)', seed: 4, product: 'green-manure', family: 'cover', winter: true, dugIn: true, sow: {from: [8, 15], to: [10, 31]}, how: 'sow',
     base: 1, dd: {emerge: 60, mature: 900, picking: 400}, harvest: 'once', keeps: {plant: 0, kitchen: 1},
     kc: {ini: 0.6, mid: 1.0, end: 0.9}, p: 0.5, ky: 1.0, yield: 0, residue: 2.5, uptake: {n: 90, p: 10, k: 70}, harvestIndex: 0, frost: 'none', pick: 0,
     pests: [],
@@ -197,6 +202,10 @@ export const STEP_OF: Partial<Record<Family, Family>> = {legume: 'legume', alliu
  */
 export const GROWTH_PACE = 1;
 
-/** What a cover does for a bed, by cover: the degrees of frost it keeps off, and the days it moves a sowing season earlier
- *  in spring and later in autumn (the cold frame, src/data/shed.ts). */
-export const COVERS: Record<string, {frost: number; days: number}> = {'cold-frame': {frost: 3, days: 21}};
+/** What a cover does for a bed, by cover: the degrees of frost it keeps off, the days it moves a sowing season earlier in
+ *  spring and later in autumn, the degrees warmer its growing days run, and the share of blight's start it lets through
+ *  (the cold frame and the greenhouse, src/data/shed.ts). */
+export const COVERS: Record<string, {frost: number; days: number; warm: number; blight: number}> = {
+  'cold-frame': {frost: 3, days: 21, warm: 0, blight: 1},
+  greenhouse: {frost: 5, days: 42, warm: 3, blight: 0.1},
+};

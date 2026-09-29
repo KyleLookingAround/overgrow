@@ -15,6 +15,8 @@ export function Notices({list, onDismiss}: {list: readonly Notice[]; onDismiss: 
         <p class={`${n.keys ? 'notice unfold' : n.moment ? 'notice moment' : 'notice'}${open === n.id ? ' open' : ''}`} key={n.id} data-keys={n.keys?.join(' ')} data-moment={n.moment}>
           <button type="button" class="notice-text" aria-expanded={n.more ? open === n.id : undefined} onClick={() => setOpen(open === n.id ? null : n.id)}>
             <span class="notice-line">{n.text}</span>
+            {/* a clear break between the title and its line, for the eye and for a screen reader */}
+            {n.more && <span class="visually-hidden">. </span>}
             {n.more && <small class="notice-more">{n.more}</small>}
           </button>
           {waiting > 0 && <span class="notice-waiting" aria-label={`${waiting} more waiting`}>+{waiting}</span>}

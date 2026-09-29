@@ -32,8 +32,10 @@ export interface Run {
   reached: Record<string, number>;
   days: Day[];
   sealed: Sealed;
-  /** Food that rotted, bolted or spoiled over the run, kg. */
+  /** Food that rotted, bolted or spoiled over the run, kg; and what was preserved and given to a neighbour. */
   wasted: number;
+  preserved: number;
+  given: number;
   /** kg CO₂e the garden put into the air over the run, less what it took back out. */
   carbon: number;
   /** The longest run of whole game days with nothing for the player to do or see (tools/bot/measure.ts's Quiet). */
@@ -118,7 +120,7 @@ export function play({seed, hours, player = PLAYERS.sensible!, systems = SYSTEMS
   quiet.close(days.at(-1)?.day ?? 0);
   return {
     seed, player: player.name, hours: snap.hours, reached, days, sealed: sealed(days),
-    wasted: days.reduce((a, d) => a + d.wasted, 0), carbon: snap.carbon, quiet: quiet.longest, stretches: quiet.stretches, bought, offer: offerOf(snap), beds: snap.nodes.filter(isDug).length,
+    wasted: days.reduce((a, d) => a + d.wasted, 0), preserved: snap.kitchen?.preserved ?? 0, given: snap.kitchen?.given ?? 0, carbon: snap.carbon, quiet: quiet.longest, stretches: quiet.stretches, bought, offer: offerOf(snap), beds: snap.nodes.filter(isDug).length,
     play: fingerprint(playState(sim.save())), err,
   };
 }

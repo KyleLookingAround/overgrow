@@ -49,6 +49,35 @@ export const PLACES: readonly PlaceSpec[] = [
   {id: 'gate', kind: 'gate', name: 'Honesty box', box: {x: 0.1, y: 0.65, w: 0.55, h: 0.45}, land: 'built'},
 ];
 
+/** Where the shed's big buys stand once bought, taken out of the lawn (hidden until then): the greenhouse on the sunny
+ *  side by the shed, cropped like a bed; the hen house and its run, and the fruit cage, along the bottom of the garden.
+ *  Each is a node added to the graph when it's bought (src/sim/shed.ts), its land moved from the lawn's grass. */
+export const SITES = {
+  greenhouse: {id: 'greenhouse', kind: 'bed', name: 'Greenhouse', box: {x: 9.2, y: 3.3, w: 2.4, h: 1.8}, land: 'crops'},
+  hens: {id: 'hens', kind: 'hens', name: 'Hens', box: {x: 0.8, y: 5.75, w: 3.4, h: 2}, land: 'grass'},
+  'fruit-cage': {id: 'fruit', kind: 'fruit', name: 'Fruit cage', box: {x: 4.8, y: 5.75, w: 3, h: 2}, land: 'crops'},
+} as const satisfies Record<string, Omit<PlaceSpec, 'dug' | 'soil'>>;
+/** The ways each site needs, as WAYS has them for the places there from the start. */
+export const SITE_WAYS: Record<keyof typeof SITES, readonly {from: string; to: string; carries: ('L' | 'kgFood' | 'kgWaste' | 'kgCO2e' | 'kgN' | 'kgP' | 'kgK' | 'pests' | 'm2')[]}[]> = {
+  greenhouse: [
+    {from: 'tap', to: 'greenhouse', carries: ['L']},
+    {from: 'butt', to: 'greenhouse', carries: ['L']},
+    {from: 'greenhouse', to: 'kitchen', carries: ['kgFood']},
+    {from: 'greenhouse', to: 'heap', carries: ['kgWaste', 'kgCO2e', 'kgN', 'kgP', 'kgK']},
+    {from: 'lawn', to: 'greenhouse', carries: ['m2', 'pests', 'L', 'kgCO2e', 'kgN', 'kgP', 'kgK']},
+  ],
+  hens: [
+    {from: 'tap', to: 'hens', carries: ['L']},
+    {from: 'hens', to: 'kitchen', carries: ['kgFood']},
+    {from: 'hens', to: 'heap', carries: ['kgWaste', 'kgCO2e', 'kgN']},
+    {from: 'lawn', to: 'hens', carries: ['m2']},
+  ],
+  'fruit-cage': [
+    {from: 'fruit', to: 'kitchen', carries: ['kgFood']},
+    {from: 'lawn', to: 'fruit', carries: ['m2']},
+  ],
+};
+
 /** The water butt: 200 L, half full on day 1. */
 export const BUTT_LITRES = {cap: 200, start: 100};
 /** The roof that fills the butt: the shed's, 2.25 × 1.75 m, of which about 85 % of the rain reaches the gutter (a
@@ -57,11 +86,19 @@ export const ROOF = {place: 'shed', to: 'butt', m2: 2.25 * 1.75, runoff: 0.85};
 /** Money in the household's purse on day 1, £. */
 export const START_MONEY = 20;
 /** Digging a bed out of the lawn: £ a m² for edging boards to hold the lawn back (a 2 × 1.5 m bed's seven metres of
- *  treated board, about £9), and the flush of CO₂ from the soil's organic matter that turning it over exposes, kg CO₂e
- *  a m² (mouldboard tillage releases about 30 g CO₂ a m² in the weeks after; Reicosky & Lindstrom 1993, "Fall tillage
- *  method: effect on short-term carbon dioxide flux from soil"). The slower loss, bare dug ground's organic matter
- *  decaying faster than grass's for years, is the soil model's. */
-export const DIG = {gbpPerM2: 1.5, flushPerM2: 0.03};
+ *  treated board and its pegs, about £27), and bagged compost forked in (RHS, "Digging": 5–10 kg a m² of organic matter
+ *  into new ground; a 50 L bag of peat-free soil improver, about 20 kg, costs about £6.50), with what a kg of it carries
+ *  (WRAP's PAS 100 green compost: about 60 % dry matter, a third of that organic matter, about 1 % N, 0.2 % P and 0.6 %
+ *  K of the fresh weight, rough). Then the flush of CO₂ from the soil's organic matter that turning it over exposes, kg
+ *  CO₂e a m² (mouldboard tillage releases about 30 g CO₂ a m² in the weeks after; Reicosky & Lindstrom 1993, "Fall
+ *  tillage method: effect on short-term carbon dioxide flux from soil"). The slower loss, bare dug ground's organic
+ *  matter decaying faster than grass's for years, is the soil model's. A bed costs about £37 and most of a week's spare
+ *  hours (src/data/jobs.ts). */
+export const DIG = {edgingPerM2: 9, compostKgPerM2: 10, compostGbpPerKg: 0.33, flushPerM2: 0.03};
+/** A kg of bagged compost: kg CO₂e of carbon in it (0.6 × 0.35 organic matter, 58 % carbon), and kg of N, P and K. */
+export const BAGGED = {co2e: 0.6 * 0.35 * 0.58 * (44 / 12), n: 0.01, p: 0.002, k: 0.006};
+/** £ a m² of digging: its edging and its compost. */
+export const digCost = (m2: number) => m2 * (DIG.edgingPerM2 + DIG.compostKgPerM2 * DIG.compostGbpPerKg);
 
 /** The ways between places and what each carries: water by can or hose, food and scraps by hand, and waste to the heap
  *  and compost back to the beds with their carbon, nitrogen, phosphorus and potassium. (Every place's carbon also has a

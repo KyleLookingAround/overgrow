@@ -7,11 +7,16 @@ import {SPEEDS} from '../data/ladder';
 import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
 import {kindOf} from './effects';
 import {gardenStatus, goalOf} from './goal';
-import {buyFlow} from './shed';
+import {buyFlow, chit, fleece, orderSeeds, placeOf, warmSoil} from './shed';
+import {GLUT_POLICIES, type GlutPolicy} from '../data/kitchen';
+import type {Variety} from '../data/shed';
+import {askMulch, waterSooner} from './gardener';
+import {SHED} from './kit';
+import {KITCHEN} from './models/kitchen';
 import type {UpgradeId} from '../data/shed';
-import {levelClock, runStep, type System} from './clock';
+import {calendar, levelClock, runStep, type System} from './clock';
 import {flowEffects, recordInto, Recorder} from './effects';
-import {applyFlow, mergeFlows, type Flow, type LeverValue, type NodeId} from './graph';
+import {applyFlow, mergeFlows, touch, type Flow, type LeverValue, type NodeId} from './graph';
 import {fromSave} from './save';
 import {newState, type State} from './state';
 
@@ -34,6 +39,19 @@ export type Command =
   | {type: 'card'; id: 'try-faster'; answer: 'yes' | 'no'}
   /** The garden's year done: the allotment offer's requirements met (src/sim/goal.ts); 'ok' carries on playing. */
   | {type: 'card'; id: 'year'; answer: 'ok'}
+  /** The week's decisions, each asked once for what it's about (the State's `answered`): a glut sold, preserved or given
+   *  away (the kitchen's `glut` policy); next year's seed from the winter catalogue, or later; fleece over the tender
+   *  crops for a forecast frost; and the watering line raised for a dry spell, put back after the next rain. */
+  | {type: 'card'; id: 'glut'; answer: GlutPolicy}
+  | {type: 'card'; id: 'catalogue'; answer: Variety | 'later'}
+  | {type: 'card'; id: 'frost'; answer: 'fleece' | 'no'}
+  | {type: 'card'; id: 'dry'; answer: 'water' | 'no'}
+  /** Seed potatoes set out to chit in February or March, for an earlier crop. */
+  | {type: 'card'; id: 'chit'; answer: 'chit' | 'no'}
+  /** The heap's compost spread on the beds as a winter mulch. */
+  | {type: 'card'; id: 'mulch'; answer: 'mulch' | 'no'}
+  /** Fleece over the empty beds to warm their soil for an early sowing. */
+  | {type: 'card'; id: 'warm'; answer: 'warm' | 'no'}
   /** A setting of the page's that's saved with the game ('details': show every number early). It changes no play. */
   | {type: 'setting'; key: string; value: LeverValue};
 
@@ -70,7 +88,7 @@ function tick(s: State, systems: readonly System[], hours: number) {
   for (let i = 0; i < steps; i++) {
     s.hours = runStep(systems, ctx, s.seed, s.hours);
     s.rng.next(); // the main stream moves once a step, so adding a system never changes its draws
-    s.activities = s.activities.filter((a) => a.end >= s.hours - step);
+    if (s.activities.some((a) => a.end < s.hours - step)) s.activities = s.activities.filter((a) => a.end >= s.hours - step);
   }
   recordInto(s.graph, null);
   s.flows = mergeFlows(flows);
@@ -145,7 +163,8 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
         s.upgrades = [...s.upgrades, cmd.id];
         // the purchase is this command's flow and effect: the map shows the thing in use, and money unfolds if it hadn't
         s.flows = [buyFlow(cmd.id as UpgradeId)];
-        s.effects = [{kind: kindOf('buying'), cause: 'buying', at: 'shed', amount: 1, unit: cmd.id}];
+        // at the thing's place, so the map pulses where it now stands
+        s.effects = [{kind: kindOf('buying'), cause: 'buying', at: placeOf(s.graph, cmd.id as UpgradeId), amount: 1, unit: cmd.id}];
         const fresh = revealed(s.seen, ['buying']);
         if (fresh.length) s.seen = [...s.seen, ...fresh];
       }
@@ -162,7 +181,44 @@ function* causesOf(effects: readonly {cause: string}[]) {
 const seeOnce = (s: State, key: string) => void (s.seen.includes(key) || (s.seen = [...s.seen, key]));
 
 /** A card's answer: each card is answered once a save, and the first plan's clock starts with it. */
+/** The watering line a dry-spell card's "water more" sets: three quarters of the soil's available water. */
+export const DRY_LINE = 0.75;
+
+/** Answers one of the week's decision cards: its choice carried out, and the hour kept so it asks once. */
+function decide(s: State, cmd: Extract<Command, {type: 'card'; id: 'glut' | 'catalogue' | 'frost' | 'dry' | 'chit' | 'mulch' | 'warm'}>, systems: readonly System[]): State {
+  const g = s.graph, date = calendar(s.hours);
+  let r: string | null = null;
+  if (cmd.id === 'glut') {
+    if (!GLUT_POLICIES.includes(cmd.answer)) r = 'sell, preserve or give';
+    else applyCommand(s, {type: 'policy', node: KITCHEN, lever: 'glut', value: cmd.answer}, systems), (r = s.rejected);
+  } else if (cmd.id === 'catalogue') {
+    if (cmd.answer !== 'standard' && cmd.answer !== 'resistant' && cmd.answer !== 'later') r = 'standard, resistant or later';
+    else if (cmd.answer !== 'later') r = orderSeeds(g, cmd.answer, date);
+  } else if (cmd.id === 'frost') {
+    if (cmd.answer !== 'fleece' && cmd.answer !== 'no') r = 'fleece or no';
+    else if (cmd.answer === 'fleece') r = fleece(g, s.hours);
+  } else if (cmd.id === 'warm') {
+    if (cmd.answer !== 'warm' && cmd.answer !== 'no') r = 'warm or no';
+    else if (cmd.answer === 'warm') r = warmSoil(g, date);
+  } else if (cmd.id === 'mulch') {
+    if (cmd.answer !== 'mulch' && cmd.answer !== 'no') r = 'mulch or no';
+    else if (cmd.answer === 'mulch') r = askMulch(g);
+  } else if (cmd.id === 'chit') {
+    if (cmd.answer !== 'chit' && cmd.answer !== 'no') r = 'chit or no';
+    else if (cmd.answer === 'chit') r = chit(g, date, s.hours);
+  } else if (cmd.answer !== 'water' && cmd.answer !== 'no') r = 'water or no';
+  else if (cmd.answer === 'water') r = unfolded(s.seen, 'garden.water') ? waterSooner(g, DRY_LINE) : 'that hasn’t come up in the garden yet';
+  s.rejected = r;
+  if (!r) {
+    s.answered = {...s.answered, [cmd.id]: s.hours};
+    touch(g, KITCHEN);
+    touch(g, SHED);
+  }
+  return s;
+}
+
 function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readonly System[]): State {
+  if (cmd.id === 'glut' || cmd.id === 'catalogue' || cmd.id === 'frost' || cmd.id === 'dry' || cmd.id === 'chit' || cmd.id === 'mulch' || cmd.id === 'warm') return decide(s, cmd, systems);
   const key = cmd.id === 'first-plan' ? CARDS.firstPlan : cmd.id === 'try-faster' ? CARDS.tryFaster : cmd.id === 'year' ? CARDS.year : null;
   if (!key) s.rejected = `no card ${String(cmd.id)}`;
   else if (s.seen.includes(key)) s.rejected = 'that’s been answered';

@@ -117,7 +117,9 @@ export type Boundary =
   | 'wild' // creatures arriving from and leaving for beyond the level (winged aphids on the wind)
   | 'wages' // pay from a household member's employer
   | 'shop' // the shop a household buys its food from, and where that food's farm-to-shop footprint came from
-  | 'rest of life'; // everything else a household spends on: housing, bills, travel, savings
+  | 'rest of life' // everything else a household spends on: housing, bills, travel, savings
+  | 'given' // food given away, over the fence to a neighbour
+  | 'preserving'; // fresh produce frozen, bottled or pickled: it leaves as itself and comes back as preserves
 
 export type End = {node: NodeId; stock: string} | {boundary: Boundary};
 
@@ -195,8 +197,28 @@ export function landOf(n: GraphNode): Partial<Record<LandUse, number>> {
 export const isBoundary = (e: End): e is {boundary: Boundary} => 'boundary' in e;
 
 /** Whether an edge joins two nodes (either way) and carries a unit. */
+/** Each graph's edges as "a b unit" keys both ways, built again when the edge list, its length or the graph's revision changes. */
+const joins = new WeakMap<Graph, {edges: Edge[]; n: number; rev: number; keys: Set<string>}>();
 export function joined(g: Graph, a: NodeId, b: NodeId, unit: Unit): boolean {
-  return g.edges.some((e) => ((e.from === a && e.to === b) || (e.from === b && e.to === a)) && e.carries.includes(unit));
+  let j = joins.get(g);
+  if (!j || j.edges !== g.edges || j.n !== g.edges.length || j.rev !== g.rev) {
+    const keys = new Set<string>();
+    for (const e of g.edges) for (const u of e.carries) keys.add(e.from + ' ' + e.to + ' ' + u).add(e.to + ' ' + e.from + ' ' + u);
+    joins.set(g, (j = {edges: g.edges, n: g.edges.length, rev: g.rev, keys}));
+  }
+  return j.keys.has(a + ' ' + b + ' ' + unit);
+}
+
+/** Why one end of a flow can't take it, or null. */
+function endProblem(g: Graph, f: Flow, end: End, leaving: boolean): string | null {
+  if (isBoundary(end)) return null;
+  const n = g.nodes[end.node];
+  if (!n) return `${f.what}: no node ${end.node}`;
+  const s = n.stocks[end.stock];
+  if (!s) return leaving ? `${f.what}: ${end.node} has no stock ${end.stock}` : null;
+  if (s.unit !== f.unit) return `${f.what}: ${end.node}.${end.stock} is in ${s.unit}, the flow in ${f.unit}`;
+  if ((s.product ?? '') !== (f.product ?? '')) return `${f.what}: ${end.node}.${end.stock} holds ${s.product ?? 'no product'}, the flow ${f.product ?? 'none'}`;
+  return null;
 }
 
 /**
@@ -207,18 +229,8 @@ export function joined(g: Graph, a: NodeId, b: NodeId, unit: Unit): boolean {
 export function flowProblem(g: Graph, f: Flow): string | null {
   if (!Number.isFinite(f.amount) || f.amount < 0) return `${f.what}: the amount ${f.amount} isn't a positive number`;
   if (isBoundary(f.from) && isBoundary(f.to)) return `${f.what}: runs from one boundary to another`;
-  for (const [end, leaving] of [[f.from, true], [f.to, false]] as const) {
-    if (isBoundary(end)) continue;
-    const n = g.nodes[end.node];
-    if (!n) return `${f.what}: no node ${end.node}`;
-    const s = n.stocks[end.stock];
-    if (!s) {
-      if (leaving) return `${f.what}: ${end.node} has no stock ${end.stock}`;
-      continue;
-    }
-    if (s.unit !== f.unit) return `${f.what}: ${end.node}.${end.stock} is in ${s.unit}, the flow in ${f.unit}`;
-    if ((s.product ?? '') !== (f.product ?? '')) return `${f.what}: ${end.node}.${end.stock} holds ${s.product ?? 'no product'}, the flow ${f.product ?? 'none'}`;
-  }
+  const bad = endProblem(g, f, f.from, true) ?? endProblem(g, f, f.to, false);
+  if (bad) return bad;
   if (!isBoundary(f.from) && !isBoundary(f.to) && f.from.node !== f.to.node && !joined(g, f.from.node, f.to.node, f.unit))
     return `${f.what}: no edge between ${f.from.node} and ${f.to.node} carries ${f.unit}`;
   return null;
@@ -306,16 +318,26 @@ export function imbalance(before: Record<string, number>, after: Record<string, 
 
 /** Flows with the same ends, unit and product merged into one, so a snapshot over several steps stays small. */
 export function mergeFlows(flows: readonly Flow[]): Flow[] {
-  const out = new Map<string, Flow>();
+  // bucketed by what, then matched field by field: cheaper than a string key for each of a tick's flows
+  const by = new Map<string, Flow[]>(), out: Flow[] = [];
   for (const f of flows) {
-    const a = f.from, b = f.to;
-    const k = f.what + ' ' + f.unit + ' ' + (f.product ?? '') + ' ' + ('boundary' in a ? '|' + a.boundary : a.node + '.' + a.stock) + ' ' +
-      ('boundary' in b ? '|' + b.boundary : b.node + '.' + b.stock);
-    const had = out.get(k);
+    let bucket = by.get(f.what);
+    if (!bucket) by.set(f.what, (bucket = []));
+    const had = bucket.find((m) => m.unit === f.unit && m.product === f.product && sameEnd(m.from, f.from) && sameEnd(m.to, f.to));
     if (had) had.amount = add(had.amount, f.amount);
-    else out.set(k, {...f});
+    else {
+      const m = {...f};
+      bucket.push(m);
+      out.push(m);
+    }
   }
-  return [...out.values()];
+  return out;
+}
+
+/** Whether two ends are the same stock, or the same boundary. */
+function sameEnd(a: End, b: End): boolean {
+  if ('boundary' in a) return 'boundary' in b && a.boundary === b.boundary;
+  return !('boundary' in b) && a.node === b.node && a.stock === b.stock;
 }
 
 /** A copy of a node that later ticks can't change. */

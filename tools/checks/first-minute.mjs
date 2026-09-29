@@ -3,10 +3,10 @@
 // card is answered); "Sow them" starts the clock; the gardener sows and waters bed 2 in the morning, their hours ticking
 // down; at dusk slugs come out on the damp beds (the check makes the evening damp itself, so a new draw of the dice can't
 // move it) and the gardener goes out with a torch; a tap on a slug's badge opens the first Explain card; by the next
-// morning the Shed tab shows the beer trap and the goal bar counts down to the first harvest; the kitchen's first ask
+// morning the Shed tab shows the beer trap and the goal's line counts down to the first harvest; the kitchen's first ask
 // comes on day 2; the gardener leaves for work at 08:30 on day 1 with no sign, and their job unfolds in the kitchen's
-// sign on day 2's evening, not one of its own; no "try faster" nudge shows in the first minute, and after the first
-// harvest it shows once, at 1×, and goes when answered. "Let them choose" hands bed 2 to the gardener's rotation.
+// sign on day 2's evening, not one of its own; no "try faster" nudge shows in the first minute, and once it's over it
+// shows once, at 1×, and goes when answered. "Let them choose" hands bed 2 to the gardener's rotation.
 import {join} from 'node:path';
 
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
@@ -23,7 +23,7 @@ async function drawnAt(page,hours){
   await page.waitForTimeout(150);
 }
 const overMap=page=>page.evaluate(()=>({cards:[...document.querySelectorAll('.card-overlay .card-title')].map(t=>t.textContent),notices:document.querySelectorAll('.notice').length,
-  goal:document.querySelector('.goal-bar')?.textContent??null}));
+  goal:document.querySelector('.goal-bar .goal-text')?.dataset.text??null}));
 
 export default async function({ok,open,out}){
   {const {ctx,page,errs}=await open({width:1440,height:900});await ready(page);
@@ -85,10 +85,10 @@ export default async function({ok,open,out}){
     // day 2, morning: the beer trap in the shed, and the goal bar counting down to the first harvest
     await drawnAt(page,26);
     // the goal bar gives way to a notice: wait for the night's signs to go, one at a time (src/ui/notices.ts)
-    const goal=await page.waitForSelector('.goal-bar',{timeout:25000}).then(e=>e.textContent(),()=>'');
+    const goal=await page.waitForSelector('.goal-bar .goal-text',{timeout:25000}).then(e=>e.getAttribute('data-text'),()=>'');
     await page.click('#tab-shed').catch(()=>{});
     const shed=await page.waitForFunction(()=>document.querySelector('.offer')?.textContent,null,{timeout:4000}).then(r=>r.jsonValue(),()=>'');
-    ok('first minute: by the second morning the Shed tab shows the beer trap, and the goal bar counts down to the first harvest',
+    ok('first minute: by the second morning the Shed tab shows the beer trap, and the goal’s line counts down to the first harvest',
       /Beer traps/.test(shed)&&/drown/.test(shed)&&/Buy beer traps/.test(shed)&&/^First harvest: .+ in Bed \d, (\d+ % grown|ready to pick)$/.test(goal),`${shed} | ${goal}`);
     await page.click('#tab-garden').catch(()=>{});
     // day 2, evening: the kitchen's first ask, and the gardener home from work in the same sign
@@ -103,17 +103,19 @@ export default async function({ok,open,out}){
     await page.click('#tab-garden').catch(()=>{});
     // no nudge in the first minute
     const early=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)));
-    // after the first harvest, at 1×: the nudge once, gone when answered, never back
-    await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null)break}});
+    // once the first minute is over and the first cut is in, before the wait for the spring sowings: the nudge once at 1×,
+    // gone when answered, never back (other choices, a frost's or a bed's, may wait in the queue beside it)
+    await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null&&s.hours>60)break}});
     await send(page,{type:'speed',speed:1});
     // the nudge waits its turn in the queue behind the fortnight's signs
-    const nudge=await page.waitForSelector('.notice-action',{timeout:30000}).then(()=>true,()=>false);
-    if(nudge)await page.click('.notice-action');
+    const nudgeSel='button.notice-action:text-is("Try 2×")';
+    const nudge=await page.waitForSelector(nudgeSel,{timeout:30000}).then(()=>true,()=>false);
+    if(nudge)await page.click(nudgeSel);
     const s3=await snap(page);
     await send(page,{type:'speed',speed:1});
     await page.waitForTimeout(600);
-    const back=await page.evaluate(()=>!!document.querySelector('.notice-action'));
-    ok('first minute: no “try faster” nudge in the first minute; after the first harvest it shows once at 1× and goes when answered',
+    const back=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)));
+    ok('first minute: no “try faster” nudge in the first minute; once it’s over it shows once at 1× and goes when answered',
       !early&&nudge&&s3.speed===2&&s3.seen.includes('card.try-faster')&&!back&&!errs.length,JSON.stringify({early,nudge,speed:s3.speed,back,err:errs[0]}));
     await ctx.close()}
 

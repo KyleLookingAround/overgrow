@@ -44,7 +44,8 @@ import {calendar, type System, type TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type Graph, type GraphNode, type LeverValue} from '../graph';
 import {knock, wildlifeOf} from './biodiversity';
-import {cropOf, foodKey, GREENS, harm, progress, remaining, ripe, specOf, stageOf, totalDd, WASTE} from './crops';
+import {resistance} from '../kit';
+import {coverBlight, cropOf, foodKey, GREENS, harm, progress, remaining, ripe, specOf, stageOf, totalDd, WASTE} from './crops';
 import {KITCHEN, recordWaste} from './kitchen';
 import {areaOf, moisture} from './soil';
 import {hourOf, weatherOf, type WeatherDay} from './weather';
@@ -262,7 +263,8 @@ function blightDay(c: TickContext, beds: GraphNode[], days: WeatherDay[], smith:
       }
       continue;
     }
-    const s = cropOf(b)!, spec = specOf(s), protect = p.fungicide > c.hours ? 1 - CONTROL.blight.treat.protect : 1;
+    // a fungicide protects the tops, glass keeps the leaves dry, and a resistant variety fights it off
+    const s = cropOf(b)!, spec = specOf(s), protect = (p.fungicide > c.hours ? 1 - CONTROL.blight.treat.protect : 1) * coverBlight(b) * resistance(c.graph, s.id, c.date.year);
     let sev = p.blight;
     if (sev <= 0 && smith) {
       sev = (BLIGHT.start + BLIGHT.spores * spores) * protect;

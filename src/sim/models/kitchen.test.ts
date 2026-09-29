@@ -54,10 +54,12 @@ describe('kitchen', () => {
     expect(l.earned).toBeCloseTo(l.sold * BOX.price);
     // the purse: the start, the box's takings, and the weeks' pay less the shop and the rest of life
     const sim2 = createSim(2);
-    for (let d = 0; d < 80; d++) sim2.apply({type: 'tick', hours: 24});
+    let seed = 0;
+    for (let d = 0; d < 80; d++) seed += sim2.apply({type: 'tick', hours: 24}).flows.filter((f) => f.what === 'seed').reduce((a, f) => a + f.amount, 0);
     const h = householdLedgerOf(JSON.parse(sim2.save()).graph);
     expect(h.wages).toBeGreaterThan(0);
-    expect(s.money).toBeCloseTo(20 + l.earned + h.wages - h.shopped - h.rest);
+    expect(seed).toBeGreaterThan(0);
+    expect(s.money).toBeCloseTo(20 + l.earned + h.wages - h.shopped - h.rest - seed);
     expect(l.firstSale).not.toBeNull();
     expect(l.firstSale!).toBeGreaterThan(l.firstHarvest!);
     expect(l.wasted).toBeGreaterThan(0); // salad leaves don't keep

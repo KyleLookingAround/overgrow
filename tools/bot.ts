@@ -44,7 +44,8 @@ function args(argv: string[]) {
 export function block(run: Run): string {
   const reached = MILESTONES.filter((m) => m.reached).map((m) => `${m.id}: ${m.id in run.reached ? `day ${run.reached[m.id]}` : '—'}`);
   const bought = run.bought.map((b) => `${b.id}: day ${b.day}`).join(', ');
-  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
+  const food = `eaten ${run.days.reduce((a, d) => a + d.eaten, 0).toFixed(1)}, sold ${run.days.reduce((a, d) => a + d.sold, 0).toFixed(1)}, preserved ${run.preserved.toFixed(1)}, given ${run.given.toFixed(1)}, wasted ${run.wasted.toFixed(1)}`;
+  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `FOOD kg {${food}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
 }
 
 function main() {

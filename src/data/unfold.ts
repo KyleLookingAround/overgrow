@@ -77,6 +77,14 @@ export const UNFOLD: Record<string, Unfold> = {
     causes: ['empty autumn bed']},
   'shed.cold-frame': {what: 'a cold frame in the shed', why: 'A frost or the autumn: a cold frame keeps frost off and sows later.',
     causes: ['frost damage', 'empty autumn bed']},
+  // the big buys, each once it's worth having: a raised bed with the first new bed dug; the rainwater tank with the butt
+  // run dry; the greenhouse after the first frost loss or the first blight; the fruit cage with the first bees on the
+  // flowers (it grows the fruit the household buys); the hens once the heap is making compost
+  'shed.raised-bed': {what: 'raised beds in the shed', why: 'A new bed is dug: a raised one drains faster and warms sooner.', causes: ['digging']},
+  'shed.water-tank': {what: 'a rainwater tank in the shed', why: 'The butt ran dry: a tank on the house’s downpipe takes far more rain.', causes: ['butt dry']},
+  'shed.greenhouse': {what: 'a greenhouse in the shed', why: 'Frost or blight took a crop: under glass it’s kept off.', causes: ['frost damage', 'blight']},
+  'shed.fruit-cage': {what: 'a fruit cage in the shed', why: 'Bees are working the flowers: soft fruit would set well, for the household’s fruit.', causes: ['pollination']},
+  'shed.hens': {what: 'a hen house in the shed', why: 'The heap is making compost: hens add eggs, and droppings for the heap.', causes: ['spreading compost']},
   // the temperature matters once a frost reaches a crop it can hurt
   'garden.weather': {what: 'the temperature', why: 'A frost reached a crop: the temperature now shows.', causes: ['frost damage']},
 };

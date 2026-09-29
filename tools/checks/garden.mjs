@@ -81,15 +81,16 @@ export default async function({ok,open,out}){
   await page.screenshot({path:join(out,'garden-kitchen-1440x900.png')});
   await page.click('#tab-garden');
 
-  // the gardener drawn where the job is: digging a plot out of the lawn, an hour's spade work a square metre, once home
-  // from work (the day's first hours go on the sowing); ticked there in one jump, as a paused view follows one
+  // the gardener drawn where the job is: digging a plot out of the lawn, seven hours' spade work a square metre, a
+  // quarter of one a job, once home from work on the second day at 17:30 (the first day's evening goes on the sowing); ticked
+  // there in one jump, as a paused view follows one
   await send(page,{type:'new-game',seed:1,speed:0});
   await send(page,{type:'plan',node:'bed-3',lever:'dig',value:true});
-  await send(page,{type:'tick',hours:13});
-  await page.waitForFunction(()=>window.__sim.view().cur>=12,null,{timeout:8000}).catch(()=>{});
+  await send(page,{type:'tick',hours:37});
+  await page.waitForFunction(()=>window.__sim.view().cur>=36.5,null,{timeout:8000}).catch(()=>{});
   const vD=await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(window.__sim.view()))))),b=(await snap(page)).nodes.find(n=>n.id==='bed-3').box,c=vD.cam,g=vD.gardener;
   const inside=g&&g.x>=c.x+b.x*c.s&&g.x<=c.x+(b.x+b.w)*c.s&&g.y>=c.y+b.y*c.s&&g.y<=c.y+(b.y+b.h)*c.s;
-  ok('garden: the gardener is drawn at the job in hand (digging bed 3 at 18:00, home from work)',g?.doing==='dig'&&inside,JSON.stringify(g));
+  ok('garden: the gardener is drawn at the job in hand (digging bed 3 at 19:00 on day 2, home from work)',g?.doing==='dig'&&inside,JSON.stringify(g));
 
   // the Garden tab's plan changes what the gardener does next: lettuce in bed 2 instead of radishes
   await send(page,{type:'new-game',seed:1,speed:0});

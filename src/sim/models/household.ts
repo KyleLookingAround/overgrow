@@ -24,11 +24,12 @@ import {
   PRICE_PAID, REST_SPEND, SENSITIVITY, VEG, WAGE, type FoodGroup, type JobKind, type Role,
 } from '../../data/household';
 import {CROPS} from '../../data/crops';
+import {EXTRAS} from '../../data/kitchen';
 import type {Group} from '../../data/crops';
 import type {System, TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type Boundary, type Flow, type Graph, type GraphNode, type LeverValue, type NodeSpec, type Qty} from '../graph';
-import {HOUSEHOLD, KITCHEN, kitchenAsk, ledgerOf, shopProduct} from './kitchen';
+import {HOUSEHOLD, KITCHEN, kitchenAsk, ledgerOf, PRESERVES, shopProduct} from './kitchen';
 
 export {HOUSEHOLD, kitchenAsk};
 /** Where the household's money is kept: the kitchen's purse, where the honesty box pays and the top bar shows. Moving it
@@ -347,8 +348,9 @@ function tally(c: TickContext, node: NonNullable<Graph['nodes'][string]>) {
   if (k.day <= l.day) return;
   const supplied: Kg = {...l.supplied};
   for (const [product, kg] of Object.entries(k.ate)) {
-    const crop = CROPS[product as keyof typeof CROPS];
-    if (crop?.group) supplied[crop.group] = kgOf(supplied, crop.group) + kg;
+    // preserves stand in for the veg the garden couldn't meet fresh: counted as green veg
+    const group = CROPS[product as keyof typeof CROPS]?.group ?? EXTRAS.find((x) => x.product === product)?.group ?? (product === PRESERVES ? 'greens' : undefined);
+    if (group) supplied[group] = kgOf(supplied, group) + kg;
   }
   node.levers.ledger = {...l, day: k.day, supplied} as unknown as LeverValue;
 }

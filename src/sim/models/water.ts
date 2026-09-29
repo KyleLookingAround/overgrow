@@ -22,6 +22,8 @@
 import {ROOF} from '../../data/garden';
 import {STATION} from '../../data/climate-normals';
 import {calendar, type System, type TickContext} from '../clock';
+import {RAISED, TANK} from '../../data/shed';
+import {owns} from '../kit';
 import {qty, type GraphNode} from '../graph';
 import {cropCover} from './crops';
 import {areaOf, grassShare, hasSoil, leach, limitsOf, SOIL, type Limits} from './soil';
@@ -103,7 +105,9 @@ function balance(c: TickContext, n: GraphNode, rainMm: number, et0Mm: number, ho
   const before = water(), excess = before - lim.fc;
   if (excess > 0) {
     // the last half millimetre goes at once, so a soil at field capacity isn't left dripping for days
-    const drained = excess < 0.5 * area ? excess : Math.min(excess * (1 - Math.exp(-hours / DRAIN_HOURS)), lim.ksat * hours);
+    // a raised bed drains faster: its soil stands above the ground's
+    const ksat = lim.ksat * (n.levers.raised === true ? RAISED.drain : 1);
+    const drained = excess < 0.5 * area ? excess : Math.min(excess * (1 - Math.exp(-hours / DRAIN_HOURS)), ksat * hours);
     if (drained > 0) {
       c.flow({what: 'drainage', unit: 'L', amount: qty(drained, 'L'), from: at, to: {boundary: 'drainage'}});
       leach(c, n, drained, before);
@@ -118,7 +122,9 @@ function step(c: TickContext, rain: number, et: number, hours: number) {
   const butt = c.graph.nodes[ROOF.to]?.stocks.water;
   if (butt && rain > 0) {
     const at = {node: ROOF.to, stock: 'water'};
-    c.flow({what: 'rain', unit: 'L', amount: qty(rain * ROOF.m2 * ROOF.runoff, 'L'), from: {boundary: 'rain'}, to: at});
+    // and the house's back roof too, once the tank is on its downpipe
+    const roof = ROOF.m2 + (owns(c.graph, 'water-tank') ? TANK.roofM2 : 0);
+    c.flow({what: 'rain', unit: 'L', amount: qty(rain * roof * ROOF.runoff, 'L'), from: {boundary: 'rain'}, to: at});
     if (butt.cap !== undefined && butt.amount > butt.cap) c.flow({what: 'overflow', unit: 'L', amount: qty(butt.amount - butt.cap, 'L'), from: at, to: {boundary: 'runoff'}});
   }
 }

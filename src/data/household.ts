@@ -59,9 +59,11 @@ export const GARDEN_SHARE: Record<Role, {weekday: number; weekend: number}> = {
 
 /** Take-home pay is only the household's main income; everything else it spends is one flat outgoing (£ a week). ONS
  *  Family Spending has a one-adult household spending about £330 a week and a two-adult one about £700; the gardener's
- *  also carries housing, bills, travel and the savings and mortgage capital ONS doesn't count as spending, so the purse
- *  (the gardener's budget for the garden, not the household's savings) is what's left over. */
-export const REST_SPEND: Record<Role, number> = {gardener: 480, partner: 230, child: 90};
+ *  also carries housing, bills, travel and the savings and mortgage capital ONS doesn't count as spending. What's left
+ *  after it and the weekly shop is the garden's budget, about £10 a week: a keen grower's, about twice what the average
+ *  household spends on gardens, plants and flowers (ONS Family Spending, COICOP 09.3.3, about £4 a week). The purse
+ *  grows on that, the groceries the garden saves and the honesty box's takings. */
+export const REST_SPEND: Record<Role, number> = {gardener: 550, partner: 230, child: 90};
 
 /** A plot: an allotment plot is ten rods, about 250 m² (NSALG); keeping it takes about six hours a week (RHS and
  *  allotment societies: a few hours, more in summer). */
