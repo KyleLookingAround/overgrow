@@ -11,3 +11,4 @@
   - A strategy test on three seeds can pass by luck. Before trusting one, run a few more seeds and a second pace, and see whether the gap has a mechanism behind it.
   - A `labeled` trigger fires only when the label is added: to re-run a label-driven workflow, remove the label and add it again (the `balance` playbook, Tips).
   - A range with no upper end can't catch a milestone that regresses to never (`first-sale`, `half-kitchen` in `tools/baseline.json`). It's in the owner's issue (#15); when the game reaches them, give them both ends.
+  - Push, wait for the push's run to show, and only then mark a draft ready. A push two seconds before leaving draft started a Checks run that skipped (it saw a draft) and, sharing the PR's concurrency group, cancelled the ready run; the latest head had no Checks until it was started by hand. Worth a line in the `steward` playbook at the next tidy.
