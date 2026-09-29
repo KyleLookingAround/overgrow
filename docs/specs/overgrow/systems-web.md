@@ -74,6 +74,23 @@ The owner (29 Sep 2026): "I don't want to overwhelm the player with too many thi
 - "Carbon, land, water and waste are counted at every level from the first bed." They're still counted. Each is shown when it unfolds.
 - The spec's own rule that a tab appears once it has something in it, and the first minute's cards (the plan card, the first Explain, the beer trap on day 2, the goal bar), already unfold this way, so they stand.
 
+## Pacing: never a long quiet stretch
+
+The owner (29 Sep 2026): the game may take longer, so long as the player always has things to do and changes to make, with no long boring stretch. This is settled by the owner, not a proposal. So pacing across the ladder is judged by **the longest quiet stretch**, the longest real time with no decision to make, unlock to use, harvest to place or event to answer, and not only by when each milestone lands. The bot's baselines (the `balance` playbook) take it as a measure beside the milestones.
+
+Each level's steady supply of small decisions:
+
+| Lv | Where the small decisions come from | What would make a quiet stretch |
+| --- | --- | --- |
+| 1 Garden | Each bed emptying and wanting a new sowing; harvests to eat, sell or swap; the watering line in a dry spell; slugs after rain; the next shed tool as the purse fills; the week's shop against what's ripe | A bed of slow potatoes and nothing else sown; midwinter with nothing in season (the cold frame and overwintering crops fill it) |
+| 2 Allotment | The second plot's reclaiming; swaps as neighbours' gluts come and go; the trough rota in a dry spell; the three committee votes; the partner's work-or-help choice; pests from next door | A season between votes with both plots settled (swaps and neighbours' events fill it) |
+| 3 Smallholding | The year plan's sowing and harvest windows; the flock's feed, the vet and lambing; the box scheme's weekly contents; the hand's hours at harvest; the tractor's service and breakdowns; the parish's forms | Midwinter on the fields (the flock, the box scheme and the planning forms fill it) |
+| 4 Farm | The buyer's contracts; weather losses and insurance; disease scares; seasonal pickers; the scheme's options; licences in a dry year | A year with no contract to renew (the market's weekly prices fill it) |
+| 5 Town | Market days; spoilage and stock; routes; the council's votes; the food bank's surplus; the heat or cold moving demand | A steady week of sales (weather and council business fill it) |
+| 6 Chain | Weekly buying rounds; promotions; supplier failures; the cold chain; reputation events | None expected: buying is weekly |
+| 7 Nation | Bills and political capital; elections; the diet, land and carbon budgets; droughts and price shocks; the zoom back in | A government's quiet middle years (lobbies, events and the next budget fill it) |
+| 8 Planet | Treaties; price shocks and export bans; failed harvests abroad; warming's slow turns | Decades passing in minutes with nothing to answer (events traced down the ladder fill it) |
+
 ## The physical world
 
 ### Calendar and climate

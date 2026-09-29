@@ -21,8 +21,9 @@ export const SECTIONS=[
 ];
 
 // the briefs started before "How it fits and grows" (merged or in flight when it came in), which may leave it out;
-// never reuse one of these names for a new brief, or it skips the section
-export const BEFORE=new Set(['bot-and-baselines','coordinator-first-slice','crops-and-gardener','final-call-wins','graph-and-clock',
+// never reuse one of these names for a new brief, or it skips the section; after a merge from main, run the brief check
+// again, since a brief that merged in the meantime may need its name here
+export const BEFORE=new Set(['bot-and-baselines','coordinator-first-slice','coordinator-first-slice-2','crops-and-gardener','final-call-wins','graph-and-clock',
   'labour-machinery-energy','livestock-model','overgrow-setup','pests-wildlife-explain','sealing-maths','systems-web','weather-soil-water']);
 
 // problems with one brief's text, as a list of lines; the template may keep its <fill: …> placeholders, and a brief
