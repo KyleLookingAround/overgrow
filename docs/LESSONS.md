@@ -9,6 +9,10 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ## The lessons
 
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
+### Model
+
+- [The carry-over rule's maths, ahead of part 7 (#20) · 29 Sep 2026](lessons/20-sealing-maths.md)
+
 ### Runbook
 
 - [Easy wins from Final Call (#14) · 29 Sep 2026](lessons/14-final-call-wins.md)
@@ -20,6 +24,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Not sorted yet
 
+- [Labour, machinery and energy models, ahead of part 13 (#17) · 29 Sep 2026](lessons/17-labour-machinery-energy.md)
 - [Crops and the gardener, the first slice’s part 3 (#12) · 29 Sep 2026](lessons/12-crops-and-gardener.md)
 - [The bot and the first baselines, the first slice's part 4 (#10) · 29 Sep 2026](lessons/10-bot-and-baselines.md)
 - [Weather, soil and water, the first slice's part 2 (#7) · 29 Sep 2026](lessons/7-weather-soil-water.md)
