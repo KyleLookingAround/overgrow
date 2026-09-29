@@ -69,11 +69,12 @@ describe('strategies', () => {
   const run = (player: string, seed: number) => play({seed, hours: parseGameTime('120d'), player: PLAYERS[player]});
 
   // The founding spec's rotation test is that a rotating bot beats a one-crop bot by at least 10 % of Output by day
-  // 120. In the garden today nothing makes growing one family bed after bed cost anything (the pests that follow a
-  // family from one crop to the next are part 5's), so salad leaves in both beds keep up with the rotation or beat it.
-  // This holds the game to what it does now, on the seed where the gap is plainest; part 5 turns it round into the
-  // spec's test on seeds 1-3 (docs/SYSTEMS.md, "The bot").
-  it('one-crop salad still keeps up with the rotation by day 120 (the spec’s rotation test waits for part 5)', () => {
+  // 120. Part 5 added the pests that follow a family from one crop to the next (clubroot on brassicas, potato cyst
+  // nematode, bean root rots: src/sim/models/pests.ts), which cut salad after salad by about a third in its second year,
+  // but inside the sources' sizes they can't build up in 120 days from a clean garden, and the gap by then is the fast
+  // crops' speed: salad leaves in both beds still beat the rotation. This holds the game to what it does now, on the
+  // seed where the gap is plainest; the spec's test waits for a change the owner decides on (docs/SYSTEMS.md, "The bot").
+  it('one-crop salad still keeps up with the rotation by day 120 (the spec’s rotation test waits on the owner)', () => {
     const rotating = run('sensible', 1), oneCrop = run('one-crop', 1);
     expect([rotating.err, oneCrop.err]).toEqual([[], []]);
     expect(rotating.sealed.output).toBeGreaterThan(0);
