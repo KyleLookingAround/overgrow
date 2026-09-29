@@ -10,6 +10,8 @@ The pure maths of the founding spec's carry-over rule, written ahead of part 7 (
 - **The step-up offer** (`stepUpStatus()`, `STEP_UP`): Output at least 1.5 kg a day, Reliability at least 60 and Health at least 50 over a full 28 days, proposed by the spec and held as data for part 4's baselines to set. It returns the three requirements furthest-from-target first (by shortfall as a share of the target), each with its value, target, progress for the bar and a one-line hint, the `binding` one (null when all are met, whether or not the cycle is full), and `ready`, which also waits for the window to fill (win W18: the goal bar names what's holding the player back).
 - **Speed** (Node 22 with `vite-node`, the session's 4-core 2.1 GHz Xeon, after a warm-up): a sealed tick is about 0.2 µs, so 5,000 sealed nodes (the nation's most) cost about 1.2 ms a tick including their new objects; `record()` about 1 µs for a garden's ring, `windowTotals()` about 0.7 µs for 28 samples and 4 µs for a year's 365, so the garden's step-up goal bar can read it every day for nothing. None of it is in `dist/` until it's wired.
 
+**Approved on #29 (29 Sep 2026), not yet in the code:** the owner approved Q2 (a sealed node carries demand, kg a day by product group and £ a day, and hours, people-hours a day had and used), Q3 (Output by product group) and Q6 (a wildlife part in Health), and Q15 (the garden's window becomes the last full year, not 28 days); a models-ahead session will add them to `src/sim/ladder.ts`.
+
 ## Wiring
 
 For part 7 (sealing and the step up), and part 9 for the first zoom back in. The brief was new files only, so none of this is done:
