@@ -46,8 +46,8 @@
 // - A bee hotel: bundled hollow stems where red mason bees (Osmia bicornis) nest from April to June, a few more bees
 //   about the garden's flowers (the Wildlife Trusts, "How to build a bee hotel"; Gathmann & Tscharntke 2002 for their
 //   foraging range of a few hundred metres).
-// - A cordon redcurrant: a bare-root bush trained as a single stem against the fence, about 1 kg of fruit a summer once
-//   established; bare-root plants are sold and planted from November to March, when they're dormant: cheaper than potted
+// - A cordon redcurrant: a bare-root bush trained as a single stem against the fence, a light crop the first summer and
+//   about 1 kg a summer from the second; bare-root plants are sold and planted from November to March, when they're dormant: cheaper than potted
 //   ones, and they settle in best then (RHS, "Redcurrants" and "Bare-root plants").
 
 export type UpgradeId = 'beer-trap' | 'hose' | 'nematodes' | 'compost-bin' | 'cold-frame' | 'water-butt' | 'raised-bed' | 'water-tank' | 'greenhouse' | 'fruit-cage' | 'hens' |
@@ -227,7 +227,8 @@ export const CORDON = {most: 6, kg: 1, m2: 0.3, from: 11, to: 3};
 export const bareRoot = (month: number) => month >= CORDON.from || month <= CORDON.to;
 /** Raking the autumn leaves onto the heap: kg a clear-up gathers from the lawn and the beds (a small garden's share of a
  *  street tree's fall), and what a kg carries: fallen leaves are about 40 % dry matter, 45 % of it carbon, 0.8 % nitrogen
- *  (RHS, "Leaf mould"; Garden Organic, "Leafmould"). Asked from mid-October to November. */
+ *  (RHS, "Leaf mould"; Garden Organic, "Leafmould"). Asked from mid-October to November. Simplifies: the leaves go on the heap and
+ *  break down at its pace with its green waste, not in a leaf-mould bag of their own over a year or two. */
 export const LEAVES = {kg: 25, co2e: 0.4 * 0.45 * (44 / 12), n: 0.4 * 0.008, from: [10, 15], to: [11, 30]} as const;
 /** Digging the beds over in winter: the flush of CO₂ from the soil's organic matter, kg CO₂e a m² (as a new bed's,
  *  src/data/garden.ts's DIG), and the share of a bed's slugs and their eggs turned up to the birds and the frost (RHS,

@@ -47,6 +47,8 @@ function PurseLine({nodes}: {nodes: GraphNode[]}) {
     </p>
   );
 }
+/** How long an offer the goal bar opened the tab at stays marked, ms. */
+const FOCUS_MS = 4000;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function ShedTab({nodes, seen, purse, see, send, focus}: {
@@ -70,7 +72,7 @@ export function ShedTab({nodes, seen, purse, see, send, focus}: {
           {offers.map((id) => {
             const u = UPGRADES[id], short = u.price - purse;
             return (
-              <div class={focus?.shed === id ? 'offer focus' : 'offer'} data-offer={id} key={id}>
+              <div class={focus?.shed === id && Date.now() - focus.at < FOCUS_MS ? 'offer focus' : 'offer'} data-offer={id} key={id}>
                 <p class="job"><strong>{u.name}</strong>, {money(u.price)}</p>
                 <p class="soft">{u.does}</p>
                 <p class="soft">Saves: {u.saves}</p>
@@ -87,7 +89,7 @@ export function ShedTab({nodes, seen, purse, see, send, focus}: {
       <section class="place">
         <h3>In the shed</h3>
         <ul class="tools">
-          {tools.filter((t) => t !== 'hose').map((t) => <li>{TOOLS[t]?.name ?? t}</li>)}
+          {tools.filter((t) => t !== 'hose' && t !== 'fork').map((t) => <li>{TOOLS[t]?.name ?? t}</li>)}
           {[...new Set(kit.owned)].map((id) => {
             const n = kit.owned.filter((x) => x === id).length;
             return <li data-kit={id}>{n > 1 ? `${UPGRADES[id].name}s, ${n}` : UPGRADES[id].name}{(id === 'cold-frame' || id === 'cloches') && covered(id) ? `, over ${covered(id)!.name}` : ''}{id === 'beer-trap' && kit.dry ? ', dry this week' : ''}</li>;

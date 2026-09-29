@@ -7,7 +7,7 @@
 // leaves raked onto the heap from mid-October, a cordon redcurrant in bare-root season (November to March, every three
 // weeks while the fence has room), and in December and January the empty beds dug over or left no-dig. Pure, so a Vitest test holds it; App.tsx queues the first one due as a notice, and the
 // bot answers them (tools/bot/player.ts).
-import {CORDON, FLEECE, UPGRADES} from '../data/shed';
+import {FLEECE, UPGRADES} from '../data/shed';
 import {unfolded} from '../data/unfold';
 import {calendar} from '../sim/clock';
 import {DRY_LINE, type Command} from '../sim/commands';
@@ -17,7 +17,7 @@ import type {Graph, GraphNode} from '../sim/graph';
 import {kitOf} from '../sim/kit';
 import {KITCHEN} from '../sim/models/kitchen';
 import {forecastOf, tonight, type WeatherDay} from '../sim/models/weather';
-import {cataloguePrice, catalogueOpen, chitOpen, cordons, digOverBeds, frostBeds, leavesOpen, warmBeds} from '../sim/shed';
+import {cataloguePrice, catalogueOpen, chitOpen, digOverBeds, frostBeds, leavesOpen, refuseBuy, warmBeds} from '../sim/shed';
 import type {Snapshot} from '../sim/state';
 import {money} from './format';
 
@@ -64,7 +64,7 @@ export function decisionsOf(snap: Snapshot): Decision[] {
     const now = String(snap.nodes.find((n) => n.id === KITCHEN)?.levers.glut ?? 'sell');
     // the two choices besides what's done now, each with its button
     const actions: Decision['actions'] = ['preserve', 'give', 'sell'].filter((a) => a !== now).map((a) => ({label: GLUT_LABEL[a]!, cmd: card('glut', a)}));
-    out.push({id: 'glut', at: KITCHEN, text: `A glut: more is ready than the kitchen can eat fresh, and it goes to ${GLUT_TO[now] ?? 'the honesty box'}. ${actions.map((a) => a.label).join(' or ')} instead?`,
+    out.push({id: 'glut', at: KITCHEN, text: `A glut: more is ready than the kitchen can eat fresh, and it goes to ${GLUT_TO[now] ?? 'the honesty box'}. ${actions.map((a, i) => (i ? a.label[0]!.toLowerCase() + a.label.slice(1) : a.label)).join(' or ')} instead?`,
       actions, dismiss: card('glut', now)});
   }
   // a dry spell in the growing months, none forecast, and the gardener not already watering early: once a spell
@@ -89,9 +89,10 @@ export function decisionsOf(snap: Snapshot): Decision[] {
   }
   // bare-root season: a cordon redcurrant along the fence, every three weeks while it has room and the purse the price
   const cordon = UPGRADES.cordon.price;
-  if (kitOf(g).bare && unfolded(snap.seen, 'shed.cordon') && cordons(g) < CORDON.most && purse >= cordon && asked('bare-root') < snap.hours - LATER_HOURS) {
+  // asked every three weeks while the fence has room, until "not this winter"
+  if (kitOf(g).bare && unfolded(snap.seen, 'shed.cordon') && !refuseBuy(g, 'cordon') && asked('bare-root') < snap.hours - LATER_HOURS && asked('bare-root-no') < snap.hours - YEARLY) {
     out.push({id: 'bare-root', at: 'shed', text: `Bare-root season: a cordon redcurrant is ${money(cordon)}, and settles in best planted now. Plant one along the fence?`,
-      actions: [{label: `Plant one (${money(cordon)})`, cmd: card('bare-root', 'plant')}], dismiss: card('bare-root', 'no')});
+      actions: [{label: `Plant one (${money(cordon)})`, cmd: card('bare-root', 'plant')}], dismiss: card('bare-root', 'later')});
   }
   // from November to February, the heap's compost as a winter mulch on the beds, once a winter
   const heap = compostOn(g), empty = mulchBeds(g);

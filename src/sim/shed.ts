@@ -53,7 +53,7 @@ export function refuseBuy(g: Graph, id: string): string | null {
   }
   if (id === 'cloches' && !nextCovered(g)) return 'every dug bed has a cover already';
   // a big buy needs its ground on the lawn
-  const site = (SITES as Record<string, {box: {w: number; h: number}}>)[id];
+  const site = id === 'cordon' ? null : (SITES as Record<string, {box: {w: number; h: number}}>)[id];
   if (site && (g.nodes.lawn?.stocks['land.grass']?.amount ?? 0) < site.box.w * site.box.h) return 'the lawn has no room for it';
   if (id === 'nematodes' && kitOf(g).nematodes > 0) return 'the last pack is still at work';
   if (purse(g) < u.price) return `${u.name} costs £${u.price.toFixed(2)}`;
@@ -131,7 +131,7 @@ function buy(g: Graph, id: UpgradeId) {
   }
   // the frame goes over the first dug bed with nothing in it, else the first dug bed; the plan can move it
   if (id === 'cold-frame') {
-    const beds = dugBeds(g).filter((b) => b.levers.cover !== 'greenhouse'), bed = beds.find((b) => !b.levers.crop) ?? beds[0];
+    const beds = dugBeds(g).filter((b) => !b.levers.cover), bed = beds.find((b) => !b.levers.crop) ?? beds[0];
     if (bed) bed.levers.cover = 'cold-frame';
   }
 }
@@ -351,7 +351,9 @@ export const shed: System = {
       if (cmd.value === 'cold-frame' || cmd.value === 'cloches') {
         const name = cmd.value === 'cold-frame' ? 'cold frame' : 'cloches';
         if (!owns(g, cmd.value)) return `the garden has no ${name} yet`;
-        if ((g.nodes[cmd.node]!.stocks['land.crops']?.amount ?? 0) <= 0) return `the ${name} go on a dug bed`.replace('frame go', 'frame goes');
+        if ((g.nodes[cmd.node]!.stocks['land.crops']?.amount ?? 0) <= 0) return cmd.value === 'cold-frame' ? 'the cold frame goes on a dug bed' : 'the cloches go on a dug bed';
+        const other = g.nodes[cmd.node]!.levers.cover;
+        if (other && other !== cmd.value) return `${g.nodes[cmd.node]!.name} has the ${other === 'cold-frame' ? 'cold frame' : 'cloches'} over it`;
         for (const b of Object.values(g.nodes)) if (b.kind === 'bed' && b.id !== cmd.node && b.levers.cover === cmd.value) b.levers.cover = null;
       }
       return null;

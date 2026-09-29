@@ -32,6 +32,11 @@ export const KEEPS_ON_PLANT = 3;
 export function maturity(days: number): number {
   return days < 240 ? 0 : days < 600 ? 0.4 : 1;
 }
+/** A bare-root cordon's share of a full crop by days since planting: planted dormant from November to March, a light crop
+ *  the next summer and full from the one after (RHS, "Redcurrants"). */
+export function cordonMaturity(days: number): number {
+  return days < 60 ? 0 : days < 420 ? 0.4 : 1;
+}
 
 /** The planting: when it went in, game hours, and for cordons each cordon's planting (null until its first day). Kept as
  *  the node's `bushes` lever. */
@@ -64,7 +69,7 @@ function day(c: TickContext) {
     if (b.plants?.includes(null)) n.levers.bushes = (b = {...b, plants: b.plants.map((t) => t ?? c.hours)}) as unknown as LeverValue;
     const area = n.stocks['land.crops']?.amount ?? 0;
     // the fruit a summer when full: the cage's by its area, and each cordon's by its own age
-    const full = b.plants ? b.plants.reduce<number>((a, t) => a + CORDON.kg * maturity((c.hours - (t ?? c.hours)) / 24), 0) : FRUIT_YIELD * area * maturity((c.hours - (b.planted ?? c.hours)) / 24);
+    const full = b.plants ? b.plants.reduce<number>((a, t) => a + CORDON.kg * cordonMaturity((c.hours - (t ?? c.hours)) / 24), 0) : FRUIT_YIELD * area * maturity((c.hours - (b.planted ?? c.hours)) / 24);
     // what's been on the canes too long drops, then today's fruit ripens
     const lost = ripeFruit(n) * (1 - Math.exp(-days / KEEPS_ON_PLANT));
     if (lost > 1e-9) {

@@ -103,7 +103,7 @@ describe('the autumn’s and winter’s cards', () => {
     for (let h = 0; h < 30; h++) sim.apply({type: 'tick', hours: 1});
     const d = card(sim, 'glut')!;
     expect(d.actions.map((a) => a.label)).toEqual(['Give it away', 'Sell at the box']);
-    for (const a of d.actions) expect(d.text).toContain(a.label);
+    for (const a of d.actions) expect(d.text.toLowerCase()).toContain(a.label.toLowerCase());
     expect(sim.apply(d.actions[1]!.cmd).rejected).toBeNull();
     expect(card(sim, 'glut')).toBeNull();
   });

@@ -55,8 +55,9 @@ export type Command =
   | {type: 'card'; id: 'warm'; answer: 'warm' | 'no'}
   /** The autumn clear-up: the fallen leaves raked onto the heap. */
   | {type: 'card'; id: 'leaves'; answer: 'rake' | 'no'}
-  /** Bare-root season: a cordon redcurrant planted along the fence (the shed's `cordon`, bought). */
-  | {type: 'card'; id: 'bare-root'; answer: 'plant' | 'no'}
+  /** Bare-root season: a cordon redcurrant planted along the fence (the shed's `cordon`, bought), later (asked again in
+   *  three weeks), or not this winter. */
+  | {type: 'card'; id: 'bare-root'; answer: 'plant' | 'later' | 'no'}
   /** Winter: the empty beds dug over, or left no-dig. */
   | {type: 'card'; id: 'dig-over'; answer: 'dig' | 'no-dig'}
   /** The garden's first year done, whether or not the offer's requirements are met: 'ok' carries on into the second. */
@@ -204,10 +205,10 @@ export const DECISIONS = ['glut', 'catalogue', 'frost', 'dry', 'chit', 'mulch', 
 type DecisionCmd = Extract<Command, {type: 'card'; id: (typeof DECISIONS)[number]}>;
 const isDecision = (c: Extract<Command, {type: 'card'}>): c is DecisionCmd => (DECISIONS as readonly string[]).includes(c.id);
 
-/** Answers one of the week's decision cards: its choice carried out, and the hour kept so it asks once. */
 /** What a decision's own spend is called in the purse's week (a cordon's is its buy's). */
 const SPEND: Partial<Record<DecisionCmd['id'], string>> = {catalogue: 'seed catalogue', frost: 'fleece', warm: 'fleece'};
 
+/** Answers one of the week's decision cards: its choice carried out, and the hour kept so it asks once. */
 function decide(s: State, cmd: DecisionCmd, systems: readonly System[]): State {
   const g = s.graph, date = calendar(s.hours), before = g.nodes[KITCHEN]?.stocks.money?.amount ?? 0;
   let r: string | null = null;
@@ -225,8 +226,10 @@ function decide(s: State, cmd: DecisionCmd, systems: readonly System[]): State {
     if (cmd.answer !== 'rake' && cmd.answer !== 'no') r = 'rake or no';
     else if (cmd.answer === 'rake') r = rakeLeaves(g, date);
   } else if (cmd.id === 'bare-root') {
-    if (cmd.answer !== 'plant' && cmd.answer !== 'no') r = 'plant or no';
+    if (cmd.answer !== 'plant' && cmd.answer !== 'later' && cmd.answer !== 'no') r = 'plant, later or no';
     else if (cmd.answer === 'plant') applyCommand(s, {type: 'buy', id: 'cordon'}, systems), (r = s.rejected);
+    // "not this winter": asked again next bare-root season
+    else if (cmd.answer === 'no') s.answered = {...s.answered, 'bare-root-no': s.hours};
   } else if (cmd.id === 'dig-over') {
     if (cmd.answer !== 'dig' && cmd.answer !== 'no-dig') r = 'dig or no-dig';
     else if (cmd.answer === 'dig') r = digOver(g, date);

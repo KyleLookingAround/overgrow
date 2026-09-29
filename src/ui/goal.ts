@@ -16,6 +16,7 @@ import {NO_KIT, SHED, type Kit} from '../sim/kit';
 import type {RequirementStatus, StepUpStatus} from '../sim/ladder';
 import {cropOf, inSeason, nextSowing, progress, stageOf, winterPick} from '../sim/models/crops';
 import {digCost} from '../data/garden';
+import {refuseBuy} from '../sim/shed';
 import type {Command} from '../sim/commands';
 import type {LeverValue} from '../sim/graph';
 import type {Snapshot} from '../sim/state';
@@ -93,11 +94,13 @@ export function goOf(step: Step | null): Go {
   return {label: 'See the plan', cmds: [], tab: 'garden', shed: null};
 }
 
-/** A thing in the shed as the next step: bought if the purse can pay, or saved for (the Shed opened at it). */
-function shedStep(id: UpgradeId, purse: number, why: string): Step {
-  const u = UPGRADES[id];
-  return purse >= u.price ? {text: `Buy the ${lower(u.name)}: ${why}`, cmds: [{type: 'buy', id}]}
-    : {text: `Save for the ${lower(u.name)}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id};
+/** A thing in the shed as the next step: bought if the purse can pay and the shed would sell it, saved for (the Shed
+ *  opened at it) if only the money is short, or null if something else stands in the way (no room on the lawn, no bed
+ *  in the open for a cover). */
+function shedStep(nodes: GraphNode[], id: UpgradeId, purse: number, why: string): Step | null {
+  const u = UPGRADES[id], why_not = refuseBuy({nodes: Object.fromEntries(nodes.map((n) => [n.id, n])), edges: [], rev: 0}, id);
+  if (!why_not) return {text: `Buy the ${lower(u.name)}: ${why}`, cmds: [{type: 'buy', id}]};
+  return purse < u.price && why_not === `${u.name} costs £${u.price.toFixed(2)}` ? {text: `Save for the ${lower(u.name)}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id} : null;
 }
 
 /**
@@ -136,7 +139,10 @@ export function nextStep(snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>, key: 
     // a big buy that makes more food this year, bought or saved for: eggs most days, then a crop under glass (the fruit
     // cage crops only from its second summer, so it's no answer to this year's Output)
     for (const id of ['hens', 'greenhouse'] as const)
-      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id)) return shedStep(id, purse, lower(UPGRADES[id].saves));
+      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id)) {
+        const s = shedStep(nodes, id, purse, lower(UPGRADES[id].saves));
+        if (s) return s;
+      }
   }
   if (key === 'reliability') {
     // a glut sold in summer is food the winter doesn't have: preserve it, once there's been one
@@ -154,7 +160,10 @@ export function nextStep(snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>, key: 
     if (pick && cold) return {text: `Plan ${pick} in ${bedName(cold)}: it’s picked through the winter`, cmds: [plan(cold, 'sow', pick)]};
     // a longer season at each end, so the beds feed the household in the thin weeks: cloches, the frame, then glass
     for (const id of ['cloches', 'cold-frame', 'greenhouse'] as const)
-      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id)) return shedStep(id, purse, 'a longer season at each end');
+      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id)) {
+        const s = shedStep(nodes, id, purse, 'a longer season at each end');
+        if (s) return s;
+      }
   }
   if (key === 'health') {
     const same = beds.find((n) => n.levers.sow !== 'rotation' && n.levers.sow !== 'none');

@@ -168,8 +168,6 @@ export const ANSWERS: Record<string, string> = {frost: 'fleece', glut: 'preserve
 export const decideAll: Policy = ({snap}) => [...yearCards(snap), ...decisionsOf(snap).flatMap((d) => {
     let want = ANSWERS[d.id]!;
     if (d.id === 'glut' && Number(snap.nodes.find((n) => n.id === 'kitchen')?.stocks['food.preserves']?.amount ?? 0) >= PRESERVE.cap - 1) want = 'give';
-    // a cordon once the hens are in: the eggs come first
-    if (d.id === 'bare-root' && !kitOf(snap).owned.includes('hens')) want = 'no';
     // next year's seed only once the purse has its price and the reserve
     if (d.id === 'catalogue' && snap.money < cataloguePrice(graphOf(snap), 'resistant') + RESERVE) want = 'later';
     const pick = d.actions.find((a) => (a.cmd as {answer?: string}).answer === want)?.cmd ?? (want === (d.dismiss as {answer?: string}).answer ? d.dismiss : d.actions[0]!.cmd);
@@ -178,9 +176,8 @@ export const decideAll: Policy = ({snap}) => [...yearCards(snap), ...decisionsOf
 
 /** The year's cards, read and carried on from: the offer won, or the first anniversary without it. */
 function yearCards(snap: Snapshot): Command[] {
-  if (snap.seen.includes(CARDS.year) || snap.seen.includes(CARDS.firstYear)) return [];
-  if (statusOf(snap).ready) return [{type: 'card', id: 'year', answer: 'ok'}];
-  return snap.hours >= YEAR_HOURS ? [{type: 'card', id: 'first-year', answer: 'ok'}] : [];
+  if (statusOf(snap).ready && !snap.seen.includes(CARDS.year)) return [{type: 'card', id: 'year', answer: 'ok'}];
+  return snap.hours >= YEAR_HOURS && !snap.seen.includes(CARDS.year) && !snap.seen.includes(CARDS.firstYear) ? [{type: 'card', id: 'first-year', answer: 'ok'}] : [];
 }
 
 /** The slug policy once the beer traps are in: leave them to the traps and keep the gardener's evenings. */
