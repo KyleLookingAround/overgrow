@@ -15,6 +15,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 - `get_session` on the ids the brief and your own starts know, not `list_sessions`: it returns every session on the account, another project's too, and filled most of the first coordinator's context.
 - For each live Overgrow session: `status_bucket`, `usage.cost_usd` against its brief's estimate, `context_usage.used_tokens`, and `rate_limit_info`.
+- A session whose last turn failed on a usage limit ("You've hit your session limit") stays stopped after the limit resets: nothing wakes it but a message. Send one (§4) for a minute after `resetsAt` (29 Sep: part 5 and two models-ahead sessions sat idle for half an hour after a 05:20 reset).
 - `list_triggers` for booked check-ins.
 - Open PRs, with their check runs and mergeability.
 - Open `needs-owner` issues, and any that have passed 12 hours.
@@ -41,6 +42,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 ## 6. Starting a session
 
 - Write its brief from `docs/briefs/TEMPLATE.md` and run `node tools/brief.mjs` on it.
+- Every brief carries "How it fits and grows", answered for what the part adds and naming its rows in the systems web (`docs/specs/overgrow/systems-web.md`); `node tools/brief.mjs` fails a brief without it. A gap the web shows (a mechanic with no destination, a late system with no seed, or a model that needs a hook to grow) goes into the brief of the part it belongs to.
 - `create_session` with `source_url` (`https://github.com/KyleLookingAround/overgrow`), `source_revision: "main"`, `outcome_branch: "feature/<name>"`, a title, an `overgrow:<feature>` tag, and the model.
 - First message: the brief, with one line asking the session to save it as `docs/briefs/<name>.md` in its PR. Paste a brief once; later messages pass on only what changes the session's current work.
 - A part's brief says what the part before it left undone (part 3 couldn't touch part 1's shell, so container queries and safe areas moved to part 5).
