@@ -3,10 +3,10 @@
 // card is answered); "Sow them" starts the clock; the gardener sows and waters bed 2 in the morning, their hours ticking
 // down; at dusk slugs come out on the damp beds (the check makes the evening damp itself, so a new draw of the dice can't
 // move it) and the gardener goes out with a torch; a tap on a slug's badge opens the first Explain card; by the next
-// morning the Shed tab shows the beer trap and the goal bar counts down to the first harvest; the kitchen's first ask
+// morning the Shed tab shows the beer trap and the goal's line counts down to the first harvest; the kitchen's first ask
 // comes on day 2; the gardener leaves for work at 08:30 on day 1 with no sign, and their job unfolds in the kitchen's
-// sign on day 2's evening, not one of its own; no "try faster" nudge shows in the first minute, and after the first
-// harvest it shows once, at 1×, and goes when answered. "Let them choose" hands bed 2 to the gardener's rotation.
+// sign on day 2's evening, not one of its own; no "try faster" nudge shows in the first minute, and once it's over it
+// shows once, at 1×, and goes when answered. "Let them choose" hands bed 2 to the gardener's rotation.
 import {join} from 'node:path';
 
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
@@ -23,7 +23,7 @@ async function drawnAt(page,hours){
   await page.waitForTimeout(150);
 }
 const overMap=page=>page.evaluate(()=>({cards:[...document.querySelectorAll('.card-overlay .card-title')].map(t=>t.textContent),notices:document.querySelectorAll('.notice').length,
-  goal:document.querySelector('.goal-bar')?.textContent??null}));
+  goal:document.querySelector('.goal-bar .goal-text')?.dataset.text??null}));
 
 export default async function({ok,open,out}){
   {const {ctx,page,errs}=await open({width:1440,height:900});await ready(page);
@@ -85,10 +85,10 @@ export default async function({ok,open,out}){
     // day 2, morning: the beer trap in the shed, and the goal bar counting down to the first harvest
     await drawnAt(page,26);
     // the goal bar gives way to a notice: wait for the night's signs to go, one at a time (src/ui/notices.ts)
-    const goal=await page.waitForSelector('.goal-bar',{timeout:25000}).then(e=>e.textContent(),()=>'');
+    const goal=await page.waitForSelector('.goal-bar .goal-text',{timeout:25000}).then(e=>e.getAttribute('data-text'),()=>'');
     await page.click('#tab-shed').catch(()=>{});
     const shed=await page.waitForFunction(()=>document.querySelector('.offer')?.textContent,null,{timeout:4000}).then(r=>r.jsonValue(),()=>'');
-    ok('first minute: by the second morning the Shed tab shows the beer trap, and the goal bar counts down to the first harvest',
+    ok('first minute: by the second morning the Shed tab shows the beer trap, and the goal’s line counts down to the first harvest',
       /Beer traps/.test(shed)&&/drown/.test(shed)&&/Buy beer traps/.test(shed)&&/^First harvest: .+ in Bed \d, (\d+ % grown|ready to pick)$/.test(goal),`${shed} | ${goal}`);
     await page.click('#tab-garden').catch(()=>{});
     // day 2, evening: the kitchen's first ask, and the gardener home from work in the same sign

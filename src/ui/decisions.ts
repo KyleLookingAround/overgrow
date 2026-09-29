@@ -42,12 +42,13 @@ export function decisionsOf(snap: Snapshot): Decision[] {
   const g = graphOf(snap.nodes), date = calendar(snap.hours), asked = (id: string) => snap.answered?.[id] ?? -Infinity, out: Decision[] = [];
   const air = snap.nodes.find((n) => n.kind === 'atmosphere'), today = air?.levers.weather as unknown as WeatherDay | null | undefined, f = forecastOf(g);
   // a frost tonight: from the morning's forecast until the evening, once a night
-  if (today && f && today.day === date.dayIndex && date.hour >= 6 && date.hour < 21 && asked('frost') < snap.hours - 12) {
+  const purse = snap.money, roll = kitOf(g).fleece || purse >= FLEECE.gbp;
+  if (today && f && today.day === date.dayIndex && date.hour >= 6 && date.hour < 21 && asked('frost') < snap.hours - 20 && roll) {
     const cold = tonight(today, f.day), beds = frostBeds(g).filter((b) => !(typeof b.levers.fleece === 'number' && b.levers.fleece > snap.hours));
     if (cold < 0 && beds.length) {
-      const roll = kitOf(g).fleece ? '' : ` (${money(FLEECE.gbp)} for a roll)`;
+      const price = kitOf(g).fleece ? '' : ` (${money(FLEECE.gbp)} for a roll)`;
       out.push({id: 'frost', at: beds[0]!.id, text: `Frost forecast tonight, ${Math.round(cold)} °C on the grass: fleece the tender crops?`,
-        actions: [{label: `Fleece them${roll}`, cmd: card('frost', 'fleece')}], dismiss: card('frost', 'no')});
+        actions: [{label: `Fleece them${price}`, cmd: card('frost', 'fleece')}], dismiss: card('frost', 'no')});
     }
   }
   // a glut: once a glut, while it lasts
@@ -66,15 +67,16 @@ export function decisionsOf(snap: Snapshot): Decision[] {
       actions: [{label: 'Water sooner', cmd: card('dry', 'water')}], dismiss: card('dry', 'no')});
   }
   // the winter catalogue, once a winter (again three weeks after "later")
-  if (catalogueOpen(g, date) && asked('catalogue') < snap.hours - LATER_HOURS && unfolded(snap.seen, 'garden.money')) {
+  if (catalogueOpen(g, date) && asked('catalogue') < snap.hours - LATER_HOURS && unfolded(snap.seen, 'garden.money') && purse >= cataloguePrice(g, 'standard')) {
     const std = cataloguePrice(g, 'standard'), res = cataloguePrice(g, 'resistant');
-    out.push({id: 'catalogue', at: 'shed', text: `The seed catalogue: next year’s seed for ${money(std)}, about a third less than packets in spring.`,
-      actions: [{label: `Order (${money(std)})`, cmd: card('catalogue', 'standard')}, {label: `Blight-resistant (${money(res)})`, cmd: card('catalogue', 'resistant')}],
+    const actions: Decision['actions'] = [{label: `Order (${money(std)})`, cmd: card('catalogue', 'standard')}];
+    if (purse >= res) actions.push({label: `Blight-resistant (${money(res)})`, cmd: card('catalogue', 'resistant')});
+    out.push({id: 'catalogue', at: 'shed', text: `The seed catalogue: next year’s seed for ${money(std)}, about a third less than packets in spring.`, actions,
       dismiss: card('catalogue', 'later')});
   }
-  // from November to February, the heap's compost as a winter mulch on the beds, once a month at most
+  // from November to February, the heap's compost as a winter mulch on the beds, once a winter
   const heap = compostOn(g), empty = mulchBeds(g);
-  if ((date.month >= 11 || date.month <= 2) && heap >= MULCH_MIN && empty.length && asked('mulch') < snap.hours - 28 * 24 && unfolded(snap.seen, 'garden.soil')) {
+  if ((date.month >= 11 || date.month <= 2) && heap >= MULCH_MIN && empty.length && asked('mulch') < snap.hours - 120 * 24 && unfolded(snap.seen, 'garden.soil')) {
     out.push({id: 'mulch', at: 'heap', text: `The heap has ${Math.round(heap)} kg of compost: spread it on the beds as a winter mulch?`,
       actions: [{label: 'Mulch them', cmd: card('mulch', 'mulch')}], dismiss: card('mulch', 'no')});
   }
@@ -85,10 +87,10 @@ export function decisionsOf(snap: Snapshot): Decision[] {
   }
   // from February to mid-April, the empty beds' soil warmed under fleece for an early sowing, once a fortnight at most
   const cold = warmBeds(g, date);
-  if (cold.length && asked('warm') < snap.hours - 14 * 24 && unfolded(snap.seen, 'garden.money')) {
-    const roll = kitOf(g).fleece ? '' : ` (${money(FLEECE.gbp)} for a roll)`;
+  if (cold.length && asked('warm') < snap.hours - 14 * 24 && unfolded(snap.seen, 'garden.money') && roll) {
+    const price = kitOf(g).fleece ? '' : ` (${money(FLEECE.gbp)} for a roll)`;
     out.push({id: 'warm', at: cold[0]!.id, text: `${cold.length === 1 ? cold[0]!.name : `${cold.length} beds`} empty: lay fleece over to warm the soil, and sow two weeks sooner?`,
-      actions: [{label: `Lay fleece${roll}`, cmd: card('warm', 'warm')}], dismiss: card('warm', 'no')});
+      actions: [{label: `Lay fleece${price}`, cmd: card('warm', 'warm')}], dismiss: card('warm', 'no')});
   }
   return out;
 }

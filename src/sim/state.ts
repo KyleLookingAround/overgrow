@@ -82,7 +82,7 @@ export function gardenGraph(): Graph {
     if (p.id === 'lawn' || p.dug) Object.assign(spec.stocks!, startingSlugs(spec.land![p.land]!, p.id === 'lawn'));
     if (p.kind === 'bed') spec.levers = {...BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS()};
     if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
-    // the kitchen's ledger, and the level's history for the goal, started on the first Monday (src/sim/goal.ts)
+    // the kitchen's ledger, and the level's history for the goal (src/sim/goal.ts)
     // the goal's year counts from the game's first day: the first Monday's sample takes in the days before it
     if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: startGoal() as unknown as LeverValue, quality: {}, glut: 'sell'};
     if (p.id === 'gate') spec.levers = {quality: {}};

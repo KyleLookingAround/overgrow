@@ -10,7 +10,7 @@ import {gardenStatus, goalOf} from './goal';
 import {buyFlow, chit, fleece, orderSeeds, placeOf, warmSoil} from './shed';
 import {GLUT_POLICIES, type GlutPolicy} from '../data/kitchen';
 import type {Variety} from '../data/shed';
-import {askMulch, GARDENER} from './gardener';
+import {askMulch, waterSooner} from './gardener';
 import {SHED} from './kit';
 import {KITCHEN} from './models/kitchen';
 import type {UpgradeId} from '../data/shed';
@@ -41,14 +41,14 @@ export type Command =
   | {type: 'card'; id: 'year'; answer: 'ok'}
   /** The week's decisions, each asked once for what it's about (the State's `answered`): a glut sold, preserved or given
    *  away (the kitchen's `glut` policy); next year's seed from the winter catalogue, or later; fleece over the tender
-   *  crops for a forecast frost; and the watering line raised for a dry spell. */
+   *  crops for a forecast frost; and the watering line raised for a dry spell, put back after the next rain. */
   | {type: 'card'; id: 'glut'; answer: GlutPolicy}
   | {type: 'card'; id: 'catalogue'; answer: Variety | 'later'}
   | {type: 'card'; id: 'frost'; answer: 'fleece' | 'no'}
   | {type: 'card'; id: 'dry'; answer: 'water' | 'no'}
   /** Seed potatoes set out to chit in February or March, for an earlier crop. */
   | {type: 'card'; id: 'chit'; answer: 'chit' | 'no'}
-  /** The heap's compost spread on the empty beds as a winter mulch. */
+  /** The heap's compost spread on the beds as a winter mulch. */
   | {type: 'card'; id: 'mulch'; answer: 'mulch' | 'no'}
   /** Fleece over the empty beds to warm their soil for an early sowing. */
   | {type: 'card'; id: 'warm'; answer: 'warm' | 'no'}
@@ -207,7 +207,7 @@ function decide(s: State, cmd: Extract<Command, {type: 'card'; id: 'glut' | 'cat
     if (cmd.answer !== 'chit' && cmd.answer !== 'no') r = 'chit or no';
     else if (cmd.answer === 'chit') r = chit(g, date, s.hours);
   } else if (cmd.answer !== 'water' && cmd.answer !== 'no') r = 'water or no';
-  else if (cmd.answer === 'water') applyCommand(s, {type: 'plan', node: GARDENER, lever: 'waterBelow', value: DRY_LINE}, systems), (r = s.rejected);
+  else if (cmd.answer === 'water') r = unfolded(s.seen, 'garden.water') ? waterSooner(g, DRY_LINE) : 'that hasn’t come up in the garden yet';
   s.rejected = r;
   if (!r) {
     s.answered = {...s.answered, [cmd.id]: s.hours};

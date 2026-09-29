@@ -107,7 +107,19 @@ export function nextStep(snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>, key: 
   const plot = nodes.find((n) => n.kind === 'bed' && grass(n)), digging = nodes.some((n) => n.kind === 'bed' && grass(n) && n.levers.dig === true);
   if (plot && !digging && !empty.length && unfolded(snap.seen, 'garden.dig') && key !== 'health' && purse >= digCost(plot.stocks['land.grass']?.amount ?? 0))
     return crop ? {text: `Dig ${bedName(plot)} and sow ${lower(CROPS[crop].name)}`, cmds: [plan(plot, 'dig', true), plan(plot, 'sow', crop)]} : {text: `Dig ${bedName(plot)}`, cmds: [plan(plot, 'dig', true)]};
+  if (key === 'output') {
+    // a big buy the purse can pay for, that makes more food this year: eggs most days, then a crop under glass (the fruit
+    // cage crops only from its second summer, so it's no answer to this year's Output)
+    for (const id of ['hens', 'greenhouse'] as const)
+      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id) && purse >= UPGRADES[id].price)
+        return {text: `Buy the ${lower(UPGRADES[id].name)}: ${lower(UPGRADES[id].saves)}`, cmds: [{type: 'buy', id}]};
+  }
   if (key === 'reliability') {
+    // a glut sold in summer is food the winter doesn't have: preserve it, once there's been one
+    // (only while Output has room to spare: what's frozen is eaten later instead of sold now)
+    const k = nodes.find((n) => n.id === 'kitchen'), glut = (k?.levers.ledger as {glutFrom?: number | null} | undefined)?.glutFrom;
+    const output = statusOf(snap).requirements.find((r) => r.key === 'output');
+    if (k && glut != null && (k.levers.glut ?? 'sell') === 'sell' && (output?.value ?? 0) >= 1.15 * (output?.target ?? Infinity)) return {text: 'Preserve the gluts: they feed the lean months', cmds: [{type: 'policy', node: 'kitchen', lever: 'glut', value: 'preserve'}]};
     // a garden that feeds the household in the winter: something that stands through it
     const winter = beds.find((n) => (n.levers.winter ?? 'none') === 'none' && n.levers.cover !== 'greenhouse');
     const w = winter && (winterPick(winter, d) ?? WINTER_IDS[0]!);

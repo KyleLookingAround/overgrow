@@ -85,11 +85,11 @@ export interface Day {
 }
 
 export const dayOf = (g: Graph): Day | null => (g.nodes[GARDENER]?.levers.day as unknown as Day | null | undefined) ?? null;
-export const GARDENER_LEVERS = (): Record<string, LeverValue> => ({waterBelow: 0.5, ...START_POLICY, tools: [...START_TOOLS], day: null, mulch: []});
+export const GARDENER_LEVERS = (): Record<string, LeverValue> => ({waterBelow: 0.5, ...START_POLICY, tools: [...START_TOOLS], day: null, mulch: [], spell: null});
 const PESTS = Object.keys(POLICIES) as PestId[];
 /** What the plan's pest policy says for a pest. */
 export const policyOf = (g: Graph, pest: PestId): Policy => (g.nodes[GARDENER]?.levers[pest] as Policy | undefined) ?? START_POLICY[pest];
-const OWN = new Set(['tools', 'day', 'mulch']);
+const OWN = new Set(['tools', 'day', 'mulch', 'spell']);
 
 /** The plan the day's jobs come from: the watering line and every bed's plan (its winter line and cover too). Written out
  *  again only when one of them is a different value from the last time (levers are replaced, never changed in place). */
@@ -106,6 +106,17 @@ function planKey(g: Graph): string {
   const key = JSON.stringify(parts);
   planned.set(g, {parts, key});
   return key;
+}
+
+/** The dry-spell card's "water sooner": the watering line raised, the one it was kept to put back after the next rain. */
+export function waterSooner(g: Graph, line: number): string | null {
+  const me = g.nodes[GARDENER];
+  if (!me) return 'no gardener';
+  const was = Number(me.levers.waterBelow ?? 0.5);
+  if (was >= line) return 'they water that soon already';
+  me.levers.spell = was;
+  me.levers.waterBelow = line;
+  return null;
 }
 
 /** The dug beds a winter mulch goes on: empty ones and those with a crop standing the winter (compost spread around the
@@ -746,6 +757,14 @@ export const gardener: System = {
         const made = plan(c.graph, start, HOME, from, hoursLeft(me), day?.day === start.dayIndex ? day.next : 0);
         day = {day: start.dayIndex, key, next: made.next, steps: made.steps};
         waterNotes(c, made.steps);
+        // a winter mulch not done by March is let go; a dry spell's watering line goes back once it has rained
+        const month = start.month;
+        if (month >= 3 && month <= 10 && ((me.levers.mulch as string[] | undefined) ?? []).length) me.levers.mulch = [];
+        const spell = me.levers.spell, w = weatherOf(c.graph);
+        if (typeof spell === 'number' && w && w.day === start.dayIndex && w.rain >= 1) {
+          me.levers.waterBelow = spell;
+          me.levers.spell = null;
+        }
         // a glut: more ready in the kitchen than it will eat while it's fresh (the glut card asks what to do with it)
         const glut = surplusOf(c.graph).reduce((a, x) => a + x.kg, 0);
         if (glut >= GLUT.kg) {

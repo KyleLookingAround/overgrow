@@ -792,7 +792,7 @@ button.dig {
   position: absolute;
 }
 .juice-pulse {
-  border: 3px solid var(--accent);
+  border: var(--juice-ring) solid var(--accent);
   border-radius: var(--radius);
   animation: juice-pulse var(--juice-ms) ease-out forwards;
 }

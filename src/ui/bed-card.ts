@@ -46,8 +46,10 @@ export function bedCardOf(snap: Snapshot): BedCard | null {
     const s = suggestion(n, date, others(beds, n));
     // a winter crop only once winter crops have come up (the sim refuses the line before)
     if (!s || (s.lever === 'winter' && !unfolded(snap.seen, 'garden.winter'))) continue;
-    const name = lower(CROPS[s.crop].name), actions: BedCard['actions'] = [{label: `Sow ${name}`, cmds: [plan(n, s.lever, s.crop)]}];
-    if (s.lever === 'sow' && n.levers.sow !== 'rotation') actions.push({label: 'Follow the rotation', cmds: [plan(n, 'sow', 'rotation')]});
+    // the rotation's pick goes in by putting the bed on the rotation from today (so it stays on it); a winter crop on the
+    // bed's winter line
+    const name = lower(CROPS[s.crop].name);
+    const actions: BedCard['actions'] = [{label: `Sow ${name}`, cmds: s.lever === 'sow' ? [plan(n, 'sow', 'rotation'), plan(n, 'sowFrom', null)] : [plan(n, 'winter', s.crop)]}];
     const winter = sowForWinter(snap);
     if (s.lever === 'winter' && empty.length > 1 && winter.length > 1) actions.push({label: 'Sow every empty bed for winter', cmds: winter});
     const why = s.lever === 'sow' ? 'the rotation’s pick' : 'it stands the winter';

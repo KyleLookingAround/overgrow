@@ -38,6 +38,9 @@ export function refuseBuy(g: Graph, id: string): string | null {
   const u = UPGRADES[id];
   if (u.kept && owns(g, id)) return `the garden has ${u.name.toLowerCase()} already`;
   if (id === 'raised-bed' && !nextRaised(g)) return 'every dug bed is raised already';
+  // a big buy needs its ground on the lawn
+  const site = (SITES as Record<string, {box: {w: number; h: number}}>)[id];
+  if (site && (g.nodes.lawn?.stocks['land.grass']?.amount ?? 0) < site.box.w * site.box.h) return 'the lawn has no room for it';
   if (id === 'nematodes' && kitOf(g).nematodes > 0) return 'the last pack is still at work';
   if (purse(g) < u.price) return `${u.name} costs £${u.price.toFixed(2)}`;
   return null;
@@ -111,8 +114,10 @@ function buy(g: Graph, id: UpgradeId) {
  *  the winter catalogue's order covers this garden year. */
 export const seedCost = (g: Graph, crop: CropId, year: number) => (kitOf(g).seeds?.year === year ? 0 : CROPS[crop].seed);
 
-/** The catalogue's order for next year: its price, from the dug beds and the variety. */
-export const cataloguePrice = (g: Graph, variety: Variety) => dugBeds(g).length * CATALOGUE.perBed * (variety === 'resistant' ? CATALOGUE.resistant : 1);
+/** The catalogue's order for next year: its price, for every bed plot the garden has (dug or to be dug, and the
+ *  greenhouse's border), and the variety. */
+export const cataloguePrice = (g: Graph, variety: Variety) =>
+  Object.values(g.nodes).filter((n) => n.kind === 'bed').length * CATALOGUE.perBed * (variety === 'resistant' ? CATALOGUE.resistant : 1);
 /** Whether the catalogue is open on a date (December to February) and next year's seed isn't ordered yet. */
 export const catalogueOpen = (g: Graph, d: CalendarDate) =>
   (d.month >= CATALOGUE.from || d.month <= CATALOGUE.to) && kitOf(g).seeds?.year !== d.year + 1;

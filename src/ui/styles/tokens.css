@@ -105,9 +105,9 @@
   --touch: 40px; /* the smallest tap target on touch screens */
   --pulse-ms: 1600ms; /* the one first-time pulse of an unfold sign (static under reduced motion) */
   --pulse-ring: 3px; /* its ring */
-  --goal-meter: 36px; /* each of the goal bar's three small meters */
   --goal-ring: 1.6rem; /* the goal bar's progress ring */
   --goal-icon: 1.1rem; /* the prize's icon */
+  --juice-ring: 3px; /* a purchase's pulse ring */
   --juice-dot: 8px; /* a coin, a leaf or a seed in the map's small rewards */
   --juice-ms: 1.6s; /* how long each shows (src/ui/juice.ts's JUICE_MS) */
   --panel-w: 360px; /* the panel's width beside the map on wide screens */

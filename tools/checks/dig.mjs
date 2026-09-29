@@ -26,7 +26,7 @@ export default async function({ok,open}){
   await page.click('.dig-offer button.dig');
   await page.waitForFunction(()=>window.__sim.snapshot().nodes.find(n=>n.id==='bed-3').levers.dig===true,null,{timeout:4000}).catch(()=>{});
   const started=await bed(page,'bed-3');
-  // over the next few days the gardener digs it, a square metre a job
+  // over the next few days the gardener digs it, a quarter of a square metre a job
   await page.evaluate(async()=>{for(let i=0;i<6;i++)await window.__sim.send({type:'tick',hours:24})});
   await send(page,{type:'tick',hours:5});
   const done=await bed(page,'bed-3'),spent=await page.evaluate(()=>window.__sim.snapshot().money);

@@ -248,6 +248,10 @@ const SOON = 3;
 export function idle(n: GraphNode, d: CalendarDate): boolean {
   if (n.kind !== 'bed' || cropOf(n) || n.levers.fallow === true) return false;
   if ((n.stocks['land.crops']?.amount ?? 0) <= 0 || (n.stocks['land.grass']?.amount ?? 0) > 1e-6) return false;
+  // a bed planned for one crop (the greenhouse's tomatoes, or the player's own choice) has its say for the summer: it's
+  // idle only when a winter crop could go in and its winter line has none
+  const named = n.levers.sow !== 'rotation' && n.levers.sow !== 'none';
+  if (named && (n.levers.winter !== 'none' || !winterPick(n, d))) return false;
   const next = nextSowing(n, d);
   return !next || (next.day - d.dayOfYear + 365) % 365 > SOON;
 }
@@ -255,7 +259,8 @@ export function idle(n: GraphNode, d: CalendarDate): boolean {
 /** The crop the bed card suggests for an empty bed today: the rotation's pick in season if it has one, else a winter
  *  crop in season whose family the bed didn't just grow (food first, the green manure last); and the lever it goes on. */
 export function suggestion(n: GraphNode, d: CalendarDate, others: Neighbours = []): {lever: 'sow' | 'winter'; crop: CropId} | null {
-  const summer = summerCrop({...n, levers: {...n.levers, sow: 'rotation', sowFrom: null}}, d, others);
+  const named = n.levers.sow !== 'rotation' && n.levers.sow !== 'none';
+  const summer = named ? null : summerCrop({...n, levers: {...n.levers, sow: 'rotation', sowFrom: null}}, d, others);
   if (summer) return {lever: 'sow', crop: summer};
   const pick = winterPick(n, d, others);
   return pick ? {lever: 'winter', crop: pick} : null;
