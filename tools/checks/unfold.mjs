@@ -100,8 +100,13 @@ export default async function({ok,open}){
     await send(page,{type:'tick',hours:24*200});
     await page.waitForTimeout(1500);
     const months=await page.evaluate(()=>[...document.querySelectorAll('.notice.unfold')].map(n=>n.textContent));
-    ok('unfold: the sign goes once it has shown and doesn’t come back, and a jump of months brings no sign naming everything since the first morning',
-      came&&went&&!back&&!months.length&&!errs.length,JSON.stringify({came,went,back,months}));
+    // a save with more seen, loaded at the same hour, brings none either
+    const save=JSON.parse(await page.evaluate(()=>window.__sim.save()));save.seen=[...save.seen,'garden.soil','garden.carbon'];
+    await send(page,{type:'load',save:JSON.stringify(save)});
+    await page.waitForTimeout(1500);
+    const loaded=await page.evaluate(()=>[...document.querySelectorAll('.notice.unfold')].map(n=>n.textContent));
+    ok('unfold: the sign goes once it has shown and doesn’t come back, and a jump of months or a load brings no sign naming everything since the first morning',
+      came&&went&&!back&&!months.length&&!loaded.length&&!errs.length,JSON.stringify({came,went,back,months,loaded}));
     await ctx.close()}
 
   // "Show all details": every number, tab and dial shows on a new game, and no lever opens

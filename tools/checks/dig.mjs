@@ -1,7 +1,8 @@
 // Digging (the plan's `dig` on a plot under grass, src/sim/gardener.ts and src/sim/models/carbon.ts): the command is open
 // from the start, but "Dig this bed" shows on a grass plot's card only once every dug bed is in use (`garden.dig`), with
 // its hours, price and carbon; tapping it has the gardener dig over the following days (the edging's price and the
-// soil's flush of carbon are the Vitest tests', src/sim/shed.test.ts), and the dug bed joins the plan.
+// soil's flush of carbon are the Vitest tests', src/sim/shed.test.ts), and the dug bed joins the plan. On a phone the
+// goal bar's button digs the next bed in one tap once it's the step (round three).
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
 const send=(page,cmd)=>page.evaluate(c=>window.__sim.send(c),cmd);
 const shows=(page,sel,on=true)=>page.waitForFunction(([s,o])=>!!document.querySelector(s)===o,[sel,on],{timeout:4000}).then(()=>true,()=>false);
@@ -37,4 +38,23 @@ export default async function({ok,open}){
   const again=(await send(page,{type:'plan',node:'bed-1',lever:'dig',value:true})).rejected;
   ok('dig: digging a bed that’s dug already is refused',/dug already/.test(again??''),String(again));
   await ctx.close();
+
+  // on a phone, one tap on the goal bar's button digs the next bed once that's the step
+  {const {ctx,page,errs}=await open({width:390,height:844},{touch:true});await ready(page);
+    const save=JSON.parse(await page.evaluate(()=>window.__sim.save()));
+    save.seen=['card.first-plan','card.try-faster','garden.dig','garden.money','garden.water','garden.slugs','garden.shed','shed.beer-trap','garden.kitchen','household.commute'];
+    save.graph.nodes.kitchen.stocks.money.amount=200;save.graph.nodes.kitchen.levers.ledger.firstHarvest=0;
+    await send(page,{type:'load',save:JSON.stringify(save)});await send(page,{type:'speed',speed:0});
+    await send(page,{type:'tick',hours:3});
+    // March's cards answered, so the goal bar shows
+    for(const id of ['chit','warm'])await send(page,{type:'card',id,answer:'no'});
+    // a paused view moves on a tick of more than four steps
+    await send(page,{type:'tick',hours:5});
+    const go=await page.waitForFunction(()=>/^Dig bed 3/.test(document.querySelector('.goal-text')?.textContent??'')&&!!document.querySelector('.goal-go'),null,{timeout:15000}).then(()=>true,()=>false);
+    const verb=await page.evaluate(()=>document.querySelector('.goal-text')?.textContent??null);
+    if(go)await page.tap('.goal-go');
+    await page.waitForFunction(()=>window.__sim.snapshot().nodes.find(n=>n.id==='bed-3').levers.dig===true,null,{timeout:4000}).catch(()=>{});
+    const dug=await bed(page,'bed-3');
+    ok('dig: on a phone, one tap on the goal bar’s button digs the next bed',go&&dug.dig===true&&!errs.length,JSON.stringify({verb,dug,errs}));
+    await ctx.close()}
 }

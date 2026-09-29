@@ -42,7 +42,7 @@ const lower = (s: string) => s[0]!.toLowerCase() + s.slice(1);
 /** How far a requirement is short of its target, in its own terms. */
 export function shortBy(r: RequirementStatus): string {
   const gap = Math.max(0, r.target - r.value);
-  return r.key === 'output' ? `${gap.toFixed(2)} kg a day short` : `${Math.ceil(gap)} short`;
+  return r.key === 'output' ? `${Math.max(1, Math.round(1000 * gap))} g a day short` : `${Math.max(1, Math.ceil(gap))} short`;
 }
 
 /** The requirements short at the year's end, the furthest from its target first, each with the one or two things most

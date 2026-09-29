@@ -95,10 +95,11 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
     return () => clearTimeout(t);
   }, [juice]);
   useEffect(() => sim.onSnapshot((s) => {
-    // a load or a new game starts afresh, and so does a jump of more than a week (a save carried on from elsewhere): the
-    // page never ticks that far at once, and its sign would name everything that unfolded since the first morning
+    // a load or a new game starts afresh: a load brings no effects with what it has seen, and a jump of more than a week
+    // is a save carried on from elsewhere (the page never ticks that far at once); its sign would name everything that
+    // unfolded since the first morning
     const before = was.current, fresh = !before || before.seed !== s.seed || s.seen.length < before.seen.length || s.hours < before.snap.hours ||
-      s.hours - before.snap.hours > JUMP_HOURS;
+      s.hours - before.snap.hours > JUMP_HOURS || (!s.effects.length && s.seen.length > before.seen.length);
     const m = fresh ? {moments: [], mark: markOf(s)} : momentsOf(before!.snap, s, before!.mark);
     was.current = {seed: s.seed, seen: s.seen, snap: s, mark: m.mark};
     if (fresh) return;
