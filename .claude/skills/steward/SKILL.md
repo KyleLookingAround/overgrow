@@ -30,7 +30,6 @@ description: Drive an Overgrow pull request to green and merged - reading CI fai
 - Without a `CATCH_UP_TOKEN` secret, its pushes start no `pull_request` runs, so it dispatches Checks itself: read that run. The Description check runs again at your next description edit.
 - So the branch on GitHub may be ahead of yours: `git pull --no-rebase origin <branch>` before you commit more, and never force-push over it.
 - After its comment, merge by hand: `git fetch origin main && git merge origin/main`, resolve what it named, and push. A conflict inside a joined list needs nothing by hand: `node tools/join.mjs --write` rebuilds the list and clears it.
-- Re-read the project notes and this playbook after any merge from `main`, not only at the start: a sibling session's change to the process can land under you (Final Call, `lessons/140-page-size.md`).
 - Count the merges from `main` your PR needed, by you and by the workflow, for the look back.
 
 ## Before every push
