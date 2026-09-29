@@ -66,14 +66,17 @@ describe('the bot', () => {
 });
 
 describe('strategies', () => {
-  const output = (player: string, seed: number) => play({seed, hours: parseGameTime('120d'), player: PLAYERS[player]}).sealed.output;
+  const run = (player: string, seed: number) => play({seed, hours: parseGameTime('120d'), player: PLAYERS[player]});
 
-  // The founding spec's rotation test, on each of seeds 1-3. In part 3's garden nothing makes growing one family bed
-  // after bed cost anything within 120 days (the pests that follow a family from one crop to the next are part 5's),
-  // so salad leaves in both beds keep up with the rotation or beat it: on seed 1 the sensible bot makes 0.10 kg a day
-  // to one-crop's 0.21. It's marked as failing until then: when part 5 makes it pass, Vitest says so, and that part
-  // turns it into a plain test.
-  it.fails('a rotating bot beats a one-crop bot by at least 10 % of Output by day 120, on every seed (fails until part 5)', () => {
-    for (const seed of [1, 2, 3]) expect(output('sensible', seed)).toBeGreaterThanOrEqual(1.1 * output('one-crop', seed));
+  // The founding spec's rotation test is that a rotating bot beats a one-crop bot by at least 10 % of Output by day
+  // 120. In the garden today nothing makes growing one family bed after bed cost anything (the pests that follow a
+  // family from one crop to the next are part 5's), so salad leaves in both beds keep up with the rotation or beat it.
+  // This holds the game to what it does now, on the seed where the gap is plainest; part 5 turns it round into the
+  // spec's test on seeds 1-3 (docs/SYSTEMS.md, "The bot").
+  it('one-crop salad still keeps up with the rotation by day 120 (the spec’s rotation test waits for part 5)', () => {
+    const rotating = run('sensible', 1), oneCrop = run('one-crop', 1);
+    expect([rotating.err, oneCrop.err]).toEqual([[], []]);
+    expect(rotating.sealed.output).toBeGreaterThan(0);
+    expect(oneCrop.sealed.output).toBeGreaterThan(rotating.sealed.output * 1.1);
   });
 });

@@ -5,8 +5,8 @@
 //
 // Game time is 120d, 2w, 1y or 36h (a bare number is days; 120d by default). For each seed it prints SEED, REACHED
 // {milestone: game day}, PLAY (a fingerprint of the saved state that affects play) and ERR [...], then one table of
-// every seed against tools/baseline.json. --markdown writes the same as Markdown (the Balance workflow's summary),
-// --json every run in full. It exits 1 if any seed's ERR isn't empty, and never on a number. Run by vite-node, which
+// every seed against tools/baseline.json; how long each seed took goes to stderr, so two runs' output diff cleanly.
+// --markdown writes the same as Markdown (the Balance workflow's summary), --json every run in full. It exits 1 if any seed's ERR isn't empty, and never on a number. Run by vite-node, which
 // Vitest brings, so the sim's TypeScript runs as it is, without a build step. The run itself is tools/bot/play.ts.
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
@@ -53,9 +53,10 @@ function main() {
   for (const seed of o.seeds) {
     const t0 = performance.now(), run = play({seed, hours, player: PLAYERS[o.player]});
     runs.push(run);
-    console.log(`${block(run)}\n(${o.player}, ${o.time}, ${((performance.now() - t0) / 1000).toFixed(1)} s)\n`);
+    console.log(`${block(run)}\n`);
+    console.error(`(seed ${seed}, ${o.player}, ${o.time}: ${((performance.now() - t0) / 1000).toFixed(1)} s)`);
   }
-  if (base && base.gameTime !== o.time) console.log(`(the baselines are for ${base.gameTime}; this run is ${o.time})`);
+  if (base && parseGameTime(base.gameTime) !== hours) console.log(`(the baselines are for ${base.gameTime}; this run is ${o.time})`);
   console.log(table(runs, base, 'text'));
   const write = (path: string, text: string) => {
     mkdirSync(dirname(path), {recursive: true});

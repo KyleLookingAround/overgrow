@@ -21,6 +21,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Not sorted yet
 
 - [Crops and the gardener, the first slice’s part 3 (#12) · 29 Sep 2026](lessons/12-crops-and-gardener.md)
+- [The bot and the first baselines, the first slice's part 4 (#10) · 29 Sep 2026](lessons/10-bot-and-baselines.md)
 - [Weather, soil and water, the first slice's part 2 (#7) · 29 Sep 2026](lessons/7-weather-soil-water.md)
 - [The graph and the clock, the first slice's part 1 (#5) · 28 Sep 2026](lessons/5-graph-and-clock.md)
 <!-- /joined:lessons -->

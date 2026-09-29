@@ -36,7 +36,7 @@ Make the change and run the same three seeds into `build/after.log`.
 
 ## Tips
 
-- The Balance workflow (`balance.yml`) runs the seeds on a PR once when it opens or leaves draft, and again when the `balance` label is added; its table is in the run's summary. Report its tables rather than repeating the runs, unless you're tuning. Add the label again after a tuning push to re-run it.
+- The Balance workflow (`balance.yml`) runs the seeds on a PR once when it opens or leaves draft, and again when the `balance` label is added; its table is in the run's summary. Report its tables rather than repeating the runs, unless you're tuning. To run it again after a tuning push (or before merging, on the latest head), remove the label and add it again: only adding it starts a run.
 - Tune a constant only inside the rough size its model's sources give (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`); outside it is a design change for the owner.
 - A part of a split feature reports its numbers and tunes only outside 15% of the baselines; the whole feature is rebalanced once, with every part in.
 - A level zoomed out is fed by the level below's numbers (the spec's carry-over rule), so a change to the garden can move the allotment's pacing too: compare every milestone, not only the one you changed.
