@@ -165,7 +165,14 @@ const SOLD: {product: string; keeps: number; price: number}[] = [
   ...EXTRAS.map((x) => ({product: x.product, keeps: x.keeps, price: x.box})),
 ];
 const inGroup = (group: Group) => PRODUCTS.filter((c) => c.group === group).sort((a, b) => a.keeps.kitchen - b.keeps.kitchen);
-const stockOf = (n: GraphNode, product: string) => n.stocks[`food.${product}`]?.amount ?? 0;
+/** Each product's stock key, made once rather than a string built at every look. */
+const KEYS = new Map<string, string>();
+const keyOf = (product: string) => {
+  let k = KEYS.get(product);
+  if (k === undefined) KEYS.set(product, (k = `food.${product}`));
+  return k;
+};
+const stockOf = (n: GraphNode, product: string) => n.stocks[keyOf(product)]?.amount ?? 0;
 
 /** What's in the kitchen beyond what the household will eat while it's fresh, by product: the gardener carries it to the
  *  honesty box. The kitchen keeps a group's stretched ask for half each product's shelf life, up to three weeks, and what
