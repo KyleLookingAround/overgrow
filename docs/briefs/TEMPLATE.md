@@ -28,6 +28,7 @@ Answer each briefly, for what this part adds, and name its rows in the systems w
 9. **Carbon and land.** What it adds to the dial and the land account: <fill: carbon, land>.
 10. **Polish.** Phones to large screens, concise UK English, hidden until unlocked, the UI record's rules: <fill: polish>.
 11. **The lesson.** The one real-world thing it teaches, and any myth it corrects: <fill: lesson>.
+12. **Unfolding.** What the player sees of it, and when; the influence that reveals it; never greyed, never all at once; one first-time pulse and a short Explain when it appears: <fill: unfolds when>.
 
 ## Speed budget
 

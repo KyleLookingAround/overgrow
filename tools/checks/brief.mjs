@@ -14,6 +14,6 @@ export default async function({ok,root}){
   const cut=tpl.replace(/^## How it fits and grows\n[\s\S]*?(?=^## )/m,''),unnamed=tpl.replace(/systems-web\.md/g,'the web');
   const miss=b=>b.some(x=>x.includes('"## How it fits and grows"')),need=b=>b.some(x=>x.includes('"How it fits and grows" must'));
   const cases=[!checkBrief(tpl,false,'new-part').length,cut!==tpl&&miss(checkBrief(cut,false,'new-part')),need(checkBrief(unnamed,false,'new-part')),
-    !checkBrief(cut,false,[...BEFORE][0]).length];
+    !checkBrief(cut,false,'sealing-maths').length&&BEFORE.has('sealing-maths')];
   ok('brief: "How it fits and grows" is required, naming the systems web, in every brief not started before it',cases.every(Boolean),`cases ${cases.map(c=>c?'ok':'FAIL').join(' ')}`);
 }

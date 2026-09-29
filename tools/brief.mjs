@@ -20,7 +20,8 @@ export const SECTIONS=[
   ['Cost budget',/\$\s?\d/,'give an estimate in dollars'],
 ];
 
-// the briefs started before "How it fits and grows" (merged or in flight when it came in), which may leave it out
+// the briefs started before "How it fits and grows" (merged or in flight when it came in), which may leave it out;
+// never reuse one of these names for a new brief, or it skips the section
 export const BEFORE=new Set(['bot-and-baselines','coordinator-first-slice','crops-and-gardener','final-call-wins','graph-and-clock',
   'labour-machinery-energy','livestock-model','overgrow-setup','pests-wildlife-explain','sealing-maths','systems-web','weather-soil-water']);
 

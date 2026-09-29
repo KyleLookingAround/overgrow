@@ -19,7 +19,8 @@ The founding spec gives the ladder, the carry-over rule, the systems map and the
   - **Drawn**: what's on the map, impact first.
   - **Seals as**: what a sealed node carries up. These are the five headline numbers (Output, Quality, Reliability, Upkeep, Health), plus Freshness, carbon, land and the summed stocks.
   - **Fast / slow · lesson**: its fast and slow effect, and the real-world lesson it teaches at that level.
-- **Loops** are the spec's six: diet, intensification, trade, energy, waste and agency.
+- **Loops** are the spec's six: diet, intensification, trade, energy, waste and agency. Each system's loops are named once above its table and hold at every level; where a loop joins at one level only, the row's Fast / slow cell says so.
+- **Unfolds when** (the owner, 29 Sep): the influence that first reveals the system's instruments (numbers, dials, badges, tabs, plan lines, levers) to the player at that level. See "Unfolding", below.
 
 ## The grid
 
@@ -43,11 +44,11 @@ What each system is at each level. A dot means it isn't there, and **s** means a
 | Trade and geopolitics | s | s | s | T | T | H | H | H |
 | Waste and circularity | H | H | H | H | H | H | H | T |
 | Energy | s | · | H | H | H | H | H | H |
-| Greenhouse gases | H | H | H | H | H | H | H | H |
+| Greenhouse gases | H | N | H | H | H | H | H | H |
 | Climate feedback | s | s | s | s | s | s | H | H |
 | Nutrition and public health | s | s | s | · | s | s | H | H |
 | Population and culture | s | s | s | · | A | A | H | H |
-| Agency and trust | H | H | H | H | H | H | H | H |
+| Agency and trust | s | H | H | H | H | H | H | H |
 | Politics and policy | s | H | H | H | H | H | R | H |
 | Technology and upgrades | H | H | H | H | H | H | H | H |
 | Money, credit and insurance (**Q5**) | H | H | H | H | H | H | H | H |
@@ -57,81 +58,97 @@ What each system is at each level. A dot means it isn't there, and **s** means a
 | Advisers, recommendations and Explain | H | H | H | H | H | H | R | H |
 | Events | H | H | H | H | H | H | H | H |
 
+## Unfolding: the systems run, the player sees them as they gain influence
+
+The owner (29 Sep 2026): "I don't want to overwhelm the player with too many things to look at from the start. The systems should still be running, just unfolding to the user as they have influence." This is settled by the owner, not a proposal. Each system table's last column says what reveals it at each level.
+
+- **Everything runs from the start.** Every system in the grid runs from the first hour, and the living map shows its impacts from day one: the soil pales, slugs creep, the heap steams.
+- **Instruments unfold with influence.** A system's numbers, dials, badges, tabs, plan lines and levers appear when the player first has a say over it: the first dry bed brings the watering line, and the first carbon choice brings the dial. They never appear greyed out, and never all at once. Each gets one first-time pulse and a short Explain card.
+- **Levers are gated in the sim.** A command for a lever that hasn't unfolded is refused, so the bot plays the same game as the player.
+- **Views are gated in the UI.** They unfold from the sim's saved `seen` state, through one table, `src/data/unfold.ts` (part 5 starts it).
+- **Each level starts simple again.** A new level's instruments unfold as the player gains influence there, and sealed levels below show only their totals.
+
+**Where it overrides the founding spec** (settled by the owner, not a question on #29):
+
+- The garden's carbon dial is "shown on a small dial from day one" in the spec. It now appears with the first carbon choice: the first dig, a bag of peat or the first compost spread. The carbon is counted from the first bed either way.
+- "Carbon, land, water and waste are counted at every level from the first bed." They're still counted. Each is shown when it unfolds.
+- The spec's own rule that a tab appears once it has something in it, and the first minute's cards (the plan card, the first Explain, the beer trap on day 2, the goal bar), already unfold this way, so they stand.
+
 ## The physical world
 
 ### Calendar and climate
 
-Loops: diet (yields and prices), energy (heating and cooling), trade (failures abroad). Spec: from 1 (counted), 7 (felt), 8 (closed).
+Loops: diet (yields and prices), energy (heating and cooling), trade (failures abroad). Spec: from 1.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: the day's weather over six beds. The only lever is cover (a cold frame), put on by the gardener. | Rain, frost's rime, the soil paling and darkening | Reliability (the weather's noise), Health's water part | Fast: a frost kills the beans overnight. Slow: none yet, since the warming index is a few kg. Weather is not climate; sowing follows the season. |
-| 2 · P | H: the same weather over twelve plots at once. The lever is the trough rota. | A queue at the trough in a dry spell | Reliability falls because every plot's bad weeks coincide | Fast: a dry week hits everyone. Slow: none. Risk that everyone shares can't be spread across neighbours. |
-| 3 · S | H: weather windows for field work, and the flood on the low field. The lever is the year plan; the smallholder acts. | Tractor idle on a wet day; water spreading over the low field | Reliability; flood events | Fast: a wet autumn delays drilling. Slow: a field that floods every few years. Workable days, not the calendar, set the farm year. |
-| 4 · S | H: weather risk at scale. The levers are insurance, drainage and crop choice; the farmer acts. | Hail crossing fields; a flood | Event sizes; Reliability | Fast: a hailstorm's loss. Slow: the insurance premium rising. A farm's income swings with the weather more than with effort. |
-| 5 · P | T for farms' weather; H for the town's own. Heat moves demand. The lever is stock policy; shop managers act. | Queues for ice cream, empty salad shelves (spec's map list) | Freshness; demand spikes | Fast: a heatwave's salad rush. Slow: none. Weather moves demand, not only supply. |
-| 6 · S | T: regional tints and one line. The lever is spreading suppliers; the buyer acts. | A region browning | Reliability of each supply route | Fast: a shortage. Slow: supplier choice. Diversify sourcing across regions. |
-| 7 · S | H, felt: the warming index shows at last as hotter summers and drought years. The lever is adaptation law (reservoirs, variety research); ministers and agencies act. | The palette shifting over years; the drought map | The nation's yields and water | Fast: a drought year. Slow: the means shifting. Extremes arrive before the mean shows (IPCC AR6). |
-| 8 · S | H, closed: the planet's air sets warming for everyone. The lever is a treaty; governments act. | Weather systems crossing the map; sea creeping in | Every country's yields | Fast: a failed harvest abroad. Slow: decades of warming. Warming follows cumulative CO₂ (TCRE); the compost heap's loop closes here. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: the day's weather over six beds. The only lever is cover (a cold frame), put on by the gardener. | Rain, frost's rime, the soil paling and darkening | Reliability (the weather's noise), Health's water part | Fast: a frost kills the beans overnight. Slow: none yet, since the warming index is a few kg. Weather is not climate; sowing follows the season. | Weather is drawn from the first hour; the temperature and forecast show when the first frost threatens a tender crop, and the cold frame's lever with it |
+| 2 · P | H: the same weather over twelve plots at once. The lever is the trough rota. | A queue at the trough in a dry spell | Reliability falls because every plot's bad weeks coincide | Fast: a dry week hits everyone. Slow: none. Risk that everyone shares can't be spread across neighbours. | With the trough: the dry-spell queue first, the rota's lever with the first vote |
+| 3 · S | H: weather windows for field work, and the flood on the low field. The lever is the year plan; the smallholder acts. | Tractor idle on a wet day; water spreading over the low field | Reliability; flood events | Fast: a wet autumn delays drilling. Slow: a field that floods every few years. Workable days, not the calendar, set the farm year. | The year plan's weather windows with the first field to drill |
+| 4 · S | H: weather risk at scale. The levers are insurance, drainage and crop choice; the farmer acts. | Hail crossing fields; a flood | Event sizes; Reliability | Fast: a hailstorm's loss. Slow: the insurance premium rising. A farm's income swings with the weather more than with effort. | Insurance's lever with the first weather loss on the farm |
+| 5 · P | T for farms' weather; H for the town's own. Heat moves demand. The lever is stock policy; shop managers act. | Queues for ice cream, empty salad shelves (settled: the spec's map list) | Freshness; demand spikes | Fast: a heatwave's salad rush. Slow: none. Weather moves demand, not only supply. | The heat-demand line with the first heatwave the market sees |
+| 6 · S | T: regional tints and one line. The lever is spreading suppliers; the buyer acts. | A region browning | Reliability of each supply route | Fast: a shortage. Slow: supplier choice. Diversify sourcing across regions. | Regional tints with the first shortage traced to weather |
+| 7 · S | H, felt: the warming index shows at last as hotter summers and drought years. The lever is adaptation law (reservoirs, variety research); ministers and agencies act. | The palette shifting over years; the drought map | The nation's yields and water | Fast: a drought year. Slow: the means shifting. Extremes arrive before the mean shows (IPCC AR6). | The warming readout with the first drought year felt |
+| 8 · S | H, closed: the planet's air sets warming for everyone. The lever is a treaty; governments act. | Weather systems crossing the map; sea creeping in | Every country's yields | Fast: a failed harvest abroad. Slow: decades of warming. Warming follows cumulative CO₂ (TCRE); the compost heap's loop closes here. | Always shown: warming is the planet's headline |
 
 ### Soil
 
 Loop: intensification. Spec: from 1.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: each bed's moisture, organic matter, N-P-K and health. The levers are compost and rotation in the plan; the gardener spreads and sows. | Soil colour; the gardener with a bucket of compost | Health (the soil part), carbon | Fast: a dry bed wilts a crop. Slow: organic matter builds over years. Soil is alive and slow. |
-| 2 · P | H: your plot's soil; neighbours' plots as their Health. The lever is taking on and reclaiming the neglected second plot. | Weeds on the neglected plot, cleared by degrees | Health | Fast: none. Slow: reclaiming takes seasons. Neglect costs years, not weeks. |
-| 3 · S | H at field scale: rotation over years, cover crops, and the tractor's compaction (PR #26: up to −30 % yield, a five-year half-life). The lever is the year plan; the smallholder and the hand act. | Wheel ruts; cover crops greening a winter field | Health | Fast: a compacted wet field. Slow: rotation rebuilding it. Rotation and cover crops put back what cropping takes. |
-| 4 · P | H: soil as the farm's capital. The levers are the tillage policy and the manager you hire. A manager whose goal is this year's yield mines it (spec). | A tired field's paler crop | Health; carbon (the full account) | Fast: the manager's yield bump. Slow: the soil's decline. Soil is capital; a short-term goal spends it. |
-| 5 · S | N: each farm's Health number. The lever is where the market buys from. | Farm tiles with Health | — | Soil shows only as Reliability downstream. |
-| 6 · P | T: a supplier's slow decline. The lever is contract terms; the buyer acts. | A tint on a sourcing region | — | Fast: price pressure. Slow: suppliers' soils decline. A buyer's squeeze can mine soils it never sees. |
-| 7 · P | A: a soil health index by region. The lever is law (paying for soil cover, the way England's Sustainable Farming Incentive does); farmers respond. | Regions tinted by soil health | — | Fast: none. Slow: decades. Public money for public goods. |
-| 8 · P | T: degraded land by country. The lever is a treaty. | Countries tinted | — | About a third of the world's soils are degraded (FAO, Status of the World's Soil Resources, 2015). |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: each bed's moisture, organic matter, N-P-K and health. The levers are compost and rotation in the plan; the gardener spreads and sows. | Soil colour; the gardener with a bucket of compost | Health (the soil part), carbon | Fast: a dry bed wilts a crop. Slow: organic matter builds over years. Soil is alive and slow. | Moisture shows with the first watering choice; organic matter and N-P-K when the first crop shows stress or the first compost is ready |
+| 2 · P | H: your plot's soil; neighbours' plots as their Health. The lever is taking on and reclaiming the neglected second plot. | Weeds on the neglected plot, cleared by degrees | Health | Fast: none. Slow: reclaiming takes seasons. Neglect costs years, not weeks. | The second plot's soil when it's offered |
+| 3 · S | H at field scale: rotation over years, cover crops, and the tractor's compaction (PR #26: up to −30 % yield, a five-year half-life). The lever is the year plan; the smallholder and the hand act. | Wheel ruts; cover crops greening a winter field | Health | Fast: a compacted wet field. Slow: rotation rebuilding it. Rotation and cover crops put back what cropping takes. | Compaction with the tractor's first pass; the rotation's soil view with the year plan |
+| 4 · P | H: soil as the farm's capital. The levers are the tillage policy and the manager you hire. A manager whose goal is this year's yield mines it (spec). | A tired field's paler crop | Health; carbon (the full account) | Fast: the manager's yield bump. Slow: the soil's decline. Soil is capital; a short-term goal spends it. | The farm's soil Health with the first manager hired |
+| 5 · S | N: each farm's Health number. The lever is where the market buys from. | Farm tiles with Health | — | Soil shows only as Reliability downstream. | Farms' Health on their tiles, from the start of the level |
+| 6 · P | T: a supplier's slow decline. The lever is contract terms; the buyer acts. | A tint on a sourcing region | — | Fast: price pressure. Slow: suppliers' soils decline. A buyer's squeeze can mine soils it never sees. | The supplier tint with the first contract squeeze |
+| 7 · P | A: a soil health index by region. The lever is law (paying for soil cover, the way England's Sustainable Farming Incentive does); farmers respond. | Regions tinted by soil health | — | Fast: none. Slow: decades. Public money for public goods. | The soil index with the first soil law on the table |
+| 8 · P | T: degraded land by country. The lever is a treaty. | Countries tinted | — | About a third of the world's soils are degraded (FAO, Status of the World's Soil Resources, 2015). | A tint once a treaty is possible |
 
 ### Water
 
 Loops: intensification, energy (pumping), climate. The spec settles the lever's growth: "water below this moisture" → "share the trough by rota" → "irrigate or not" → "abstraction licences" → "water policy".
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: the FAO-56 balance, the butt and the tap. The lever is the watering line; the gardener waters with a can, then a hose, then drip lines. A hosepipe ban in a dry summer is **Q8**. | The gardener with the can; the butt's level; soil colour | Health (water part); Upkeep (mains water) | Fast: a watered bed recovers today. Slow: a dry summer empties the butt. Plants drink by the weather, not by the calendar. |
-| 2 · S | H: the shared trough with a daily limit; the rota is voted by the committee. | A queue at the trough | Health (water part) | Fast: an empty trough. Slow: the rota's fairness. A shared resource needs rules (Ostrom's commons). |
-| 3 · S | H: irrigate or not; the pump's energy (PR #26, `pumpKWh()`). The levers are the plan and a borehole or reservoir; the smallholder acts. | The pump running; the irrigated field greener | Upkeep; Reliability | Fast: a field saved in a drought. Slow: the energy bill. Water costs energy. |
-| 4 · S | H: abstraction licences, the farm reservoir, and floods. The levers are the licence application and the reservoir; the farmer and the agency act. | Reservoir level; a dry river | Reliability | Fast: a licence cut in a dry year. Slow: none. A licence caps what you can take when everyone needs it. |
-| 5 · S | N: water as farms' Reliability. | — | — | The town sees drought only as price. |
-| 6 · P | T, and imported water: salad from a dry region. The lever is sourcing; the buyer acts. | Sourcing tint | — | Importing food imports its water (Hoekstra & Mekonnen, 2012). |
-| 7 · S | H: basin scale, water policy and drought orders. The lever is law; the agency and water companies act. | Reservoirs and rivers by basin | — | Basins, not borders, set the limit. |
-| 8 · P | A: water stress by country. The lever is a treaty or aid. | Countries tinted | — | Farming takes about 70 % of freshwater withdrawals (FAO AQUASTAT). |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: the FAO-56 balance, the butt and the tap. The lever is the watering line; the gardener waters with a can, then a hose, then drip lines. A hosepipe ban in a dry summer is **Q8**. | The gardener with the can; the butt's level; soil colour | Health (water part); Upkeep (mains water) | Fast: a watered bed recovers today. Slow: a dry summer empties the butt. Plants drink by the weather, not by the calendar. | The watering line appears with the first dry bed the gardener must choose to water; the butt's level from the first rain |
+| 2 · S | H: the shared trough with a daily limit; the rota is voted by the committee. | A queue at the trough | Health (water part) | Fast: an empty trough. Slow: the rota's fairness. A shared resource needs rules (Ostrom's commons). | The trough's limit with the first queue; the rota with the vote |
+| 3 · S+P | H: irrigate or not; the pump's energy (PR #26, `pumpKWh()`). The levers are the plan and (**P**) a borehole or reservoir; the smallholder acts. | The pump running; the irrigated field greener | Upkeep; Reliability | Fast: a field saved in a drought. Slow: the energy bill. Water costs energy. | Irrigate-or-not with the first dry field |
+| 4 · S | H: abstraction licences, the farm reservoir, and floods. The levers are the licence application and the reservoir; the farmer and the agency act. | Reservoir level; a dry river | Reliability | Fast: a licence cut in a dry year. Slow: none. A licence caps what you can take when everyone needs it. | The licence with the first application or cut |
+| 5 · S | N: water as farms' Reliability. | — | — | The town sees drought only as price. | Only as prices |
+| 6 · P | T, and imported water: salad from a dry region. The lever is sourcing; the buyer acts. | Sourcing tint | — | Importing food imports its water (Hoekstra & Mekonnen, 2012). | Imported water with the first dry-region sourcing choice |
+| 7 · S | H: basin scale, water policy and drought orders. The lever is law; the agency and water companies act. | Reservoirs and rivers by basin | — | Basins, not borders, set the limit. | Basin water with the first drought order |
+| 8 · P | A: water stress by country. The lever is a treaty or aid. | Countries tinted | — | Farming takes about 70 % of freshwater withdrawals (FAO AQUASTAT). | With the first water treaty or aid |
 
 ### Land use
 
 Loops: diet (grazing against crops), intensification. Spec: from 1 (the lawn), 4 in earnest.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: digging the lawn, and a bag of peat (land used elsewhere). The lever is `dig`; the gardener digs. | The dug plot, a square metre at a time | Land by use; carbon | Fast: the spade. Slow: the lost soil carbon (IPCC's ×0.69). Changing land use moves carbon. |
-| 2 · S | H: the second plot, and the committee's vote on letting a plot go to bees. | The bee plot flowering | Land by use | Fast: none. Slow: the bee plot pays back in pollination. Sharing land with nature, in miniature. |
-| 3 · S | H: fields, pasture, hedges and a woodland corner. The lever is the year plan; the smallholder acts. | Fields by use; a new hedge | Land by use; carbon | Fast: none. Slow: the hedge's carbon over decades. A field's use decides its carbon, water and wildlife. |
-| 4 · S | H in earnest: plant woodland, drain or rewet, pasture or arable. The farmer acts. | Rewetted land; planted trees | Land; carbon | Fast: a lost crop's income. Slow: trees' carbon. Grazing needs far more land per kg of protein (Poore & Nemecek, 2018). |
-| 5 · P | N: farmland around the town; the town's own built land. The lever is planning; the council decides. | Houses spreading onto fields | Land (built) | Homes and food compete for the same fields. |
-| 6 · P | T: the land the chain's imports use abroad. | Sourcing tint | — | A shop's shelf has a land footprint. |
-| 7 · S | H: the land budget (food, forest, energy, homes, nature). The lever is law; the tension shows as votes. | Regions' land use shifting | — | The country's land can't do everything at once. |
-| 8 · P | H: deforestation embedded in commodities. The levers are treaties and trade rules. | Forest edges receding | — | Livestock uses about three quarters of farmland for under a fifth of calories (Poore & Nemecek, 2018). |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: digging the lawn, and a bag of peat (land used elsewhere). The lever is `dig`; the gardener digs. | The dug plot, a square metre at a time | Land by use; carbon | Fast: the spade. Slow: the lost soil carbon (IPCC's ×0.69). Changing land use moves carbon. | The land account with the first dig (the dial's first carbon choice) |
+| 2 · S | H: the second plot, and the committee's vote on letting a plot go to bees. | The bee plot flowering | Land by use | Fast: none. Slow: the bee plot pays back in pollination. Sharing land with nature, in miniature. | The bee plot with its vote; the second plot with its offer |
+| 3 · S+P | H: fields, pasture, hedges and (**P**) a woodland corner. The lever is the year plan; the smallholder acts. | Fields by use; a new hedge | Land by use; carbon | Fast: none. Slow: the hedge's carbon over decades. A field's use decides its carbon, water and wildlife. | Field uses with the first year plan |
+| 4 · S | H in earnest: plant woodland, drain or rewet, pasture or arable. The farmer acts. | Rewetted land; planted trees | Land; carbon | Fast: a lost crop's income. Slow: trees' carbon. Grazing needs far more land per kg of protein (Poore & Nemecek, 2018). | Woodland and rewetting with the first offer to plant or drain |
+| 5 · P | N: farmland around the town; the town's own built land. The lever is planning; the council decides. | Houses spreading onto fields | Land (built) | Homes and food compete for the same fields. | Built land with the first planning decision |
+| 6 · P | T: the land the chain's imports use abroad. | Sourcing tint | — | A shop's shelf has a land footprint. | The land footprint with the first sourcing choice |
+| 7 · S | H: the land budget (food, forest, energy, homes, nature). The lever is law; the tension shows as votes. | Regions' land use shifting | — | The country's land can't do everything at once. | The land budget with the first land law |
+| 8 · P | H: deforestation embedded in commodities. The levers are treaties and trade rules. | Forest edges receding | — | Livestock uses over four fifths of farmland for under a fifth of calories (Poore & Nemecek, 2018). | Deforestation with the first commodity treaty |
 
 ### Biodiversity
 
 Loops: intensification (pesticides and monoculture against natural enemies). Spec: from 1 (marigolds), 3.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: flowers bring ladybirds (aphids) and bees (beans, tomatoes). The levers are flowers in the plan and the pest policy's "treat", which kills them too. The gardener acts. | Bees and ladybirds over flowers | Health has no wildlife part (**Q6**) | Fast: aphids eaten. Slow: a population that builds. Natural enemies are pest control you don't pay for. |
-| 2 · S | H: neighbours' spraying reaches your bees; the vote on the bee plot. | Bees crossing plots | — | Wildlife crosses fences. |
-| 3 · S | H: hedgerows and margins for pollinators. The lever is the year plan; the smallholder plants. | Hedges; margins flowering | **Q6** | Fast: none. Slow: pollinated yields up over years (Klein et al., 2007). |
-| 4 · S | H: agri-environment payments (the subsidy scheme). The lever is the scheme's options; the farmer acts. | Margins, beetle banks | **Q6** | Paid nature is still nature. |
-| 5–6 · P | N, then T: suppliers' wildlife standards. At 6 the buyer can set one. | — | — | A chain's standard reaches thousands of farms. |
-| 7 · P | H: the land budget's nature share and pesticide rules. The lever is law. | The farmland bird index as a map layer | — | England's farmland bird index has roughly halved since 1970 (DEFRA). |
-| 8 · P | H: a treaty (30 % protected by 2030, Kunming-Montreal). | Protected land by country | — | Nature targets are shared or not met. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: flowers bring ladybirds (aphids) and bees (beans, tomatoes). The levers are flowers in the plan and the pest policy's "treat", which kills them too. The gardener acts. | Bees and ladybirds over flowers | Health has no wildlife part (**Q6**) | Fast: aphids eaten. Slow: a population that builds. Natural enemies are pest control you don't pay for. | Bees and ladybirds are drawn from the start; their count shows with the first flowers sown or the first treat |
+| 2 · S+P | H: neighbours' spraying reaches your bees (**P**); the vote on the bee plot. | Bees crossing plots | — | Wildlife crosses fences. | Drift with the first neighbour's spraying; the bee plot with its vote |
+| 3 · S | H: hedgerows and margins for pollinators. The lever is the year plan; the smallholder plants. | Hedges; margins flowering | **Q6** | Fast: none. Slow: pollinated yields up over years (Klein et al., 2007). | Margins with the first hedge or margin offered |
+| 4 · S | H: agri-environment payments (the subsidy scheme). The lever is the scheme's options; the farmer acts. | Margins, beetle banks | **Q6** | Paid nature is still nature. | Scheme options with the scheme |
+| 5–6 · P | N, then T: suppliers' wildlife standards. At 6 the buyer can set one. | — | — | A chain's standard reaches thousands of farms. | A standard's lever at 6 with the first buying round |
+| 7 · P | H: the land budget's nature share and pesticide rules. The lever is law. | The farmland bird index as a map layer | — | England's farmland bird index has fallen by about three fifths since 1970 (DEFRA). | Nature law with the first nature bill |
+| 8 · P | H: a treaty (30 % protected by 2030, Kunming-Montreal). | Protected land by country | — | Nature targets are shared or not met. | The treaty with the first round |
 
 ## Growing food
 
@@ -139,76 +156,76 @@ Loops: intensification (pesticides and monoculture against natural enemies). Spe
 
 Loops: diet, intensification, trade. Spec: from 1.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: six crops grown by degree days, water and nutrients. The lever is the plan (what to sow where and from when, or the rotation); the gardener sows, waters and picks. | Drills, shoots, ripe fruit, wilting, frost-blackened tops | Output, Quality, Reliability | Fast: a harvest. Slow: the rotation's effect on the soil. What grows when, and why. |
-| 2 · S | H: your plot and the neglected second one; neighbours' plots as their totals. The lever is the plot's plan; your gardener and the helping neighbour act. | Neighbours' crops drawn from their totals | Output by product (the spec's "by product mix") | Fast: a glut of courgettes. Slow: none. Surplus is only useful if it's what others lack. |
-| 3 · S | H: fields, with rotation over years (legumes, cover crops, fallow). The lever is the year plan; the smallholder and the hand act. | Fields by crop; the drill and harvest | Output, Health | Fast: a crop in the barn. Slow: a rotation paying back over years. Rotation is a plan over years, not a season. |
-| 4 · S | H: the enterprise's crops, varieties and contracts. The lever is the cropping plan against the contract; the farmer and the manager act. | Harvesters in the row | Output against the contract; Quality | Fast: a contract met or missed. Slow: a variety's disease resistance. Food is grown to a buyer's spec. |
-| 5 · S | N: each farm's Output by product. The lever is which farms the market buys from. | Farm tiles with their numbers | — | Fast: a farm's short week. Slow: none. The town sees fields only as supply. |
-| 6 · S | T: a supplier region's harvest in one line. The lever is sourcing; the buyer acts. | A region's tint | — | Fast: a failed region's gap. Slow: none. A chain sources from many so one failure doesn't empty a shelf. |
-| 7 · P | T: the national crop mix. The lever is law (grants for horticulture, the land budget); growers respond. | Regions tinted by crop | — | Fast: none. Slow: a decade's shift. The UK grows about 60 % of the food it eats (DEFRA, UK Food Security Report). |
-| 8 · S | A: crop zones moving with warming; commodity crops by country. The lever is a treaty or research. | Growing zones creeping north | — | Fast: a failed harvest abroad. Slow: zones moving over decades. Warming moves where things grow. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: six crops grown by degree days, water and nutrients. The lever is the plan (what to sow where and from when, or the rotation); the gardener sows, waters and picks. | Drills, shoots, ripe fruit, wilting, frost-blackened tops | Output, Quality, Reliability | Fast: a harvest. Slow: the rotation's effect on the soil. What grows when, and why. | The plan's first card (salad and radishes) from the first minute; more lines as each bed is dug |
+| 2 · S | H: your plot and the neglected second one; neighbours' plots as their totals. The lever is the plot's plan; your gardener and the helping neighbour act. | Neighbours' crops drawn from their totals | Output by product (the spec's "by product mix"; **Q3**) | Fast: a glut of courgettes. Slow: none. Surplus is only useful if it's what others lack. | Swaps with the swap shed |
+| 3 · S | H: fields, with rotation over years (legumes, cover crops, fallow). The lever is the year plan; the smallholder and the hand act. | Fields by crop; the drill and harvest | Output, Health | Fast: a crop in the barn. Slow: a rotation paying back over years. Rotation is a plan over years, not a season. | The year plan with the smallholding |
+| 4 · S | H: the enterprise's crops, varieties and contracts. The lever is the cropping plan against the contract; the farmer and the manager act. | Harvesters in the row | Output against the contract; Quality | Fast: a contract met or missed. Slow: a variety's disease resistance. Food is grown to a buyer's spec. | Contracts with the first buyer's offer |
+| 5 · S | N: each farm's Output by product. The lever is which farms the market buys from. | Farm tiles with their numbers | — | Fast: a farm's short week. Slow: none. The town sees fields only as supply. | Tiles from the start |
+| 6 · S | T: a supplier region's harvest in one line. The lever is sourcing; the buyer acts. | A region's tint | — | Fast: a failed region's gap. Slow: none. A chain sources from many so one failure doesn't empty a shelf. | Tints with the first failure |
+| 7 · P | T: the national crop mix. The lever is law (grants for horticulture, the land budget); growers respond. | Regions tinted by crop | — | Fast: none. Slow: a decade's shift. The UK grows about 60 % of the food it eats (DEFRA, UK Food Security Report). | The crop mix with the first horticulture bill |
+| 8 · S | A: crop zones moving with warming; commodity crops by country. The lever is a treaty or research. | Growing zones creeping north | — | Fast: a failed harvest abroad. Slow: zones moving over decades. Warming moves where things grow. | Crop zones with the first failed harvest abroad |
 
 ### Livestock
 
 Loops: diet (the pivot), waste (manure), energy. Spec: from 1 (hens), 3. The model is PR #25.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: three hens, with eggs to the kitchen and manure to the heap (part 6's hen house). The levers are feed and the hen house; the gardener feeds them and collects the eggs. | Hens scratching; eggs carried in | Output (eggs); carbon | Fast: fewer eggs in December (about a third of June's). Slow: none. Animals turn feed into food, at a loss. |
-| 2 · P | s: a neighbour's hens, and the committee's rule on cockerels. No lever of yours. | Hens on a neighbour's plot | — | A seed only: animals are part of the neighbours' households. |
-| 3 · S | H: a small flock and pigs or sheep, with feed, welfare, manure, methane and the vet. The lever is stocking and feed in the year plan; the smallholder and the vet act. | Sheep grazing and moved between fields; the vet's car | Output; Health (the herd part); carbon | Fast: an ill flock at half output for three weeks. Slow: overgrazed ground wearing. Welfare and stocking density set what a herd gives. |
-| 4 · S | H: herds and animal disease. The levers are herd size and biosecurity; the farmer and the vet act. | Cattle between fields; a disease zone drawn | Output; carbon; disease events | Fast: a movement ban. Slow: rebuilding a herd. A disease zone closes markets. |
-| 5 · S | N: meat, milk and eggs as farms' Output. The lever is the market's buying. | Livestock farms' tiles | — | The town sees animals only as supply and price. |
-| 6 · P | T, plus welfare standards the buyer sets. | Sourcing tint | — | Fast: none. Slow: a standard reaching thousands of farms. A chain's welfare standard is a law in all but name. |
-| 7 · S | A: the national herd, pushed by the diet loop. The levers are law, guidance and subsidy; farmers and eaters respond. | Pasture turning to woodland, or back | — | Fast: none. Slow: herd and land change over decades. The herd is the biggest single lever on farm emissions. |
-| 8 · S | A: herds by country; methane in treaties. The lever is a treaty. | Countries tinted by herd | — | Fast: methane falls within a decade of a cut. Slow: none. Methane is short-lived, so cutting it works fast. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: three hens, with eggs to the kitchen and manure to the heap (part 6's hen house). The levers are feed and the hen house; the gardener feeds them and collects the eggs. | Hens scratching; eggs carried in | Output (eggs); carbon | Fast: fewer eggs in December (about a third of June's). Slow: none. Animals turn feed into food, at a loss. | The hens' panel with the hen house bought |
+| 2 · P | s: a neighbour's hens, and the committee's rule on cockerels. No lever of yours. | Hens on a neighbour's plot | — | A seed only: animals are part of the neighbours' households. | Drawn only |
+| 3 · S | H: a small flock and pigs or sheep, with feed, welfare, manure, methane and the vet. The lever is stocking and feed in the year plan; the smallholder and the vet act. | Sheep grazing and moved between fields; the vet's car | Output; Health (the herd part); carbon | Fast: an ill flock at half output for three weeks. Slow: overgrazed ground wearing. Welfare and stocking density set what a herd gives. | The flock's plan with the first animals |
+| 4 · S | H: herds and animal disease. The levers are herd size and biosecurity; the farmer and the vet act. | Cattle between fields; a disease zone drawn | Output; carbon; disease events | Fast: a movement ban. Slow: rebuilding a herd. A disease zone closes markets. | Biosecurity with the first disease scare |
+| 5 · S | N: meat, milk and eggs as farms' Output. The lever is the market's buying. | Livestock farms' tiles | — | The town sees animals only as supply and price. | Tiles from the start |
+| 6 · P | T, plus welfare standards the buyer sets. | Sourcing tint | — | Fast: none. Slow: a standard reaching thousands of farms. A chain's welfare standard is a law in all but name. | Standards with the first buying round |
+| 7 · S | A: the national herd, pushed by the diet loop. The levers are law, guidance and subsidy; farmers and eaters respond. | Pasture turning to woodland, or back | — | Fast: none. Slow: herd and land change over decades. The herd is the biggest single lever on farm emissions. | The herd lever with the first diet or methane bill |
+| 8 · S | A: herds by country; methane in treaties. The lever is a treaty. | Countries tinted by herd | — | Fast: methane falls within a decade of a cut. Slow: none. Methane is short-lived, so cutting it works fast. | With the methane treaty |
 
 ### Pests, disease and weeds
 
 Loops: intensification, trade (spread along routes). Spec: from 1; part 5 builds the garden's.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: slugs, aphids and blight. The pest policy is leave, pick, trap or treat; the gardener acts, with a torch at dusk. | Slugs on wet beds at dusk, aphids clustering, blight browning | Events against Output | Fast: a night's damage. Slow: predators lost to treating. Every control costs time or has side effects. |
-| 2 · S | H: pests spreading from the neglected plot; the first zoom back in. The lever is your plot's policy, and help for the neighbour. | Slugs crossing the path | Events | Fast: an outbreak next door. Slow: none. Your pests are your neighbours' too. |
-| 3 · S | H at field scale, plus weeds: hand-weeding against spraying. The hand and the smallholder act. | The hand hoeing; a sprayer pass | Events; Upkeep | Fast: a weedy field. Slow: the seed bank. Weeds cost the most hours of any job. |
-| 4 · S | H: chemicals and their rules; animal disease. The lever is the spray programme; the farmer acts. | Sprayer passes | Events | Fast: a clean crop. Slow: resistance building. Resistance grows with use. |
-| 5 · S | N: a farm's "Output −20 % for 10 days". The lever is buying elsewhere. | The event's icon on a tile | — | The town feels a pest as a gap. |
-| 6 · S | T: "pest year in the east: veg −5 %". The lever is stock and sourcing. | A regional tint | — | Fast: a gap on the shelf. Slow: none. Stock and spread sourcing absorb a bad year. |
-| 7 · P | H: pesticide law and plant health at the border. The lever is law; the agency acts. | Border checks | — | Fast: a pest kept out. Slow: none. A plant health border is cheap insurance. |
-| 8 · S | H: animal disease closes borders; pest ranges shift with warming. The lever is a treaty and trade rules. | Pest ranges moving north | — | Warming moves pests north. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: slugs, aphids and blight. The pest policy is leave, pick, trap or treat; the gardener acts, with a torch at dusk. | Slugs on wet beds at dusk, aphids clustering, blight browning | Events against Output | Fast: a night's damage. Slow: predators lost to treating. Every control costs time or has side effects. | Drawn from the first night; the pest policy when the gardener first meets slugs (part 5) |
+| 2 · S | H: pests spreading from the neglected plot; the first zoom back in. The lever is your plot's policy, and help for the neighbour. | Slugs crossing the path | Events | Fast: an outbreak next door. Slow: none. Your pests are your neighbours' too. | Spread with the first outbreak next door |
+| 3 · S+P | H at field scale, plus weeds (**P**): hand-weeding against spraying. The hand and the smallholder act. | The hand hoeing; a sprayer pass | Events; Upkeep | Fast: a weedy field. Slow: the seed bank. Weeding is one of the costliest jobs in hours. | Weeding with the first weedy field |
+| 4 · S | H: chemicals and their rules; animal disease. The lever is the spray programme; the farmer acts. | Sprayer passes | Events | Fast: a clean crop. Slow: resistance building. Resistance grows with use. | The spray programme with the first spray decision |
+| 5 · S | N: a farm's "Output −20 % for 10 days". The lever is buying elsewhere. | The event's icon on a tile | — | The town feels a pest as a gap. | Event icons from the start |
+| 6 · S | T: "pest year in the east: veg −5 %". The lever is stock and sourcing. | A regional tint | — | Fast: a gap on the shelf. Slow: none. Stock and spread sourcing absorb a bad year. | Tints with the first regional event |
+| 7 · P | H: pesticide law and plant health at the border. The lever is law; the agency acts. | Border checks | — | Fast: a pest kept out. Slow: none. A plant health border is cheap insurance. | Plant health with the first border scare |
+| 8 · S | H: animal disease closes borders; pest ranges shift with warming. The lever is a treaty and trade rules. | Pest ranges moving north | — | Warming moves pests north. | Borders with the first disease closure |
 
 ### Nutrients and fertiliser
 
 Loops: energy (gas → fertiliser), intensification. Spec: from 1 (compost), 3.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: compost and legumes put N-P-K back, and bare beds leach. The levers are the compost bin and the rotation; the gardener spreads. | Compost carried; beans | Health (soil) | Fast: none. Slow: a winter's leaching. Nitrogen leaves with winter rain. |
-| 2 · P | H: manure from the stables down the lane, shared out by rota. | A heap of manure by the gate | Health | A shared input needs a rule, like the trough. |
-| 3 · S | H: manure against bought fertiliser, by RB209. The lever is the year plan; the smallholder spreads. | The spreader | Upkeep; carbon (N₂O) | Fast: a greener crop. Slow: none. Synthetic nitrogen is made from gas. |
-| 4 · P | H: precision inputs and the nitrate rules (nitrate vulnerable zones). The lever is the input plan; the farmer and the adviser act. | Variable-rate passes | Upkeep; carbon | Fast: saved fertiliser. Slow: cleaner water. Putting on only what the crop takes pays twice. |
-| 5 · S | N: through farms' Upkeep and Output. | — | — | The town sees fertiliser only as farms' costs and yields. |
-| 6 · P | T: the fertiliser price in supplier costs. | — | — | Fast: suppliers' prices rise after a gas spike. Slow: none. Input costs pass down the chain. |
-| 7 · P | H: nitrate and phosphate rules; fertiliser price support. The lever is law. | Rivers tinted by nitrate | — | Fast: none. Slow: rivers recovering over decades. Farm nitrate is a river's problem. |
-| 8 · S | H: finite phosphate from a few countries; gas and fertiliser in the energy loop. The lever is a treaty or a stockpile. | Fertiliser shipments | — | A gas price sets next year's harvest. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: compost and legumes put N-P-K back, and bare beds leach. The levers are the compost bin and the rotation; the gardener spreads. | Compost carried; beans | Health (soil) | Fast: none. Slow: a winter's leaching. Nitrogen leaves with winter rain. | N-P-K with the first stressed crop; the compost bin with the heap's first finished compost |
+| 2 · P | H: manure from the stables down the lane, shared out by rota. | A heap of manure by the gate | Health | A shared input needs a rule, like the trough. | With the stables' offer |
+| 3 · S | H: manure against bought fertiliser, by RB209. The lever is the year plan; the smallholder spreads. | The spreader | Upkeep; carbon (N₂O) | Fast: a greener crop. Slow: none. Synthetic nitrogen is made from gas. | Fertiliser with the first year plan |
+| 4 · P | H: precision inputs and the nitrate rules (nitrate vulnerable zones). The lever is the input plan; the farmer and the adviser act. | Variable-rate passes | Upkeep; carbon | Fast: saved fertiliser. Slow: cleaner water. Putting on only what the crop takes pays twice. | Precision with the first input bill worth cutting |
+| 5 · S | N: through farms' Upkeep and Output. | — | — | The town sees fertiliser only as farms' costs and yields. | Through Upkeep |
+| 6 · P | T: the fertiliser price in supplier costs. | — | — | Fast: suppliers' prices rise after a gas spike. Slow: none. Input costs pass down the chain. | Tints with a price spike |
+| 7 · P | H: nitrate and phosphate rules; fertiliser price support. The lever is law. | Rivers tinted by nitrate | — | Fast: none. Slow: rivers recovering over decades. Farm nitrate is a river's problem. | Nitrate rules with the first river bill |
+| 8 · S | H: finite phosphate from a few countries; gas and fertiliser in the energy loop. The lever is a treaty or a stockpile. | Fertiliser shipments | — | A gas price sets next year's harvest. | The phosphate and gas lines with the first price shock |
 
 ### Labour
 
 Loops: agency (delegating costs trust). Spec: from 3; labour hours are a flow from the first bed. The model is PR #26.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S+O | H: the gardener's four hours on a weekday and six at the weekend, what's left after their job (**O**). Tools buy time. | The gardener's card; the day's hours ticking down | Hours (**Q2**) | Fast: a job that doesn't fit waits. Slow: none. Time is the first constraint. |
-| 2 · S+O | H: a neighbour helps for a share, and takes more. The partner can work more or help on the plot (**O**, part 10). | The neighbour at your plot; the partner with a barrow | Hours (**Q2**) | Fast: the plot kept. Slow: trust lost. Help has a price even when it's free. |
-| 3 · S | H: the first hire, with goals of their own. The hand works about 39 hours a week (PR #26); the lever is hiring and pay. | The hand in the field | Upkeep (wages) | Fast: the harvest in. Slow: a good hand stays. You're the employer now (the spine). |
-| 4 · S | H: seasonal labour and the union. The lever is hiring pickers and dealing with the union. | Pickers at harvest | Upkeep | Fast: fruit picked or rotting. Slow: none. The harvest needs three or four times a quiet month's hours. |
-| 5 · S | H: shop and market staff. The lever is the market's hours and staffing. | Stallholders | Upkeep | Most food jobs are after the farm gate. |
-| 6 · S | H: depot labour. The lever is shifts and automation. | Depot shifts | Upkeep | Fast: a strike. Slow: automation. |
-| 7 · P | R: the minimum wage, benefits and migration rules. You set the wage the gardener was paid. | — | — | Fast: none. Slow: prices follow wages. See the spine. |
-| 8 · S | H: migration. The lever is a treaty or labour agreement. | People moving | — | A harvest in one country is picked by people from another. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S+O | H: the gardener's four hours on a weekday and six at the weekend, what's left after their job (**O**). Tools buy time. | The gardener's card; the day's hours ticking down | Hours (**Q2**) | Fast: a job that doesn't fit waits. Slow: none. Time is the first constraint. | The gardener's card and hours from the first minute; the job's hours with the first week's wage |
+| 2 · S+O | H: a neighbour helps for a share, and takes more. The partner can work more or help on the plot (**O**, part 10). | The neighbour at your plot; the partner with a barrow | Hours (**Q2**) | Fast: the plot kept. Slow: trust lost. Help has a price even when it's free. | The partner's work-or-help lever with the second plot |
+| 3 · S | H: the first hire, with goals of their own. The hand works about 39 hours a week (PR #26); the lever is hiring and pay. | The hand in the field | Upkeep (wages) | Fast: the harvest in. Slow: a good hand stays. You're the employer now (the spine). | Hiring with the first harvest that won't fit |
+| 4 · S | H: seasonal labour and the union. The lever is hiring pickers and dealing with the union. | Pickers at harvest | Upkeep | Fast: fruit picked or rotting. Slow: none. The harvest needs three or four times a quiet month's hours (AHDB and Nix labour tables, in PR #26). | Pickers with the first crop needing them |
+| 5 · P | H: shop and market staff. The lever is the market's hours and staffing. | Stallholders | Upkeep | Most food jobs are after the farm gate. | Staffing with the first market day |
+| 6 · S | H: depot labour. The lever is shifts and automation. | Depot shifts | Upkeep | Fast: a strike. Slow: automation. | Shifts with the first depot |
+| 7 · P | R: the minimum wage, benefits and migration rules. You set the wage the gardener was paid. | — | — | Fast: none. Slow: prices follow wages. See the spine. | Wage law with the first wage bill |
+| 8 · S | H: migration. The lever is a treaty or labour agreement. | People moving | — | A harvest in one country is picked by people from another. | With the first labour agreement |
 
 ## Moving and selling food
 
@@ -216,76 +233,76 @@ Loops: agency (delegating costs trust). Spec: from 3; labour hours are a flow fr
 
 Loops: waste, energy (the cold chain). Spec: from 3. It's already hands-on at 1 in the kitchen's keeping, so the "From" column is **Q10**.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · P | s: the kitchen's keeping days (built); the honesty box goes off too. The lever is when to pick. | Produce in the kitchen | Freshness (carried from the town up) | Fast: a lettuce gone. Slow: none. Pick what you'll eat. |
-| 2 · P | s: the swap shed's shelf. | Swaps waiting | — | Fast: swaps going off on the shelf. Slow: none. A shared shelf needs someone to clear it. |
-| 3 · S | H: spoilage on the way to the box scheme. The lever is the delivery round; the smallholder drives it. | The van | Freshness | Fast: a box lost to a hot day. Slow: none. Distance is time. |
-| 4 · P | H: the farm store. The lever is building one. | The store | Freshness; Upkeep | Store to sell when prices are better. |
-| 5 · S | H: storage by product and temperature (Q10 kinetics). The lever is the stores; the shopkeepers act. | Stores | Freshness | Temperature, not distance, sets shelf life. |
-| 6 · S | H: the cold chain at scale and its energy. The lever is depot and fleet; the chain's staff act. | Chilled lorries | Freshness; carbon | Fast: a failed chiller. Slow: none. Cold is a cost the shelf price hides. |
-| 7 · P | A: food security as days of stock (**Q8** seeds it at the garden). The lever is law. | — | — | Fast: a shortage. Slow: none. Resilience is stock and diversity. |
-| 8 · P | H: strategic grain reserves. The lever is a treaty or a national store. | — | — | Reserves calm a panic. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · P | s: the kitchen's keeping days (built); the honesty box goes off too. The lever is when to pick. | Produce in the kitchen | Freshness (carried from the town up) | Fast: a lettuce gone. Slow: none. Pick what you'll eat. | Keeping days with the first thing that goes off |
+| 2 · P | s: the swap shed's shelf. | Swaps waiting | — | Fast: swaps going off on the shelf. Slow: none. A shared shelf needs someone to clear it. | With the swap shed |
+| 3 · S | H: spoilage on the way to the box scheme. The lever is the delivery round; the smallholder drives it. | The van | Freshness | Fast: a box lost to a hot day. Slow: none. Distance is time. | Spoilage with the first delivery |
+| 4 · P | H: the farm store. The lever is building one. | The store | Freshness; Upkeep | Store to sell when prices are better. | The store with the first price worth waiting for |
+| 5 · S | H: storage by product and temperature (Q₁₀ kinetics). The lever is the stores; the shopkeepers act. | Stores | Freshness | Temperature, not distance, sets shelf life. | Stores from the start of the level |
+| 6 · S | H: the cold chain at scale and its energy. The lever is depot and fleet; the chain's staff act. | Chilled lorries | Freshness; carbon | Fast: a failed chiller. Slow: none. Cold is a cost the shelf price hides. | The cold chain with the first chilled route |
+| 7 · P | A: food security as days of stock (**Q8** seeds it at the garden). The lever is law. | — | — | Fast: a shortage. Slow: none. Resilience is stock and diversity. | Days of stock with the first shortage |
+| 8 · P | H: strategic grain reserves. The lever is a treaty or a national store. | — | — | Reserves calm a panic. | Reserves with the first price panic |
 
 ### Transport and logistics
 
 Loops: energy, trade. Spec: from 5. The gardener's baskets and the van come earlier (**Q10**).
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · P | s: baskets carried to the kitchen and the gate (built), and the shop food's miles (**O**). | The gardener with a basket | — | Food miles are a small share of most food's carbon (the household, below). |
-| 2 · P | s: swaps carried between sheds. | Barrows on the path | — | Fast: none. Slow: none. Everything moved takes someone's time. |
-| 3 · S | s: the van to market. | The van | Upkeep | Fast: a round's fuel and hours. Slow: none. Delivering is a cost the price has to carry. |
-| 4 · P | N: haulage in Upkeep. | — | — | Haulage is a line in the farm's costs, not a choice yet. |
-| 5 · S | H: routes and vehicles. The lever is the routes; the drivers act. | Vans and lorries on routes | Upkeep; carbon | Fast: a road closed. Slow: none. |
-| 6 · S | H: logistics at scale. The lever is the network; drivers and depot staff act. | Lorries, depots | — | Fast: a depot's backlog. Slow: the network's shape. Scale makes each kg cheaper to move and a failure wider. |
-| 7 · S | T: freight on roads and rail. The lever is infrastructure spending. | Freight lines | — | Fast: none. Slow: roads and rail over decades. Freight follows infrastructure. |
-| 8 · S | H: shipping lanes and chokepoints. The lever is treaties and stockpiles. | Ships | — | A blocked strait raises prices everywhere. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · P | s: baskets carried to the kitchen and the gate (built), and the shop food's miles (**O**). | The gardener with a basket | — | Food miles are a small share of most food's carbon ("The household across the ladder", level 1). | Drawn only (baskets); the basket's miles in Explain on the first shop |
+| 2 · P | s: swaps carried between sheds. | Barrows on the path | — | Fast: none. Slow: none. Everything moved takes someone's time. | Drawn only |
+| 3 · S | s: the van to market. | The van | Upkeep | Fast: a round's fuel and hours. Slow: none. Delivering is a cost the price has to carry. | The van with the box scheme |
+| 4 · P | N: haulage in Upkeep. | — | — | Haulage is a line in the farm's costs, not a choice yet. | Through Upkeep |
+| 5 · S | H: routes and vehicles. The lever is the routes; the drivers act. | Vans and lorries on routes | Upkeep; carbon | Fast: a road closed. Slow: none. | Routes from the start of the level |
+| 6 · S | H: logistics at scale. The lever is the network; drivers and depot staff act. | Lorries, depots | — | Fast: a depot's backlog. Slow: the network's shape. Scale makes each kg cheaper to move and a failure wider. | The network from the start of the level |
+| 7 · P | T: freight on roads and rail. The lever is infrastructure spending. | Freight lines | — | Fast: none. Slow: roads and rail over decades. Freight follows infrastructure. | Infrastructure with the first freight bill |
+| 8 · S | H: shipping lanes and chokepoints. The lever is treaties and stockpiles. | Ships | — | A blocked strait raises prices everywhere. | Lanes with the first blockage |
 
 ### Markets, prices and demand
 
 Loops: diet, trade, waste. Spec: from 1 (the kitchen), 5.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S+O | H: the kitchen's ask, the honesty box at £2.50 a kg, and the weekly shop at shop prices (**O**). The levers are the plan (grow what you'd buy) and the box's price. | Baskets to the gate; the shopping | Output; Upkeep; demand (**Q2**) | Fast: a sale. Slow: none. Your veg against the shop's price. |
-| 2 · S | H: the swap shed, where barter needs what others lack. | Swaps carried between sheds | — | Trade gains come from difference. |
-| 3 · S | R: the box scheme and farm shop. You are the shop for a few dozen households; the lever is the box's contents and price. | The van to customers | Output; Upkeep | You sell to households now (the spine). |
-| 4 · S | H: the buyer's contract and cosmetic standards. The lever is taking the contract or not. | Outgrades left in the field | Output; Quality | Fast: a rejected load. Slow: none. The buyer's spec sets waste. |
-| 5 · S | R: local demand by income and habit; you run the market. The levers are stall fees, market days and rules; stallholders act. | Shoppers at the market | Demand by decile (**Q2**) | You set the rules stallholders live by. |
-| 6 · S | R: you are the buyer. The levers are range, price, promotions and standards; the chain's staff act. | Pallets in and out | — | Fast: a promotion's rush. Slow: suppliers leaving. Buyer power (the Groceries Code Adjudicator). |
-| 7 · P | A: prices and affordability by decile. The lever is law. | — | — | The poorest spend the largest share on food (Engel's law). |
-| 8 · S | H: commodity prices. The lever is treaties and stocks. | — | — | A price spike abroad reaches the basket. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S+O | H: the kitchen's ask, the honesty box at £2.50 a kg, and the weekly shop at shop prices (**O**). The levers are the plan (grow what you'd buy) and the box's price. | Baskets to the gate; the shopping | Output; Upkeep; demand (**Q2**) | Fast: a sale. Slow: none. Your veg against the shop's price. | The Kitchen tab with the first harvest; the honesty box with the first surplus; the shop's basket with the first week's shop |
+| 2 · S | H: the swap shed, where barter needs what others lack. | Swaps carried between sheds | — | Trade gains come from difference. | The swap shed with the first surplus |
+| 3 · S | R: the box scheme and farm shop. You are the shop for a few dozen households; the lever is the box's contents and price. | The van to customers | Output; Upkeep | You sell to households now (the spine). | The box scheme with the smallholding offer |
+| 4 · S | H: the buyer's contract and cosmetic standards. The lever is taking the contract or not. | Outgrades left in the field | Output; Quality | Fast: a rejected load. Slow: none. The buyer's spec sets waste. | Contracts with the first buyer's offer |
+| 5 · S | R: local demand by income and habit; you run the market. The levers are stall fees, market days and rules; stallholders act. | Shoppers at the market | Demand by decile (**Q2**) | You set the rules stallholders live by. | The market's levers from the start of the level |
+| 6 · S | R: you are the buyer. The levers are range, price, promotions and standards; the chain's staff act. | Pallets in and out | — | Fast: a promotion's rush. Slow: suppliers leaving. Buyer power (the Groceries Code Adjudicator). | Buying from the start of the level |
+| 7 · P | A: prices and affordability by decile. The lever is law. | — | — | The poorest spend the largest share on food (Engel's law). | Affordability with the first price rise felt |
+| 8 · S | H: commodity prices. The lever is treaties and stocks. | — | — | A price spike abroad reaches the basket. | Commodity prices with the first spike |
 
 ### Trade and geopolitics
 
 Loop: trade. Spec: from 8. Seeded from 1 (**Q10**).
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · O | s: the imported tomatoes in the March basket. | The shopping bag | — | Imports fill the gaps the season leaves. |
-| 2 · P | s: the swap shed, trade's gains in miniature. | Swaps | — | Fast: a good swap. Slow: none. Both sides gain when each has what the other lacks. |
-| 3 · P | s: the box scheme against the supermarket. | — | — | Fast: a customer lost to a cheaper shop. Slow: none. Local sells on freshness and trust, not price. |
-| 4 · P | T: import competition sets the buyer's price. | — | — | Fast: a lower offer. Slow: none. The world's price caps what the buyer pays. |
-| 5 · P | T: imported goods on the market's stalls. | — | — | Fast: none. Slow: none. Most shelves mix local and imported. |
-| 6 · S | H: imports as the standing substitute. The buyer acts. | Import lorries | — | Fast: a gap filled from abroad. Slow: local growers squeezed. Imports are the chain's insurance. |
-| 7 · S | H: trade deals. The lever is law and negotiation. | — | — | Fast: none. Slow: a deal's terms over years. A trade deal is a food policy. |
-| 8 · S | H: tariffs, export bans, conflict and aid. The lever is treaties. | Ships and bans | — | Export bans turn a shortage into a crisis (2007–8, 2010). |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · O | s: the imported tomatoes in the March basket. | The shopping bag | — | Imports fill the gaps the season leaves. | The tomatoes' origin in Explain on the first March shop |
+| 2 · P | s: the swap shed, trade's gains in miniature. | Swaps | — | Fast: a good swap. Slow: none. Both sides gain when each has what the other lacks. | With the swap shed |
+| 3 · P | s: the box scheme against the supermarket. | — | — | Fast: a customer lost to a cheaper shop. Slow: none. Local sells on freshness and trust, not price. | The supermarket's price beside the box's |
+| 4 · P | T: import competition sets the buyer's price. | — | — | Fast: a lower offer. Slow: none. The world's price caps what the buyer pays. | Import prices beside the contract |
+| 5 · P | T: imported goods on the market's stalls. | — | — | Fast: none. Slow: none. Most shelves mix local and imported. | Drawn on stalls |
+| 6 · S | H: imports as the standing substitute. The buyer acts. | Import lorries | — | Fast: a gap filled from abroad. Slow: local growers squeezed. Imports are the chain's insurance. | Imports from the start of the level |
+| 7 · S | H: trade deals. The lever is law and negotiation. | — | — | Fast: none. Slow: a deal's terms over years. A trade deal is a food policy. | Deals with the first negotiation |
+| 8 · S | H: tariffs, export bans, conflict and aid. The lever is treaties. | Ships and bans | — | Export bans turn a shortage into a crisis (2007–8, 2010). | From the start of the level |
 
 ### Waste and circularity
 
 Loop: waste. Spec: from 1.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: the heap; the kitchen and the box going off. The levers are the plan and the heap; the gardener carries. | Scraps to the heap | carbon | What's wasted still cost water and hours. |
-| 2 · S+P | H: the swap shed as redistribution. The committee's bonfire ban has no system yet (**Q11**). | — | — | Surplus given is surplus not wasted. |
-| 3 · S | H: manure, and spoilage on the way. | — | — | Fast: manure spread. Slow: the soil fed. One enterprise's waste is another's input. |
-| 4 · S | H: outgrades under cosmetic standards (the waste loop). | Outgrades | — | Standards make waste. |
-| 5 · S | H: retail and household waste, redistribution. The lever is the council's collections and the food bank. | Food bank vans | — | Households waste the most after the farm gate (WRAP: about 70 % of UK post-farm waste). |
-| 6 · S | H: packaging and waste at scale. The lever is the chain's policy. | — | — | Fast: none. Slow: a packaging change across every store. Packaging keeps food and makes waste. |
-| 7 · P | H: food waste targets, separate collections, landfill tax. The lever is law. | — | — | Fast: none. Slow: habits change. Waste falls when it's measured and costs something. |
-| 8 · P | T: loss and waste by country. | — | — | About 13 % is lost before retail and 17 % wasted after (FAO 2019; UNEP 2021). |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: the heap; the kitchen and the box going off. The levers are the plan and the heap; the gardener carries. | Scraps to the heap | carbon | What's wasted still cost water and hours. | The heap from the first scraps; wasted kg in the Kitchen tab with the first thing that goes off |
+| 2 · S+P | H: the swap shed as redistribution. The committee's bonfire ban has no system yet (**Q11**). | — | — | Surplus given is surplus not wasted. | The swap shelf; the bonfire vote |
+| 3 · S | H: manure, and spoilage on the way. | — | — | Fast: manure spread. Slow: the soil fed. One enterprise's waste is another's input. | Manure with the flock |
+| 4 · S | H: outgrades under cosmetic standards (the waste loop). | Outgrades | — | Standards make waste. | Outgrades with the first rejected load |
+| 5 · S | H: retail and household waste, redistribution. The lever is the council's collections and the food bank. | Food bank vans | — | Households waste the most after the farm gate (WRAP: about 60–70 % of UK post-farm waste, by year). | Waste levers from the start of the level |
+| 6 · S | H: packaging and waste at scale. The lever is the chain's policy. | — | — | Fast: none. Slow: a packaging change across every store. Packaging keeps food and makes waste. | Packaging with the first range choice |
+| 7 · P | H: food waste targets, separate collections, landfill tax. The lever is law. | — | — | Fast: none. Slow: habits change. Waste falls when it's measured and costs something. | Waste law with the first bill |
+| 8 · P | T: loss and waste by country. | — | — | About 13 % is lost before retail and 17 % wasted after (FAO's 2019 figure as updated since; UNEP 2021). | Tints from the start |
 
 ## Energy, carbon and climate
 
@@ -293,42 +310,42 @@ Loop: waste. Spec: from 1.
 
 Loop: energy. Spec: from 3. The model is PR #26 (fuels, pumps, cold stores and tunnel heating, paid from a purse).
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · P | s: the household's energy bill sits in the purse beside its food, so a cold winter squeezes the basket ("heat or eat"). The shed light buys evening hours. No energy lever yet. | The shed light on at dusk | Upkeep | A seed: energy and food compete for the same money. |
-| 2 · · | Not present: the allotment has no power. | — | — | — |
-| 3 · S | H: diesel, electricity for the pump, and heat for the polytunnel (PR #26). The lever is the year plan and the kit; the smallholder acts. | The tractor working; the pump running | Upkeep; carbon | Fast: the fuel bill. Slow: none. Every machine hour is a fuel cost. |
-| 4 · S | H: on-farm renewables and a digester. The lever is the upgrade; the farmer acts. | Panels on a barn; a digester | Upkeep (less); carbon (less) | Fast: none. Slow: a payback over years. The farm can make energy as well as use it. |
-| 5 · S | H: shops' chillers and the vans' fuel. The lever is the market's and the fleet's kit. | Vans; chillers | Upkeep; carbon | Fast: a chiller's bill. Slow: none. Keeping food cold is the shop's biggest energy use. |
-| 6 · S | H: the cold chain's energy at scale. The lever is depot kit and routes. | Chilled lorries; depots lit at night | Upkeep; carbon | Fast: a price spike's cost. Slow: none. Cold is a cost the shelf price hides. |
-| 7 · P | H: the grid's mix, which sets every node's electricity carbon below (PR #26 leaves the grid factor to the level above). The lever is law. | Wind and solar on the map | — | Fast: none. Slow: a decade's build. A cleaner grid cleans every cold store at once. |
-| 8 · S | H: the gas price, which feeds fertiliser and fuel (the energy loop). The lever is a treaty or a stockpile. | Gas routes | — | A gas price reaches next year's harvest. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · P | s (with **Q1**): the household's energy bill sits in the purse beside its food, so a cold winter squeezes the basket ("heat or eat"). The shed light buys evening hours. No energy lever yet. | The shed light on at dusk | Upkeep | A seed: energy and food compete for the same money. | The bill in the purse with the first cold month |
+| 2 · · | Not present: the allotment has no power. | — | — | — | — |
+| 3 · S | H: diesel, electricity for the pump, and heat for the polytunnel (PR #26). The lever is the year plan and the kit; the smallholder acts. | The tractor working; the pump running | Upkeep; carbon | Fast: the fuel bill. Slow: none. Every machine hour is a fuel cost. | Fuel with the tractor; the pump with irrigation |
+| 4 · S | H: on-farm renewables and a digester. The lever is the upgrade; the farmer acts. | Panels on a barn; a digester | Upkeep (less); carbon (less) | Fast: none. Slow: a payback over years. The farm can make energy as well as use it. | Renewables with the first offer |
+| 5 · S | H: shops' chillers and the vans' fuel. The lever is the market's and the fleet's kit. | Vans; chillers | Upkeep; carbon | Fast: a chiller's bill. Slow: none. Keeping food cold is the shop's biggest energy use. | Chillers with the first store |
+| 6 · S | H: the cold chain's energy at scale. The lever is depot kit and routes. | Chilled lorries; depots lit at night | Upkeep; carbon | Fast: a price spike's cost. Slow: none. Cold is a cost the shelf price hides. | From the start of the level |
+| 7 · P | H: the grid's mix, which sets every node's electricity carbon below (PR #26 leaves the grid factor to the level above). The lever is law. | Wind and solar on the map | — | Fast: none. Slow: a decade's build. A cleaner grid cleans every cold store at once. | The grid mix with the first energy bill |
+| 8 · S | H: the gas price, which feeds fertiliser and fuel (the energy loop). The lever is a treaty or a stockpile. | Gas routes | — | A gas price reaches next year's harvest. | Gas with the first price shock |
 
 ### Greenhouse gases
 
 Every loop ends here. Spec: from 1, counted per node from the first bed.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S+O | H: the dial (the heap, peat, the lawn), and the embodied carbon of the shop food (**O**). The shop food's carbon is counted beside the dial by **Q4**, never added to the air. The levers are the plan, peat-free compost and what the garden replaces. | The dial | carbon | Fast: none. Slow: the heap's slow sink. What you eat matters more than how far it came. |
-| 2 · S | N: each plot's carbon; your plot's in detail. | The dial | carbon | Twelve plots' kg add up. |
-| 3 · S | H: methane from the flock, the tractor's diesel, and fertiliser's N₂O. The lever is the year plan. | — | carbon | Fast: none. Slow: the soil carbon of the rotation. Animals and fuel dominate a small farm's account. |
-| 4 · S | H: the full carbon account, emissions less sinks by source. The lever is the farm's plan and upgrades. | — | carbon | A farm can be a sink as well as a source. |
-| 5 · S | H: transport and the shops' carbon. The lever is routes and chillers. | — | carbon | Transport is small beside production. |
-| 6 · S | H: the retail carbon account. The lever is sourcing and range. | — | carbon | A range choice (beef or beans) outweighs any lorry. |
-| 7 · S | H: the national account against its target. With **Q4**, the territorial account shows beside the consumption footprint, so carbon leakage is visible. The lever is law. | Regions by emissions | — | Offshoring cuts the account, not the footprint. |
-| 8 · S | H: the atmosphere itself. The lever is a treaty or a carbon price. | — | — | Every country's kg go into the same air. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S+O | H: the dial (the heap, peat, the lawn), and the embodied carbon of the shop food (**O**). The shop food's carbon is counted beside the dial by **Q4**, never added to the air. The levers are the plan, peat-free compost and what the garden replaces. | The dial | carbon | Fast: none. Slow: the heap's slow sink. What you eat matters more than how far it came. | The dial with the first carbon choice (the first dig, peat or compost), not from day one (the owner, 29 Sep); the basket's needle with the first shop |
+| 2 · S | N: each plot's carbon; your plot's in detail. | The dial | carbon | Twelve plots' kg add up. | Plots' carbon on their tiles |
+| 3 · S | H: methane from the flock, the tractor's diesel, and fertiliser's N₂O. The lever is the year plan. | — | carbon | Fast: none. Slow: the soil carbon of the rotation. Animals and fuel dominate a small farm's account. | Methane with the flock; diesel with the tractor |
+| 4 · S | H: the full carbon account, emissions less sinks by source. The lever is the farm's plan and upgrades. | — | carbon | A farm can be a sink as well as a source. | The full account from the start of the level |
+| 5 · S | H: transport and the shops' carbon. The lever is routes and chillers. | — | carbon | Transport is small beside production. | From the start of the level |
+| 6 · S | H: the retail carbon account. The lever is sourcing and range. | — | carbon | A range choice (beef or beans) outweighs any lorry. | From the start of the level |
+| 7 · S | H: the national account against its target. With **Q4**, the territorial account shows beside the consumption footprint, so carbon leakage is visible. The lever is law. | Regions by emissions | — | Offshoring cuts the account, not the footprint. | The target from the start of the level |
+| 8 · S | H: the atmosphere itself. The lever is a treaty or a carbon price. | — | — | Every country's kg go into the same air. | The atmosphere from the start |
 
 ### Climate feedback
 
 Spec: from 1 (counted), 7 (felt), 8 (closed). The warming index is `warmingIndex()`, read by the weather each day.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S+P | s: counted, not felt: a garden's kilograms warm nothing. **P:** the dial's Explain card scales the garden's kg up to show why they matter summed (a garden's year, times the country's gardens, in tonnes and in warming). | The dial | carbon | Nothing shows yet, which is itself the lesson: small emissions add up. |
-| 2–6 · S | s: the same, summed higher up. The carbon carries up with every sealed node. | — | carbon | Small kg summed become large ones. |
-| 7 · S | H, felt: hotter summers and drought years bend yields and water. The lever is adaptation law. | The palette shifting over years | — | Fast: a drought year. Slow: the mean moving. |
-| 8 · S | H, closed: every country's emissions set the warming that bends every country's weather. The lever is a treaty. | Weather crossing the map; sea creeping in | — | Fast: none. Slow: the century. Cumulative CO₂ sets warming (IPCC AR6, TCRE). |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S+P | s: counted, not felt: a garden's kilograms warm nothing. **P:** the dial's Explain card scales the garden's kg up to show why they matter summed (a garden's year, times the country's gardens, in tonnes and in warming). | The dial | carbon | Nothing shows yet, which is itself the lesson: small emissions add up. | The dial's scaled Explain with the dial |
+| 2–6 · S | s: the same, summed higher up. The carbon carries up with every sealed node. | — | carbon | Small kg summed become large ones. | In each node's carbon |
+| 7 · S | H, felt: hotter summers and drought years bend yields and water. The lever is adaptation law. | The palette shifting over years | — | Fast: a drought year. Slow: the mean moving. | The warming readout with the first drought year felt |
+| 8 · S | H, closed: every country's emissions set the warming that bends every country's weather. The lever is a treaty. | Weather crossing the map; sea creeping in | — | Fast: none. Slow: the century. Cumulative CO₂ sets warming (IPCC AR6, TCRE). | From the start |
 
 ## People and power
 
@@ -336,91 +353,91 @@ Spec: from 1 (counted), 7 (felt), 8 (closed). The warming index is `warmingIndex
 
 Loop: diet. Spec: from 1 (the kitchen), 7.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S+O | s: the kitchen's five a day, met from the garden, and the rest of the basket from the shop (**O**). A diet lever at the garden is **Q9**. | Produce carried to the kitchen | The share met (in Output's mix) | Fast: a day's five a day met. Slow: none. What a household eats is a choice, and a budget. |
-| 2 · P | s: swaps widen the kitchen's mix. | Swaps | — | Variety comes from others. |
-| 3 · P | s: the box customers' mix follows what's in the box. The lever is the box's contents. | Boxes | — | A seller shapes what people eat. |
-| 4 · · | Not present. | — | — | — |
-| 5 · P | s: diets by income decile at the market. The lever is what the market stocks. | Shoppers' baskets | Demand (**Q2**) | The poorest eat the fewest vegetables (DEFRA Family Food). |
-| 6 · P | s: the category mix and promotions. The lever is range and promotions. | Shelves | — | Promotions change what the country eats. |
-| 7 · S | H: diet and health, and the health cost. The levers are law and guidance (the sugar levy, school food, the Eatwell Guide). | Regions by diet-related illness | — | Fast: none. Slow: health over a generation. Manufacturers cut sugar rather than pay the levy. |
-| 8 · S | H: diets against the EAT-Lancet reference, with hunger and obesity side by side. The lever is a treaty or aid. | Countries by diet | — | The world has both hunger and obesity at once. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S+O | s: the kitchen's five a day, met from the garden, and the rest of the basket from the shop (**O**). A diet lever at the garden is **Q9**. | Produce carried to the kitchen | The share met (in Output's mix) | Fast: a day's five a day met. Slow: none. What a household eats is a choice, and a budget. | The five-a-day share in the Kitchen tab with the first harvest |
+| 2 · P | s: swaps widen the kitchen's mix. | Swaps | — | Variety comes from others. | With swaps |
+| 3 · P | s: the box customers' mix follows what's in the box. The lever is the box's contents. | Boxes | — | A seller shapes what people eat. | With the box's contents |
+| 4 · · | Not present. | — | — | — | — |
+| 5 · P | s: diets by income decile at the market. The lever is what the market stocks. | Shoppers' baskets | Demand (**Q2**) | The poorest eat the fewest vegetables (DEFRA Family Food). | Decile diets with the market |
+| 6 · P | s: the category mix and promotions. The lever is range and promotions. | Shelves | — | Promotions change what the country eats. | The category mix with range |
+| 7 · S | H: diet and health, and the health cost. The levers are law and guidance (the sugar levy, school food, the Eatwell Guide). | Regions by diet-related illness | — | Fast: none. Slow: health over a generation. Manufacturers cut sugar rather than pay the levy. | Health with the first diet bill |
+| 8 · S | H: diets against the EAT-Lancet reference, with hunger and obesity side by side. The lever is a treaty or aid. | Countries by diet | — | The world has both hunger and obesity at once. | From the start of the level |
 
 ### Population and culture
 
 Loop: diet (culture pushes back or runs ahead). Spec: from 2 (neighbours), 7.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · O | s: the household's members, 2.4 by default, with the gardener and later the partner and children. | The household at the house | — | A household is people with their own time. |
-| 2 · S | s: eleven neighbours with habits (tidy, lazy, generous, competitive). | Neighbours at their plots | — | People differ; the same plot fares differently. |
-| 3 · P | s: the box customers' tastes (local, organic, cheap). | — | — | Fast: none. Slow: none. Customers buy on values as well as price. |
-| 4 · · | Not present: the farm's customers are buyers, not people. | — | — | — |
-| 5 · P | A: households by income decile and habit. | Shoppers | Demand (**Q2**) | Demand is people. |
-| 6 · P | A: footfall and trends (vegan, local, cheap). | Queues | — | Trends move shelves faster than prices. |
-| 7 · S | H: population, growth, trends and what people will bear. | Regions by population | — | Fast: none. Slow: demand shifts over a generation. Culture sets what policy people will bear. |
-| 8 · S | H: population growth and urbanisation by country. | Cities growing | — | Fast: none. Slow: decades. More people, and more of them in cities, need more food moved. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S+O | s: the household's members, 2.4 as built (`docs/systems/kitchen.md`), with the gardener and later the partner and children. | The household at the house | — | A household is people with their own time. | The household at the house, drawn; members in Explain |
+| 2 · S | s: eleven neighbours with habits (tidy, lazy, generous, competitive). | Neighbours at their plots | — | People differ; the same plot fares differently. | Neighbours' habits as they're met |
+| 3 · P | s: the box customers' tastes (local, organic, cheap). | — | — | Fast: none. Slow: none. Customers buy on values as well as price. | Customers' tastes with the box scheme |
+| 4 · · | Not present: the farm's customers are buyers, not people. | — | — | — | — |
+| 5 · P | A: households by income decile and habit. | Shoppers | Demand (**Q2**) | Demand is people. | Deciles from the start of the level |
+| 6 · P | A: footfall and trends (vegan, local, cheap). | Queues | — | Trends move shelves faster than prices. | Footfall from the start of the level |
+| 7 · S | H: population, growth, trends and what people will bear. | Regions by population | — | Fast: none. Slow: demand shifts over a generation. Culture sets what policy people will bear. | From the start of the level |
+| 8 · S | H: population growth and urbanisation by country. | Cities growing | — | Fast: none. Slow: decades. More people, and more of them in cities, need more food moved. | From the start of the level |
 
 ### Agency and trust
 
 Loop: agency. Spec: from 2 (a neighbour), 3 (hiring), 5 (people you don't choose).
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S+P | H: an honest gardener and an honest adviser. **P:** the partner (part 10) has goals of their own, by the spec's rule for everyone you delegate to. | The gardener's day | Health (goodwill) | You decide; people do. |
-| 2 · S | H: the neighbour who over-takes a share, and the seed catalogue whose advice favours its seeds. The levers are watching and changing helper. | The neighbour's barrow a little too full | Health (goodwill) | A report isn't the truth. |
-| 3 · S | H: hiring the hand, whose goals you infer. The lever is hiring and pay. | The hand working, or not | — | Hiring is matching goals to the job. |
-| 4 · S | H: the farm manager who may flatter yields, and the buyer. The levers are audits and replacement. | — | — | Watching costs time. |
-| 5 · S | H: people you don't choose (the council). The levers are persuading and allying. | — | — | You work through whoever is in office. |
-| 6 · S | H: a buyer who skims; the chain's reputation. The levers are audits and the adjudicator. | — | Health (goodwill, as reputation) | Power invites abuse. |
-| 7 · S | H: lobbies and capture. The levers are coalitions and timing. | — | — | A captured rule costs everyone. |
-| 8 · S | H: other governments, by corruption and goals. | — | — | Fast: a new government's U-turn. Slow: trust. Some partners can't be relied on. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · P | s: an honest gardener and an honest adviser (the spec's agency starts at 2; the garden's people have no hidden goals yet). **P:** the partner (part 10) has goals of their own, by the spec's rule for everyone you delegate to. | The gardener's day | Health (goodwill) | You decide; people do. | The gardener's card from the first minute; the partner's goals with the partner |
+| 2 · S | H: the neighbour who over-takes a share, and the seed catalogue whose advice favours its seeds. The levers are watching and changing helper. | The neighbour's barrow a little too full | Health (goodwill) | A report isn't the truth. | The neighbour's help with the second plot; the catalogue with its first advice |
+| 3 · S | H: hiring the hand, whose goals you infer. The lever is hiring and pay. | The hand working, or not | — | Hiring is matching goals to the job. | Hiring with the first hire |
+| 4 · S | H: the farm manager who may flatter yields, and the buyer. The levers are audits and replacement. | — | — | Watching costs time. | Audits with the first manager |
+| 5 · S | H: people you don't choose (the council). The levers are persuading and allying. | — | — | You work through whoever is in office. | Persuasion with the first council vote |
+| 6 · S | H: a buyer who skims; the chain's reputation. The levers are audits and the adjudicator. | — | Health (goodwill, as reputation) | Power invites abuse. | Audits with the first skim |
+| 7 · S | H: lobbies and capture. The levers are coalitions and timing. | — | — | A captured rule costs everyone. | Coalitions with the first lobby |
+| 8 · S | H: other governments, by corruption and goals. | — | — | Fast: a new government's U-turn. Slow: trust. Some partners can't be relied on. | From the start of the level |
 
 ### Politics and policy
 
 Loop: agency. Spec: from 2; politics exists at every level, only its size changes.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S+P | s: the neighbour over the fence (spec), and the household itself: **P:** the partner's goals are the garden's first politics. | The neighbour's tree shading a bed | — | Politics starts at home. |
-| 2 · S | H: the committee's three votes (the water rota, the bonfire ban, the bee plot). The lever is your vote. | Plot-holders gathering at the shed | — | You're one vote of twelve. |
-| 3 · S | H: the parish (planning for the polytunnel), the subsidy form, the neighbour who objects. The levers are applying and persuading. | The planning notice | — | Rules shape what you may build. |
-| 4 · S | H: the union and the subsidy scheme. The levers are membership and the scheme's options. | — | — | Fast: a scheme's payment. Slow: its rules shaping the farm. Subsidy steers what farms do. |
-| 5 · S | H: the council. The lever is proposals, persuasion and political capital. | Council meeting | — | Fast: none. Slow: a council's term. People others elected can undo your work. |
-| 6 · P | H: the retail lobby and the adjudicator. | — | — | Fast: none. Slow: a code's enforcement. Power needs a referee. |
-| 7 · S | R: parliament, elections and political capital. You serve whoever is elected. | Election map | — | Slow loops outlast governments. |
-| 8 · S | H: treaties among many governments. | — | — | Fast: none. Slow: decades. A treaty holds only while governments keep it. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S+P | s: the neighbour over the fence (spec), and the household itself: **P:** the partner's goals are the garden's first politics. | The neighbour's tree shading a bed | — | Politics starts at home. | Drawn only (the neighbour's tree); the partner's goals with the partner |
+| 2 · S | H: the committee's three votes (the water rota, the bonfire ban, the bee plot). The lever is your vote. | Plot-holders gathering at the shed | — | You're one vote of twelve. | Each vote as it's called |
+| 3 · S | H: the parish (planning for the polytunnel), the subsidy form, the neighbour who objects. The levers are applying and persuading. | The planning notice | — | Rules shape what you may build. | The parish with the first application |
+| 4 · S | H: the union and the subsidy scheme. The levers are membership and the scheme's options. | — | — | Fast: a scheme's payment. Slow: its rules shaping the farm. Subsidy steers what farms do. | The union and scheme with the first form |
+| 5 · S | H: the council. The lever is proposals, persuasion and political capital. | Council meeting | — | Fast: none. Slow: a council's term. People others elected can undo your work. | The council with the first proposal |
+| 6 · P | H: the retail lobby and the adjudicator. | — | — | Fast: none. Slow: a code's enforcement. Power needs a referee. | The lobby with the first code dispute |
+| 7 · S | R: parliament, elections and political capital. You serve whoever is elected. | Election map | — | Slow loops outlast governments. | Political capital with the first bill |
+| 8 · S | H: treaties among many governments. | — | — | Fast: none. Slow: decades. A treaty holds only while governments keep it. | From the start of the level |
 
 ### Technology and upgrades
 
 Loops: all. Spec: from 1.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: the shed: a hose, drip lines, a beer trap, a cold frame, a hen house. Each shows its time saved and side effects before you buy. | The new tool in use | Health (the kit part) | Money buys tools, tools buy time. |
-| 2 · P | H: tools for the plot, and a shared tool store. | — | Health (kit) | Sharing tools is cheaper than owning them. |
-| 3 · S | H: the second-hand tractor and the polytunnel. | The tractor | Health (kit); Upkeep | A machine saves hours and costs fuel and repairs. |
-| 4 · S | H: precision farming and varieties. | — | Health (kit) | Fast: saved inputs. Slow: the kit's payback. Precision spends money to save inputs. |
-| 5 · S | H: cold stores. | — | — | Fast: less spoilage. Slow: the energy bill. A cold store trades energy for time. |
-| 6 · P | H: depots and automation. | — | — | Fast: faster depots. Slow: fewer jobs. Automation moves who does the work. |
-| 7 · P | H: research policy and varieties. | — | — | Fast: none. Slow: a decade from lab to field. Research is the slowest lever and one of the strongest. |
-| 8 · S | H: alternative proteins and vertical farms. | — | — | Fast: none. Slow: decades. New proteins could free land, if people eat them. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: the shed: a hose, drip lines, a beer trap, a cold frame, a hen house. Each shows its time saved and side effects before you buy. | The new tool in use | Health (the kit part) | Money buys tools, tools buy time. | The shed tab with the first thing worth buying (the beer trap, part 6) |
+| 2 · P | H: tools for the plot, and a shared tool store. | — | Health (kit) | Sharing tools is cheaper than owning them. | As each is worth having |
+| 3 · S | H: the second-hand tractor and the polytunnel. | The tractor | Health (kit); Upkeep | A machine saves hours and costs fuel and repairs. | The tractor with its offer |
+| 4 · S | H: precision farming and varieties. | — | Health (kit) | Fast: saved inputs. Slow: the kit's payback. Precision spends money to save inputs. | As each is worth having |
+| 5 · S | H: cold stores. | — | — | Fast: less spoilage. Slow: the energy bill. A cold store trades energy for time. | As each is worth having |
+| 6 · P | H: depots and automation. | — | — | Fast: faster depots. Slow: fewer jobs. Automation moves who does the work. | As each is worth having |
+| 7 · P | H: research policy and varieties. | — | — | Fast: none. Slow: a decade from lab to field. Research is the slowest lever and one of the strongest. | Research with the first bill |
+| 8 · S | H: alternative proteins and vertical farms. | — | — | Fast: none. Slow: decades. New proteins could free land, if people eat them. | As each is worth having |
 
 ### Money, credit and insurance (Q5)
 
 The spec's farm adds insurance and credit, and the nation must stay solvent, but the systems map has no row for money. **Q5** proposes one.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · O | H: the household's purse: the wage in, groceries out, the honesty box's takings. | — | Upkeep | Fast: the week's budget. Slow: savings. |
-| 2 · P | H: plot rent. | — | Upkeep | Fast: the year's rent. Slow: none. Land always has a price, even a plot's. |
-| 3 · P | H: the loan for the second-hand tractor (**Q5**). | — | Upkeep | Borrowing brings a machine forward and a repayment with it. |
-| 4 · S | H: insurance and credit. | — | Upkeep | Insurance turns a disaster into a premium. |
-| 5 · P | H: the market's margins. | — | Upkeep | Fast: a stall's takings. Slow: none. Every step between field and fork takes a share. |
-| 6 · P | H: the chain's margins. | — | Upkeep | Fast: none. Slow: suppliers' margins squeezed. The farmer's share of the shelf price is small. |
-| 7 · S | H: the national budget: subsidies and levies against spending. | — | — | Fast: none. Slow: debt. Every subsidy is paid for by someone. |
-| 8 · P | H: commodity finance and aid. | — | — | Fast: a price spike's cost to importers. Slow: none. Aid and credit keep food moving in a crisis. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · O | H: the household's purse: the wage in, groceries out, the honesty box's takings. | — | Upkeep | Fast: the week's budget. Slow: savings. | Money in the top bar from the start; the purse's lines with the first week's wage and shop |
+| 2 · P | H: plot rent. | — | Upkeep | Fast: the year's rent. Slow: none. Land always has a price, even a plot's. | Rent with the plot |
+| 3 · P | H: the loan for the second-hand tractor (**Q5**). | — | Upkeep | Borrowing brings a machine forward and a repayment with it. | The loan with the tractor's offer |
+| 4 · S | H: insurance and credit. | — | Upkeep | Insurance turns a disaster into a premium. | Insurance with the first loss |
+| 5 · P | H: the market's margins. | — | Upkeep | Fast: a stall's takings. Slow: none. Every step between field and fork takes a share. | From the start of the level |
+| 6 · P | H: the chain's margins. | — | Upkeep | Fast: none. Slow: suppliers' margins squeezed. The farmer's share of the shelf price is small. | From the start of the level |
+| 7 · S | H: the national budget: subsidies and levies against spending. | — | — | Fast: none. Slow: debt. Every subsidy is paid for by someone. | The budget from the start of the level |
+| 8 · P | H: commodity finance and aid. | — | — | Fast: a price spike's cost to importers. Slow: none. Aid and credit keep food moving in a crisis. | With the first crisis |
 
 ## The game's own systems
 
@@ -428,39 +445,39 @@ The spec's farm adds insurance and credit, and the nation must stay solvent, but
 
 Spec settles it; the maths is PR #20. A sealed node keeps its totals and runs by them alone.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1–8 · S | H: the step-up offer, then sealing: the level shrinks into its tile. The lever is the plan left for the sealed node, which its Health drifts towards. | The zoom-out | The five numbers, Freshness, carbon and land | Fast: none. Slow: Health drifting a point a season. What you built keeps running, by its numbers. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1–8 · S | H: the step-up offer, then sealing: the level shrinks into its tile. The lever is the plan left for the sealed node, which its Health drifts towards. | The zoom-out | The five numbers, Freshness, carbon and land | Fast: none. Slow: Health drifting a point a season. What you built keeps running, by its numbers. | The goal bar with the first harvest; the offer when it comes |
 
 ### Zooming back in
 
 Spec: from 2.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · · | Not present: nothing below the garden. | — | — | — |
-| 2 · S | H: the first zoom back in, scripted: slugs from a neglected plot get into your garden. | The trace; the dive | Reliability +10 and the Rescued badge | Fast: the deadline. Slow: the lasting mark. A failure far off has a cause close up. |
-| 3–8 · S | H: the trace down to the failing node, at most once a game year per level. A demand-side trace is **Q12**. | The trace | — | Fixing the cause means going down to it. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · · | Not present: nothing below the garden. | — | — | — | — |
+| 2 · S | H: the first zoom back in, scripted: slugs from a neglected plot get into your garden. | The trace; the dive | Reliability +10 and the Rescued badge | Fast: the deadline. Slow: the lasting mark. A failure far off has a cause close up. | The trace with the first zoom back in |
+| 3–8 · S | H: the trace down to the failing node, at most once a game year per level. A demand-side trace is **Q12**. | The trace | — | Fixing the cause means going down to it. | The trace when it first comes |
 
 ### Advisers, recommendations and Explain
 
 Spec settles the adviser per level and the Explain card.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1 · S | H: the adviser's recommendations and "let them decide". | — | — | Fast: none. Slow: none. Advice saves time if you can trust it. |
-| 2 · S | H: the seed catalogue, whose advice favours its own seeds. | — | — | Ask who pays the adviser. |
-| 3–6 · S | H: advisers you hire. | — | — | Fast: none. Slow: none. A hired adviser's goals are the ones you pay for. |
-| 7 · P | R: you are the adviser now, recommending to ministers who needn't listen. | — | — | Fast: none. Slow: none. Being right isn't enough; you have to persuade. |
-| 8 · S | H: the same, to many governments. | — | — | Fast: none. Slow: none. Advice across borders has to fit each government's goals. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1 · S | H: the adviser's recommendations and "let them decide". | — | — | Fast: none. Slow: none. Advice saves time if you can trust it. | The first recommendation with the first plan card; Explain on the first tap |
+| 2 · S | H: the seed catalogue, whose advice favours its own seeds. | — | — | Ask who pays the adviser. | The catalogue's advice with the first seed purchase |
+| 3–6 · S | H: advisers you hire. | — | — | Fast: none. Slow: none. A hired adviser's goals are the ones you pay for. | As hired |
+| 7 · P | R: you are the adviser now, recommending to ministers who needn't listen. | — | — | Fast: none. Slow: none. Being right isn't enough; you have to persuade. | From the start of the level |
+| 8 · S | H: the same, to many governments. | — | — | Fast: none. Slow: none. Advice across borders has to fit each government's goals. | From the start of the level |
 
 ### Events
 
 Spec settles how events cross scales.
 
-| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson |
-| --- | --- | --- | --- | --- |
-| 1–8 · S | H at the home level, N one up, T two or more up. The kg lost are the same whichever level shows them. | The event itself, then an icon, then a tint | Output; Reliability | Fast: the loss. Slow: none. The same loss looks smaller from further up, but it's the same food. |
+| Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
+| --- | --- | --- | --- | --- | --- |
+| 1–8 · S | H at the home level, N one up, T two or more up. The kg lost are the same whichever level shows them. | The event itself, then an icon, then a tint | Output; Reliability | Fast: the loss. Slow: none. The same loss looks smaller from further up, but it's the same food. | Each event on the map when it happens; its Explain on the first tap |
 
 ## The spine: the other side of the counter
 
@@ -469,7 +486,7 @@ The game's narrative thread. The founding spec already has it in two places: at 
 | Lv | You meet (the weaker side) | You run (the other side) | Reversal of |
 | --- | --- | --- | --- |
 | 1 Garden | The shop you buy groceries from; the employer of the gardener's job; the passers-by at the honesty box; the adviser whose recommendations you follow | The plan the gardener works under | — (the start) |
-| 2 Allotment | The committee you vote in; the neighbour who helps and takes a bit more; the seed catalogue's advice with an interest | Your plot and the second plot; your swaps | 1's gardener: now you're the one being helped by someone with goals |
+| 2 Allotment | The committee you vote in; the neighbour who helps and takes a bit more; the seed catalogue's advice with an interest | Your plot and the second plot; your swaps | 1's neighbour over the fence: you're now one of eleven neighbours, and your surplus supplies others at the swap shed |
 | 3 Smallholding | The parish's planning office and subsidy form; the lender for the tractor (**Q5**); the neighbour who objects | A box scheme sold to other households; the hired hand | 1's shop (you're now the shop for a few dozen households) and 1's job (you're now the employer) |
 | 4 Farm | The buyer's contract and cosmetic standards; the union; the subsidy scheme; the insurer; the agency's abstraction licence | The farm business and its seasonal pickers | 3's hand at scale: you employ a crew whose wages someone else sets |
 | 5 Town | The council, elected by others | The market: stall fees, market days, rules; redistribution of surplus | 1's honesty box and 3's box scheme (you now set the rules every stall sells by); 2's committee (you now put proposals to a body others elected) |
@@ -540,7 +557,7 @@ Every mechanic born in levels 1 to 3, and where it goes up the ladder. A flag me
 | Peat compost (1) | Peatland in the land budget (7); England's planned ban on peat in retail compost, a law that reaches the garden's shed | — |
 | Digging the lawn (1) | The second plot (2) → fields and hedges (3) → woodland and rewetting (4) → the land budget (7) → deforestation (8) | — |
 | Marigolds and flowers (1) | Margins and hedgerows (3) → agri-environment payments (4) → nature law (7) → the 30 by 30 treaty (8) | Lost at sealing: **Q6** |
-| The hens (1) | The flock (3) → herds (4) → the diet loop (7) → methane (8) | — |
+| The hens (1) | Your own hens carry up in the sealed garden's Output (2, N) → the flock (3) → herds (4) → the diet loop (7) → methane (8) | — |
 | The cold frame (1) | The polytunnel (3) → heated glasshouses and their energy (4–6), where the heated local tomato can beat the imported one on price and lose on carbon | — |
 | The pest policy (1) | Pest spread (2) → sprays and resistance (4) → pesticide law (7) → borders closing (8) | — |
 | The gardener's hours (1) | Help (2) → the hand (3) → pickers (4) → staff (5, 6) → the wage (7) → migration (8) | — |
@@ -639,9 +656,10 @@ The owner's additions (**O**), worked in full as the first example of a mechanic
 
 - **Population.** The households summed, with growth and trends.
 - **Wages.** The minimum wage is a law that sets the gardener's wage at 1 and the hand's at 3.
-- **Affordability.** The food share of income by decile. The UK average is roughly a tenth, and more than that for the poorest fifth (DEFRA, Food Statistics Pocketbook).
+- **Affordability.** The food share of spending by decile, standing in for income. The UK average is roughly a tenth, and more than that for the poorest fifth (DEFRA, Food Statistics Pocketbook).
 - **Policy reaching the basket.** The sugar levy changes what's in the basket: manufacturers cut the sugar rather than pay. Benefits and free school meals change who can afford it.
 - **The lever.** Law, spending political capital; ministers act.
+- **Seals as.** Nothing above but the planet: a country's population, income and diet mix carried as its demand (**Q2**).
 - **Drawn.** Regions tinted by affordability, with a badge where food insecurity rises.
 - **Fast / slow.** Fast: a price spike's hardship. Slow: a generation's health.
 - **Lesson.** Wages and food rules shape diets as much as shops do. This is where the player sets the rules that shaped the gardener's job and basket (the spine).
@@ -650,6 +668,7 @@ The owner's additions (**O**), worked in full as the first example of a mechanic
 
 - **Bennett's law.** As incomes rise, the share of calories from starchy staples falls and meat and dairy rise. Countries' households, summed, move along that path, and the diet loop feels it in land, methane and prices.
 - **The lever.** Treaties, aid and trade; governments act.
+- **Seals as.** Nothing: the planet is the top. Its totals are the game's end state.
 - **Drawn.** Countries tinted by diet; herds and fields shifting.
 - **Fast / slow.** Fast: a commodity price reaching every basket. Slow: the diet transition over decades.
 - **Lesson.** Growing incomes change diets, and diets change the planet.
@@ -667,7 +686,7 @@ Each changes the founding spec's model, ladder or carry-over rule, so each is a 
 
 - **Q1.** A Households row in the systems map, and "a household" as a node kind at every level (the consumer side of the graph).
 - **Q2.** A sealed node carries its demand (kg a day by product group, £ a day) and its hours (had and used) beside the five numbers.
-- **Q3.** Output carried by product group, as the spec says ("by product mix"), rather than one number. This is a note for PR #20 more than a change to the spec.
+- **Q3** (a note, not a change). The spec already carries Output "by product mix"; PR #20 carries one number. Asked so the owner confirms the product groups.
 - **Q4.** Two carbon numbers: the dial stays territorial (flows into the air, conserved), and a consumption footprint (the basket's attributed carbon) shows beside it and is never added to the air.
 - **Q5.** A Money, credit and insurance row, seeded by the tractor loan at 3.
 - **Q6.** A wildlife part in the carried Health, so hedges and margins survive sealing.

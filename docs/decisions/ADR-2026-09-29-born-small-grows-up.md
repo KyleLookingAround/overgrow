@@ -1,4 +1,4 @@
-# ADR-2026-09-29: Every mechanic is born small and grows up the ladder
+# ADR-2026-09-29: Every mechanic is born small, grows up the ladder, and unfolds with influence
 
 ## Status
 
@@ -22,12 +22,13 @@ One design document follows every mechanic up the ladder (`docs/specs/overgrow/s
 
 ## Decision
 
-Option 2. The rule every change follows:
+Option 2. The rule every change follows (the owner added the fifth on 29 Sep 2026):
 
 1. **Born small and hands-on.** A mechanic is first hands-on at one level, on one node type, moving conserved flows.
 2. **Seals into totals.** It carries up only through a sealed node's totals (the carry-over rule).
 3. **Comes back higher up.** It returns at a later level as an aggregate that is hands-on again (the town's demand is the gardens' baskets summed), or as a reversal (the player runs what they met below: the spine). Otherwise the web says why it ends.
 4. **Arrives seeded.** A system first hands-on at level 4 or above has a seed in levels 1 to 3 that makes it legible when it arrives.
+5. **Unfolds with influence** (the owner, 29 Sep 2026). A mechanic runs from the start and its impacts are on the map from day one. Its instruments (numbers, dials, badges, tabs, plan lines, levers) appear only when the player first has influence over it: never greyed out, never all at once, each with one first-time pulse and a short Explain card. A lever that hasn't unfolded is refused in the sim, so the bot plays the same game. Views unfold in the UI from the saved `seen` state through one table. Each new level starts simple again, and sealed levels below show only their totals. Where this conflicts with the founding spec (the carbon dial "from day one"), the owner's principle wins.
 
 The systems web is the register. A brief names its rows there, and a part that adds or changes a mechanic edits its row in the same PR. A proposal that would change the founding spec's model, ladder or carry-over rule still goes to the owner on a `needs-owner` issue.
 
@@ -36,4 +37,6 @@ The systems web is the register. A brief names its rows there, and a part that a
 - `docs/briefs/TEMPLATE.md` has a "How it fits and grows" section. `tools/brief.mjs` requires it, with a link to the web, in every brief except those started before this record, which it names.
 - The `feature` playbook's spec step and the `coordinator` playbook's brief step point at the web and the section.
 - Levels 4 to 8 each start their spec from the web's column and the spine's row for that level.
-- The record adds to the spec: the spec implies rule 2 and parts of 1. Rules 3 and 4, and the brief check, are new.
+- The web gives every system at every level an "Unfolds when"; the brief template's section asks it as its twelfth point. Part 6's first piece implements the retrofit and cites this record.
+- The record adds to the spec: the spec implies rule 2 and parts of 1. Rules 3 to 5, and the brief check, are new.
+- The brief check asks only that the section names the web, which a copied template already does: it proves the section is there and answered, not that the answers are good. A grandfathered name in `BEFORE` stays exempt if a later brief reuses it, so don't reuse those names.
