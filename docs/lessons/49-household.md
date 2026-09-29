@@ -1,6 +1,6 @@
 # The household, the first slice's part 6b (#49) · 29 Sep 2026
 
-- **Numbers:** estimate $20. The session's cost read 0 (not reported) when the PR opened. The session started at 10:43 UTC and the PR opened at about 12:00 UTC. The owner's question on the ask's size (#50) is open with a default. CI rounds are counted at the merge.
+- **Numbers:** estimate $20. The session's cost read 0 (not reported) throughout. The session started at 10:43 UTC and the PR (#53) opened at 11:49 UTC. It then waited about 45 minutes for the owner's answer on the ask's size (#50), which took the default. There were three pushes and no red CI runs. There was one merge from `main` by hand (the nutrients fix, #48, which took `SAVE_VERSION` 6, so this part took 7), with conflicts in the brief, the saving notes, the Explain table and the speed-budget paragraph.
 - **Went well:**
   - Running the bot once with the old 1 kg ask and the new wiring otherwise pinned down what moved the pacing. The ask's size moved the first sale, Output and the first compost. The commute and the shop moved nothing. That made #50 a question with numbers rather than a guess.
   - Probing the first 130 days headless for when each key unfolds showed the commute landing in the same tick as the kitchen's first ask (17:30 home, 18:00 meal). That gave the first minute its batch without a special case.
