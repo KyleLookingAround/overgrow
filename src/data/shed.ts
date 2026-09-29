@@ -36,8 +36,22 @@
 //   go to the heap with their nitrogen; layers' pellets from the purse (about £13 for 20 kg, which three hens eat in about
 //   two months). Hybrids lay about 280 eggs a year, few in the dark months (the British Hen Welfare Trust; Defra's
 //   guidance for keepers of fewer than 50 birds).
+// The mid-priced kit, each a smaller trade than the big buys:
+// - A digging fork: its tines go into heavy ground and lift turf and roots out with less effort than a spade's blade, so
+//   a new bed is dug about a fifth faster (RHS, "Digging": a fork for heavy or stony soil).
+// - Cloches: a row of polythene tunnel cloches over one bed keeps off about 2 °C of frost and warms the soil, so sowings
+//   go in about two weeks earlier in spring and later in autumn; like the frame, they keep the rain off (RHS, "Cloches").
+// - A heated propagator: tender plants raised from a packet of seed on a windowsill instead of bought as young plants, a
+//   packet costing about a third of a tray of plants (RHS, "Propagators"; rough 2027 prices).
+// - A bee hotel: bundled hollow stems where red mason bees (Osmia bicornis) nest from April to June, a few more bees
+//   about the garden's flowers (the Wildlife Trusts, "How to build a bee hotel"; Gathmann & Tscharntke 2002 for their
+//   foraging range of a few hundred metres).
+// - A cordon redcurrant: a bare-root bush trained as a single stem against the fence, about 1 kg of fruit a summer once
+//   established; bare-root plants are sold and planted from November to March, when they're dormant: cheaper than potted
+//   ones, and they settle in best then (RHS, "Redcurrants" and "Bare-root plants").
 
-export type UpgradeId = 'beer-trap' | 'hose' | 'nematodes' | 'compost-bin' | 'cold-frame' | 'water-butt' | 'raised-bed' | 'water-tank' | 'greenhouse' | 'fruit-cage' | 'hens';
+export type UpgradeId = 'beer-trap' | 'hose' | 'nematodes' | 'compost-bin' | 'cold-frame' | 'water-butt' | 'raised-bed' | 'water-tank' | 'greenhouse' | 'fruit-cage' | 'hens' |
+  'fork' | 'cloches' | 'propagator' | 'bee-hotel' | 'cordon';
 
 export interface Upgrade {
   id: UpgradeId;
@@ -75,6 +89,36 @@ export const UPGRADES: Record<UpgradeId, Upgrade> = {
     does: 'Tiny worms watered onto the beds kill slugs below ground for six weeks.',
     saves: 'Slugs cut down without pellets or the torch.',
     trade: 'Only in moist soil above 5 °C, and gone after six weeks.',
+  },
+  'bee-hotel': {
+    id: 'bee-hotel', name: 'Bee hotel', price: 12, kept: true,
+    does: 'Hollow stems on the fence where mason bees nest in spring.',
+    saves: 'A few more bees over the beans and tomatoes: a little more set.',
+    trade: 'Only from April to June, and only a few bees.',
+  },
+  cordon: {
+    id: 'cordon', name: 'Cordon redcurrant', price: 12, kept: false,
+    does: 'A bare-root redcurrant trained up the fence.',
+    saves: 'About 1 kg of fruit a summer once established.',
+    trade: 'Only planted from November to March, and a light crop the first summer.',
+  },
+  fork: {
+    id: 'fork', name: 'Digging fork', price: 22, kept: true,
+    does: 'A fork for lifting turf and breaking up heavy ground.',
+    saves: 'A new bed dug about a fifth faster.',
+    trade: 'No help with anything but digging.',
+  },
+  cloches: {
+    id: 'cloches', name: 'Cloches', price: 20, kept: true,
+    does: 'A row of tunnel cloches over one bed: 2 °C of frost kept off.',
+    saves: 'Sowings two weeks earlier in spring and later in autumn.',
+    trade: 'Less than the frame, and the bed under them needs watering.',
+  },
+  propagator: {
+    id: 'propagator', name: 'Propagator', price: 25, kept: true,
+    does: 'A heated tray on the windowsill for raising plants from seed.',
+    saves: 'Tomatoes, leeks and marigolds from a packet, not a tray of plants.',
+    trade: 'It pays back only after a few sowings.',
   },
   'compost-bin': {
     id: 'compost-bin', name: 'Compost bin', price: 30, kept: true,
@@ -169,3 +213,24 @@ export const CHIT = {dd: 70, days: 100, from: 2, to: 3};
  *  so the first sowings go in about two weeks sooner (RHS, "Soil: warming"); asked from February to mid-April, and the
  *  sowing season stays early for a month after. */
 export const WARM = {days: 14, lasts: 45, from: 2, to: 4};
+
+/** The digging fork: the share of a spade's time a m² of digging takes with it. */
+export const FORK = {dig: 0.8};
+/** The propagator: the crops it raises from seed, and their seed's cost as a share of a tray of young plants. */
+export const PROPAGATOR = {crops: ['tomatoes', 'leeks', 'marigolds'], share: 0.35};
+/** The bee hotel: mason bees it adds in the months they fly. */
+export const HOTEL = {bees: 3, months: [4, 5, 6]};
+/** Cordon redcurrants: the most the fence takes, each one's fruit a summer once established, kg, the fence it takes, m²,
+ *  and bare-root season (November to March). */
+export const CORDON = {most: 6, kg: 1, m2: 0.3, from: 11, to: 3};
+/** Whether a date is in bare-root season. */
+export const bareRoot = (month: number) => month >= CORDON.from || month <= CORDON.to;
+/** Raking the autumn leaves onto the heap: kg a clear-up gathers from the lawn and the beds (a small garden's share of a
+ *  street tree's fall), and what a kg carries: fallen leaves are about 40 % dry matter, 45 % of it carbon, 0.8 % nitrogen
+ *  (RHS, "Leaf mould"; Garden Organic, "Leafmould"). Asked from mid-October to November. */
+export const LEAVES = {kg: 25, co2e: 0.4 * 0.45 * (44 / 12), n: 0.4 * 0.008, from: [10, 15], to: [11, 30]} as const;
+/** Digging the beds over in winter: the flush of CO₂ from the soil's organic matter, kg CO₂e a m² (as a new bed's,
+ *  src/data/garden.ts's DIG), and the share of a bed's slugs and their eggs turned up to the birds and the frost (RHS,
+ *  "Slugs and snails": cultivation exposes eggs). No-dig leaves both (Charles Dowding's no-dig trials at Homeacres:
+ *  similar or higher yields from undug beds under a compost mulch). Asked in December and January. */
+export const DIG_OVER = {flushPerM2: 0.03, slugs: 0.3, from: 12, to: 1};

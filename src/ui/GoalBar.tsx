@@ -2,10 +2,11 @@
 // a progress ring, the one thing to do as a verb, and the prize as an icon (a plot at the allotment). Tapping it opens the
 // three requirements in plain words (how well the garden fed the household, how steadily, the soil), each with its
 // meter and its value against the target (src/ui/goal.ts). Before the first harvest the ring is the first crop's growth.
-// It gives way to any card or notice over the map (win W5).
+// Beside the verb, its button (round three): one tap does the step, opens the Shed at what it saves for, or opens the
+// plan, so no verb stands without a button behind it. It gives way to any card or notice over the map (win W5).
 import {useState} from 'preact/hooks';
 import type {Snapshot} from '../sim/state';
-import {goalLine, PLAIN, PRIZE, PRIZE_SHORT, valueText} from './goal';
+import {goalLine, PLAIN, PRIZE, PRIZE_SHORT, valueText, type Go} from './goal';
 
 /** The ring: a circle's stroke filled to a share, drawn with the tokens' colours (page.css). */
 function Ring({value}: {value: number}) {
@@ -31,7 +32,7 @@ function Prize() {
   );
 }
 
-export function GoalBar({snap}: {snap: Snapshot}) {
+export function GoalBar({snap, onGo}: {snap: Snapshot; onGo: (go: Go) => void}) {
   const [open, setOpen] = useState(false);
   const g = goalLine(snap), pct = Math.round(100 * g.ring);
   return (
@@ -42,6 +43,7 @@ export function GoalBar({snap}: {snap: Snapshot}) {
         <span class="goal-text" data-text={g.text}>{g.verb}</span>
         <Prize />
       </button>
+      <button type="button" class="primary goal-go" data-go={g.go.tab ?? 'do'} onClick={() => onGo(g.go)}>{g.go.label}</button>
       {open && (
         <div class="goal-rows" id="goal-rows">
           <p class="soft goal-why">{g.rows ? 'The committee looks at the garden’s whole year, from its first day:' : g.text}</p>

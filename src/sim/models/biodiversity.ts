@@ -12,7 +12,8 @@
 //   wet days; Dixon (2000), "Insect predator-prey dynamics", for ladybirds gathering where aphids are and feeding on
 //   pollen and nectar between; UK agri-environment evidence on flower strips raising natural enemies and pollinators
 //   (Wood et al. 2015, "Farm-scale evidence for pollinator and natural enemy habitat", and the Natural England
-//   evidence reviews); RHS "Companion planting" for marigolds among vegetables.
+//   evidence reviews); RHS "Companion planting" for marigolds among vegetables; the Wildlife Trusts' "How to build a bee
+//   hotel" for red mason bees nesting in hollow stems from April to June (the shed's bee hotel adds a few).
 // Simplifies: one pool of bees and one of ladybirds for the garden, following a target set by the flowers in bloom, the
 //   warmth, the rain and (for ladybirds) the aphids, with no breeding of their own; every flower the same to a bee;
 //   visits share out evenly over the pollinated crops; a border costs the bed nothing; a border is killed by a frost
@@ -25,6 +26,8 @@ import type {System, TickContext} from '../clock';
 import {note} from '../effects';
 import type {Graph, GraphNode, LeverValue} from '../graph';
 import {hourOf, weatherOf} from './weather';
+import {HOTEL} from '../../data/shed';
+import {owns} from '../kit';
 
 /** The garden's wildlife: the lawn's `wildlife` lever, replaced, never changed in place. */
 export interface Wildlife {
@@ -119,7 +122,9 @@ function day(c: TickContext) {
   // the pools follow their targets; a spray's knock wears off
   const was = wildlifeOf(g), k = {bees: was.knock.bees + (1 - was.knock.bees) * RECOVER, ladybirds: was.knock.ladybirds + (1 - was.knock.ladybirds) * RECOVER};
   const beeSeason = mean >= BEES.minMean && BEES.months.includes(month);
-  const beesWant = beeSeason ? (BEES.base + BEES.flowers * share) * (1 - (1 - BEES.wet) * wet) * k.bees : 0;
+  // a bee hotel's mason bees fly from April to June
+  const hotel = owns(g, 'bee-hotel') && HOTEL.months.includes(month) ? HOTEL.bees : 0;
+  const beesWant = beeSeason ? (BEES.base + hotel + BEES.flowers * share) * (1 - (1 - BEES.wet) * wet) * k.bees : 0;
   const bees = was.bees + (beesWant - was.bees) * BEES.follow;
   const lbWant = mean >= LADYBIRDS_ABOUT.minMean
     ? (LADYBIRDS_ABOUT.base + LADYBIRDS_ABOUT.flowers * share) * (0.4 + 0.6 * Math.min(1, aphidsIn(g) / LADYBIRDS_ABOUT.aphidsFull)) * k.ladybirds : 0;

@@ -98,6 +98,9 @@ export const CAUSES = {
   gift: {kind: 'household', causes: ['given to a neighbour']},
   catalogue: {kind: 'household', causes: ['seed catalogue']},
   fleece: {kind: 'weather', causes: ['fleece']},
+  leaves: {kind: 'carbon', causes: ['raking leaves']},
+  digOver: {kind: 'soil', causes: ['digging over']},
+  bareRoot: {kind: 'crop', causes: ['bare-root season', 'planting']},
 } satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
 
 export type Entry = keyof typeof CAUSES;
@@ -562,7 +565,7 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
   },
   fruit: {
     title: 'Soft fruit',
-    says: 'Raspberries and currants ripened in the fruit cage.',
+    says: 'Soft fruit ripened: raspberries and currants in the cage, or redcurrants on the fence.',
     mechanism: 'Summer raspberries fruit on last year’s canes and currants on older wood, so a new planting crops lightly the next summer and fully after; the net keeps the birds off, and ripe fruit left a few days goes soft and drops.',
     fast: 'Fruit every few days in July, picked or lost.',
     slow: 'About 10 kg a summer from the third summer: a slow payback.',
@@ -615,6 +618,30 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
     fast: 'Tender crops through a light frost.',
     slow: 'A roll lasts for years.',
     source: 'RHS, “Frost protection”.',
+  },
+  leaves: {
+    title: 'Autumn leaves',
+    says: 'The fallen leaves were raked onto the heap.',
+    mechanism: 'Leaves are the heap’s “browns”: carbon-rich and slow, rotted by fungi rather than bacteria; left in a pile on their own they make leaf mould in a year or two.',
+    fast: 'A bigger heap, and tidy beds and lawn for the winter.',
+    slow: 'More compost next year, and organic matter that holds water in the soil.',
+    source: 'RHS, “Leaf mould”; Garden Organic, “Leafmould”.',
+  },
+  digOver: {
+    title: 'Digging over',
+    says: 'The empty beds were dug over for the winter.',
+    mechanism: 'Turning the soil exposes slugs’ eggs to the birds and the frost, and lets the air at its organic matter, which breaks down faster; no-dig leaves the soil’s life and structure as they are.',
+    fast: 'Fewer slugs in spring, and a flush of CO₂ from the soil.',
+    slow: 'Dug every year, a soil loses organic matter; undug beds under a mulch crop as well or better.',
+    source: 'RHS, “Digging” and “Slugs and snails”; Charles Dowding’s no-dig trials at Homeacres; Reicosky & Lindstrom (1993).',
+  },
+  bareRoot: {
+    title: 'Bare-root planting',
+    says: 'A bare-root cordon redcurrant went in along the fence.',
+    mechanism: 'Fruit bushes are lifted and sold without soil while they’re dormant, from November to March: cheaper than potted ones, and they root before the spring.',
+    fast: 'A bush on the fence, and nothing to pick until summer.',
+    slow: 'A light crop the first summer and about a kilo a year after, for ten years or more.',
+    source: 'RHS, “Bare-root plants” and “Redcurrants”.',
   },
 };
 
@@ -684,6 +711,9 @@ export const HELPS: Record<Entry, string> = {
   gift: 'Give a glut away when the box can’t sell it in time.',
   catalogue: 'Order in winter, before the spring rush.',
   fleece: 'Fleece the tender crops when a frost is forecast.',
+  leaves: 'Rake them up each autumn: they’re free.',
+  digOver: 'No-dig: leave the beds and mulch them with compost instead.',
+  bareRoot: 'Plant fruit in winter, when it’s cheapest and settles best.',
 };
 
 /** The kind of each cause: all the sim needs of the table. */

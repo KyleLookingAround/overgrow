@@ -7,18 +7,19 @@ import {SPEEDS} from '../data/ladder';
 import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
 import {kindOf} from './effects';
 import {gardenStatus, goalOf} from './goal';
-import {buyFlow, chit, fleece, orderSeeds, placeOf, warmSoil} from './shed';
+import {buyFlow, chit, digOver, fleece, orderSeeds, placeOf, rakeLeaves, warmSoil} from './shed';
 import {GLUT_POLICIES, type GlutPolicy} from '../data/kitchen';
 import type {Variety} from '../data/shed';
 import {askMulch, waterSooner} from './gardener';
 import {SHED} from './kit';
 import {KITCHEN} from './models/kitchen';
-import type {UpgradeId} from '../data/shed';
+import {UPGRADES, type UpgradeId} from '../data/shed';
 import {calendar, levelClock, runStep, type System} from './clock';
 import {flowEffects, recordInto, Recorder} from './effects';
 import {applyFlow, mergeFlows, touch, type Flow, type LeverValue, type NodeId} from './graph';
 import {fromSave} from './save';
 import {newState, type State} from './state';
+import {spent, tally} from './purse';
 
 export type Command =
   /** Advance the clock by whole steps (the level's step; any part of a step left over is dropped). */
@@ -52,6 +53,14 @@ export type Command =
   | {type: 'card'; id: 'mulch'; answer: 'mulch' | 'no'}
   /** Fleece over the empty beds to warm their soil for an early sowing. */
   | {type: 'card'; id: 'warm'; answer: 'warm' | 'no'}
+  /** The autumn clear-up: the fallen leaves raked onto the heap. */
+  | {type: 'card'; id: 'leaves'; answer: 'rake' | 'no'}
+  /** Bare-root season: a cordon redcurrant planted along the fence (the shed's `cordon`, bought). */
+  | {type: 'card'; id: 'bare-root'; answer: 'plant' | 'no'}
+  /** Winter: the empty beds dug over, or left no-dig. */
+  | {type: 'card'; id: 'dig-over'; answer: 'dig' | 'no-dig'}
+  /** The garden's first year done, whether or not the offer's requirements are met: 'ok' carries on into the second. */
+  | {type: 'card'; id: 'first-year'; answer: 'ok'}
   /** A setting of the page's that's saved with the game ('details': show every number early). It changes no play. */
   | {type: 'setting'; key: string; value: LeverValue};
 
@@ -92,6 +101,8 @@ function tick(s: State, systems: readonly System[], hours: number) {
   }
   recordInto(s.graph, null);
   s.flows = mergeFlows(flows);
+  // the purse's week: what came in, and what the garden spent (src/sim/purse.ts)
+  tally(s.graph, s.flows, s.hours);
   // each flow is an effect of its `what` at its place, and the systems' events besides
   s.effects = flowEffects(s.graph, s.flows).concat(effects.list());
   // an instrument unfolds the first time one of its causes happens (src/data/unfold.ts)
@@ -163,6 +174,8 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
         s.upgrades = [...s.upgrades, cmd.id];
         // the purchase is this command's flow and effect: the map shows the thing in use, and money unfolds if it hadn't
         s.flows = [buyFlow(cmd.id as UpgradeId)];
+        // the purse's week names the thing bought
+        tally(s.graph, [{...s.flows[0]!, what: UPGRADES[cmd.id as UpgradeId].name}], s.hours);
         // at the thing's place, so the map pulses where it now stands
         s.effects = [{kind: kindOf('buying'), cause: 'buying', at: placeOf(s.graph, cmd.id as UpgradeId), amount: 1, unit: cmd.id}];
         const fresh = revealed(s.seen, ['buying']);
@@ -183,17 +196,40 @@ const seeOnce = (s: State, key: string) => void (s.seen.includes(key) || (s.seen
 /** A card's answer: each card is answered once a save, and the first plan's clock starts with it. */
 /** The watering line a dry-spell card's "water more" sets: three quarters of the soil's available water. */
 export const DRY_LINE = 0.75;
+/** The game hours of the garden's first year: the "Your first year" card comes on its first anniversary. */
+export const YEAR_HOURS = 365 * 24;
+
+/** The week's decision cards, each asked once for what it's about. */
+export const DECISIONS = ['glut', 'catalogue', 'frost', 'dry', 'chit', 'mulch', 'warm', 'leaves', 'bare-root', 'dig-over'] as const;
+type DecisionCmd = Extract<Command, {type: 'card'; id: (typeof DECISIONS)[number]}>;
+const isDecision = (c: Extract<Command, {type: 'card'}>): c is DecisionCmd => (DECISIONS as readonly string[]).includes(c.id);
 
 /** Answers one of the week's decision cards: its choice carried out, and the hour kept so it asks once. */
-function decide(s: State, cmd: Extract<Command, {type: 'card'; id: 'glut' | 'catalogue' | 'frost' | 'dry' | 'chit' | 'mulch' | 'warm'}>, systems: readonly System[]): State {
-  const g = s.graph, date = calendar(s.hours);
+/** What a decision's own spend is called in the purse's week (a cordon's is its buy's). */
+const SPEND: Partial<Record<DecisionCmd['id'], string>> = {catalogue: 'seed catalogue', frost: 'fleece', warm: 'fleece'};
+
+function decide(s: State, cmd: DecisionCmd, systems: readonly System[]): State {
+  const g = s.graph, date = calendar(s.hours), before = g.nodes[KITCHEN]?.stocks.money?.amount ?? 0;
   let r: string | null = null;
   if (cmd.id === 'glut') {
     if (!GLUT_POLICIES.includes(cmd.answer)) r = 'sell, preserve or give';
     else applyCommand(s, {type: 'policy', node: KITCHEN, lever: 'glut', value: cmd.answer}, systems), (r = s.rejected);
   } else if (cmd.id === 'catalogue') {
     if (cmd.answer !== 'standard' && cmd.answer !== 'resistant' && cmd.answer !== 'later') r = 'standard, resistant or later';
-    else if (cmd.answer !== 'later') r = orderSeeds(g, cmd.answer, date);
+    else if (cmd.answer !== 'later') {
+      r = orderSeeds(g, cmd.answer, date);
+      // next year's seed ordered: the propagator is worth having for the tender ones (src/data/unfold.ts)
+      if (!r) reveal(s, ['seed catalogue']);
+    }
+  } else if (cmd.id === 'leaves') {
+    if (cmd.answer !== 'rake' && cmd.answer !== 'no') r = 'rake or no';
+    else if (cmd.answer === 'rake') r = rakeLeaves(g, date);
+  } else if (cmd.id === 'bare-root') {
+    if (cmd.answer !== 'plant' && cmd.answer !== 'no') r = 'plant or no';
+    else if (cmd.answer === 'plant') applyCommand(s, {type: 'buy', id: 'cordon'}, systems), (r = s.rejected);
+  } else if (cmd.id === 'dig-over') {
+    if (cmd.answer !== 'dig' && cmd.answer !== 'no-dig') r = 'dig or no-dig';
+    else if (cmd.answer === 'dig') r = digOver(g, date);
   } else if (cmd.id === 'frost') {
     if (cmd.answer !== 'fleece' && cmd.answer !== 'no') r = 'fleece or no';
     else if (cmd.answer === 'fleece') r = fleece(g, s.hours);
@@ -210,6 +246,7 @@ function decide(s: State, cmd: Extract<Command, {type: 'card'; id: 'glut' | 'cat
   else if (cmd.answer === 'water') r = unfolded(s.seen, 'garden.water') ? waterSooner(g, DRY_LINE) : 'that hasn’t come up in the garden yet';
   s.rejected = r;
   if (!r) {
+    if (SPEND[cmd.id]) spent(g, SPEND[cmd.id]!, before, s.hours);
     s.answered = {...s.answered, [cmd.id]: s.hours};
     touch(g, KITCHEN);
     touch(g, SHED);
@@ -217,13 +254,23 @@ function decide(s: State, cmd: Extract<Command, {type: 'card'; id: 'glut' | 'cat
   return s;
 }
 
+/** Unfolds what a command's causes reveal (src/data/unfold.ts). */
+function reveal(s: State, causes: string[]) {
+  const fresh = revealed(s.seen, causes);
+  if (fresh.length) s.seen = [...s.seen, ...fresh];
+}
+
 function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readonly System[]): State {
-  if (cmd.id === 'glut' || cmd.id === 'catalogue' || cmd.id === 'frost' || cmd.id === 'dry' || cmd.id === 'chit' || cmd.id === 'mulch' || cmd.id === 'warm') return decide(s, cmd, systems);
-  const key = cmd.id === 'first-plan' ? CARDS.firstPlan : cmd.id === 'try-faster' ? CARDS.tryFaster : cmd.id === 'year' ? CARDS.year : null;
+  if (isDecision(cmd)) return decide(s, cmd, systems);
+  const key = cmd.id === 'first-plan' ? CARDS.firstPlan : cmd.id === 'try-faster' ? CARDS.tryFaster : cmd.id === 'year' ? CARDS.year : cmd.id === 'first-year' ? CARDS.firstYear : null;
   if (!key) s.rejected = `no card ${String(cmd.id)}`;
   else if (s.seen.includes(key)) s.rejected = 'that’s been answered';
   else if (cmd.id === 'year') {
     if (!gardenStatus(goalOf(s.graph)).ready) s.rejected = 'the garden’s year isn’t done yet';
+    else if (cmd.answer !== 'ok') s.rejected = 'ok';
+    else seeOnce(s, key);
+  } else if (cmd.id === 'first-year') {
+    if (s.hours < YEAR_HOURS) s.rejected = 'the garden’s first year isn’t done yet';
     else if (cmd.answer !== 'ok') s.rejected = 'ok';
     else seeOnce(s, key);
   }

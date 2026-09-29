@@ -85,13 +85,24 @@ export const UNFOLD: Record<string, Unfold> = {
   'shed.greenhouse': {what: 'a greenhouse in the shed', why: 'Frost or blight took a crop: under glass it’s kept off.', causes: ['frost damage', 'blight']},
   'shed.fruit-cage': {what: 'a fruit cage in the shed', why: 'Bees are working the flowers: soft fruit would set well, for the household’s fruit.', causes: ['pollination']},
   'shed.hens': {what: 'a hen house in the shed', why: 'The heap is making compost: hens add eggs, and droppings for the heap.', causes: ['spreading compost']},
+  // the mid-priced kit, each when it first helps: the fork with the first bed dug; cloches with the first empty autumn
+  // bed or a frost; the propagator once next year's seed is ordered; the bee hotel with the first bees on the flowers;
+  // cordon redcurrants when bare-root season opens in November
+  'shed.fork': {what: 'a digging fork in the shed', why: 'A new bed is being dug: a fork breaks new ground faster.', causes: ['digging']},
+  'shed.cloches': {what: 'cloches in the shed', why: 'A frost or the autumn: cloches keep frost off a bed for less than a frame.',
+    causes: ['frost damage', 'empty autumn bed']},
+  'shed.propagator': {what: 'a propagator in the shed', why: 'Next year’s seed is ordered: a propagator raises the tender plants from it.',
+    causes: ['seed catalogue']},
+  'shed.bee-hotel': {what: 'a bee hotel in the shed', why: 'Bees are working the flowers: a bee hotel brings a few more in spring.', causes: ['pollination']},
+  'shed.cordon': {what: 'cordon redcurrants in the shed', why: 'Bare-root season: fruit bushes are cheapest and settle best planted now.',
+    causes: ['bare-root season']},
   // the temperature matters once a frost reaches a crop it can hurt
   'garden.weather': {what: 'the temperature', why: 'A frost reached a crop: the temperature now shows.', causes: ['frost damage']},
 };
 
-/** Cards answered once a save (src/sim/commands.ts): the first plan, the one "try faster" nudge, and the garden's year
- *  done (the level's end, once the allotment offer's requirements are met). */
-export const CARDS = {firstPlan: 'card.first-plan', tryFaster: 'card.try-faster', year: 'card.year'} as const;
+/** Cards answered once a save (src/sim/commands.ts): the first plan, the one "try faster" nudge, the garden's year done
+ *  (the level's end, once the allotment offer's requirements are met), and the garden's first year, on its anniversary. */
+export const CARDS = {firstPlan: 'card.first-plan', tryFaster: 'card.try-faster', year: 'card.year', firstYear: 'card.first-year'} as const;
 
 /** The levers each key gates: a command on one is refused until its key has unfolded (`except` a value that's always
  *  allowed, `only` the one value that's gated). */

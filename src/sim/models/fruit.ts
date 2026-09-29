@@ -1,4 +1,5 @@
-// Soft fruit: raspberry canes and currant bushes in a netted cage on the lawn (the shed's fruit cage, src/data/shed.ts).
+// Soft fruit: raspberry canes and currant bushes in a netted cage on the lawn (the shed's fruit cage, src/data/shed.ts),
+// and cordon redcurrants planted one at a time along the fence in bare-root season, each dated from its own planting.
 // A new planting crops lightly the next summer and fully from the one after, since summer raspberries fruit on last
 // year's canes and currants on older wood; each summer the fruit ripens over about seven weeks, most in the middle of
 // July, and what isn't picked within a few days goes soft and drops. The net keeps the birds off, so what ripens is the
@@ -10,10 +11,13 @@
 //   pruning, feeding, pests or disease; yield doesn't depend on the weather or the soil's water (canes are deep-rooted
 //   and established ones are rarely watered in a British summer); the bushes never age out (a planting lasts 10–15
 //   years, longer than the garden's level). Fast effect: fruit every few days in July, picked or lost. Slow effect: a
-//   crop only from the second summer, and full from the third: a slow payback on the cage's price.
+//   crop only from the second summer, and full from the third: a slow payback on the cage's price. A cordon gives its own
+//   kg a summer (RHS, "Redcurrants": about 1 kg from a cordon), not the cage's yield a m²; the fence keeps the birds off
+//   no better than the cage, a simplification.
 import {qty, type GraphNode, type LeverValue} from '../graph';
 import type {System, TickContext} from '../clock';
 import {recordWaste} from './kitchen';
+import {CORDON} from '../../data/shed';
 
 export const BERRIES = 'berries';
 export const BERRY_KEY = `food.${BERRIES}`;
@@ -29,9 +33,11 @@ export function maturity(days: number): number {
   return days < 240 ? 0 : days < 600 ? 0.4 : 1;
 }
 
-/** The planting: when it went in, game hours. Kept as the node's `bushes` lever. */
+/** The planting: when it went in, game hours, and for cordons each cordon's planting (null until its first day). Kept as
+ *  the node's `bushes` lever. */
 export interface Bushes {
-  planted: number;
+  planted: number | null;
+  plants?: (number | null)[];
 }
 export const bushesOf = (n: GraphNode): Bushes | null => (n.levers.bushes as unknown as Bushes | undefined) ?? null;
 export const newBushes = (hours: number): LeverValue => ({planted: hours}) as unknown as LeverValue;
@@ -52,9 +58,13 @@ function day(c: TickContext) {
   for (const n of Object.values(c.graph.nodes)) {
     // a new planting is dated on its first day (the shed's buy has no clock)
     if (n.kind === 'fruit' && n.levers.bushes === null) n.levers.bushes = newBushes(c.hours);
-    const b = bushesOf(n);
+    let b = bushesOf(n);
     if (!b) continue;
-    const area = n.stocks['land.crops']?.amount ?? 0, mature = maturity((c.hours - b.planted) / 24);
+    // a cordon planted since yesterday is dated today
+    if (b.plants?.includes(null)) n.levers.bushes = (b = {...b, plants: b.plants.map((t) => t ?? c.hours)}) as unknown as LeverValue;
+    const area = n.stocks['land.crops']?.amount ?? 0;
+    // the fruit a summer when full: the cage's by its area, and each cordon's by its own age
+    const full = b.plants ? b.plants.reduce<number>((a, t) => a + CORDON.kg * maturity((c.hours - (t ?? c.hours)) / 24), 0) : FRUIT_YIELD * area * maturity((c.hours - (b.planted ?? c.hours)) / 24);
     // what's been on the canes too long drops, then today's fruit ripens
     const lost = ripeFruit(n) * (1 - Math.exp(-days / KEEPS_ON_PLANT));
     if (lost > 1e-9) {
@@ -62,7 +72,7 @@ function day(c: TickContext) {
       recordWaste(c.graph, lost);
     }
     const doy = c.date.dayOfYear, share = days === 1 ? ripening(doy) : Array.from({length: days}, (_, i) => ripening(doy - i)).reduce((a, x) => a + x, 0);
-    const kg = FRUIT_YIELD * area * mature * share;
+    const kg = full * share;
     if (kg > 1e-9) c.flow({what: 'fruit ripening', unit: 'kgFood', product: BERRIES, amount: qty(kg, 'kgFood'), from: {boundary: 'growth'}, to: {node: n.id, stock: BERRY_KEY}});
   }
 }

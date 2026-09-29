@@ -6,7 +6,8 @@
 // compost the soil's numbers, the carbon dial and the shop food's footprint beside it); a key not in the table fails
 // closed, even from a save; a hidden
 // lever's command is refused; the keys a tick reaches together make one sign, not one each, and the sign is still under
-// reduced motion; and "Show all details" shows every number, tab and dial but opens no lever (the sim's gates stay).
+// reduced motion; the sign goes once it has shown, and a save carried on months later brings no sign naming everything
+// since the first morning (the playtest's "New: soil moisture and the watering line… +3"); and "Show all details" shows every number, tab and dial but opens no lever (the sim's gates stay).
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
 const send=(page,cmd)=>page.evaluate(c=>window.__sim.send(c),cmd);
 const has=(page,sel)=>page.evaluate(s=>!!document.querySelector(s),sel);
@@ -86,6 +87,22 @@ export default async function({ok,open}){
   const still=await page.evaluate(()=>{const n=document.querySelector('.notice.unfold');return n?getComputedStyle(n).animationName:null});
   ok('unfold: under reduced motion the sign is a still ring, not a pulse',still==='none',String(still));
   await ctx.close();
+
+  // the sign goes once it has shown and doesn't come back; a jump of months (a save carried on) brings none
+  {const {ctx,page,errs}=await open({width:1440,height:900});await ready(page);
+    await send(page,{type:'card',id:'first-plan',answer:'accept'});await send(page,{type:'speed',speed:0});
+    await send(page,{type:'tick',hours:2});
+    const came=await shows(page,'.notice.unfold');
+    const went=await page.waitForFunction(()=>!document.querySelector('.notice.unfold'),null,{timeout:12000}).then(()=>true,()=>false);
+    for(let i=0;i<6;i++)await send(page,{type:'tick',hours:1});
+    const back=await shows(page,'.notice.unfold[data-keys*="garden.water"]',true);
+    // months on in one jump, as a save carried on from another page would come
+    await send(page,{type:'tick',hours:24*200});
+    await page.waitForTimeout(1500);
+    const months=await page.evaluate(()=>[...document.querySelectorAll('.notice.unfold')].map(n=>n.textContent));
+    ok('unfold: the sign goes once it has shown and doesn’t come back, and a jump of months brings no sign naming everything since the first morning',
+      came&&went&&!back&&!months.length&&!errs.length,JSON.stringify({came,went,back,months}));
+    await ctx.close()}
 
   // "Show all details": every number, tab and dial shows on a new game, and no lever opens
   {const {ctx,page,errs}=await open({width:1440,height:900});await ready(page);

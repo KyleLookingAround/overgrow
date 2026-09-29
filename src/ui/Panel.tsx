@@ -6,7 +6,8 @@
 // with the first compost, carbon and land with the first carbon choice, money with the first payday or sale), or all at once
 // with the "Show all details" setting at the foot of the Garden tab. A number with an Explain card is a button that
 // opens it.
-import {useState} from 'preact/hooks';
+import {useEffect, useState} from 'preact/hooks';
+import type {UpgradeId} from '../data/shed';
 import {CROPS} from '../data/crops';
 import type {Activity} from '../sim/activity';
 import type {Command} from '../sim/commands';
@@ -170,6 +171,12 @@ function Place({n, days, log, see, dig, send, onExplain}: {
 }
 
 type Tab = 'garden' | 'shed' | 'kitchen';
+/** A tab the goal bar's button opens, the Shed at one offer; `at` makes each tap a fresh one. */
+export interface Focus {
+  tab: 'garden' | 'shed';
+  shed: UpgradeId | null;
+  at: number;
+}
 /** The tabs, and the key each shows with (null: from the start). */
 const TABS: [Tab, string, string | null][] = [['garden', 'Garden', null], ['shed', 'Shed', 'garden.shed'], ['kitchen', 'Kitchen', 'garden.kitchen']];
 
@@ -178,9 +185,11 @@ export function Panel(props: {
   open: boolean; onToggle: () => void; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
   /** "Show all details": every number shows, whatever has unfolded (the sim's gates on levers stay). */
   all: boolean; onDetails: (all: boolean) => void;
+  focus?: Focus | null;
 }) {
   const see = (key: string) => shows(props.seen, key, props.all);
   const [tab, setTab] = useState<Tab>('garden');
+  useEffect(() => void (props.focus && setTab(props.focus.tab)), [props.focus]);
   const places = props.nodes.filter((n) => n.box).sort((a, b) => rank(a) - rank(b));
   const chosen = places.find((n) => n.id === props.selected);
   // a tab shows once it has something in it
@@ -208,7 +217,8 @@ export function Panel(props: {
         {current === 'kitchen' && props.ledger ? (
           <KitchenTab ledger={props.ledger} nodes={props.nodes} see={see} onExplain={props.onExplain} />
         ) : current === 'shed' ? (
-          <ShedTab nodes={props.nodes} seen={props.seen} purse={props.nodes.find((n) => n.id === KITCHEN)?.stocks.money?.amount ?? 0} see={see} send={props.send} />
+          <ShedTab nodes={props.nodes} seen={props.seen} purse={props.nodes.find((n) => n.id === KITCHEN)?.stocks.money?.amount ?? 0} see={see} send={props.send}
+            focus={props.focus?.tab === 'shed' ? props.focus : null} />
         ) : (
           <>
             <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} job={see('household.commute')} send={props.send} onExplain={props.onExplain} />

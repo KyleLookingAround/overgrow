@@ -19,9 +19,11 @@ export interface Kit {
   fleece: boolean;
   /** The game hour the seed potatoes were set out to chit, or null. */
   chitted: number | null;
+  /** Bare-root season (November to March): cordons are sold and planted (src/data/shed.ts's CORDON). */
+  bare?: boolean;
 }
 
-export const NO_KIT: Kit = {owned: [], nematodes: 0, dry: false, seeds: null, fleece: false, chitted: null};
+export const NO_KIT: Kit = {owned: [], nematodes: 0, dry: false, seeds: null, fleece: false, chitted: null, bare: false};
 /** Degree days of a head start a potato planted now has from its chitting (none unchitted, or chitted too long ago). */
 export const chitStart = (g: Graph, crop: string, hours: number) => {
   const t = kitOf(g).chitted;

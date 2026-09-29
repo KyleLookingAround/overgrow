@@ -3,7 +3,8 @@
 // the player; a policy never touches a bed or a stock. A player is its policies: the plan (what to sow where, in
 // season, rotating families), the moisture line to water at, the pest policy, the shop (the next thing worth having,
 // bought once the purse holds its price and a little over), digging (another bed once the dug ones are all in use) and
-// the winter line (a winter crop in each bed once the first autumn bed stands empty). A policy on a lever or an offer
+// the winter line (a winter crop in each bed once the first autumn bed stands empty), and the week's cards, the autumn's
+// and winter's among them (the leaves raked, a cordon each time bare-root season asks, the beds left no-dig). A policy on a lever or an offer
 // that unfolds (src/data/unfold.ts) waits until it has, as a player would: the sim refuses it before.
 import {CROPS, type CropId} from '../../src/data/crops';
 import {UPGRADE_IDS, UPGRADES, type UpgradeId} from '../../src/data/shed';
@@ -15,7 +16,9 @@ import type {GraphNode, LeverValue} from '../../src/sim/graph';
 import type {Command, Snapshot} from '../../src/sim/index';
 import {isDug} from './measure';
 import {bedCardOf} from '../../src/ui/bed-card';
-import {goalLine} from '../../src/ui/goal';
+import {goalLine, statusOf} from '../../src/ui/goal';
+import {CARDS} from '../../src/data/unfold';
+import {YEAR_HOURS} from '../../src/sim/commands';
 import {decisionsOf} from '../../src/ui/decisions';
 import {PRESERVE} from '../../src/data/kitchen';
 import {cataloguePrice} from '../../src/sim/shed';
@@ -118,10 +121,15 @@ function offers(snap: Snapshot, date: CalendarDate): UpgradeId[] {
 /** Buys the cheapest small offer that has come up once the purse holds its price and the reserve; with none left, saves
  *  for the next big buy in BIG_ORDER and buys it once the purse holds it; then the beds raised and the tank. */
 export const buyNext: Policy = ({snap, date}) => {
-  const want = offers(snap, date), small = want.filter((id) => !UPGRADES[id].big && !LATER.includes(id)).sort((a, b) => UPGRADES[a].price - UPGRADES[b].price);
+  // the cordons are planted one at a time as bare-root season's card asks
+  const want = offers(snap, date).filter((id) => id !== 'cordon' && (WHEN[id]?.includes(date.month) ?? true)), small = want.filter((id) => !UPGRADES[id].big && !LATER.includes(id)).sort((a, b) => UPGRADES[a].price - UPGRADES[b].price);
   const id = small.find((x) => snap.money >= UPGRADES[x].price + RESERVE) ?? BIG_ORDER.find((x) => want.includes(x)) ?? LATER.find((x) => want.includes(x));
   return id && snap.money >= UPGRADES[id].price + RESERVE ? [{type: 'buy', id}] : [];
 };
+/** The mid-priced kit, bought only in the months it pays (the rest of the year it would sit in the shed while the purse
+ *  goes short of seed): the fork for the winter digging, cloches for the autumn and the early spring, the propagator
+ *  for the spring's tender sowings, and the bee hotel before the mason bees fly. */
+export const WHEN: Partial<Record<UpgradeId, readonly number[]>> = {fork: [10, 11, 12, 1, 2], cloches: [9, 10, 2, 3], propagator: [1, 2, 3], 'bee-hotel': [3, 4]};
 /** What the player buys only once the big buys are in: the beds raised one by one, and the tank. */
 const LATER: readonly UpgradeId[] = ['raised-bed', 'water-tank'];
 
@@ -155,16 +163,25 @@ export const answerBeds: Policy = ({snap}) => bedCardOf(snap)?.actions[0]?.cmds 
 
 /** What an engaged player answers the week's decisions with: fleece for a frost, a glut preserved while the freezer has
  *  room (it feeds the winter) and given away when it's full, water sooner in a dry spell, and blight-resistant seed. */
-export const ANSWERS: Record<string, string> = {frost: 'fleece', glut: 'preserve', dry: 'water', catalogue: 'resistant', chit: 'chit', mulch: 'mulch', warm: 'warm'};
-export const decideAll: Policy = ({snap}) =>
-  decisionsOf(snap).flatMap((d) => {
+export const ANSWERS: Record<string, string> = {frost: 'fleece', glut: 'preserve', dry: 'water', catalogue: 'resistant', chit: 'chit', mulch: 'mulch', warm: 'warm',
+  leaves: 'rake', 'bare-root': 'plant', 'dig-over': 'no-dig'};
+export const decideAll: Policy = ({snap}) => [...yearCards(snap), ...decisionsOf(snap).flatMap((d) => {
     let want = ANSWERS[d.id]!;
     if (d.id === 'glut' && Number(snap.nodes.find((n) => n.id === 'kitchen')?.stocks['food.preserves']?.amount ?? 0) >= PRESERVE.cap - 1) want = 'give';
+    // a cordon once the hens are in: the eggs come first
+    if (d.id === 'bare-root' && !kitOf(snap).owned.includes('hens')) want = 'no';
     // next year's seed only once the purse has its price and the reserve
     if (d.id === 'catalogue' && snap.money < cataloguePrice(graphOf(snap), 'resistant') + RESERVE) want = 'later';
     const pick = d.actions.find((a) => (a.cmd as {answer?: string}).answer === want)?.cmd ?? (want === (d.dismiss as {answer?: string}).answer ? d.dismiss : d.actions[0]!.cmd);
     return [pick];
-  });
+  })];
+
+/** The year's cards, read and carried on from: the offer won, or the first anniversary without it. */
+function yearCards(snap: Snapshot): Command[] {
+  if (snap.seen.includes(CARDS.year) || snap.seen.includes(CARDS.firstYear)) return [];
+  if (statusOf(snap).ready) return [{type: 'card', id: 'year', answer: 'ok'}];
+  return snap.hours >= YEAR_HOURS ? [{type: 'card', id: 'first-year', answer: 'ok'}] : [];
+}
 
 /** The slug policy once the beer traps are in: leave them to the traps and keep the gardener's evenings. */
 export const SLUGS_AFTER_TRAP: Policy = (v) => (kitOf(v.snap).owned.includes('beer-trap') ? pestPolicy({slugs: 'leave'})(v) : []);
@@ -180,7 +197,7 @@ export const PLAYERS: Record<string, Player> = {
   /** The sensible plan with no shopping, digging or winter crops: the garden as it was before the shed opened. */
   /** Does exactly what the goal bar says, and nothing else (the `feature` playbook's tips, proved by a player who follows
    *  them): each morning, the bar's one next action's commands, if it names one. */
-  tips: {name: 'tips', plan: (v) => goalLine(v.snap).step?.cmds ?? [], water: () => [], pests: null, shop: null, dig: null, winter: null},
+  tips: {name: 'tips', plan: (v) => goalLine(v.snap).step?.cmds ?? [], water: () => [], pests: null, shop: null, dig: null, winter: null, decide: decideAll},
   'two-beds': {name: 'two-beds', plan: rotate(['salad', 'potatoes']), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')), pests: SENSIBLE_PESTS, shop: null, dig: null, winter: null},
   'one-crop': {name: 'one-crop', plan: oneCrop('salad'), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')), pests: SENSIBLE_PESTS, shop: null, dig: null, winter: null},
 };

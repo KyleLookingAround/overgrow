@@ -7,7 +7,7 @@
 // its own short line.
 import {CROPS, WINTER_IDS, type CropId} from '../data/crops';
 import type {Requirement} from '../data/ladder-rules';
-import {UPGRADES} from '../data/shed';
+import {UPGRADES, type UpgradeId} from '../data/shed';
 import {unfolded} from '../data/unfold';
 import {calendar} from '../sim/clock';
 import {gardenStatus, GOAL, type Goal} from '../sim/goal';
@@ -32,6 +32,8 @@ export interface GoalLine {
   window: number | null;
   /** The one thing to do, a verb first ("Sow kale in bed 3"), for the bar's one line. */
   verb: string;
+  /** The button behind the verb: the step's commands, the Shed opened at what to save for, or the plan opened. */
+  go: Go;
   /** How far the goal has come, 0–1, for the bar's ring: the first crop's growth before the first harvest, then the
    *  year's share so far times how near the three requirements are to their targets. */
   ring: number;
@@ -73,6 +75,29 @@ function toSow(nodes: GraphNode[], snapHours: number): CropId | null {
 export interface Step {
   text: string;
   cmds: Command[];
+  /** A thing in the shed the step saves for: the button opens the Shed at it. */
+  shed?: UpgradeId;
+}
+
+/** The goal bar's button: one tap does the step, or opens the Shed at what it saves for, or the Garden tab's plan. */
+export interface Go {
+  label: string;
+  cmds: Command[];
+  tab: 'garden' | 'shed' | null;
+  shed: UpgradeId | null;
+}
+/** The button for a step, or for none: the plan, where every bed's sowing is chosen. */
+export function goOf(step: Step | null): Go {
+  if (step?.shed) return {label: 'Open the Shed', cmds: [], tab: 'shed', shed: step.shed};
+  if (step?.cmds.length) return {label: 'Do it', cmds: step.cmds, tab: null, shed: null};
+  return {label: 'See the plan', cmds: [], tab: 'garden', shed: null};
+}
+
+/** A thing in the shed as the next step: bought if the purse can pay, or saved for (the Shed opened at it). */
+function shedStep(id: UpgradeId, purse: number, why: string): Step {
+  const u = UPGRADES[id];
+  return purse >= u.price ? {text: `Buy the ${lower(u.name)}: ${why}`, cmds: [{type: 'buy', id}]}
+    : {text: `Save for the ${lower(u.name)}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id};
 }
 
 /**
@@ -108,11 +133,10 @@ export function nextStep(snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>, key: 
   if (plot && !digging && !empty.length && unfolded(snap.seen, 'garden.dig') && key !== 'health' && purse >= digCost(plot.stocks['land.grass']?.amount ?? 0))
     return crop ? {text: `Dig ${bedName(plot)} and sow ${lower(CROPS[crop].name)}`, cmds: [plan(plot, 'dig', true), plan(plot, 'sow', crop)]} : {text: `Dig ${bedName(plot)}`, cmds: [plan(plot, 'dig', true)]};
   if (key === 'output') {
-    // a big buy the purse can pay for, that makes more food this year: eggs most days, then a crop under glass (the fruit
+    // a big buy that makes more food this year, bought or saved for: eggs most days, then a crop under glass (the fruit
     // cage crops only from its second summer, so it's no answer to this year's Output)
     for (const id of ['hens', 'greenhouse'] as const)
-      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id) && purse >= UPGRADES[id].price)
-        return {text: `Buy the ${lower(UPGRADES[id].name)}: ${lower(UPGRADES[id].saves)}`, cmds: [{type: 'buy', id}]};
+      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id)) return shedStep(id, purse, lower(UPGRADES[id].saves));
   }
   if (key === 'reliability') {
     // a glut sold in summer is food the winter doesn't have: preserve it, once there's been one
@@ -128,6 +152,9 @@ export function nextStep(snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>, key: 
     const pick = beds.some((n) => n.levers.sow === 'kale' || n.levers.sow === 'leeks') ? null : inSeason(CROPS.kale, d) ? 'kale' : inSeason(CROPS.leeks, d) ? 'leeks' : null;
     const cold = [...beds].sort((a, b) => (cropOf(a) ? 1 : 0) - (cropOf(b) ? 1 : 0))[0];
     if (pick && cold) return {text: `Plan ${pick} in ${bedName(cold)}: it’s picked through the winter`, cmds: [plan(cold, 'sow', pick)]};
+    // a longer season at each end, so the beds feed the household in the thin weeks: cloches, the frame, then glass
+    for (const id of ['cloches', 'cold-frame', 'greenhouse'] as const)
+      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id)) return shedStep(id, purse, 'a longer season at each end');
   }
   if (key === 'health') {
     const same = beds.find((n) => n.levers.sow !== 'rotation' && n.levers.sow !== 'none');
@@ -158,18 +185,18 @@ export function goalLine(snap: Pick<Snapshot, 'nodes' | 'kitchen' | 'seen' | 'ho
     }
     const text = !best ? 'First harvest: sow a bed' : best.ready ? `First harvest: ${best.name} in ${best.bed}, ready to pick` : `First harvest: ${best.name} in ${best.bed}, ${Math.round(100 * best.p)} % grown`;
     const verb = !best ? 'Sow a bed' : best.ready ? `Pick the ${best.name} in ${best.bed}` : `Grow the first harvest: ${best.name} in ${best.bed}`;
-    return {text, action: null, step: null, rows: null, window: null, verb, ring: best?.p ?? 0};
+    return {text, action: null, step: null, rows: null, window: null, verb, ring: best?.p ?? 0, go: goOf(null)};
   }
   const st = statusOf(snap), weeks = Math.round(st.days / 7), of = Math.round(st.windowDays / 7);
   if (!st.days) {
     const step = nextStep(snap, 'output'), action = step?.text ?? null;
-    return {text: 'The allotment: the committee looks at your garden’s whole year, from its first day', action, step, rows: null, window: 0, verb: action ?? 'Keep every bed sown and picked', ring: 0};
+    return {text: 'The allotment: the committee looks at your garden’s whole year, from its first day', action, step, rows: null, window: 0, verb: action ?? 'Keep every bed sown and picked', ring: 0, go: goOf(step)};
   }
   const step = st.binding ? nextStep(snap, st.binding.key) : null, action = step?.text ?? null;
   const held = st.binding ? `${valueText(st.binding)}: ${action ?? RAISE[st.binding.key]}` : 'All three met';
   const window = Math.min(1, st.days / st.windowDays), near = st.requirements.reduce((a, r) => a + Math.min(1, r.progress), 0) / Math.max(1, st.requirements.length);
   const verb = action ?? (st.binding ? RAISE[st.binding.key][0]!.toUpperCase() + RAISE[st.binding.key].slice(1) : 'Keep it up: all three are met');
-  return {text: st.full ? held : `${held} (${weeks} of ${of} weeks so far)`, action, step, rows: st.requirements, window, verb, ring: window * near};
+  return {text: st.full ? held : `${held} (${weeks} of ${of} weeks so far)`, action, step, rows: st.requirements, window, verb, ring: window * near, go: goOf(step)};
 }
 
 /** The garden's step-up offer from a snapshot (src/sim/goal.ts's gardenStatus()). */

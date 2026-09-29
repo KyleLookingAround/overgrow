@@ -23,19 +23,22 @@ import {FirstPlan} from './FirstPlan';
 import {GoalBar} from './GoalBar';
 import {juiceOf, JUICE_MS, type Juice} from './juice';
 import {statusOf} from './goal';
-import {YearCard} from './YearCard';
+import {FirstYearCard, YearCard} from './YearCard';
+import {YEAR_HOURS} from '../sim/commands';
 import type {MapRenderer} from './map/renderer';
 import {MapView} from './MapView';
 import {current, push, today, unfoldSign, type Notice} from './notices';
 import {markOf, momentsOf, type SeasonMark} from './moments';
 import {Notices} from './Notices';
-import {Panel} from './Panel';
+import {Panel, type Focus} from './Panel';
 import {TopBar} from './TopBar';
 
 let noticeId = 0;
 
 /** The game hours after which the first minute is over and the "try faster" nudge may show (win W17). */
 const FIRST_MINUTE = 60;
+/** A jump in game hours between two snapshots past which the page starts its signs and moments afresh. */
+const JUMP_HOURS = 24 * 7;
 
 /** Whether the first plan's card is up: not yet answered, and the clock hasn't moved. */
 export const firstPlanDue = (snap: Snapshot) => !snap.seen.includes(CARDS.firstPlan) && snap.hours === 0;
@@ -52,6 +55,8 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const [open, setOpen] = useState(true);
   const [explain, setExplain] = useState<Explaining | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
+  // the goal bar's button opens a tab of the panel, the Shed at one offer (src/ui/goal.ts's Go)
+  const [focus, setFocus] = useState<Focus | null>(null);
   const log = useMemo(() => new EffectsLog(), []);
   useEffect(() => sim.onSnapshot((s) => log.add(s)), [sim]);
   useEffect(() => {
@@ -90,7 +95,10 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
     return () => clearTimeout(t);
   }, [juice]);
   useEffect(() => sim.onSnapshot((s) => {
-    const before = was.current, fresh = !before || before.seed !== s.seed || s.seen.length < before.seen.length || s.hours < before.snap.hours;
+    // a load or a new game starts afresh, and so does a jump of more than a week (a save carried on from elsewhere): the
+    // page never ticks that far at once, and its sign would name everything that unfolded since the first morning
+    const before = was.current, fresh = !before || before.seed !== s.seed || s.seen.length < before.seen.length || s.hours < before.snap.hours ||
+      s.hours - before.snap.hours > JUMP_HOURS;
     const m = fresh ? {moments: [], mark: markOf(s)} : momentsOf(before!.snap, s, before!.mark);
     was.current = {seed: s.seed, seen: s.seen, snap: s, mark: m.mark};
     if (fresh) return;
@@ -112,6 +120,8 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const first = !!snap && firstPlanDue(snap);
   // the garden's year done: the level's end, once a save
   const year = !!snap && !first && !snap.seen.includes(CARDS.year) && statusOf(snap).ready;
+  // the garden's first year, on its anniversary, when the offer isn't won yet: once a save
+  const firstYear = !!snap && !first && !year && snap.hours >= YEAR_HOURS && !snap.seen.includes(CARDS.year) && !snap.seen.includes(CARDS.firstYear);
   // the one "try faster" nudge: once the first minute is over (the first cut is in by then), before the wait for the
   // spring sowings, at 1×, once a save
   const nudge = !!snap && !first && snap.hours > FIRST_MINUTE && shown!.speed === 1 && snap.seen.includes(CARDS.firstPlan) &&
@@ -149,10 +159,17 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
           {first ? <FirstPlan onAnswer={(answer) => send({type: 'card', id: 'first-plan', answer})} />
             : year ? <YearCard snap={snap!} onDone={() => send({type: 'card', id: 'year', answer: 'ok'})} />
             : explain ? <Explain what={explain} nodes={nodes} log={log} onClose={() => setExplain(null)} />
-            : snap && !shownNotices.length && <GoalBar snap={snap} />}
+            : firstYear ? <FirstYearCard snap={snap!} onDone={() => send({type: 'card', id: 'first-year', answer: 'ok'})} />
+            : snap && !shownNotices.length && <GoalBar snap={snap} onGo={(go) => {
+              go.cmds.forEach(send);
+              if (go.tab) {
+                setOpen(true);
+                setFocus({tab: go.tab, shed: go.shed, at: Date.now()});
+              }
+            }} />}
         </MapView>
         <Panel nodes={nodes} seen={snap?.seen ?? []} all={all} onDetails={(v) => send({type: 'setting', key: 'details', value: v})} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null} log={log}
-          selected={selected} onSelect={setSelected} open={open} onToggle={() => setOpen(!open)} send={send} onExplain={explainAt} />
+          selected={selected} onSelect={setSelected} open={open} focus={focus} onToggle={() => setOpen(!open)} send={send} onExplain={explainAt} />
       </main>
     </div>
   );

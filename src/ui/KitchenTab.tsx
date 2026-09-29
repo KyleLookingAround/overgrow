@@ -102,7 +102,8 @@ export function KitchenTab({ledger, nodes, see, onExplain}: {ledger: Ledger; nod
         <Rows
           rows={[
             ['Picked', grams(ledger.picked), 'picking'], ['Eaten', grams(ledger.eaten), 'eating'], ['Sold at the box', purse ? `${grams(ledger.sold)}, ${money(ledger.earned)}` : grams(ledger.sold), 'honesty box'],
-            ...(see('household.groceries') ? [['Groceries saved', money(saved), 'groceries saved'] as const] : []), ['Gone off or rotted', grams(ledger.wasted), 'going off'],
+            ...(see('household.groceries') ? [['Saved at the shop', money(saved), 'groceries saved'] as const] : []), ['Given away', grams(ledger.given), 'given to a neighbour'],
+            ['Gone off or rotted', grams(ledger.wasted), 'going off'],
           ]}
           onExplain={onExplain}
         />
