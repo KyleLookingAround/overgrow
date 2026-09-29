@@ -1,9 +1,8 @@
 // The allotment committee's numbers: its four motions and what each does for each want, how goodwill and persuasion
-// tip a vote, political capital, and the rules a passed motion sets and what they cost the plots. Rough, invented-place-
-// free numbers with their sources; src/sim/models/committee.ts uses them and docs/systems/committee.md says how.
+// tip a vote, political capital, and the rules a passed motion sets and what they cost the plots. Rough, numbers with their sources; src/sim/models/committee.ts uses them and docs/systems/committee.md says how.
 //
 // Licences: nothing copied. Rota and hosepipe rules follow the shape of allotment site rules and water companies'
-// temporary use bans (Water Industry Act 1991, s.76: a hosepipe ban still allows a watering can from a butt or trough);
+// temporary use bans (a hosepipe ban still allows a watering can filled from a butt or trough; Water Industry Act 1991 as amended by the Flood and Water Management Act 2010);
 // burning and composting emissions come from the IPCC 2006 Guidelines for National Greenhouse Gas Inventories, vol. 4 and
 // 5 (open burning and biological treatment of waste, CH₄ and N₂O by mass of waste), with the dry-matter and carbon
 // fractions of green waste from the same volumes' defaults; those are published for reuse with attribution. The way a
@@ -16,7 +15,7 @@ export const MOTION_IDS: readonly MotionId[] = ['waterRota', 'bonfireBan', 'plot
 /**
  * A motion: what it changes, what it costs its proposer in political capital, and how well it serves each want (−1
  * harms, 1 serves fully). `habits` adds a nudge for the habits it sits well or badly with, and `dryness` how far a dry
- * summer pushes every member towards it (0 none, 1 hard). `carbon` marks a motion whose outcome is a carbon choice.
+ * summer pushes every member towards it (0 none, 1 hard). 
  */
 export interface Motion {
   name: string;
@@ -25,24 +24,23 @@ export interface Motion {
   appeal: Record<Want, number>;
   habits: Partial<Record<Habit, number>>;
   dryness: number;
-  carbon: boolean;
 }
 export const MOTIONS: Record<MotionId, Motion> = {
   waterRota: {
     name: 'The water rota', what: 'Fixed slots at the trough instead of first come first served', cost: 3,
-    appeal: {harvest: 0.25, rest: 0.1, standing: -0.2, money: 0}, habits: {competitive: -0.15}, dryness: 0.2, carbon: false,
+    appeal: {harvest: 0.25, rest: 0.1, standing: -0.2, money: 0}, habits: {competitive: -0.15}, dryness: 0.2,
   },
   bonfireBan: {
     name: 'The bonfire ban', what: 'No burning garden waste on site: a heap for it instead', cost: 4,
-    appeal: {harvest: 0.1, rest: -0.35, standing: 0.3, money: 0.1}, habits: {tidy: -0.22, lazy: -0.22, generous: 0.1}, dryness: 0, carbon: true,
+    appeal: {harvest: 0.1, rest: -0.35, standing: 0.3, money: 0.1}, habits: {tidy: -0.22, lazy: -0.22, generous: 0.1}, dryness: 0,
   },
   plotToBees: {
     name: 'A plot for the bees', what: 'One empty plot sown with flowers, not let again', cost: 3,
-    appeal: {harvest: -0.3, rest: 0.3, standing: 0.3, money: -0.1}, habits: {tidy: -0.3, generous: 0.1}, dryness: 0, carbon: false,
+    appeal: {harvest: -0.3, rest: 0.3, standing: 0.3, money: -0.1}, habits: {tidy: -0.3, generous: 0.1}, dryness: 0,
   },
   hosepipe: {
     name: 'The hosepipe rule', what: 'Cans only from the trough until the water company lifts its ban', cost: 2,
-    appeal: {harvest: -0.5, rest: 0.1, standing: 0.2, money: 0.1}, habits: {competitive: -0.2}, dryness: 0.9, carbon: false,
+    appeal: {harvest: -0.5, rest: 0.1, standing: 0.2, money: 0.1}, habits: {competitive: -0.2}, dryness: 0.9,
   },
 };
 
@@ -71,6 +69,8 @@ export interface Rules {
 }
 export const START_RULES: Rules = {rota: 'open', bonfires: 'allowed', bees: 0, hosepipe: 'off'};
 export const PLOTS = 12;
+/** The most plots that can go to the bees: empty ones only, and a plot let go is one the site has spare. */
+export const MAX_BEES = 3;
 /**
  * What a rule costs or does, per plot: hours a week queueing at the trough (open: `queueBase` in a wet week, up to
  * `queue` more at the driest; slots: a flat `slot`, the wrong time now and then), the trough's litres a plot a day (a

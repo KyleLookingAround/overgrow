@@ -114,5 +114,5 @@ export const TRUST = {
 /** What a carbon choice does to goodwill (Q14: carbon has a price through people): smoke and peat and a plot dug from grass cost it; a heap and no-dig earn it. */
 export const CARBON_CHOICE: Record<string, number> = {peat: -0.03, bonfire: -0.05, 'plot dug from grass': -0.04, compost: 0.02, 'no-dig': 0.02};
 
-/** The seed catalogue, an adviser with an interest: it scores its own seeds `bias` higher than their merit, and charges `markup` more for them. Merit is 0 to 1. Its recommendation is honest about the merit and weighted in the score, which is what the Explain card shows. */
-export const CATALOGUE = {bias: 0.3, markup: 0.4, ownShare: 0.5};
+/** The seed catalogue, an adviser with an interest: it scores its own seeds `bias` higher than their merit. Merit is 0 to 1. Its recommendation is honest about the merit and weighted in the score, which is what the Explain card shows. */
+export const CATALOGUE = {bias: 0.3};

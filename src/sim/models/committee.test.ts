@@ -5,7 +5,7 @@
 // burning garden waste is smoke now and a heap keeps the carbon; and the system and the graph half of the command move
 // the capital, the rules and the relationships.
 import {describe, expect, it} from 'vitest';
-import {CAPITAL, MOTION_IDS, MOTIONS, PLOTS, RULE, START_RULES, WASTE} from '../../data/committee';
+import {CAPITAL, MAX_BEES, MOTION_IDS, MOTIONS, PLOTS, RULE, START_RULES, WASTE} from '../../data/committee';
 import {applyFlow, makeGraph, qty, type Graph} from '../graph';
 import type {TickContext} from '../clock';
 import {rng} from '../random';
@@ -259,7 +259,7 @@ describe('what the rules do to the plots', () => {
     expect(effects(r).plots).toBe(PLOTS - 1);
     expect(effects(r).pollination).toBeGreaterThan(effects(START_RULES).pollination);
     for (let i = 0; i < 20; i++) r = applyMotion(r, 'plotToBees');
-    expect(effects(r).plots).toBeGreaterThanOrEqual(1); // yours is never let go
+    expect(effects(r).plots).toBe(PLOTS - MAX_BEES); // only empty plots go, never yours or a neighbour's
   });
 
   it('start with nothing decided', () => {

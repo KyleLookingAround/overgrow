@@ -228,7 +228,7 @@ export type Event =
   | {type: 'watch'; watching: Watching}
   | {type: 'found'; gap: number};
 
-/** What an event is worth to goodwill, before the shrinking step. Watching costs its `goodwill` a week; being found out costs more, up to `gap` a step for a kg of it. */
+/** What an event is worth to goodwill, before the shrinking step. Watching costs its `goodwill` a week; being found out costs a step at least, and a step for each kg it found beyond the first. */
 export function worth(e: Event): number {
   switch (e.type) {
     case 'kept': return TRUST.events.kept!;
@@ -237,7 +237,7 @@ export function worth(e: Event): number {
     case 'help': return e.hours * TRUST.events.help!;
     case 'carbon': return CARBON_CHOICE[e.choice] ?? 0;
     case 'watch': return -WATCH[e.watching].goodwill;
-    case 'found': return Math.max(TRUST.events.gap!, e.gap * TRUST.events.gap!);
+    case 'found': return Math.min(TRUST.events.gap!, e.gap * TRUST.events.gap!);
   }
 }
 /** A relationship with its goodwill moved by a raw amount (a vote's aftermath). */
@@ -246,6 +246,8 @@ export const nudged = (r: Relation, delta: number): Relation => ({...r, goodwill
 export const after = (r: Relation, e: Event): Relation => nudged(r, worth(e));
 /** Goodwill drifts back to neutral, a little every week: kept promises and shared surplus have to be kept up. */
 export const drift = (r: Relation): Relation => ({...r, goodwill: lerp(r.goodwill, TRUST.baseline, TRUST.drift)});
+/** The kg a person gives away at the swap shed out of a surplus: the habit's share of it. */
+export const shared = (a: Agent, surplus: number) => Math.max(0, surplus) * HABITS[a.habit].give;
 /** The same event for many relationships (the whole site sees a bonfire). */
 export const among = (rs: Record<string, Relation>, e: Event): Record<string, Relation> => Object.fromEntries(Object.entries(rs).map(([k, r]) => [k, after(r, e)]));
 /** How much a site likes you: the mean goodwill across its relationships (the committee's goodwill). */

@@ -13,7 +13,7 @@ import {dayHours} from './labour';
 import {weekGardenHours} from './household';
 import {
   after, agency, allotment, asWorker, audited, AGENT, drift, HELPING, helperWeek, honesty, makeAgent, neglectedPlot, newRelation, padded, plotHours,
-  RELATION, recommend, reportOf, secondPlot, siteGoodwill, spareHours, takingsOf, TAKINGS, tilt, weekPlan, householdOf, type Agent, type Option, type Relation,
+  RELATION, recommend, reportOf, shared, secondPlot, siteGoodwill, spareHours, takingsOf, TAKINGS, tilt, weekPlan, householdOf, type Agent, type Option, type Relation,
 } from './agency';
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
@@ -242,6 +242,18 @@ describe('goodwill and trust as slow stocks', () => {
     for (const choice of ['compost', 'no-dig']) expect(g(after(r, {type: 'carbon', choice}))).toBeGreaterThan(g(r));
     expect(g(after(r, {type: 'carbon', choice: 'bonfire'}))).toBeLessThan(g(after(r, {type: 'carbon', choice: 'peat'})));
     expect(g(after(r, {type: 'carbon', choice: 'something else'}))).toBe(g(r));
+  });
+
+  it('costs more the more a watch finds: a bigger gap is a bigger fall, and any gap costs at least the base step', () => {
+    const r = newRelation();
+    expect(g(after(r, {type: 'found', gap: 4}))).toBeLessThan(g(after(r, {type: 'found', gap: 1})));
+    expect(g(after(r, {type: 'found', gap: 0.2}))).toBe(g(after(r, {type: 'found', gap: 1})));
+  });
+
+  it('gives away by habit: the generous share far more of a surplus than the competitive', () => {
+    const a = (h: Agent['habit']) => lone(0.5, h);
+    expect(shared(a('generous'), 10)).toBeGreaterThan(shared(a('competitive'), 10) * 5);
+    expect(shared(a('lazy'), -3)).toBe(0);
   });
 
   it('is built slowly and lost quickly: a broken promise costs more than a kept one earns, and help earns by the hour', () => {

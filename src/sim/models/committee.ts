@@ -19,7 +19,7 @@
 //   Fast effect: a vote's result, a rule taking hold, and the goodwill a vote moves. Slow effect: political capital coming
 //   back with the site's goodwill, and a rule's cost or saving over the seasons it stands.
 import {
-  AFTERMATH, CAPITAL, MOTIONS, PERSUADE, PLOTS, RULE, START_RULES, VOTE, WASTE,
+  AFTERMATH, CAPITAL, MAX_BEES, MOTIONS, PERSUADE, PLOTS, RULE, START_RULES, VOTE, WASTE,
   type MotionId, type Rules,
 } from '../../data/committee';
 import {WANTS} from '../../data/agency';
@@ -132,7 +132,7 @@ export function applyMotion(r: Rules, motion: MotionId): Rules {
   switch (motion) {
     case 'waterRota': return {...r, rota: 'slots'};
     case 'bonfireBan': return {...r, bonfires: 'banned'};
-    case 'plotToBees': return {...r, bees: Math.min(PLOTS - 1, r.bees + 1)};
+    case 'plotToBees': return {...r, bees: Math.min(MAX_BEES, r.bees + 1)};
     case 'hosepipe': return {...r, hosepipe: 'on'};
   }
 }
