@@ -12,6 +12,9 @@ Today the game is the empty back garden on the graph, with the clock, saving and
 - [The graph](systems/graph.md) (`src/sim/graph.ts`, `src/sim/state.ts`, `src/data/garden.ts`, `src/sim/churn.ts`)
 - [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`)
 - [Saving](systems/saving.md) (`src/sim/save.ts`, `src/sim/random.ts`, `src/app/storage.ts`, `src/app/main.tsx`)
+- [Soil](systems/soil.md) (`src/sim/models/soil.ts`, `src/sim/models/soil.test.ts`, `src/data/soils.ts`, `src/data/garden.ts`, `src/sim/state.ts`, `src/sim/save.ts`, `src/ui/Panel.tsx`)
+- [Water](systems/water.md) (`src/sim/models/water.ts`, `src/sim/models/water.test.ts`, `src/sim/models/soil.ts`, `src/data/garden.ts`, `src/ui/Panel.tsx`, `src/ui/map/draw.ts`)
+- [The weather](systems/weather.md) (`src/sim/models/weather.ts`, `src/data/climate-normals.ts`, `src/sim/models/weather.test.ts`, `src/ui/map/draw.ts`, `src/ui/map/renderer.ts`, `src/ui/TopBar.tsx`)
 <!-- /joined:systems -->
 
 ## Layers
@@ -126,7 +129,7 @@ The founding spec's budget, measured on part 1's build (28 Sep 2026) and shared 
 - `graph`: The map in tools/graph.mjs: every link in the docs resolves, every system in docs/systems/ names its files, and the joined lists (tools/join.mjs) are sound and up to date; a system's file changed without its notes is a warning.
 - `layout`: The page's shell at every size (320×568, 568×320, 390×844, 844×390, 768×1024, 1440×900): the top bar, the map and the panel each inside the viewport, the panel below the map as a sheet on portrait phones and beside it otherwise, no overflow, every button at least 40 px on touch, the sheet folding to its heading, the dark scheme, and the top bar and panel working by keyboard alone.
 - `rules`: The rules every source file keeps (tools/rules.mjs): Math.random() only in the seeded generator or on a `// cosmetic` line, the sim and its data never importing the UI or naming the DOM, and every model in src/sim/models/ naming its sources and what it simplifies. Each rule is also proved to catch a slip, on a small fixture.
-- `scene`: The map (src/ui/map/): it draws the garden in the owner's style on WebGL, and on Canvas 2D where WebGL is missing; it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; a seeded, paused screenshot repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the speed budget's figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
+- `scene`: The map (src/ui/map/): it draws the garden in the owner's style on WebGL, and on Canvas 2D where WebGL is missing; it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; the weather is drawn from the sim's (rain crossing the garden only while it rains, still but shown under reduced motion, frost on a frosty morning, the dug beds paling as they dry and darkening when soaked); a seeded, paused screenshot repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the speed budget's figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
 <!-- /joined:checks -->
 
 ## Rules

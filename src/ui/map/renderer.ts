@@ -40,12 +40,13 @@ export interface WeatherStats {
 
 const MIN_PERSON_PX = 6;
 /** Raindrops at the lightest and heaviest rain, and how long the shower's front takes to cross the garden, game hours. */
-const DROPS = {min: 40, perMm: 50, max: 260}, FRONT_HOURS = 0.3;
-// a fixed scatter for the drops, from a hash of their index (cosmetic, and the same every frame)
-const scatter = (i: number, k: number) => {
-  const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+const DROPS = {min: 30, perMm: 40, max: 160}, FRONT_HOURS = 0.3;
+// a fixed scatter for the drops, from a hash of their index (cosmetic, and the same every frame): where each crosses,
+// where it starts falling and how fast, worked out once
+const SCATTER = new Float32Array(DROPS.max * 3).map((_, j) => {
+  const x = Math.sin(Math.floor(j / 3) * 12.9898 + ((j % 3) + 1) * 78.233) * 43758.5453;
   return x - Math.floor(x);
-};
+});
 
 export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette, w: number, h: number): Promise<MapRenderer> {
   const app = new Application();
@@ -102,14 +103,14 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     if (w && garden && w.day.rainHours > 0) {
       const {day, t} = w, x0 = c.x + garden.x * c.s, y0 = c.y + garden.y * c.s, gw = garden.w * c.s, gh = garden.h * c.s;
       const want = Math.min(DROPS.max, Math.round(DROPS.min + DROPS.perMm * (day.rain / day.rainHours)));
-      const time = still ? Math.floor(v.hours) * 0.37 : performance.now() / 1000;
+      const time = still ? Math.floor(v.hours) * 0.37 : performance.now() / 1000, lean = 0.27 * (gh / gw);
       for (let i = 0; i < want; i++) {
-        const across = scatter(i, 1), since = t - day.rainFrom - FRONT_HOURS * across;
+        const across = SCATTER[3 * i]!, since = t - day.rainFrom - FRONT_HOURS * across;
         if (since < 0 || since >= day.rainHours) continue;
-        const fall = (scatter(i, 2) + time * (1.2 + 0.4 * scatter(i, 3))) % 1;
+        const fall = (SCATTER[3 * i + 1]! + time * (1.2 + 0.4 * SCATTER[3 * i + 2]!)) % 1;
         let p = drops[n];
         if (!p) drops.push((p = new Particle({texture: drop!})));
-        p.x = x0 + ((((across - fall * 0.27 * (gh / gw)) % 1) + 1) % 1) * gw; // falling along its slant, down and to the left
+        p.x = x0 + ((((across - fall * lean) % 1) + 1) % 1) * gw; // falling along its slant, down and to the left
         p.y = y0 + fall * gh;
         if (out.length < 6) out.push({x: p.x, y: p.y});
         n++;

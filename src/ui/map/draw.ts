@@ -120,8 +120,24 @@ export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette) {
   }
 }
 
+// the nodes the weather is drawn from, looked up once per snapshot rather than every frame
+const found = new WeakMap<GraphNode[], {air: GraphNode | null; lawn: GraphNode | null; dug: GraphNode[]; butts: GraphNode[]}>();
+function lookup(s: Snapshot) {
+  let f = found.get(s.nodes);
+  if (!f) {
+    f = {air: null, lawn: null, dug: [], butts: []};
+    for (const n of s.nodes) {
+      if (n.kind === 'atmosphere') f.air = n;
+      else if (n.kind === 'lawn') f.lawn = n;
+      else if (n.kind === 'butt' && n.box) f.butts.push(n);
+      else if (n.kind === 'bed' && n.box && isDug(n)) f.dug.push(n);
+    }
+    found.set(s.nodes, f);
+  }
+  return f;
+}
 /** The day of weather a snapshot carries on its air node, or null. */
-const dayOf = (s: Snapshot) => (s.nodes.find((n) => n.kind === 'atmosphere')?.levers.weather as unknown as WeatherDay | null | undefined) ?? null;
+const dayOf = (s: Snapshot) => (lookup(s).air?.levers.weather as unknown as WeatherDay | null | undefined) ?? null;
 
 /** The weather at the view time, from whichever of the two snapshots holds that day, and the hour of the day. */
 export function weatherAt(v: View): {day: WeatherDay; hour: WeatherHour; t: number} | null {
@@ -147,31 +163,40 @@ export function wetness(n: GraphNode): number {
   if (w <= lim.fc) return -Math.min(1, Math.max(0, (lim.fc - w) / Math.max(1e-9, lim.tew)));
   return Math.min(1, (w - lim.fc) / Math.max(1e-9, lim.rew)); // a surface's worth of water standing in it: soaked
 }
+/** How wet the surface is from the rain itself, 0–1: darkening as it falls, harder the heavier, and drying over three
+ *  hours after the spell. */
+export function surfaceWet(w: {day: WeatherDay; t: number} | null): number {
+  if (!w || !w.day.rainHours) return 0;
+  const since = w.t - w.day.rainFrom, rate = Math.min(1, 0.5 + w.day.rain / w.day.rainHours / 4);
+  if (since < 0) return 0;
+  if (since < w.day.rainHours) return rate * Math.min(1, since / 0.5 + 0.2);
+  return rate * Math.max(0, 1 - (since - w.day.rainHours) / 3);
+}
 export const soilColour = (wet: number, pal: Palette) => (wet < 0 ? mix(pal['bed-dug'], pal['bed-dry'], -wet) : mix(pal['bed-dug'], pal['bed-wet'], wet));
 
 /** What changes tick by tick without moving: the soil in the dug beds, the water in a butt, and the frost. */
 export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weatherAt(v)): {soil: Record<string, number>; frost: number} {
-  const soil: Record<string, number> = {};
-  for (const n of v.cur.nodes) {
-    if (n.kind !== 'bed' || !n.box || !isDug(n)) continue;
-    const was = v.prev.nodes.find((p) => p.id === n.id), now = wetness(n), wet = was ? wetness(was) + (now - wetness(was)) * v.alpha : now;
-    const r = px(n.box, c);
+  const soil: Record<string, number> = {}, film = surfaceWet(w);
+  const cur = lookup(v.cur), before = lookup(v.prev);
+  for (const n of cur.dug) {
+    const was = before.dug.find((p) => p.id === n.id), now = wetness(n), below = was ? wetness(was) + (now - wetness(was)) * v.alpha : now;
+    const wet = below + (Math.max(below, 0.8) - below) * film; // rain on the surface darkens it before it soaks in
+    const r = px(n.box!, c);
     g.roundRect(r.x, r.y, r.w, r.h, 0.175 * c.s).fill(soilColour(wet, pal));
     soil[n.id] = wet;
   }
-  for (const n of v.cur.nodes) {
-    if (n.kind !== 'butt' || !n.box) continue;
+  for (const n of cur.butts) {
     const fill = (node: GraphNode | undefined) => {
       const w = node?.stocks.water;
       return w && w.cap ? Math.min(1, Math.max(0, w.amount / w.cap)) : 0;
     };
-    const was = fill(v.prev.nodes.find((p) => p.id === n.id)), now = fill(n), f = was + (now - was) * v.alpha;
+    const was = fill(before.butts.find((p) => p.id === n.id)), now = fill(n), f = was + (now - was) * v.alpha;
     if (f <= 0) continue;
-    const r = px(n.box, c);
+    const r = px(n.box!, c);
     g.circle(r.x + r.w / 2, r.y + r.h / 2, (r.w / 2) * 0.67 * Math.sqrt(f)).fill(pal.water);
   }
   // a pale rime over the garden while the grass is below 0 °C, harder the colder it is
-  const frost = (w?.hour.frost ?? 0) * pal.frostMax, lawn = v.cur.nodes.find((n) => n.kind === 'lawn')?.box;
+  const frost = (w?.hour.frost ?? 0) * pal.frostMax, lawn = cur.lawn?.box;
   if (frost > 0 && lawn) {
     const r = px(lawn, c);
     g.rect(r.x, r.y, r.w, r.h).fill({color: pal.frost.color, alpha: frost});

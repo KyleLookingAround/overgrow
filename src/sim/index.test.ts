@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {churn} from './churn';
 import {createSim} from './index';
+import {SYSTEMS} from './systems';
 
 describe('sim', () => {
   it('plays a long headless run without errors and repeats it from the seed', () => {
@@ -40,12 +41,14 @@ describe('sim', () => {
     expect(s.nodes.filter((n) => n.kind === 'bed')).toHaveLength(6);
   });
 
-  it('runs a garden day in well under the 2 ms budget', () => {
-    const sim = createSim(3, [churn]), days = 200;
-    for (let i = 0; i < 24 * 20; i++) sim.apply({type: 'tick', hours: 1}); // warm up
-    const t0 = performance.now();
-    for (let i = 0; i < 24 * days; i++) sim.apply({type: 'tick', hours: 1});
-    const perDay = (performance.now() - t0) / days;
-    expect(perDay).toBeLessThan(2);
+  it('runs a garden day in well under the 2 ms budget, with the test system and with the game’s own', () => {
+    for (const systems of [[churn], SYSTEMS]) {
+      const sim = createSim(3, systems), days = 200;
+      for (let i = 0; i < 24 * 20; i++) sim.apply({type: 'tick', hours: 1}); // warm up
+      const t0 = performance.now();
+      for (let i = 0; i < 24 * days; i++) sim.apply({type: 'tick', hours: 1});
+      const perDay = (performance.now() - t0) / days;
+      expect(perDay).toBeLessThan(2);
+    }
   });
 });
