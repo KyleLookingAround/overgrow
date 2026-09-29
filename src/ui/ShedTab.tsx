@@ -1,7 +1,7 @@
 // The Shed tab, shown once the garden first needs something from it (src/data/unfold.ts, `garden.shed`): each offer that's
-// worth having (its own `shed.<id>` key), with its price once money has unfolded, what it saves and what it costs besides,
-// and a Buy button that sends a `buy` command (src/sim/shed.ts); then the garden's tools and kit. Offers not yet worth
-// having are hidden, not greyed; one the purse can't pay for yet says how much more it needs.
+// worth having (its own `shed.<id>` key), with its price (a price tag, shown before the purse is), what it saves and what
+// it costs besides, and a Buy button that sends a `buy` command (src/sim/shed.ts); then the garden's tools and kit. Offers
+// not yet worth having are hidden, not greyed; one the purse can't pay for yet says so.
 import {TOOLS, type Tool} from '../data/jobs';
 import {NEMATODES, UPGRADE_IDS, UPGRADES, type UpgradeId} from '../data/shed';
 import {unfolded} from '../data/unfold';
@@ -24,7 +24,7 @@ export function ShedTab({nodes, seen, purse, see, send}: {
 }) {
   const tools = (nodes.find((n) => n.id === GARDENER)?.levers.tools as Tool[] | undefined) ?? [], kit = kitIn(nodes), offers = offersIn(nodes, seen);
   const cover = nodes.find((n) => n.kind === 'bed' && n.levers.cover);
-  const priced = see('garden.money');
+  const purseShown = see('garden.money');
   return (
     <>
       {offers.length > 0 && (
@@ -34,11 +34,11 @@ export function ShedTab({nodes, seen, purse, see, send}: {
             const u = UPGRADES[id], short = u.price - purse;
             return (
               <div class="offer" data-offer={id} key={id}>
-                <p class="job"><strong>{u.name}</strong>{priced ? `, ${money(u.price)}` : ''}</p>
+                <p class="job"><strong>{u.name}</strong>, {money(u.price)}</p>
                 <p class="soft">{u.does}</p>
                 <p class="soft">Saves: {u.saves}</p>
                 <p class="soft">But: {u.trade}</p>
-                {short > 0 ? <p class="soft short">{money(short)} more in the purse to buy it</p> : (
+                {short > 0 ? <p class="soft short">{purseShown ? `${money(short)} more in the purse to buy it` : 'Not enough in the purse yet'}</p> : (
                   <button type="button" class="primary buy" onClick={() => send({type: 'buy', id})}>Buy {u.name.toLowerCase()}</button>
                 )}
               </div>

@@ -1,6 +1,8 @@
 // Notices (the owner's win W27): rare in Overgrow, where impacts go on the map, but the ones there are (a command the
-// game refused, and the sign that something new has unfolded) are capped and expire. A pure queue, so a Vitest test holds the rules: at most NOTICE_CAP shown, the
-// newest kept, an informational notice gone after NOTICE_MS, a choice kept until it's answered, and no repeats.
+// game refused, and the sign that something new has unfolded) are queued and expire. A pure queue, so a Vitest test holds
+// the rules: one shown at a time (the head), the rest waiting behind it up to NOTICE_QUEUE, the oldest informational one
+// dropped past that; an informational notice gone NOTICE_MS after it was first shown, a choice kept until it's answered,
+// and no repeats. Short, so it never covers most of a phone's map: one line, and its Explain on a tap.
 import {UNFOLD} from '../data/unfold';
 
 export interface Notice {
@@ -14,23 +16,40 @@ export interface Notice {
   more?: string;
   /** A choice's buttons. */
   actions?: {label: string; run: () => void}[];
-  /** When it was shown, ms. */
+  /** When it was queued, ms, and once it's at the head of the queue, when it was first shown. */
   at: number;
 }
 
-export const NOTICE_CAP = 2, NOTICE_MS = 6000;
+/** One shown at a time; the most waiting behind it; how long an informational one shows, ms. */
+export const NOTICE_CAP = 1, NOTICE_QUEUE = 4, NOTICE_MS = 6000;
 /** The most an unfold sign names; the rest are counted. */
 export const SIGN_NAMES = 2;
 
-/** The notices still showing at a time. */
-export const current = (list: readonly Notice[], now: number) => list.filter((n) => n.choice || now - n.at < NOTICE_MS);
+/** The queue at a time: an informational head that has shown for NOTICE_MS goes, and the next one's time starts. */
+export function current(list: readonly Notice[], now: number): Notice[] {
+  let out = list.slice();
+  while (out.length && !out[0]!.choice && now - out[0]!.at >= NOTICE_MS) {
+    // the next one showed from the moment the head's time ran out
+    const ended = out[0]!.at + NOTICE_MS;
+    out = out.slice(1);
+    if (out.length && !out[0]!.choice) out[0] = {...out[0]!, at: Math.max(out[0]!.at, ended)};
+  }
+  return out;
+}
 
-/** Adds a notice: the same text again refreshes it rather than stacking, and the oldest go past the cap (choices last). */
+/** The one shown now: the head of the queue. */
+export const shownOf = (list: readonly Notice[]) => list.slice(0, NOTICE_CAP);
+
+/** Adds a notice to the back of the queue: the same text again replaces the waiting one rather than stacking, and past
+ *  NOTICE_QUEUE the oldest informational one waiting goes (a choice stays). */
 export function push(list: readonly Notice[], n: Notice): Notice[] {
-  const rest = current(list, n.at).filter((x) => x.text !== n.text), all = [...rest, n];
-  while (all.length > NOTICE_CAP) {
-    const i = all.findIndex((x) => !x.choice);
-    all.splice(i >= 0 ? i : 0, 1);
+  const head = current(list, n.at);
+  const all = head.length && head[0]!.text === n.text ? [{...n, at: head[0]!.at}, ...head.slice(1)] : [...head.filter((x) => x.text !== n.text), n];
+  // the first to show starts its time now
+  if (all.length === 1) all[0] = {...all[0]!, at: n.at};
+  while (all.length > NOTICE_QUEUE) {
+    const i = all.findIndex((x, j) => j > 0 && !x.choice);
+    all.splice(i >= 0 ? i : 1, 1);
   }
   return all;
 }

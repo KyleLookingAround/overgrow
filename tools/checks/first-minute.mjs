@@ -84,8 +84,8 @@ export default async function({ok,open,out}){
     await page.evaluate(()=>document.querySelector('.card-close')?.click());
     // day 2, morning: the beer trap in the shed, and the goal bar counting down to the first harvest
     await drawnAt(page,26);
-    // the goal bar gives way to a notice: wait for the night's signs to go
-    const goal=await page.waitForSelector('.goal-bar',{timeout:9000}).then(e=>e.textContent(),()=>'');
+    // the goal bar gives way to a notice: wait for the night's signs to go, one at a time (src/ui/notices.ts)
+    const goal=await page.waitForSelector('.goal-bar',{timeout:25000}).then(e=>e.textContent(),()=>'');
     await page.click('#tab-shed').catch(()=>{});
     const shed=await page.waitForFunction(()=>document.querySelector('.offer')?.textContent,null,{timeout:4000}).then(r=>r.jsonValue(),()=>'');
     ok('first minute: by the second morning the Shed tab shows the beer trap, and the goal bar counts down to the first harvest',
@@ -94,7 +94,8 @@ export default async function({ok,open,out}){
     // day 2, evening: the kitchen's first ask, and the gardener home from work in the same sign
     const noAsk=!(await page.evaluate(()=>!!document.querySelector('#tab-kitchen'))),noJob=!(await snap(page)).seen.includes('household.commute');
     await drawnAt(page,37);
-    const sign=await page.waitForSelector('.notice.unfold[data-keys*="garden.kitchen"]',{timeout:4000}).then(e=>e.getAttribute('data-keys'),()=>'');
+    // it waits its turn behind any sign still showing
+    const sign=await page.waitForSelector('.notice.unfold[data-keys*="garden.kitchen"]',{timeout:20000}).then(e=>e.getAttribute('data-keys'),()=>'');
     await page.click('#tab-kitchen').catch(()=>{});
     const ask=await page.waitForFunction(()=>document.querySelector('#ask-title')?.textContent,null,{timeout:4000}).then(r=>r.jsonValue(),()=>'');
     ok('first minute: the kitchen’s first ask comes on the second evening',noAsk&&/The day’s ask/.test(ask),`before ${!noAsk}, ${ask}`);
@@ -105,7 +106,8 @@ export default async function({ok,open,out}){
     // after the first harvest, at 1×: the nudge once, gone when answered, never back
     await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null)break}});
     await send(page,{type:'speed',speed:1});
-    const nudge=await page.waitForSelector('.notice-action',{timeout:5000}).then(()=>true,()=>false);
+    // the nudge waits its turn in the queue behind the fortnight's signs
+    const nudge=await page.waitForSelector('.notice-action',{timeout:30000}).then(()=>true,()=>false);
     if(nudge)await page.click('.notice-action');
     const s3=await snap(page);
     await send(page,{type:'speed',speed:1});

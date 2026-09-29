@@ -362,7 +362,7 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
     says: 'Slugs drowned in the beer traps overnight.',
     mechanism: 'Slugs are drawn by the smell of the yeast and drown; the traps catch some every night, with no one out with a torch.',
     fast: 'Fewer slugs on the beds, for the beer.',
-    slow: 'A few slug-eating ground beetles drown too.',
+    slow: 'A third of a night’s slugs, against half by torch: fewer evenings out, a few more slugs.',
     source: 'RHS, “Slugs and snails”.',
   },
   nematodes: {

@@ -311,8 +311,31 @@ button.num {
   border-radius: var(--radius);
   font-size: var(--text-small);
 }
-.notice span {
+.notice-text {
+  flex: 1;
+  min-width: 0;
+  padding: var(--gap-tiny) 0;
+  min-height: var(--touch);
+  background: none;
+  color: inherit;
+  border: 0;
+  font: inherit;
+  text-align: left;
+}
+/* one line until tapped: the text cut with an ellipsis, its Explain hidden */
+.notice-line {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.notice.open .notice-line {
+  white-space: normal;
   overflow-wrap: anywhere;
+}
+.notice-waiting {
+  font-size: var(--text-tiny);
+  opacity: 0.85;
 }
 .notice-close {
   background: none;
@@ -320,11 +343,11 @@ button.num {
   border: 0;
 }
 .notice-more {
-  display: block;
+  display: none;
   opacity: 0.85;
 }
-.notice span {
-  padding: var(--gap-tiny) 0;
+.notice.open .notice-more {
+  display: block;
 }
 .notice-action {
   background: var(--accent);

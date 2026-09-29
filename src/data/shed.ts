@@ -3,8 +3,8 @@
 // household's purse (src/sim/shed.ts). Each works through a real mechanism in the sim, not a bonus, and each is a trade:
 // money for time, or yield for soil or carbon. Prices are rough UK garden-centre ones for 2027.
 // - A beer trap: a pot sunk to its rim and part-filled with beer; slugs drawn by the yeast drown in it, every night,
-//   without the gardener out with a torch. It needs fresh beer each week, and drowns some ground beetles, which eat
-//   slugs, as well (RHS, "Slugs and snails").
+//   without the gardener out with a torch. It needs fresh beer each week, and catches a smaller share of the night's
+//   slugs than picking them by torch (RHS, "Slugs and snails").
 // - A hose on a reel from the tap: the beds watered straight from the mains, no trips with a can, but no rain from the
 //   butt either (RHS, "Watering"; a garden tap runs 10–15 L a minute).
 // - Nematodes (Phasmarhabditis hermaphrodita, sold as Nemaslug): watered onto moist soil, they enter slugs below
@@ -43,7 +43,7 @@ export const UPGRADES: Record<UpgradeId, Upgrade> = {
     id: 'beer-trap', name: 'Beer traps', price: 4, kept: true,
     does: 'A pot of beer sunk in each bed: slugs drown in it every night.',
     saves: 'The torch patrol’s evenings: set the slug policy to leave them.',
-    trade: 'Beer at 80p a week, and it drowns a few slug-eating beetles too.',
+    trade: 'Beer at 80p a week, and it catches fewer than the torch.',
   },
   hose: {
     id: 'hose', name: 'Hose and reel', price: 25, kept: true,

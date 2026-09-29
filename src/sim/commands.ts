@@ -7,6 +7,8 @@ import {SPEEDS} from '../data/ladder';
 import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
 import {kindOf} from './effects';
 import {gardenStatus, goalOf} from './goal';
+import {buyFlow} from './shed';
+import type {UpgradeId} from '../data/shed';
 import {levelClock, runStep, type System} from './clock';
 import {flowEffects, recordInto, Recorder} from './effects';
 import {applyFlow, mergeFlows, type Flow, type LeverValue, type NodeId} from './graph';
@@ -141,7 +143,8 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       s.rejected = r === undefined ? `no upgrade ${cmd.id}` : r;
       if (r === null) {
         s.upgrades = [...s.upgrades, cmd.id];
-        // the purchase is this command's effect: the map shows the thing in use, and money unfolds if it hadn't
+        // the purchase is this command's flow and effect: the map shows the thing in use, and money unfolds if it hadn't
+        s.flows = [buyFlow(cmd.id as UpgradeId)];
         s.effects = [{kind: kindOf('buying'), cause: 'buying', at: 'shed', amount: 1, unit: cmd.id}];
         const fresh = revealed(s.seen, ['buying']);
         if (fresh.length) s.seen = [...s.seen, ...fresh];

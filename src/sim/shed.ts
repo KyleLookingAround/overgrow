@@ -9,7 +9,7 @@
 import {BEER_TRAP, NEMATODES, SECOND_BUTT, UPGRADES, type UpgradeId} from '../data/shed';
 import type {System, TickContext} from './clock';
 import {note} from './effects';
-import {applyFlow, qty, type Graph} from './graph';
+import {applyFlow, qty, type Flow, type Graph} from './graph';
 import {kitOf, owns, setKit} from './kit';
 import {KITCHEN} from './models/kitchen';
 import {pestsOf, SLUG_KEY, slugsOn} from './models/pests';
@@ -30,10 +30,12 @@ export function refuseBuy(g: Graph, id: string): string | null {
   return null;
 }
 
+/** A buy's payment: its price from the purse to the `bought` boundary (the command's flow, src/sim/commands.ts). */
+export const buyFlow = (id: UpgradeId): Flow => ({what: 'buying', unit: 'GBP', amount: qty(UPGRADES[id].price, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
+
 /** Carries out a buy the command has allowed: the price out of the purse, and the thing into the kit. */
 function buy(g: Graph, id: UpgradeId) {
-  const u = UPGRADES[id];
-  applyFlow(g, {what: 'buying', unit: 'GBP', amount: qty(u.price, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
+  applyFlow(g, buyFlow(id));
   if (id === 'nematodes') return setKit(g, {nematodes: NEMATODES.days});
   setKit(g, {owned: [...kitOf(g).owned, id]});
   // the hose joins the gardener's tools: the fastest they have for a job is the one they use (src/data/jobs.ts)
@@ -71,7 +73,8 @@ function day(c: TickContext) {
       const x = Math.min(k, slugsOn(b));
       if (x > 1e-9) c.flow({what, unit: 'pests', product: 'slugs', amount: qty(x, 'pests'), from: {node: b.id, stock: SLUG_KEY}, to: {boundary: 'decay'}});
     };
-    if (trap) kill('beer trap', BEER_TRAP.share * pestsOf(b).night);
+    // the traps catch from last night's slugs out: only at the garden's hourly steps, where the nights are played
+    if (trap && n === 1) kill('beer trap', BEER_TRAP.share * pestsOf(b).night);
     // nematodes work only in soil warm and moist enough for them to move and find the slugs
     if (kit.nematodes > 0 && mean >= NEMATODES.minTemp && moisture(b) >= NEMATODES.minMoisture) kill('nematodes', slugsOn(b) * (1 - Math.pow(1 - NEMATODES.kill, n)));
   }

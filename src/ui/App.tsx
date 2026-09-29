@@ -23,7 +23,7 @@ import {statusOf} from './goal';
 import {YearCard} from './YearCard';
 import type {MapRenderer} from './map/renderer';
 import {MapView} from './MapView';
-import {current, NOTICE_CAP, push, unfoldSign, type Notice} from './notices';
+import {current, push, unfoldSign, type Notice} from './notices';
 import {Notices} from './Notices';
 import {Panel} from './Panel';
 import {TopBar} from './TopBar';
@@ -96,8 +96,8 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   } : null;
   const nodes = snap?.nodes ?? [];
   const badges = snap ? badgesOf(nodes, hourNow(snap, shown!.hour), snap.seen, all) : [];
-  // the nudge is a notice like the rest, inside the cap
-  const shownNotices = first ? [] : faster ? [...notices.slice(-(NOTICE_CAP - 1)), faster] : notices;
+  // the nudge is a notice like the rest, waiting its turn in the queue
+  const shownNotices = first ? [] : faster ? [...notices, faster] : notices;
   return (
     <div class="page" data-sim={shown ? 'ready' : 'waiting'}>
       <h1 class="visually-hidden">Overgrow</h1>
