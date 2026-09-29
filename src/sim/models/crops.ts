@@ -64,6 +64,13 @@ export type Stage = 'sown' | 'growing' | 'ready' | 'over' | 'dead';
 
 /** The keys the crop model keeps on a bed. */
 export const WASTE = 'waste', GREENS = 'greens';
+/** The nitrogen, phosphorus and potassium a growing crop holds in its leaves, stems and roots (the share it won't take
+ *  away as food), and what its residue carries in the bed's waste to the heap, kg. */
+export const HELD = {n: 'crop.nitrogen', p: 'crop.phosphorus', k: 'crop.potassium'} as const;
+export const IN_WASTE = {n: 'waste.nitrogen', p: 'waste.phosphorus', k: 'waste.potassium'} as const;
+/** The three nutrients by key, with their units and the bed's soil stocks they come from (soil.ts's SOIL keys, spelt
+ *  out: the models import each other, so SOIL may not be there yet when this is read). */
+export const NUTRIENTS = [['n', 'kgN', 'nitrate'], ['p', 'kgP', 'phosphorus'], ['k', 'kgK', 'potassium']] as const;
 export const foodKey = (product: string) => `food.${product}`;
 /** The least worth picking, kg: less is left on the bed. */
 export const PICK_MIN = 0.02;
@@ -203,20 +210,30 @@ function finish(c: TickContext, n: GraphNode, s: CropState, why: string) {
   spoil(c, n, spec.product, ripe(n), why);
   const residue = spec.residue * area * Math.min(1, s.dd / Math.max(1, spec.dd.mature));
   if (residue > 1e-6) c.flow({what: 'residue', unit: 'kgWaste', product: GREENS, amount: qty(residue, 'kgWaste'), from: {boundary: 'growth'}, to: {node: n.id, stock: WASTE}});
+  // what it took: the eaten part's share (its harvest index) has left as food; the rest, in its leaves, stems and roots,
+  // stays with the residue for the heap
+  for (const [key, unit] of NUTRIENTS) {
+    const held = n.stocks[HELD[key]]?.amount ?? 0, food = held * spec.harvestIndex;
+    if (food > 0) c.flow({what: 'uptake', unit, amount: qty(food, unit), from: {node: n.id, stock: HELD[key]}, to: {boundary: 'growth'}});
+    if (held - food > 0) c.flow({what: 'residue', unit, amount: qty(held - food, unit), from: {node: n.id, stock: HELD[key]}, to: {node: n.id, stock: IN_WASTE[key]}});
+  }
   const history = ((n.levers.history as string[] | undefined) ?? []).concat(spec.family).slice(-4);
   n.levers.history = history;
   setCrop(n, null);
 }
 
-/** Takes a share of a full crop's nutrients from the soil, as much as is there; returns the share it got of what it wanted. */
+/**
+ * Takes a share of a full crop's nutrients from the soil into the plant, as much as is there; returns the share it got
+ * of what it wanted. They're held on the bed until the crop is done (finish()).
+ */
 function uptake(c: TickContext, n: GraphNode, spec: CropSpec, share: number): number {
   const ha = areaOf(n) / 1e4;
   let got = 1;
-  for (const [stock, unit, want] of [[SOIL.nitrate, 'kgN', spec.uptake.n], [SOIL.phosphorus, 'kgP', spec.uptake.p], [SOIL.potassium, 'kgK', spec.uptake.k]] as const) {
-    const need = want * ha * share;
+  for (const [key, unit, stock] of NUTRIENTS) {
+    const need = spec.uptake[key] * ha * share;
     if (need <= 0) continue;
     const take = Math.min(need, Math.max(0, n.stocks[stock]?.amount ?? 0));
-    if (take > 0) c.flow({what: 'uptake', unit, amount: qty(take, unit), from: {node: n.id, stock}, to: {boundary: 'growth'}});
+    if (take > 0) c.flow({what: 'uptake', unit, amount: qty(take, unit), from: {node: n.id, stock}, to: {node: n.id, stock: HELD[key]}});
     got = Math.min(got, take / need);
   }
   return got;

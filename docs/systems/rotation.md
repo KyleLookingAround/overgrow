@@ -41,6 +41,8 @@ For part 11:
 - **Map.** Fields coloured by crop and season, a cover crop greening a winter field, ruts where compaction is high, bare fields tinted for leaching; reduced motion shows the seasons as steps.
 - **Balance.** Wiring it moves the smallholding's income: a rotation earns about £850 a hectare a year in this model against a garden bed's cash; set the bot's smallholding milestones (part 11's balance run) with the year plan's first-year loss in mind, since the legume year earns least.
 
+**Fixed** (Bug #47, PR-NUMBER, `docs/briefs/garden-nutrients.md`): crop residues now carry the P and K the harvest didn't take to the heap, compost carries them back to the beds, and the garden's soils start at RB209's index 4; year three now picks 67–99 % of year one's kg on seeds 1–3, and no bed runs out in four years (`src/sim/garden-years.test.ts`; `docs/systems/soil.md`, `carbon.md` and `crops.md`). The diagnosis as it was:
+
 For part 6c, **the garden's beds' output falls towards nothing by year three** because of the nutrients, not organic matter, not the nitrogen and (mostly) not the pests. Run headless on `main` (seed 1; seeds 2 and 3 alike), with the garden's own gardener and plan:
 
 - The kitchen's picked kg a year runs 31.4, 16.4, 5.8 and 8.1 in years 1 to 4 (seed 2: 31.0, 18.2, 8.1, 8.1; seed 3: 33.0, 12.7, 8.2, 6.3).

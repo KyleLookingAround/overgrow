@@ -56,7 +56,7 @@ The session itself, per the `steward` playbook: Squash and merge by hand once Ch
 
 ## What's left for others
 
-- **6c, the shed, the hens and the advisers** (after this): upgrades, the hens, more beds, advisers, the step-up card's queue, the bot's quiet-stretch measure, the baselines reset for a full garden year, #21 to #24, and the garden's year-three output fault (the rotation model's notes diagnose it).
+- **6c, the shed, the hens and the advisers** (after this): upgrades, the hens, more beds, advisers, the step-up card's queue, the bot's quiet-stretch measure, the baselines reset for a full garden year, and #21 to #24.
 - The partner (part 10), part-time (part 13) and the box scheme (parts 13 and 14) use the same model later. Don't start them.
 - The owner has said the coordinator's recommendations stand for later choices.
 
