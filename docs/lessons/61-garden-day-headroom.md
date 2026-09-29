@@ -1,4 +1,4 @@
-# Headroom for the garden day, again (#60) · 29 Sep 2026
+# Headroom for the garden day, again (#61) · 29 Sep 2026
 
 - **Numbers:**
   - It followed #59 in the same session. `main` went red on the Pages run minutes after the merge: the garden-day test measured 2.02 ms against 2 ms. The PR's own two CI runs had passed on the same code.
