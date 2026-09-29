@@ -60,6 +60,14 @@ export function rows(): Row[] {
     ...MONEY_DAYS.map((d) => ({id: `money-${d}`, label: `Money on day ${d}`, unit: '£', digits: 2})),
     {id: 'saved', label: 'Groceries saved', unit: '£', digits: 2},
     {id: 'earned', label: 'Taken at the honesty box', unit: '£', digits: 2},
+    {id: 'offer-output', label: 'The offer: Output over its year', unit: 'kg/day', digits: 2},
+    {id: 'offer-reliability', label: 'The offer: Reliability', unit: '0–100', digits: 0},
+    {id: 'offer-health', label: 'The offer: Health', unit: '0–100', digits: 0},
+    {id: 'eaten', label: 'Food eaten', unit: 'kg', digits: 1},
+    {id: 'sold', label: 'Food sold', unit: 'kg', digits: 1},
+    {id: 'money-end', label: 'Money at the end', unit: '£', digits: 2},
+    {id: 'beds', label: 'Beds dug at the end', unit: 'beds', digits: 0},
+    {id: 'quiet', label: 'Longest quiet stretch', unit: 'days', digits: 0},
     {id: 'wasted', label: 'Food wasted', unit: 'kg', digits: 1},
     {id: 'carbon', label: 'Carbon into the air', unit: 'kg CO₂e', digits: 1},
   ];
@@ -73,6 +81,8 @@ export function valuesOf(run: Run): Record<string, number | undefined> {
     output: run.sealed.output, reliability: run.sealed.reliability, health: run.sealed.health,
     ...Object.fromEntries(MONEY_DAYS.map((d) => [`money-${d}`, money(d)])),
     saved: run.days.at(-1)?.saved, earned: run.days.at(-1)?.earned, wasted: run.wasted, carbon: run.carbon,
+    eaten: run.days.reduce((a, d) => a + d.eaten, 0), sold: run.days.reduce((a, d) => a + d.sold, 0), 'money-end': run.days.at(-1)?.money,
+    beds: run.beds, quiet: run.quiet.days, 'offer-output': run.offer.output, 'offer-reliability': run.offer.reliability, 'offer-health': run.offer.health,
   };
 }
 

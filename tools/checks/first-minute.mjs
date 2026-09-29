@@ -89,7 +89,7 @@ export default async function({ok,open,out}){
     await page.click('#tab-shed').catch(()=>{});
     const shed=await page.waitForFunction(()=>document.querySelector('.offer')?.textContent,null,{timeout:4000}).then(r=>r.jsonValue(),()=>'');
     ok('first minute: by the second morning the Shed tab shows the beer trap, and the goal bar counts down to the first harvest',
-      /Beer trap/.test(shed)&&/costs no time/.test(shed)&&/^First harvest: .+ in Bed \d, (\d+ % grown|ready to pick)$/.test(goal),`${shed} | ${goal}`);
+      /Beer traps/.test(shed)&&/drown/.test(shed)&&/Buy beer traps/.test(shed)&&/^First harvest: .+ in Bed \d, (\d+ % grown|ready to pick)$/.test(goal),`${shed} | ${goal}`);
     await page.click('#tab-garden').catch(()=>{});
     // day 2, evening: the kitchen's first ask, and the gardener home from work in the same sign
     const noAsk=!(await page.evaluate(()=>!!document.querySelector('#tab-kitchen'))),noJob=!(await snap(page)).seen.includes('household.commute');

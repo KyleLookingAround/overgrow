@@ -9,3 +9,7 @@ The household's daily ask of the garden, what met it, the shop's food in the cup
 - **The ledger** (the kitchen's `ledger` lever, carried in the snapshot as `kitchen`): the last meal's day, ask, what it ate by product and the share met, the last seven days' shares, and since the start: picked, eaten, wasted (going off anywhere, and produce rotting unpicked on the beds), sold and earned, with the game hours of the first harvest and the first sale (the bot's milestones). The kitchen system refuses a plan on it.
 - **What two beds do:** salad leaves and radishes meet about a tenth of the ask in spring; potatoes lifted in summer with salad beside them meet about half of it or more for a week or two (most of it on seeds 2 and 3); the founding spec's "half the kitchen's need" in the first weeks needs more beds.
 - **Explain.** The Kitchen tab's ask and totals open their Explain cards, and eating, going off and the honesty box are effects at the kitchen and the gate (`docs/systems/explain.md`).
+
+## The playable garden (#54)
+
+What keeps for two months or more (potatoes, garlic, onions) is stored for up to five months of the household's ask (`STORE` in `src/data/kitchen.ts`), not three weeks, so it's eaten through the winter rather than sold at the gate.

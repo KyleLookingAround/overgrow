@@ -74,6 +74,7 @@
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
   --text: 16px;
   --text-small: 0.85rem;
+  --text-tiny: 0.75rem;
   --line-tight: 1.15; /* two short lines in one control: the dial's figure and the footprint under it */
   --radius: 10px;
   --gap: 12px;

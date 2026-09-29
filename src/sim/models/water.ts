@@ -93,7 +93,8 @@ function balance(c: TickContext, n: GraphNode, rainMm: number, et0Mm: number, ho
   const area = areaOf(n);
   if (!area) return;
   const at = {node: n.id, stock: SOIL.water}, lim = limitsOf(n), water = () => n.stocks[SOIL.water]?.amount ?? 0;
-  if (rainMm > 0) c.flow({what: 'rain', unit: 'L', amount: qty(rainMm * area, 'L'), from: {boundary: 'rain'}, to: at});
+  // a bed under the cold frame gets no rain: the glass keeps it off (the gardener waters it)
+  if (rainMm > 0 && !n.levers.cover) c.flow({what: 'rain', unit: 'L', amount: qty(rainMm * area, 'L'), from: {boundary: 'rain'}, to: at});
   if (water() > lim.sat) c.flow({what: 'runoff', unit: 'L', amount: qty(water() - lim.sat, 'L'), from: at, to: {boundary: 'runoff'}});
   if (et0Mm > 0) {
     const et = Math.min(et0Mm * area * groundCoefficient(n, lim), Math.max(0, water() - 0.5 * lim.wp));

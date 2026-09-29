@@ -26,3 +26,7 @@ For part 7 (sealing and the step up), and part 9 for the first zoom back in. The
 - **Events.** Part 5's pests (and the weather) create `GameEvent`s with a home level; add them to a sealed node's `events` (the tick prunes what's over). The tile draws `showEvent(e, level).text` with the event's icon by `kind`; a regional tint draws by `tint`.
 - **Inflating and the `carry` check.** Rebuild the level below from `inflateTarget()`, seed its layout with `layoutRng(seed, nodeId)`, run its first cycle into a fresh `History`, and assert `carryCheck(target.totals, windowTotals(history).totals).ok`. The garden's own step-up is the first: a sealed garden's Output must match its last full year within 1 %, which is `windowTotals()` itself.
 - **Save.** `History` and `SealedNode` are plain JSON; `SealedNode.totals.land` and `plan` are records, so the save takes them as they are.
+
+## The garden's offer (#54)
+
+The goal (`src/sim/goal.ts`) keeps each week's share of the household's veg ask the garden met (`fed`) beside the ring, and `gardenStatus()` is the garden's step-up offer: the ring's Output and Health, with Reliability as 100 × the mean of those shares (`docs/decisions/ADR-2026-09-29-garden-reliability.md`). The garden's targets are its measured ceiling, Output 0.25 kg a day, Reliability 35, Health 50 (`STEP_UP[1]`). `stepUpStatus()` and the ring's sealing maths are unchanged.

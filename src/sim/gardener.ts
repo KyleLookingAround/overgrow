@@ -12,15 +12,16 @@
 import {CROPS, type CropId} from '../data/crops';
 import {BORDER} from '../data/flowers';
 import {CONTROL, POLICIES, SLUGS, START_POLICY, type PestId, type Policy} from '../data/pests';
-import {FILL_L_PER_MIN, HOURS, START_TOOLS, TOOLS, WALK, WATER_IN, COMPOST_PER_M2, type Job, type JobTime, type Tool} from '../data/jobs';
+import {DIG_IN, FILL_L_PER_MIN, HOURS, LONG_WATERING, START_TOOLS, TOOLS, WALK, WATER_IN, COMPOST_PER_M2, type Job, type JobTime, type Tool} from '../data/jobs';
+import {DIG} from '../data/garden';
 import {commute, householdGardenHours, membersOf, shopDay, shopEstimate, weeklyShop, type Household} from './models/household';
 import {START} from '../data/ladder';
 import type {Activity} from './activity';
 import {calendar, type CalendarDate, type System, type TickContext} from './clock';
 import {qty, type Graph, type GraphNode, type LeverValue, type NodeId, type Unit} from './graph';
-import {compostOn, dig, spread, toHeap} from './models/carbon';
+import {compostOn, dig, digIn, spread, toHeap} from './models/carbon';
 import {borderOf, plantBorder} from './models/biodiversity';
-import {cropOf, foodKey, inSeason, PICK_MIN, plannedCrop, quality, ripe, sow, specOf, wasteOn} from './models/crops';
+import {cropOf, foodKey, inSeason, neighbours, PICK_MIN, plannedCrop, quality, ripe, sow, specOf, summerCrop, wasteOn} from './models/crops';
 import {note} from './effects';
 import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
 import {askOf, GATE, KITCHEN, mixQuality, qualityAt, recordPick, surplus} from './models/kitchen';
@@ -38,6 +39,7 @@ export type Effect =
   | {kind: 'heap'; from: NodeId; kg: number}
   | {kind: 'spread'; bed: NodeId; kg: number}
   | {kind: 'dig'; bed: NodeId; m2: number}
+  | {kind: 'dig in'; bed: NodeId}
   | {kind: 'box'; items: {product: string; kg: number}[]}
   | {kind: 'pest'; bed: NodeId; pest: PestId; how: Policy}
   | {kind: 'border'; bed: NodeId; flower: CropId}
@@ -229,10 +231,24 @@ class JobBuilder {
 
 const can = (litres: number): Step['carry'] => ({unit: 'L', amount: litres});
 
+/** Whether a way of watering is the hose's: straight from the tap, no trips. */
+const byHose = (how: JobTime) => how === TOOLS.hose.jobs.water;
+
+/** The hose run out from the tap to a bed, the bed watered and the hose reeled back, in a job's steps. */
+function hose(j: JobBuilder, bed: NodeId, litres: number, how: JobTime) {
+  j.walk('tap', 'fetch');
+  j.work('unreel', (how.setup ?? 0) / 2);
+  j.walk(bed, 'hose');
+  j.work('water', litres * how.per, undefined, {kind: 'water', bed, source: 'tap', litres});
+  j.walk('tap', 'hose');
+  j.work('reel', (how.setup ?? 0) / 2);
+}
+
 /** Water trips to bring a bed to some litres; returns false once a trip doesn't fit. */
 function water(p: Planner, bed: GraphNode, litres: number): boolean {
   const how = best(p.g, 'water');
   if (!how) return false;
+  if (byHose(how)) return litres <= 0.5 || p.job((j) => hose(j, bed.id, litres, how));
   while (litres > 0.5) {
     const source = p.source(), trip = Math.min(litres, how.trip ?? litres, source === 'butt' ? Math.max(p.butt, 0) : Infinity);
     if (trip <= 0.5) break;
@@ -303,8 +319,9 @@ function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
     j.walk(HOME, 'fetch');
     j.walk(bed.id);
     j.work(spec.how, area * how.per, undefined, {kind: 'sow', bed: bed.id, crop});
-    // watered in, a trip a can
-    for (let litres = WATER_IN * area; cans && litres > 0.5; ) {
+    // watered in: by hose, or a trip a can
+    if (cans && byHose(cans)) hose(j, bed.id, WATER_IN * area, cans);
+    else for (let litres = WATER_IN * area; cans && litres > 0.5; ) {
       const left = j.p.butt - fromButt, source = left >= 1 ? 'butt' : 'tap', trip = Math.min(litres, cans.trip ?? litres, source === 'butt' ? left : Infinity);
       j.walk(source, 'fetch', can(0));
       j.work('fill', trip / FILL_L_PER_MIN[source]! / 60 + (cans.load ?? 0), can(trip));
@@ -383,12 +400,24 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   }
   // 2b. the pest policy's daytime work
   pestJobs(p, dug, date);
-  // 3. sow what's due (clearing and composting first, watering in after)
-  const sown = new Set<string>();
+  // 3. a green manure dug in where it stands once the summer plan's next crop is due (sown the day after)
+  const spade = best(g, 'dig');
+  for (const b of dug) {
+    const s = cropOf(b);
+    if (!spade || !s || !specOf(s).dugIn || !summerCrop(b, date)) continue;
+    p.job((j) => {
+      j.walk(HOME, 'fetch');
+      j.walk(b.id);
+      j.work('dig', areaOf(b) * spade.per * DIG_IN, undefined, {kind: 'dig in', bed: b.id});
+    });
+  }
+  // and sow what's due (clearing and composting first, watering in after)
+  const sown = new Set<string>(), today: CropId[] = [];
   for (const b of dug) {
     if (cropOf(b) || (b.stocks['land.grass']?.amount ?? 0) > 0) continue;
-    const crop = plannedCrop(b, date);
-    if (crop && sowBed(p, b, crop)) sown.add(b.id);
+    // what the other beds grow, and what's going in today
+    const crop = plannedCrop(b, date, [...neighbours(dug, b), ...today]);
+    if (crop && sowBed(p, b, crop)) sown.add(b.id), today.push(crop);
   }
   // and a border of flowers along a bed's edge, where the plan wants one and it's their season
   for (const b of dug) {
@@ -425,16 +454,16 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
     if (wasteOn(kitchen) >= 1) clear(p, kitchen, false);
   }
   for (const b of dug) if (!sown.has(b.id) && wasteOn(b) >= 0.5) clear(p, b, true);
-  // 5. dig a plot the plan wants dug, a square metre at a time
-  const spade = best(g, 'dig');
+  // 5. dig a plot the plan wants dug, a square metre at a time, each with its edging board from the purse
   for (const b of beds) {
     let grass = b.levers.dig === true ? b.stocks['land.grass']?.amount ?? 0 : 0;
     while (spade && grass > 1e-6) {
       const m2 = Math.min(1, grass);
-      if (!p.job((j) => {
+      if (p.money < DIG.gbpPerM2 * m2 || !p.job((j) => {
         j.walk(b.id);
         j.work('dig', m2 * spade.per, undefined, {kind: 'dig', bed: b.id, m2});
       })) break;
+      p.money -= DIG.gbpPerM2 * m2;
       grass -= m2;
     }
   }
@@ -498,6 +527,11 @@ function apply(c: TickContext, e: Effect) {
       if (bed) dig(c, bed, e.m2);
       return;
     }
+    case 'dig in': {
+      const bed = g.nodes[e.bed];
+      if (bed) digIn(c, bed);
+      return;
+    }
     case 'pest':
       control(c, e.bed, e.pest, e.how);
       return;
@@ -524,6 +558,18 @@ function apply(c: TickContext, e: Effect) {
 
 const hoursLeft = (me: GraphNode) => me.stocks.hours?.amount ?? 0;
 
+/** What a new day's watering says about the kit: a long one by can (a hose would save it), and the butt run dry with
+ *  water fetched from the tap (a second butt would keep more rain). */
+function waterNotes(c: TickContext, steps: readonly Step[]) {
+  let byCan = 0, fromTap = false;
+  for (const s of steps) {
+    if (s.carry?.unit === 'L') byCan += s.end - s.start;
+    if (s.effect?.kind === 'water' && s.effect.source === 'tap' && s.carry) fromTap = true;
+  }
+  if (byCan > LONG_WATERING) note(c, 'long watering', GARDENER, byCan, 'h');
+  if (fromTap && (c.graph.nodes.butt?.stocks.water?.amount ?? 0) < 1) note(c, 'butt dry', 'butt', 1, 'h');
+}
+
 /** Moves the gardener's hours: a step's time spent, or the day's given and yesterday's unused handed back. */
 function spend(c: TickContext, hours: number, what = 'work') {
   if (hours > 1e-9) c.flow({what, unit: 'h', amount: qty(hours, 'h'), from: at(GARDENER, 'hours'), to: {boundary: 'time'}});
@@ -545,6 +591,7 @@ export const gardener: System = {
         c.flow({what: 'a day’s hours', unit: 'h', amount: qty(hoursOn(membersOf(c.graph), start), 'h'), from: {boundary: 'time'}, to: at(GARDENER, 'hours')});
         const made = plan(c.graph, start, HOME, from, hoursLeft(me), day?.day === start.dayIndex ? day.next : 0);
         day = {day: start.dayIndex, key, next: made.next, steps: made.steps};
+        waterNotes(c, made.steps);
       } else if ((working || (listed && start.hour >= HOURS.start)) && day && day.key !== key) {
         // the plan changed: keep what's under way, plan the rest from where they'll be
         const started = new Set(day.steps.filter((s) => s.start < from && s.doing !== 'rest').map((s) => s.job));

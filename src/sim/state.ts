@@ -9,6 +9,7 @@ import type {Effect} from './effects';
 import {levelClock} from './clock';
 import {copyNode, makeGraph, qty, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
 import {GARDENER, GARDENER_LEVERS} from './gardener';
+import {NO_KIT} from './kit';
 import {BED_FLOWER_LEVERS, LAWN_LEVERS} from './models/biodiversity';
 import {BED_LEVERS, overwintered} from './models/crops';
 import {householdNode, startCupboard} from './models/household';
@@ -80,6 +81,8 @@ export function gardenGraph(): Graph {
     // the kitchen's ledger, and the level's history for the goal, started on the first Monday (src/sim/goal.ts)
     if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: null, quality: {}};
     if (p.id === 'gate') spec.levers = {quality: {}};
+    // the garden's kit: what's been bought from the shed (src/sim/kit.ts)
+    if (p.id === 'shed') spec.levers = {kit: {...NO_KIT, owned: []} as unknown as LeverValue};
     return spec;
   });
   // the gardener: their hours for the day, the watering line, their tools and the day's jobs (src/sim/gardener.ts)

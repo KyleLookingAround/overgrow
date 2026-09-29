@@ -189,8 +189,11 @@ export function surfaceWet(w: {day: WeatherDay; t: number} | null): number {
 export const soilColour = (wet: number, pal: Palette) => (wet < 0 ? mix(pal['bed-dug'], pal['bed-dry'], -wet) : mix(pal['bed-dug'], pal['bed-wet'], wet));
 
 /** How a crop sits in a 2 × 1.5 m bed: rows by plants in a row. */
-const GRID: Record<CropId, [number, number]> = {salad: [4, 9], radish: [4, 8], lettuce: [3, 5], beans: [2, 6], potatoes: [2, 4], tomatoes: [2, 3], marigolds: [3, 6]};
-const LIGHT = new Set<CropId>(['lettuce', 'radish', 'salad', 'marigolds']);
+const GRID: Record<CropId, [number, number]> = {
+  salad: [4, 9], radish: [4, 8], lettuce: [3, 5], beans: [2, 6], potatoes: [2, 4], tomatoes: [2, 3], marigolds: [3, 6],
+  kale: [2, 4], leeks: [3, 9], 'winter-salad': [4, 9], 'broad-beans': [2, 7], garlic: [3, 10], onions: [3, 10], 'green-manure': [6, 14],
+};
+const LIGHT = new Set<CropId>(['lettuce', 'radish', 'salad', 'marigolds', 'winter-salad', 'garlic', 'onions', 'leeks', 'green-manure']);
 
 /** A bed's crop, drawn from its state: drills before the shoots, plants growing to their size, drooping and yellowing
  *  as the soil dries past their stress point, blackened by frost, and the ripe produce showing. Returns its stage. */

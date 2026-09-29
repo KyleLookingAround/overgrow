@@ -26,10 +26,13 @@
 //   Fast effect: the heap taking in a summer's waste and the dial moving down as it does. Slow effect: compost keeping
 //   the beds' organic matter up, and dug ground losing carbon over decades.
 import {PRODUCE} from '../../data/crops';
+import {DIG} from '../../data/garden';
+import {BIN} from '../../data/shed';
+import {owns} from '../kit';
 import type {System, TickContext} from '../clock';
 import {qty, type GraphNode} from '../graph';
 import {ATMOSPHERE} from '../state';
-import {IN_WASTE, NUTRIENTS} from './crops';
+import {cropOf, finish, IN_WASTE, NUTRIENTS, WASTE} from './crops';
 import {SOIL, tempFactor} from './soil';
 import {weatherOf} from './weather';
 
@@ -101,26 +104,54 @@ export function spread(c: TickContext, bed: GraphNode, kg: number) {
   }
 }
 
-/** Digs part of a bed plot out of the lawn: its land from grass to crops. */
+/** Digs part of a bed plot out of the lawn: its land from grass to crops, its edging paid for, and the flush of CO₂ from
+ *  the organic matter turning it over exposes (src/data/garden.ts's DIG). */
 export function dig(c: TickContext, bed: GraphNode, m2: number) {
   m2 = Math.min(m2, bed.stocks['land.grass']?.amount ?? 0);
-  if (m2 > 1e-9) c.flow({what: 'digging', unit: 'm2', amount: qty(m2, 'm2'), from: at(bed.id, 'land.grass'), to: at(bed.id, 'land.crops')});
+  if (m2 <= 1e-9) return;
+  c.flow({what: 'digging', unit: 'm2', amount: qty(m2, 'm2'), from: at(bed.id, 'land.grass'), to: at(bed.id, 'land.crops')});
+  const gbp = Math.min(DIG.gbpPerM2 * m2, Math.max(0, c.graph.nodes.kitchen?.stocks.money?.amount ?? 0));
+  if (gbp > 1e-9) c.flow({what: 'edging', unit: 'GBP', amount: qty(gbp, 'GBP'), from: at('kitchen', 'money'), to: {boundary: 'bought'}});
+  const flush = Math.min(DIG.flushPerM2 * m2, Math.max(0, bed.stocks[SOIL.humus]?.amount ?? 0));
+  if (flush > 1e-9 && c.graph.nodes[ATMOSPHERE]) c.flow({what: 'digging', unit: 'kgCO2e', amount: qty(flush, 'kgCO2e'), from: at(bed.id, SOIL.humus), to: air()});
+}
+
+/**
+ * Digs a green manure in where it stands: the crop is finished (its residue and the nutrients it held left on the bed,
+ * src/sim/models/crops.ts), and then all of that goes into the soil instead of to the heap: the residue's carbon, taken
+ * from the air as it grew, into the bed's fresh organic matter, its nitrogen into the organic pool, and its phosphorus
+ * and potassium back into the bed's.
+ */
+export function digIn(c: TickContext, bed: GraphNode) {
+  const s = cropOf(bed);
+  if (!s) return;
+  finish(c, bed, s, 'digging in');
+  const kg = bed.stocks[WASTE]?.amount ?? 0;
+  if (kg <= 1e-9) return;
+  c.flow({what: 'digging in', unit: 'kgWaste', product: 'greens', amount: qty(kg, 'kgWaste'), from: at(bed.id, WASTE), to: {boundary: 'decay'}});
+  if (c.graph.nodes[ATMOSPHERE]) c.flow({what: 'digging in', unit: 'kgCO2e', amount: qty(kg * WASTE_C, 'kgCO2e'), from: air(), to: at(bed.id, SOIL.fresh)});
+  for (const [key, unit, soil] of NUTRIENTS) {
+    const held = Math.max(0, bed.stocks[IN_WASTE[key]]?.amount ?? 0);
+    if (held > 1e-12) c.flow({what: 'digging in', unit, amount: qty(held, unit), from: at(bed.id, IN_WASTE[key]), to: at(bed.id, key === 'n' ? SOIL.organicN : soil)});
+  }
 }
 
 /** The heap's day: some of its waste breaks down into compost, CO₂ and the other gases. */
 function heapDay(c: TickContext, heap: GraphNode, temp: number, days: number) {
   const waste = heap.stocks[HEAPED.waste]?.amount ?? 0;
   if (waste <= 1e-9) return;
-  const kg = waste * (1 - Math.exp(-K_HEAP * tempFactor(temp) * (days / 365)));
+  // a closed bin keeps the heap warmer and moister: faster, less nitrogen lost, a little more methane (src/data/shed.ts)
+  const bin = owns(c.graph, 'compost-bin'), pace = bin ? BIN.pace : 1, nLost = bin ? BIN.nLost : N_LOST, gases = bin ? BIN.gases : 1;
+  const kg = waste * (1 - Math.exp(-K_HEAP * pace * tempFactor(temp) * (days / 365)));
   if (kg <= 1e-9) return;
   c.flow({what: 'composting', unit: 'kgWaste', product: 'greens', amount: qty(kg, 'kgWaste'), from: at(HEAP, HEAPED.waste), to: {boundary: 'decay'}});
   c.flow({what: 'composting', unit: 'kgWaste', product: 'compost', amount: qty(kg * COMPOST_YIELD, 'kgWaste'), from: {boundary: 'decay'}, to: at(HEAP, HEAPED.compost)});
   const co2 = Math.min(kg * WASTE_C * CO2_SHARE, Math.max(0, heap.stocks.carbon?.amount ?? 0));
   if (co2 > 0) c.flow({what: 'composting', unit: 'kgCO2e', amount: qty(co2, 'kgCO2e'), from: at(HEAP, 'carbon'), to: air()});
-  c.flow({what: 'methane and nitrous oxide', unit: 'kgCO2e', amount: qty(kg * OTHER_GASES, 'kgCO2e'), from: {boundary: 'decay'}, to: air()});
+  c.flow({what: 'methane and nitrous oxide', unit: 'kgCO2e', amount: qty(kg * OTHER_GASES * gases, 'kgCO2e'), from: {boundary: 'decay'}, to: air()});
   // the nitrogen lost is a share of what was in the waste that broke down: the heap's, by the waste it was made from
   const n = Math.max(0, heap.stocks[HEAPED.nitrogen]?.amount ?? 0), made = waste + compostOn(c.graph) / COMPOST_YIELD;
-  const lost = (n * N_LOST * kg) / made;
+  const lost = (n * nLost * kg) / made;
   if (lost > 0) c.flow({what: 'composting', unit: 'kgN', amount: qty(lost, 'kgN'), from: at(HEAP, HEAPED.nitrogen), to: {boundary: 'decay'}});
 }
 

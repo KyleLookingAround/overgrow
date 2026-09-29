@@ -6,8 +6,48 @@
 // sealed garden's would-be totals (the founding spec, "The carry-over rule") are worked out here over the last 28 days,
 // the way part 7's sealing will: Output as food delivered a day, Reliability as 100 × (1 − its coefficient of
 // variation), Health as the dug beds' mean soil health.
+import {CROPS, type CropId} from '../../src/data/crops';
 import {calendar} from '../../src/sim/clock';
 import type {Snapshot} from '../../src/sim/state';
+
+/** Events the player can answer with a lever: a sign on the map or a card that asks for something. */
+const ANSWER = new Set(['frost damage', 'Smith period', 'beds full', 'empty autumn bed', 'butt dry', 'slugs thriving', 'nematodes spent', 'buying', 'drought']);
+
+/**
+ * The quiet stretch (docs/decisions/ADR-2026-09-29-strategic-and-long.md): the longest run of whole game days with no
+ * decision (a command the player sent), no unlock (something new unfolded), no purchase, no harvest to place (a crop
+ * come ready, or done and its bed free for the next) and no event to answer (ANSWER). The bot marks its own decisions;
+ * the rest is read from each tick's snapshots.
+ */
+export class Quiet {
+  private last = 0;
+  longest = {days: 0, from: 1};
+  /** Every stretch of a week or more, for reading where the quiet is. */
+  stretches: {days: number; from: number}[] = [];
+  /** Marks a day as one with something in it. */
+  mark(day: number) {
+    const gap = day - this.last - 1;
+    if (gap >= 7) this.stretches.push({days: gap, from: this.last + 1});
+    if (gap > this.longest.days) this.longest = {days: gap, from: this.last + 1};
+    this.last = Math.max(this.last, day);
+  }
+  /** Compares a tick's snapshot with the one before it. */
+  watch(before: Snapshot, after: Snapshot) {
+    const day = dayOf(after.hours, after.step);
+    if (after.seen.length > before.seen.length || after.effects.some((e) => ANSWER.has(e.cause))) return this.mark(day);
+    for (const n of after.nodes) {
+      if (n.kind !== 'bed') continue;
+      const was = before.nodes.find((b) => b.id === n.id), a = n.levers.crop as {sown: number; dd: number; id: string} | null, b = was?.levers.crop as typeof a | undefined;
+      // a crop done and its bed free, or a crop that's just come ready
+      if ((b && !a) || (a && b && a.sown === b.sown && readyAt(a) && !readyAt(b))) return this.mark(day);
+    }
+  }
+  /** The run's end: a stretch still running counts to its last day. */
+  close(day: number) {
+    this.mark(day + 1);
+  }
+}
+const readyAt = (c: {dd: number; id: string}) => c.dd >= (CROPS[c.id as CropId]?.dd.mature ?? Infinity);
 
 /** The window the sealed totals are taken over (the founding spec, "What makes the jump feel earned"). */
 export const WINDOW_DAYS = 28;

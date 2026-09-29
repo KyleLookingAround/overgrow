@@ -19,6 +19,8 @@ import {EffectsLog} from './effects-log';
 import {Explain, type Explaining} from './Explain';
 import {FirstPlan} from './FirstPlan';
 import {GoalBar} from './GoalBar';
+import {statusOf} from './goal';
+import {YearCard} from './YearCard';
 import type {MapRenderer} from './map/renderer';
 import {MapView} from './MapView';
 import {current, NOTICE_CAP, push, unfoldSign, type Notice} from './notices';
@@ -83,6 +85,8 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   }), [sim]);
   const snap = shown?.snap, all = snap?.settings.details === true;
   const first = !!snap && firstPlanDue(snap);
+  // the garden's year done: the level's end, once a save
+  const year = !!snap && !first && !snap.seen.includes(CARDS.year) && statusOf(snap).ready;
   // the one "try faster" nudge: after the first harvest, at 1×, once a save, and never in the first minute
   const nudge = !!snap && !first && snap.kitchen?.firstHarvest != null && snap.hours > FIRST_MINUTE && shown!.speed === 1 && snap.seen.includes(CARDS.firstPlan) &&
     !snap.seen.includes(CARDS.tryFaster);
@@ -106,6 +110,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
             else setNotices((l) => l.filter((n) => n.id !== id));
           }} />
           {first ? <FirstPlan onAnswer={(answer) => send({type: 'card', id: 'first-plan', answer})} />
+            : year ? <YearCard snap={snap!} onDone={() => send({type: 'card', id: 'year', answer: 'ok'})} />
             : explain ? <Explain what={explain} nodes={nodes} log={log} onClose={() => setExplain(null)} />
             : snap && !shownNotices.length && <GoalBar snap={snap} />}
         </MapView>

@@ -31,13 +31,21 @@ export const UNFOLD: Record<string, Unfold> = {
   // the first time slugs cost the gardener time or money, a tool that saves it is worth having
   'garden.shed': {what: 'the Shed tab', why: 'Slugs are costing the gardener time: the shed has something for that.',
     causes: ['hand-picking', 'trapping', 'slug pellets']},
+  // each thing the shed sells shows once it answers something that has happened (src/data/shed.ts): the beer traps with
+  // the first time slugs cost time or money, so the first buy can come in the first week or two
+  'shed.beer-trap': {what: 'beer traps in the shed', why: 'Slugs are costing the gardener time: beer traps catch them for nothing but beer.',
+    causes: ['hand-picking', 'trapping', 'slug pellets']},
   // the household's first ask of the garden, on its second evening (the first minute's last moment)
   'garden.kitchen': {what: 'the Kitchen tab and the day’s ask', why: 'The household is looking to the garden for its veg.', causes: ['ask', 'eating']},
   // the gardener home from work on the second day, noted with the kitchen's first ask so the two share one sign
   'household.commute': {what: 'the gardener’s job', why: 'They work weekdays: that’s why the garden gets four hours a day.', causes: ['commute']},
   // money matters from the first payday (Friday of the first week), or the first sale or purchase if that comes sooner
   'garden.money': {what: 'money in the top bar and the week’s pay and shop', why: 'Payday: what’s left after the shop and the bills is the garden’s to spend.',
-    causes: ['wages', 'honesty box', 'slug pellets', 'insecticide', 'fungicide']},
+    causes: ['wages', 'honesty box', 'slug pellets', 'insecticide', 'fungicide', 'buying']},
+  // every dug bed in use and a plot still under grass: "Dig this bed" on the plot's card (the command is open from the
+  // start: digging is the first carbon choice)
+  'garden.dig': {what: '“Dig this bed” on the beds under grass', why: 'Every dug bed is in use: another bed means more to eat and sell.',
+    causes: ['beds full', 'digging']},
   // the first weekly shop the garden fed the household some of
   'household.groceries': {what: 'groceries saved', why: 'The garden fed the household this week: food it didn’t have to buy.', causes: ['groceries saved']},
   // aphids fly in from late May, and blight starts in a Smith period
@@ -56,12 +64,26 @@ export const UNFOLD: Record<string, Unfold> = {
   // the shop food's footprint sits beside the dial, so it comes with it: the same first carbon choice
   'household.footprint': {what: 'the shop food’s footprint beside the dial', why: 'Beside the garden’s own: the carbon in the food the household buys.',
     causes: ['spreading compost', 'digging']},
+  // a day's watering by can taking the gardener most of an hour: a hose would save it
+  'shed.hose': {what: 'a hose in the shed', why: 'Watering by can took most of an hour today.', causes: ['long watering']},
+  // the butt run dry with beds to water: a second butt keeps more of the roof's rain
+  'shed.water-butt': {what: 'a second water butt in the shed', why: 'The butt ran dry: the gardener’s filling the can at the tap.', causes: ['butt dry']},
+  // the first compost on a bed: a bin makes it faster
+  'shed.compost-bin': {what: 'a compost bin in the shed', why: 'The heap’s compost is going on the beds: a bin makes it faster.', causes: ['spreading compost']},
+  // slugs building up in a bed: nematodes, while the soil is warm
+  'shed.nematodes': {what: 'nematodes in the shed', why: 'Slugs are building up in a bed: nematodes kill them below ground.', causes: ['slugs thriving']},
+  // the first autumn bed standing empty: winter crops, a green manure, and the cold frame for later sowings
+  'garden.winter': {what: 'each bed’s winter crop line', why: 'A bed stands empty for the autumn: sow a winter crop or a green manure.',
+    causes: ['empty autumn bed']},
+  'shed.cold-frame': {what: 'a cold frame in the shed', why: 'A frost or the autumn: a cold frame keeps frost off and sows later.',
+    causes: ['frost damage', 'empty autumn bed']},
   // the temperature matters once a frost reaches a crop it can hurt
   'garden.weather': {what: 'the temperature', why: 'A frost reached a crop: the temperature now shows.', causes: ['frost damage']},
 };
 
-/** Cards answered once a save (src/sim/commands.ts): the first plan and the one "try faster" nudge. */
-export const CARDS = {firstPlan: 'card.first-plan', tryFaster: 'card.try-faster'} as const;
+/** Cards answered once a save (src/sim/commands.ts): the first plan, the one "try faster" nudge, and the garden's year
+ *  done (the level's end, once the allotment offer's requirements are met). */
+export const CARDS = {firstPlan: 'card.first-plan', tryFaster: 'card.try-faster', year: 'card.year'} as const;
 
 /** The levers each key gates: a command on one is refused until its key has unfolded (`except` a value that's always
  *  allowed, `only` the one value that's gated). */
@@ -72,6 +94,7 @@ export const GATES: {lever: string; key: string; except?: string; only?: string}
   {lever: 'blight', key: 'garden.blight'},
   {lever: 'edge', key: 'garden.flowers', except: 'none'},
   {lever: 'sow', key: 'garden.flowers', only: 'marigolds'},
+  {lever: 'winter', key: 'garden.winter', except: 'none'},
 ];
 
 /** Whether a key has unfolded: it must be in the table and seen. */

@@ -74,8 +74,10 @@ describe('strategies', () => {
   // but inside the sources' sizes they can't build up in 120 days from a clean garden, and the gap by then is the fast
   // crops' speed: salad leaves in both beds still beat the rotation. This holds the game to what it does now, on the
   // seed where the gap is plainest; the spec's test waits for a change the owner decides on (docs/SYSTEMS.md, "The bot").
+  // (The sensible player buys, digs and sows for the winter since the playable garden: the two-bed player is the same
+  // plan without them, so the two differ only in what they sow.)
   it('one-crop salad still keeps up with the rotation by day 120 (the spec’s rotation test waits on the owner)', () => {
-    const rotating = run('sensible', 1), oneCrop = run('one-crop', 1);
+    const rotating = run('two-beds', 1), oneCrop = run('one-crop', 1);
     expect([rotating.err, oneCrop.err]).toEqual([[], []]);
     expect(rotating.sealed.output).toBeGreaterThan(0);
     expect(oneCrop.sealed.output).toBeGreaterThan(rotating.sealed.output * 1.1);
