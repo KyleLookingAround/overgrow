@@ -91,6 +91,24 @@ Each level's steady supply of small decisions:
 | 7 Nation | Bills and political capital; elections; the diet, land and carbon budgets; droughts and price shocks; the zoom back in | A government's quiet middle years (lobbies, events and the next budget fill it) |
 | 8 Planet | Treaties; price shocks and export bans; failed harvests abroad; warming's slow turns | Decades passing in minutes with nothing to answer (events traced down the ladder fill it) |
 
+## Strategy: every choice has a price, over different horizons
+
+The owner (29 Sep 2026): the game should be strategic and long. Choices have trade-offs that pay off over different horizons (this week, this season, the years ahead), the player can compare plans, and no single option dominates. Settled by the owner. Each mechanic below has, as the spec or this web stands, one obviously best choice. The fix is a trade-off, marked **P** where it's design inside the spec's rules. **Q14** and **Q15** would change the founding spec and wait on #29.
+
+| Mechanic (level) | The dominant choice today | The trade-off that fixes it | Horizons |
+| --- | --- | --- | --- |
+| Carbon choices at 1–6: peat, digging the lawn, the basket | Ignore carbon: the dial costs nothing until the nation | **Q14:** carbon has a price at every level, through the people there. Box customers and the committee care (goodwill), the scheme pays for sinks at 4, and the council and chain carry a reputation for it at 5 and 6 | Week: peat's fast start. Years: goodwill and payments. |
+| Time-saving tools at 1 (hose, drip lines) | Buy each as soon as it's affordable | **P:** each has a running cost or a limit. The hose draws mains water (a bill, and banned in a hosepipe ban); drip lines fix a bed's layout (moving them costs hours at each rotation) and clog without upkeep | Week: hours saved. Season: the water bill. Years: the rotation. |
+| Rotation at 1–3 | Nothing yet makes it pay inside the garden's short level: #24 finds one crop does as well | **P:** the soil and pest effects of repeating a family show within a season or two (clubroot and potato cyst nematode build up; blight carries over), and **Q15** gives the garden long enough for them to show | Season: the crop you want most. Years: the soil. |
+| The honesty box at 1 | The fixed £2.50 a kg: no decision | **P:** a price lever. Higher sells fewer kg and more goes off; the shop's price for the same veg is the ceiling | Week: takings. Season: regulars won or lost. |
+| Selling or eating at 1 | Eat it: every kg eaten saves more than it earns at the gate | Keep it: that's the lesson (the garden's value is the shop price it replaces). Only surplus is a real choice, and swaps at 2 give it another use | — |
+| The watering line at 1 | As high as the hours allow | Already a trade-off once the butt runs dry and the tap costs money, and over-watering leaches nitrate (the water and soil models). The web keeps it | Day: wilt avoided. Season: nitrate lost. |
+| The partner at 2 | Work: the money buys tools that save more hours than the partner gives | **P:** the partner's goals (they'd rather have weekends) and the household's goodwill; and the second plot's reclaiming needs hands, not money, in its first season | Week: money. Season: the second plot. Years: goodwill. |
+| Treating pests at 1–4 | Treat: the loss is now and the cost is invisible | Already a trade-off: predators lost and, at the farm, resistance. It needs showing on the map (part 5) | Night: the pests. Seasons: predators and resistance. |
+| The step-up at every level | Take the offer at once | **P:** a level stays open to finish a slow investment (a hedge, a rotation) that will carry up in its Health; the offer waits | Now: the next level. Years: a better sealed node. |
+
+**Q15, the time scales.** The garden's offer comes between days 55 and 75, and the smallholding's first year takes about ten minutes. So the slow effects the levels are built round (soil organic matter, rotation, hedges) can't pay off inside the level that teaches them. The proposal: each level lasts long enough for its slowest lever to pay back once. The garden runs at least a full year, with the offer after a year's steady supply and not a lucky summer. The allotment and smallholding run two or three years each. The clock keeps its rates (seconds per game day), so the game gets longer, not slower. The longest quiet stretch (above) is the guard against boredom.
+
 ## The physical world
 
 ### Calendar and climate
@@ -714,6 +732,8 @@ Each changes the founding spec's model, ladder or carry-over rule, so each is a 
 - **Q11.** A home for the bonfire ban (waste: burning against composting, which leads to the stubble-burning ban and burning abroad), or a different third vote.
 - **Q12.** A zoom back in on the demand side at the nation: a household that can't afford its basket. Decide at the nation's spec, not now.
 - **Q13.** The neglected plot's cause emerges from the household model; the first zoom back in keeps its scripted timing.
+- **Q14.** Carbon has a price at every level, through its people (goodwill, scheme payments, reputation), so ignoring it isn't the dominant choice.
+- **Q15.** Each level lasts long enough for its slowest lever to pay back once: the garden at least a year, the allotment and smallholding two or three.
 
 ## Using the web
 
