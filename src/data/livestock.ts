@@ -131,7 +131,7 @@ export type Managed = keyof typeof MANAGED;
 /** Carbon in manure dry matter, and the volatile solids among it (IPCC: the organic share). */
 export const MANURE_C = 0.4, MANURE_VS = 0.85;
 
-/** Grass: the most it grows a day at 15 °C or more (UK lowland swards make about 10 t of dry matter a hectare a year), the
+/** Grass: the most a thin sward grows a day at 15 °C or more (kept in check by the standing crop, temperate lowland swards make about 10 t of dry matter a hectare a year), the
  *  most a sward holds standing, the share of it grazing can take in a day, and the temperature it stops growing at. */
 export const GRASS = {growth: 0.012, standing: 0.25, take: 0.6, base: 5, best: 15};
 

@@ -6,14 +6,13 @@
 // welfare index, from space, feed, water and warmth, cuts what it makes when it's low. docs/systems/livestock.md says how
 // it works and what part 6 (the hens) and part 12 (the flock and pigs) wire.
 //
-// Sources: FAO (2013), "Greenhouse gas emissions from ruminant supply chains" and (2013) "Poultry and pig" GLEAM notes, and
-//   FAO's feed intake and conversion tables, for intake and feed conversion; IPCC 2006 Guidelines vol. 4 ch. 10 (tables
+// Sources: FAO (2013), "Tackling climate change through livestock" and "Greenhouse gas emissions from ruminant supply chains"
+//   (GLEAM), and FAO's feed intake and conversion tables, for intake and feed conversion; IPCC 2006 Guidelines vol. 4 ch. 10 (tables
 //   10.10–10.11, Tier 1 enteric methane per head a year; 10.14–10.15 and 10A, manure methane from volatile solids, B₀ and
 //   the methane conversion factor; 10.19, nitrogen excreted) and ch. 11 (table 11.1, direct nitrous oxide: EF1 1 % of
 //   nitrogen on soils, EF3 for what's left on pasture); IPCC AR6 WGI ch. 7 (non-fossil CH₄ 27, N₂O 273 times CO₂ over
 //   100 years); RB209 (AHDB, 9th edition) for how much of a manure's nitrogen a crop can use; the RHS's and industry
-//   breeders' laying figures (a hybrid layer 250–300 eggs a year, few in the dark months: Lewis & Morris 2006, "Light and
-//   lay", on day length and laying); the RSPCA and Soil Association stocking rates for space; Poore & Nemecek (2018),
+//   breeders' management guides (a hybrid layer 250–300 eggs a year, few in the dark months, since laying follows day length); the RSPCA and Soil Association stocking rates for space; Poore & Nemecek (2018),
 //   Science 360, for land, water and emissions of a kg of each product (in src/data/livestock.ts).
 // Simplifies: one herd, one species, on a node; the animals are all alike (no ages, breeds, lactation or breeding: a ewe's
 //   lambs and a cow's milk are data for later parts); liveweight gain stops at finishing weight and never goes negative;
@@ -21,7 +20,9 @@
 //   one state that halves what the herd makes for three weeks; drinking water leaves as `evapotranspiration`; indirect
 //   nitrous oxide (from ammonia and leaching) and the manure's phosphorus and potassium are left out; a heap's own
 //   methane and nitrous oxide are the carbon model's, on the manure's mass, not counted twice here; the feed's own
-//   emissions (its fields, its lorry) belong to the crops and the supply chain, not to the herd.
+//   emissions (its fields, its lorry) belong to the crops and the supply chain, not to the herd, and the manure's carbon is
+//   drawn from the air as it's dropped while the feed's carbon just leaves as `eaten`, so a herd is a small net sink until
+//   its manure decays.
 //   Fast effect: a missed feed, an empty trough or a cold snap cuts today's eggs and gain. Slow effect: overstocking wears
 //   welfare down and the ground bare over a season, and a flock's methane adds up in the air over years.
 import type {System, TickContext} from '../clock';
@@ -321,6 +322,7 @@ export function footprint(species: SpeciesId, manage: Managed = SPECIES[species]
   const dam = SPECIES[species].breeders;
   const raised = dam ? perYear(dam.species, manage) : {methane: 0, manure: 0, product: 0, days: 0};
   const product = own.product;
+  if (product <= 0) return {methane: 0, manure: 0, product: 0}; // a breeding animal has no product of its own: its young carry it
   const methane = (own.methane + (dam ? raised.methane * dam.headYears : 0)) / product;
   const manureGas = (own.manure + (dam ? raised.manure * dam.headYears : 0)) / product;
   return {methane, manure: manureGas, product};

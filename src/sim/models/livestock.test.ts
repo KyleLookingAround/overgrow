@@ -17,7 +17,7 @@ import {
 import {sunOn, type WeatherDay} from './weather';
 
 const FULL = {feed: 1e6, water: 1e6};
-/** A UK year's air and light: a mean of 10 °C swinging 7 either way, the day 8 K wide, and the real day length. */
+/** A temperate year's air and light: a mean of 10 °C swinging 7 either way, the day 8 K wide, and the real day length. */
 const dayOfYear = (d: number): Conditions => {
   const t = 10 - 7 * Math.cos(((d - 15) / 365) * 2 * Math.PI);
   return {tmax: t + 4, tmin: t - 4, length: sunOn(d + 1).length, dayOfYear: d + 1};
@@ -98,6 +98,11 @@ describe('livestock: what it gives off', () => {
     // and the diet question in Poore & Nemecek's own numbers: lamb costs far more land and carbon than an egg or a pig
     expect(PER_KG.lamb.ghg).toBeGreaterThan(3 * PER_KG.pig.ghg);
     expect(PER_KG.lamb.land).toBeGreaterThan(20 * PER_KG.pig.land);
+  });
+
+  it('gives no per-kg figure for a breeding animal rather than dividing by nothing', () => {
+    expect(footprint('ewe').product).toBe(0);
+    expect(Number.isFinite(footprint('cow').methane)).toBe(true);
   });
 
   it('counts a flock’s methane by IPCC’s Tier 1 factors, adding up over the years', () => {
