@@ -1,0 +1,2 @@
+Section: done
+- **Easy wins from Final Call** (`docs/briefs/final-call-wins.md`): the wins to take from Final Call's UX, multi-device, game-design and runbook lessons (`docs/ideas/final-call-wins.md`), the UI and multi-device rules Overgrow adopts and leaves (`docs/decisions/ADR-2026-09-29-ui-from-final-call.md`), a polish audit before the first release, a few playbook lines, and the owner's pick on a `needs-owner` issue and a page; the coordinator folds the chosen wins into the parts' briefs.
