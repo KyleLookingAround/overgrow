@@ -1,0 +1,2 @@
+Section: now
+- **The bot and the first baselines** (the first slice's part 4, `docs/briefs/bot-and-baselines.md`, #9): `npm run bot` plays the garden headless through the same commands the player has, on seeds 1–3, and prints each milestone's game day, the sealed garden's would-be totals, `PLAY` and `ERR` against the proposed baselines in `tools/baseline.json`; the Balance workflow runs it on every PR, and the strategy tests run with `npm run check`.

@@ -44,7 +44,7 @@ Every change goes round the same loop, and each round leaves something that make
 1. **Issue.** Work starts from a GitHub issue (Feature, Bug or Balance template). Ideas and priorities live in `docs/ROADMAP.md`; the owner decides what moves up.
 2. **Spec.** Anything a player would notice as new gets a one-page spec from `docs/specs/TEMPLATE.md`, approved by the owner before building.
 3. **Build** on a `feature/<short-name>` branch from `main`, one change per branch, from a brief (`docs/briefs/TEMPLATE.md`).
-4. **Prove.** Checks pass, screenshots looked at, and the bot on seeds 1–3 for pacing or economy changes (once the bot exists).
+4. **Prove.** Checks pass, screenshots looked at, and the bot on seeds 1–3 for pacing or economy changes (the Balance workflow runs it once on every PR).
 5. **Ship.** A PR from `.github/pull_request_template.md`, merged once checks are green (see Publishing); `main` publishes.
 6. **Learn.** A bug that reached players gets the check that would have caught it. A change that sets a rule gets a record in `docs/decisions/`. Before each merge, a short look back at the session goes in its own file in `docs/lessons/`, and a lesson that would have saved real time or credits changes the playbook that allowed it.
 
