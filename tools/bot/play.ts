@@ -103,6 +103,8 @@ export function play({seed, hours, player = PLAYERS.sensible!, systems = SYSTEMS
       // a decision: the day isn't quiet
       quiet.mark(day);
       if (cmd.type === 'buy') bought.push({id: cmd.id, day});
+      // a cordon planted from bare-root season's card is a purchase too
+      if (cmd.type === 'card' && cmd.id === 'bare-root' && cmd.answer === 'plant') bought.push({id: 'cordon', day});
     }
   };
   while (snap.hours < hours) {

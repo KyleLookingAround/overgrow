@@ -56,6 +56,8 @@ export const SITES = {
   greenhouse: {id: 'greenhouse', kind: 'bed', name: 'Greenhouse', box: {x: 9.2, y: 3.3, w: 2.4, h: 1.8}, land: 'crops'},
   hens: {id: 'hens', kind: 'hens', name: 'Hens', box: {x: 0.8, y: 5.75, w: 3.4, h: 2}, land: 'grass'},
   'fruit-cage': {id: 'fruit', kind: 'fruit', name: 'Fruit cage', box: {x: 4.8, y: 5.75, w: 3, h: 2}, land: 'crops'},
+  // the cordon redcurrants along the bottom fence, below the heap: the strip is theirs, its land taken a cordon at a time
+  cordon: {id: 'cordons', kind: 'fruit', name: 'Redcurrants', box: {x: 8.2, y: 7.45, w: 3.6, h: 0.5}, land: 'crops'},
 } as const satisfies Record<string, Omit<PlaceSpec, 'dug' | 'soil'>>;
 /** The ways each site needs, as WAYS has them for the places there from the start. */
 export const SITE_WAYS: Record<keyof typeof SITES, readonly {from: string; to: string; carries: ('L' | 'kgFood' | 'kgWaste' | 'kgCO2e' | 'kgN' | 'kgP' | 'kgK' | 'pests' | 'm2')[]}[]> = {
@@ -75,6 +77,10 @@ export const SITE_WAYS: Record<keyof typeof SITES, readonly {from: string; to: s
   'fruit-cage': [
     {from: 'fruit', to: 'kitchen', carries: ['kgFood']},
     {from: 'lawn', to: 'fruit', carries: ['m2']},
+  ],
+  cordon: [
+    {from: 'cordons', to: 'kitchen', carries: ['kgFood']},
+    {from: 'lawn', to: 'cordons', carries: ['m2']},
   ],
 };
 

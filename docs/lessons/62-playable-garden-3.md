@@ -1,0 +1,24 @@
+# The playable garden, round three (#62) · 29 Sep 2026
+
+- **Numbers:**
+  - The estimate was $30. The session's cost read $0.40 at its one reading, which is clearly not the whole session.
+  - The session started at 21:37 UTC and the PR opened at about 22:45 UTC with items 1 to 5 in it.
+  - The brief arrived in a second message: the first said "below" and had nothing below it.
+  - Three full `npm run check` runs before the push. The only failure was the joined roadmap, stale because a file was added after the build.
+- **Went well:**
+  - **Writing each card's end-state test up front** (round two's lesson). Seven tests in `src/ui/winter-cards.test.ts` answer each card and assert it's gone. None looped.
+  - **Measuring before tuning the bot.**
+    - The first run bought a £22 fork on day 14 and cloches in May. That starved the spring's seed money and cost seed 1 its offer.
+    - Buying each piece of kit only in the months it pays (`WHEN`) brought the offer back, without touching a price.
+  - **The fresh review** found six real bugs:
+    - the cordon checked the whole strip's lawn, not its own 0.3 m²;
+    - the cold frame could land on the cloches' bed;
+    - the goal bar offered a buy the shed would refuse;
+    - the fork showed twice;
+    - the glut card had capitals mid-sentence;
+    - a cordon planted after 20 November gave no fruit its first summer.
+  - **The playtest's stuck notice was a real bug, not only the script.** A save loaded into a page that had seen less (or a jump of months) made one sign naming every key since the first morning ("… and 22 more"). A load brings no effects, so the page now starts afresh then. A check shows it failing without the fix.
+- **Lessons:**
+  - **£8 a week sets the ceiling on "a purchase every week or two".** The bot now buys 15 things in its first year, not 6. But the longest gap without one is still 61–81 days, while it saves for the hens. More cheap kit won't close that; more income or a cheaper step towards the big buy would. The next economy brief should say which it wants.
+  - **A paused page only moves its view on a tick of more than four steps.** A check that answers a card while paused must tick five hours before reading the page. The first phone check failed on that, not on the goal bar.
+  - **A brief can arrive empty.** The first message's "your brief is below" had nothing below it, and the session stopped rather than guess. The coordinator's check-in caught it within minutes. → A brief sent by message is worth one look for its first heading before sending.

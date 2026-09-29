@@ -207,5 +207,6 @@ export const GROWTH_PACE = 1;
  *  (the cold frame and the greenhouse, src/data/shed.ts). */
 export const COVERS: Record<string, {frost: number; days: number; warm: number; blight: number}> = {
   'cold-frame': {frost: 3, days: 21, warm: 0, blight: 1},
+  cloches: {frost: 2, days: 14, warm: 0, blight: 1},
   greenhouse: {frost: 5, days: 42, warm: 3, blight: 0.1},
 };

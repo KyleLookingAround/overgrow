@@ -8,7 +8,7 @@
 // compost (RHS, "Digging" and "Lawns: removing turf"), so a new bed takes most of a week's spare hours; picking by the crop (src/data/crops.ts). The four hours are the
 // household model's since part 6b: what a full-time job leaves (src/sim/models/household.ts).
 
-export type Tool = 'can' | 'hands' | 'spade' | 'basket' | 'bucket' | 'hose';
+export type Tool = 'can' | 'hands' | 'spade' | 'basket' | 'bucket' | 'hose' | 'fork';
 export type Job = 'water' | 'sow' | 'plant' | 'pick' | 'clear' | 'dig' | 'carry' | 'spread';
 
 /**
@@ -31,6 +31,8 @@ export const TOOLS: Record<Tool, {name: string; jobs: Partial<Record<Job, JobTim
   bucket: {name: 'Bucket', jobs: {spread: {per: 0.3 / 60, trip: 10, load: 2 / 60}}},
   // straight from the tap at its 12 L a minute, five minutes to run it out and reel it back (src/data/shed.ts)
   hose: {name: 'Hose and reel', jobs: {water: {per: 1 / 60 / 12, setup: 5 / 60}}},
+  // a digging fork, a fifth faster than the spade at breaking new ground (src/data/shed.ts's FORK)
+  fork: {name: 'Digging fork', jobs: {dig: {per: 7 * 0.8}}},
 };
 
 /** The tools the gardener starts with. */

@@ -449,6 +449,15 @@ button.num {
   stroke: var(--accent);
   stroke-width: 1.8;
 }
+.goal-go {
+  flex: none;
+  padding: var(--gap-tiny) var(--gap-small);
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+.goal-bar.open .goal-go {
+  align-self: flex-end;
+}
 .goal-rows {
   display: flex;
   flex-direction: column;
@@ -752,6 +761,15 @@ select {
 .offer .short {
   font-style: italic;
 }
+.offer.focus {
+  outline: var(--focus-ring) solid var(--accent);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--radius);
+}
+.purse-line,
+.saving-for {
+  margin: 0 0 var(--gap-tiny);
+}
 .dig-offer p {
   margin: var(--gap-tiny) 0;
 }
@@ -760,6 +778,21 @@ button.dig {
 }
 .year-card p {
   margin: 0 0 var(--gap-small);
+}
+.year-card dl {
+  margin: 0 0 var(--gap-small);
+}
+.year-card .row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: var(--gap-tiny) 0;
+  border-bottom: 1px solid var(--line);
+}
+.year-card dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .lessons {
   margin: 0 0 var(--gap-small);

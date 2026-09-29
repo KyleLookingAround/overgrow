@@ -7,7 +7,7 @@
 // The hose (src/sim/gardener.ts), the compost bin (src/sim/models/carbon.ts), the frame's frost, rain and sowing
 // windows (src/sim/models/crops.ts, src/sim/models/water.ts) are read where they act. docs/systems/shed.md says how.
 import {CROPS, type CropId} from '../data/crops';
-import {BEER_TRAP, CATALOGUE, CHIT, FLEECE, WARM, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, type UpgradeId, type Variety} from '../data/shed';
+import {BEER_TRAP, CATALOGUE, CHIT, CORDON, DIG_OVER, FLEECE, LEAVES, PROPAGATOR, WARM, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, bareRoot, type UpgradeId, type Variety} from '../data/shed';
 import type {CalendarDate} from './clock';
 import {cropOf} from './models/crops';
 import type {System, TickContext} from './clock';
@@ -22,7 +22,7 @@ import {ATMOSPHERE} from './state';
 import {kitOf, owns, setKit} from './kit';
 import {KITCHEN} from './models/kitchen';
 import {pestsOf, SLUG_KEY, slugsOn} from './models/pests';
-import {moisture} from './models/soil';
+import {moisture, SOIL} from './models/soil';
 import {weatherOf} from './models/weather';
 
 const isUpgrade = (id: string): id is UpgradeId => id in UPGRADES;
@@ -32,14 +32,28 @@ const purse = (g: Graph) => g.nodes[KITCHEN]?.stocks.money?.amount ?? 0;
 /** The next dug bed a raised bed goes on: the first not raised yet (never the greenhouse's border). */
 export const nextRaised = (g: Graph) => dugBeds(g).find((b) => b.levers.raised !== true && b.levers.cover !== 'greenhouse') ?? null;
 
+/** The cordons planted along the fence. */
+export const cordons = (g: Graph) => kitOf(g).owned.filter((x) => x === 'cordon').length;
+/** The dug bed a new cover goes on: the first in the open with nothing in it, else the first in the open. */
+const nextCovered = (g: Graph) => {
+  const beds = dugBeds(g).filter((b) => !b.levers.cover);
+  return beds.find((b) => !b.levers.crop) ?? beds[0] ?? null;
+};
+
 /** Why a buy is refused, or null if it can go ahead. */
 export function refuseBuy(g: Graph, id: string): string | null {
   if (!isUpgrade(id)) return `no upgrade ${id}`;
   const u = UPGRADES[id];
   if (u.kept && owns(g, id)) return `the garden has ${u.name.toLowerCase()} already`;
   if (id === 'raised-bed' && !nextRaised(g)) return 'every dug bed is raised already';
+  if (id === 'cordon') {
+    if (!kitOf(g).bare) return 'bare-root cordons are planted from November to March';
+    if (cordons(g) >= CORDON.most) return 'the fence has no room for another cordon';
+    if ((g.nodes.lawn?.stocks['land.grass']?.amount ?? 0) < CORDON.m2) return 'the lawn has no room for it';
+  }
+  if (id === 'cloches' && !nextCovered(g)) return 'every dug bed has a cover already';
   // a big buy needs its ground on the lawn
-  const site = (SITES as Record<string, {box: {w: number; h: number}}>)[id];
+  const site = id === 'cordon' ? null : (SITES as Record<string, {box: {w: number; h: number}}>)[id];
   if (site && (g.nodes.lawn?.stocks['land.grass']?.amount ?? 0) < site.box.w * site.box.h) return 'the lawn has no room for it';
   if (id === 'nematodes' && kitOf(g).nematodes > 0) return 'the last pack is still at work';
   if (purse(g) < u.price) return `${u.name} costs £${u.price.toFixed(2)}`;
@@ -63,7 +77,10 @@ export function placeOf(g: Graph, id: UpgradeId): string {
     case 'compost-bin':
       return 'heap';
     case 'cold-frame':
-      return Object.values(g.nodes).find((n) => n.levers.cover === 'cold-frame')?.id ?? 'shed';
+    case 'cloches':
+      return Object.values(g.nodes).find((n) => n.levers.cover === id)?.id ?? 'shed';
+    case 'cordon':
+      return g.nodes.cordons ? 'cordons' : 'shed';
     case 'raised-bed':
       return dugBeds(g).filter((b) => b.levers.raised === true).at(-1)?.id ?? 'shed';
     case 'beer-trap':
@@ -80,6 +97,11 @@ export const buyFlow = (id: UpgradeId): Flow => ({what: 'buying', unit: 'GBP', a
 function buy(g: Graph, id: UpgradeId) {
   applyFlow(g, buyFlow(id));
   if (id === 'nematodes') return setKit(g, {nematodes: NEMATODES.days});
+  // a cordon goes in along the fence, its land from the lawn: the fruit system dates it on its next day
+  if (id === 'cordon') {
+    plantCordon(g);
+    return setKit(g, {owned: [...kitOf(g).owned, id]});
+  }
   // a raised bed goes on the next dug bed that isn't one; the kit counts each
   if (id === 'raised-bed') {
     const bed = nextRaised(g);
@@ -93,10 +115,14 @@ function buy(g: Graph, id: UpgradeId) {
     touch(g, 'butt');
   }
   if (id === 'greenhouse' || id === 'hens' || id === 'fruit-cage') addSite(g, id);
-  // the hose joins the gardener's tools: the fastest they have for a job is the one they use (src/data/jobs.ts)
-  if (id === 'hose') {
+  // the hose and the fork join the gardener's tools: the fastest they have for a job is the one they use (src/data/jobs.ts)
+  if (id === 'hose' || id === 'fork') {
     const me = g.nodes.gardener, tools = (me?.levers.tools as string[] | undefined) ?? [];
-    if (me && !tools.includes('hose')) me.levers.tools = [...tools, 'hose'];
+    if (me && !tools.includes(id)) me.levers.tools = [...tools, id];
+  }
+  if (id === 'cloches') {
+    const bed = nextCovered(g);
+    if (bed) bed.levers.cover = 'cloches';
   }
   if (id === 'water-butt') {
     const butt = g.nodes.butt?.stocks.water;
@@ -105,14 +131,15 @@ function buy(g: Graph, id: UpgradeId) {
   }
   // the frame goes over the first dug bed with nothing in it, else the first dug bed; the plan can move it
   if (id === 'cold-frame') {
-    const beds = dugBeds(g).filter((b) => b.levers.cover !== 'greenhouse'), bed = beds.find((b) => !b.levers.crop) ?? beds[0];
+    const beds = dugBeds(g).filter((b) => !b.levers.cover), bed = beds.find((b) => !b.levers.crop) ?? beds[0];
     if (bed) bed.levers.cover = 'cold-frame';
   }
 }
 
-/** What a bed's sowing of a crop costs from the purse, £: its seed, plants or sets (src/data/crops.ts), or nothing when
- *  the winter catalogue's order covers this garden year. */
-export const seedCost = (g: Graph, crop: CropId, year: number) => (kitOf(g).seeds?.year === year ? 0 : CROPS[crop].seed);
+/** What a bed's sowing of a crop costs from the purse, £: its seed, plants or sets (src/data/crops.ts), a packet for
+ *  what the propagator raises, or nothing when the winter catalogue's order covers this garden year. */
+export const seedCost = (g: Graph, crop: CropId, year: number) =>
+  kitOf(g).seeds?.year === year ? 0 : CROPS[crop].seed * (owns(g, 'propagator') && PROPAGATOR.crops.includes(crop) ? PROPAGATOR.share : 1);
 
 /** The catalogue's order for next year: its price, for every bed plot the garden has (dug or to be dug, and the
  *  greenhouse's border), and the variety. */
@@ -221,6 +248,55 @@ function addSite(g: Graph, id: keyof typeof SITES) {
   touch(g, site.id);
 }
 
+/** Plants a cordon along the fence: the strip's node the first time (its land none yet), then a cordon's ground moved from
+ *  the lawn's grass, and an undated planting the fruit system dates on its next day (src/sim/models/fruit.ts). */
+function plantCordon(g: Graph) {
+  const site = SITES.cordon;
+  if (!g.nodes[site.id]) {
+    g.nodes[site.id] = makeNode({id: site.id, kind: site.kind, name: site.name, box: {...site.box}, land: {crops: 0}, levers: {bushes: {planted: null, plants: []} as unknown as LeverValue}});
+    for (const w of [...SITE_WAYS.cordon, {from: site.id, to: ATMOSPHERE, carries: ['kgCO2e' as const]}])
+      g.edges.push({id: `${site.id}-${w.from}-${w.to}`, from: w.from, to: w.to, carries: [...w.carries]});
+    g.rev++;
+  }
+  const n = g.nodes[site.id]!, b = n.levers.bushes as unknown as {planted: number | null; plants: (number | null)[]};
+  applyFlow(g, {what: 'planting', unit: 'm2', amount: qty(CORDON.m2, 'm2'), from: {node: 'lawn', stock: 'land.grass'}, to: {node: site.id, stock: 'land.crops'}});
+  n.levers.bushes = {...b, plants: [...b.plants, null]} as unknown as LeverValue;
+  touch(g, 'lawn');
+  touch(g, site.id);
+}
+
+/** Rakes the autumn leaves onto the heap, with their carbon and nitrogen (the clear-up card). Why not, or null. */
+export function rakeLeaves(g: Graph, d: CalendarDate): string | null {
+  if (!leavesOpen(d)) return 'the leaves are raked from mid-October to November';
+  if (!g.nodes.heap) return 'there is no heap';
+  applyFlow(g, {what: 'raking leaves', unit: 'kgWaste', product: 'greens', amount: qty(LEAVES.kg, 'kgWaste'), from: {boundary: 'growth'}, to: {node: 'heap', stock: 'waste'}});
+  applyFlow(g, {what: 'raking leaves', unit: 'kgCO2e', amount: qty(LEAVES.kg * LEAVES.co2e, 'kgCO2e'), from: {node: ATMOSPHERE, stock: 'carbon'}, to: {node: 'heap', stock: 'carbon'}});
+  applyFlow(g, {what: 'raking leaves', unit: 'kgN', amount: qty(LEAVES.kg * LEAVES.n, 'kgN'), from: {boundary: 'growth'}, to: {node: 'heap', stock: 'nitrogen.organic'}});
+  touch(g, 'heap');
+  return null;
+}
+/** Whether it's leaf-raking time: mid-October to November. */
+export const leavesOpen = (d: CalendarDate) =>
+  (d.month === LEAVES.from[0] && d.day >= LEAVES.from[1]) || (d.month > LEAVES.from[0] && d.month <= LEAVES.to[0]);
+
+/** The empty dug beds a winter dig would turn over (December and January): in the open, nothing growing in them. */
+export const digOverBeds = (g: Graph, d: CalendarDate) =>
+  d.month >= DIG_OVER.from || d.month <= DIG_OVER.to ? dugBeds(g).filter((b) => !cropOf(b) && b.levers.cover !== 'greenhouse') : [];
+/** Digs the empty beds over: the flush of CO₂ from their organic matter, and a share of their slugs turned up to the birds
+ *  and the frost. Why not, or null. */
+export function digOver(g: Graph, d: CalendarDate): string | null {
+  const beds = digOverBeds(g, d);
+  if (!beds.length) return 'no empty bed to dig over';
+  for (const b of beds) {
+    const m2 = b.stocks['land.crops']?.amount ?? 0, flush = Math.min(DIG_OVER.flushPerM2 * m2, Math.max(0, b.stocks[SOIL.humus]?.amount ?? 0));
+    if (flush > 1e-9 && g.nodes[ATMOSPHERE]) applyFlow(g, {what: 'digging over', unit: 'kgCO2e', amount: qty(flush, 'kgCO2e'), from: {node: b.id, stock: SOIL.humus}, to: {node: ATMOSPHERE, stock: 'carbon'}});
+    const slugs = slugsOn(b) * DIG_OVER.slugs;
+    if (slugs > 1e-9) applyFlow(g, {what: 'digging over', unit: 'pests', product: 'slugs', amount: qty(slugs, 'pests'), from: {node: b.id, stock: SLUG_KEY}, to: {boundary: 'decay'}});
+    touch(g, b.id);
+  }
+  return null;
+}
+
 /** Pays for the beer traps' week from the purse; they go dry for the week if it can't. */
 function beerWeek(c: TickContext) {
   if (!owns(c.graph, 'beer-trap')) return;
@@ -229,9 +305,14 @@ function beerWeek(c: TickContext) {
   if (kitOf(c.graph).dry === ok) setKit(c.graph, {dry: !ok});
 }
 
-/** The day's work of what's in the beds: the traps' catch of last night's slugs, and the nematodes'. */
+/** The day's work of what's in the beds: the traps' catch of last night's slugs, and the nematodes'; and bare-root season
+ *  opening in November and closing after March. */
 function day(c: TickContext) {
-  const g = c.graph, kit = kitOf(g), trap = kit.owned.includes('beer-trap') && !kit.dry;
+  const g = c.graph, kit = kitOf(g), trap = kit.owned.includes('beer-trap') && !kit.dry, bare = bareRoot(c.date.month);
+  if (!!kit.bare !== bare) {
+    setKit(g, {bare});
+    if (bare && c.date.month === CORDON.from) note(c, 'bare-root season', 'shed', 1, 'season');
+  }
   if (!trap && kit.nematodes <= 0) return;
   const w = weatherOf(g), days = w ? (w.step ?? [w]) : [], mean = days.length ? days.reduce((s, d) => s + (d.tmax + d.tmin) / 2, 0) / days.length : 0;
   const n = Math.max(1, days.length);
@@ -266,11 +347,14 @@ export const shed: System = {
     if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && cmd.lever === 'raised' && g.nodes[cmd.node]?.kind === 'bed') return 'a raised bed is bought in the shed';
     if (cmd.type === 'plan' && cmd.lever === 'cover' && g.nodes[cmd.node]?.kind === 'bed') {
       if (g.nodes[cmd.node]!.levers.cover === 'greenhouse') return 'the greenhouse’s glass stays on';
-      if (cmd.value !== null && cmd.value !== 'cold-frame') return 'a cover is the cold frame, or none';
-      if (cmd.value === 'cold-frame') {
-        if (!owns(g, 'cold-frame')) return 'the garden has no cold frame yet';
-        if ((g.nodes[cmd.node]!.stocks['land.crops']?.amount ?? 0) <= 0) return 'the cold frame goes on a dug bed';
-        for (const b of Object.values(g.nodes)) if (b.kind === 'bed' && b.id !== cmd.node && b.levers.cover === 'cold-frame') b.levers.cover = null;
+      if (cmd.value !== null && cmd.value !== 'cold-frame' && cmd.value !== 'cloches') return 'a cover is the cold frame, the cloches or none';
+      if (cmd.value === 'cold-frame' || cmd.value === 'cloches') {
+        const name = cmd.value === 'cold-frame' ? 'cold frame' : 'cloches';
+        if (!owns(g, cmd.value)) return `the garden has no ${name} yet`;
+        if ((g.nodes[cmd.node]!.stocks['land.crops']?.amount ?? 0) <= 0) return cmd.value === 'cold-frame' ? 'the cold frame goes on a dug bed' : 'the cloches go on a dug bed';
+        const other = g.nodes[cmd.node]!.levers.cover;
+        if (other && other !== cmd.value) return `${g.nodes[cmd.node]!.name} has the ${other === 'cold-frame' ? 'cold frame' : 'cloches'} over it`;
+        for (const b of Object.values(g.nodes)) if (b.kind === 'bed' && b.id !== cmd.node && b.levers.cover === cmd.value) b.levers.cover = null;
       }
       return null;
     }

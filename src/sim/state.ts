@@ -15,6 +15,7 @@ import {BED_LEVERS, overwintered} from './models/crops';
 import {householdNode, startCupboard} from './models/household';
 import {newLedger, shopProduct, type Ledger} from './models/kitchen';
 import {startGoal} from './goal';
+import {newPurse} from './purse';
 import {rng, type Rng} from './random';
 import {BED_PEST_LEVERS, LAWN_PEST_LEVERS, startingSlugs} from './models/pests';
 import {startingSoil} from './models/soil';
@@ -84,7 +85,7 @@ export function gardenGraph(): Graph {
     if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
     // the kitchen's ledger, and the level's history for the goal (src/sim/goal.ts)
     // the goal's year counts from the game's first day: the first Monday's sample takes in the days before it
-    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: startGoal() as unknown as LeverValue, quality: {}, glut: 'sell'};
+    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: startGoal() as unknown as LeverValue, quality: {}, glut: 'sell', purse: newPurse() as unknown as LeverValue};
     if (p.id === 'gate') spec.levers = {quality: {}};
     // the garden's kit: what's been bought from the shed (src/sim/kit.ts)
     if (p.id === 'shed') spec.levers = {kit: {...NO_KIT, owned: []} as unknown as LeverValue};

@@ -348,6 +348,13 @@ function drawKit(g: Graphics, nodes: readonly GraphNode[], c: Camera, pal: Palet
     g.roundRect(r.x + 0.05 * c.s, r.y + 0.07 * c.s, r.w, r.h, 0.1 * c.s).fill(pal.shadow);
     g.roundRect(r.x, r.y, r.w, r.h, 0.1 * c.s).fill(pal.tank);
   }
+  // cloches: a clear tunnel along the bed, its hoops across it
+  const cloched = nodes.find((n) => n.kind === 'bed' && n.levers.cover === 'cloches');
+  if (cloched) {
+    const r = px(cloched.box!, c), t = Math.max(1, 0.03 * c.s), inset = 0.12 * c.s;
+    g.roundRect(r.x + inset, r.y + inset, r.w - 2 * inset, r.h - 2 * inset, 0.3 * c.s).fill({color: pal.frame.color, alpha: 0.3}).stroke({width: t, color: pal['frame-edge'].color});
+    for (let i = 1; i < 5; i++) g.moveTo(r.x + (r.w * i) / 5, r.y + inset).lineTo(r.x + (r.w * i) / 5, r.y + r.h - inset).stroke({width: t, color: pal['frame-edge'].color});
+  }
   const framed = nodes.find((n) => n.kind === 'bed' && n.levers.cover === 'cold-frame');
   if (framed) {
     const r = px(framed.box!, c), t = Math.max(1.5, 0.05 * c.s);
@@ -360,8 +367,8 @@ function drawKit(g: Graphics, nodes: readonly GraphNode[], c: Camera, pal: Palet
 const TANK_BOX: Box = {x: 11.35, y: 0.55, w: 0.55, h: 1.2};
 
 /** The big buys, drawn over their places each frame: the greenhouse's glass and its bars, the hens scratching about their
- *  run (a cosmetic wander from the clock, the three of them), and the fruit cage's canes and bushes under the net with
- *  the ripe fruit on them. */
+ *  run (a cosmetic wander from the clock, the three of them), the fruit cage's canes and bushes under the net with the
+ *  ripe fruit on them, and the cordon redcurrants along the fence, one for each planted. */
 function drawSites(g: Graphics, nodes: readonly GraphNode[], hours: number, c: Camera, pal: Palette) {
   for (const n of nodes) {
     const r = n.box && px(n.box, c);
@@ -382,6 +389,18 @@ function drawSites(g: Graphics, nodes: readonly GraphNode[], hours: number, c: C
         g.ellipse(x, y, 0.13 * c.s, 0.1 * c.s).fill(pal.hen);
         g.circle(x + 0.1 * c.s, y - 0.04 * c.s, 0.035 * c.s).fill(pal.comb);
       }
+    }
+    if (n.kind === 'fruit' && n.id === 'cordons') {
+      // the cordons up the fence, one a planting, spaced along the strip, with their ripe fruit
+      const plants = ((n.levers.bushes as {plants?: unknown[]} | null)?.plants ?? []).length, ripe = n.stocks['food.berries']?.amount ?? 0;
+      for (let i = 0; i < plants; i++) {
+        const x = r.x + (i + 0.5) * (r.w / 6), y = r.y + r.h * 0.5;
+        g.circle(x, y, 0.2 * c.s).fill(pal['leaf-dark']);
+        g.circle(x - 0.05 * c.s, y - 0.05 * c.s, 0.12 * c.s).fill(pal.leaf);
+        const dots = Math.min(4, Math.ceil(ripe * 3));
+        for (let k = 0; k < dots; k++) g.circle(x + 0.12 * c.s * Math.cos(k * 1.9 + i), y + 0.12 * c.s * Math.sin(k * 1.9 + i), 0.035 * c.s).fill(pal.berry);
+      }
+      continue;
     }
     if (n.kind === 'fruit') {
       const ripe = n.stocks['food.berries']?.amount ?? 0, bushes = 6;
