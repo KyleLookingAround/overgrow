@@ -6,9 +6,13 @@
 // stress (Ky) is FAO-33's (Doorenbos & Kassam 1979) as FAO-56 table 24 repeats it; nutrient uptake for a full crop is
 // RB209's rough size (AHDB 2023, section 6, vegetables and potatoes); yields are a well-kept garden bed's, at the upper
 // end of RHS and allotment figures. Beans and tomatoes are tender and die in a frost; a frost blackens potatoes' tops
-// and sets them back; the rest shrug off a light frost.
+// and sets them back; the rest shrug off a light frost. French marigolds are the garden's flowers (part 5): planted out
+// as young plants after the frosts and in flower from early summer to the first frost (RHS, "Tagetes"), they feed no one
+// but bring bees and hoverflies, and ladybirds after the aphids (src/sim/models/biodiversity.ts). Beans and tomatoes
+// set more pods and fruit with pollinators about: Klein et al. (2007) class both as "little" dependent (a 0–10 % loss
+// without them), taken here as 5 %.
 
-export type CropId = 'salad' | 'radish' | 'lettuce' | 'beans' | 'potatoes' | 'tomatoes';
+export type CropId = 'salad' | 'radish' | 'lettuce' | 'beans' | 'potatoes' | 'tomatoes' | 'marigolds';
 /** For rotation: the botanical family (a bed shouldn't grow the same one twice running). */
 export type Family = 'legume' | 'brassica' | 'solanum' | 'daisy';
 /** What the kitchen groups a product under (src/data/kitchen.ts). */
@@ -20,7 +24,13 @@ export interface CropSpec {
   /** The food it makes, kept by product ('food.<product>' stocks, kg). */
   product: string;
   family: Family;
-  group: Group;
+  /** The kitchen's group; none for flowers, which aren't eaten. */
+  group?: Group;
+  /** Flowers: grown for the bees and ladybirds, never in the rotation. */
+  flower?: true;
+  /** Klein et al. (2007): the share of its yield lost with no pollinators at all (none for a crop harvested for its
+   *  leaves or roots, or one the wind or its own flowers pollinate). */
+  pollinated?: number;
   /** Sown or planted outdoors from the first day of `from` to the last of `to`, as [month, day] pairs. */
   sow: {from: [number, number]; to: [number, number]};
   /** Sown as seed, or planted out as seed potatoes or young plants raised on a windowsill (not modelled). */
@@ -50,7 +60,7 @@ export interface CropSpec {
   frost: 'plant' | 'tops' | 'none';
   /** Hours to pick a kg by hand. */
   pick: number;
-  /** What it draws, for the pests (part 5). */
+  /** The pests it draws (src/sim/models/pests.ts; flea beetle isn't modelled yet). */
   pests: string[];
 }
 
@@ -77,7 +87,7 @@ export const CROPS: Record<CropId, CropSpec> = {
     id: 'beans', name: 'French beans', product: 'beans', family: 'legume', group: 'greens', sow: {from: [5, 15], to: [7, 15]}, how: 'sow',
     base: 8, dd: {emerge: 70, mature: 520, picking: 450}, harvest: 'repeat', first: 0, keeps: {plant: 5, kitchen: 5},
     kc: {ini: 0.5, mid: 1.05, end: 0.9}, p: 0.45, ky: 1.15, yield: 2.0, residue: 1.0, uptake: {n: 40, p: 12, k: 60}, frost: 'plant', pick: 0.5,
-    pests: ['slugs', 'aphids'],
+    pests: ['slugs', 'aphids'], pollinated: 0.05,
   },
   potatoes: {
     id: 'potatoes', name: 'Potatoes', product: 'potatoes', family: 'solanum', group: 'potatoes', sow: {from: [3, 15], to: [5, 15]}, how: 'plant',
@@ -89,11 +99,19 @@ export const CROPS: Record<CropId, CropSpec> = {
     id: 'tomatoes', name: 'Tomatoes', product: 'tomatoes', family: 'solanum', group: 'tomatoes', sow: {from: [5, 20], to: [6, 30]}, how: 'plant',
     base: 10, dd: {emerge: 0, mature: 560, picking: 550}, harvest: 'repeat', first: 0, keeps: {plant: 7, kitchen: 7},
     kc: {ini: 0.6, mid: 1.15, end: 0.8}, p: 0.4, ky: 1.05, yield: 4.0, residue: 1.5, uptake: {n: 150, p: 25, k: 250}, frost: 'plant', pick: 0.15,
-    pests: ['aphids', 'blight'],
+    pests: ['aphids', 'blight'], pollinated: 0.05,
+  },
+  marigolds: {
+    id: 'marigolds', name: 'French marigolds', product: 'marigolds', family: 'daisy', flower: true, sow: {from: [5, 20], to: [6, 30]}, how: 'plant',
+    base: 8, dd: {emerge: 0, mature: 250, picking: 1100}, harvest: 'repeat', first: 0, keeps: {plant: 0, kitchen: 1},
+    kc: {ini: 0.6, mid: 0.9, end: 0.8}, p: 0.5, ky: 1.0, yield: 0, residue: 0.8, uptake: {n: 40, p: 8, k: 50}, frost: 'plant', pick: 0,
+    pests: ['slugs'],
   },
 };
 
 export const CROP_IDS = Object.keys(CROPS) as CropId[];
+/** The flowers the plan can put in a bed or along its edge. */
+export const FLOWER_IDS = CROP_IDS.filter((c) => CROPS[c].flower);
 
 /** The family rotation the gardener follows when a bed's plan says so: beans, then brassicas, then potatoes and
  *  tomatoes, then lettuce, and round again (RHS, "Crop rotation"). */

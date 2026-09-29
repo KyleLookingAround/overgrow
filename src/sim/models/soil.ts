@@ -22,6 +22,7 @@
 import {BULK_DENSITY, DEPTH, START_K_MG_L, START_NITRATE_KG_HA, START_P_MG_L, TEXTURES, type SoilSpec, type Texture} from '../../data/soils';
 import {PLACES} from '../../data/garden';
 import type {System, TickContext} from '../clock';
+import {note} from '../effects';
 import {qty, type GraphNode, type Stock} from '../graph';
 import {ATMOSPHERE} from '../state';
 import {weatherOf} from './weather';
@@ -207,6 +208,10 @@ function soilDay(c: TickContext, n: GraphNode, temp: number, days: number) {
     }
   }
   n.totals.health = health(n, lim);
+  // the day's water stress on the soil, for the Explain card: dry below half its available water, waterlogged above field capacity
+  const water = s[SOIL.water]?.amount ?? 0;
+  if (m < 0.5) note(c, 'drought', n.id, 0.5 - Math.max(0, m), 'share');
+  else if (water > lim.fc + 1e-6) note(c, 'waterlogging', n.id, water - lim.fc, 'L');
 }
 
 export const soil: System = {

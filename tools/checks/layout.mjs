@@ -2,7 +2,10 @@
 // the panel each inside the viewport, the panel below the map as a sheet on portrait phones and beside it otherwise, no
 // overflow, the panel's tab strip fitting its row with the sheet's toggle, every button and menu at least 40 px on
 // touch, the sheet still showing a useful panel under the fixed chrome, the sheet folding to its heading, the dark
-// scheme, and the top bar and panel working by keyboard alone.
+// scheme, and the top bar and panel working by keyboard alone. The top bar as a row (the owner's wins W2 and W11): one
+// row where it's 560 px or wider with the four speeds, and below that at most two rows with the speeds folded into one
+// button that cycles them, tapped on a touch page; safe areas kept clear on every side; and a tap on the map landing
+// through the layer over it (W12).
 import {join} from 'node:path';
 
 const box=(page,sel)=>page.evaluate(s=>{const e=document.querySelector(s);if(!e)return null;const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}},sel);
@@ -15,15 +18,31 @@ export default async function({ok,open,out}){
     await page.waitForSelector('[data-sim="ready"]',{timeout:8000}).catch(()=>{});
     await page.waitForTimeout(300);
     const [top,map,panel,head]=await Promise.all(['.topbar','.map','.panel','.panel-head'].map(s=>box(page,s)));
-    const parts=await page.evaluate(()=>[...document.querySelectorAll('.topbar .level,.topbar .date,.topbar .money,.topbar .dial,.topbar .speed')].map(e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}}));
+    const parts=await page.evaluate(()=>[...document.querySelectorAll('.topbar .level,.topbar .date,.topbar .money,.topbar .dial,.topbar .speed,.topbar .speed-cycle')].filter(e=>e.getClientRects().length).map(e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}}));
+    const bar=await page.evaluate(()=>{const t=document.querySelector('.topbar');if(!t)return 0;const cs=getComputedStyle(t);return Math.round(t.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight))});
+    const folded=bar<640,want=folded?5:8;
     const flow=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,sh:document.documentElement.scrollHeight,ch:document.documentElement.clientHeight}));
     const sheet=w<700&&!(h<=500&&w>=500);
     const placed=sheet?panel&&map&&panel.y>=map.b-1&&panel.b<=h+0.5:panel&&map&&panel.x>=map.r-1&&panel.y>=top.b-1;
-    const bad=[!inside(top,w,h)&&'the top bar isn\'t in view',parts.length!==8&&`${parts.length} of 8 top-bar parts`,parts.some(p=>!inside(p,w,h))&&'a top-bar part is out of view',
+    const bad=[!inside(top,w,h)&&'the top bar isn\'t in view',parts.length!==want&&`${parts.length} of ${want} top-bar parts`,parts.some(p=>!inside(p,w,h))&&'a top-bar part is out of view',
       !inside(map,w,h)&&'the map isn\'t in view',map&&(map.w<150||map.h<120)&&`the map is only ${map&&Math.round(map.w)}×${map&&Math.round(map.h)}`,
       !inside(panel,w,h)&&'the panel isn\'t in view',!inside(head,w,h)&&'the panel\'s heading isn\'t in view',!placed&&(sheet?'the sheet isn\'t below the map':'the panel isn\'t beside the map'),
       map&&top&&map.y<top.b-1&&'the map is under the top bar',flow.sw>flow.cw&&`scroll width ${flow.sw}`,flow.sh>flow.ch&&`scroll height ${flow.sh}`,errs[0]].filter(Boolean);
     ok(`layout: at ${w}×${h} the top bar, map and ${sheet?'sheet below':'panel beside'} are in view, with no overflow or errors`,!bad.length,bad.join('; '));
+    // the row, not only each control: the parts' rows counted by where they sit, and the speeds folded below 560 px
+    const rows=parts.length?[...new Set(parts.map(p=>Math.round((p.y+p.h/2)/12)))].length:0;
+    const fold=await page.evaluate(()=>({four:[...document.querySelectorAll('.topbar .speed')].filter(e=>e.getClientRects().length).length,one:!!document.querySelector('.topbar .speed-cycle')?.getClientRects().length}));
+    ok(`layout: at ${w}×${h} the top bar (${bar} px) is ${folded?'at most two rows, its speeds folded into one button':'one row with its four speeds'}`,
+      folded?rows<=2&&fold.one&&fold.four===0:rows===1&&!fold.one&&fold.four===4,`${rows} rows, ${fold.four} speeds, cycle ${fold.one}`);
+    if(folded&&touch){
+      const before=await page.evaluate(()=>window.__sim.snapshot()?.speed);
+      const c=await box(page,'.topbar .speed-cycle');
+      await page.touchscreen.tap(c.x+c.w/2,c.y+c.h/2);
+      const after=await page.waitForFunction(b=>{const s=window.__sim.snapshot()?.speed;return s!==b&&s},before,{timeout:5000}).then(r=>r.jsonValue(),()=>null);
+      await page.touchscreen.tap(c.x+c.w/2,c.y+c.h/2);
+      const again=await page.waitForFunction(a=>{const s=window.__sim.snapshot()?.speed;return s!==a&&s!==undefined?String(s):false},after,{timeout:5000}).then(r=>r.jsonValue(),()=>null);
+      ok(`layout: at ${w}×${h} a tap on the folded speed button cycles the speed`,before===1&&after===2&&again==='4',`${before} → ${after} → ${again}`);
+    }
     // the tab strip and the sheet's toggle share the panel's head: both inside it, side by side, with nothing overflowing
     const strip=await page.evaluate(()=>{const h=document.querySelector('.panel-head'),t=document.querySelector('.tabs'),g=document.querySelector('.sheet-toggle');
       if(!h||!t)return null;const hb=h.getBoundingClientRect(),tb=t.getBoundingClientRect(),gb=g?.offsetParent?g.getBoundingClientRect():null;
@@ -48,6 +67,20 @@ export default async function({ok,open,out}){
     await page.screenshot({path:join(out,`layout-${w}x${h}.png`)});
     await ctx.close();
   }
+
+  // safe areas: the page's stylesheet keeps env(safe-area-inset-*) clear on every side
+  {const {ctx,page}=await open({width:390,height:844},{touch:true});
+    const sides=await page.evaluate(()=>{const css=[...document.styleSheets].flatMap(s=>{try{return [...s.cssRules].map(r=>r.cssText)}catch{return []}}).join('\n');
+      return ['top','right','bottom','left'].filter(k=>css.includes(`safe-area-inset-${k}`))});
+    ok('layout: safe areas are kept clear on every side',sides.length===4,sides.join(', '));
+    // a tap on the map lands through the layer over it (no badge there): the place under it opens
+    await page.waitForSelector('.map[data-renderer]',{timeout:8000}).catch(()=>{});
+    const m=await box(page,'.map'),cam=await page.evaluate(()=>window.__sim.view().cam),hit=await page.evaluate(([mx,my])=>document.elementFromPoint(mx,my)?.tagName,[m.x+m.w*0.2,m.y+m.h*0.8]);
+    if(cam){const bed=await page.evaluate(()=>window.__sim.snapshot().nodes.find(n=>n.id==='bed-4').box);
+      await page.touchscreen.tap(m.x+cam.x+(bed.x+bed.w*0.3)*cam.s,m.y+cam.y+(bed.y+bed.h*0.6)*cam.s);}
+    const opened=await page.waitForFunction(()=>document.querySelector('.place h3')?.textContent==='Bed 4',null,{timeout:5000}).then(()=>true,()=>false);
+    ok('layout: a tap on the map lands through the layer over it',opened&&hit==='CANVAS',`opened ${opened}, under the point: ${hit}`);
+    await ctx.close()}
 
   // the dark scheme: the tokens change, the page still draws without errors
   {const {ctx,page,errs}=await open({width:390,height:844},{touch:true});

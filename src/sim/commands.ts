@@ -5,6 +5,7 @@
 import type {Speed} from '../data/ladder';
 import {SPEEDS} from '../data/ladder';
 import {levelClock, runStep, type System} from './clock';
+import {flowEffects, recordInto, Recorder} from './effects';
 import {applyFlow, mergeFlows, type Flow, type LeverValue, type NodeId} from './graph';
 import {fromSave} from './save';
 import {newState, type State} from './state';
@@ -32,10 +33,12 @@ function ask(systems: readonly System[], s: State, cmd: Command): string | null 
   return undefined;
 }
 
-/** Runs whole steps of the clock, collecting the flows they moved and any that couldn't. */
+/** Runs whole steps of the clock, collecting the flows they moved, any that couldn't, and every effect with its cause and
+ *  place (src/sim/effects.ts). */
 function tick(s: State, systems: readonly System[], hours: number) {
   const step = levelClock(s.level).stepHours, steps = Math.floor(hours / step + 1e-9);
-  const flows: Flow[] = [], errors: string[] = [];
+  const flows: Flow[] = [], errors: string[] = [], effects = new Recorder();
+  recordInto(s.graph, effects);
   const ctx = {
     dt: step, level: s.level, graph: s.graph,
     flow: (f: Flow) => {
@@ -51,7 +54,10 @@ function tick(s: State, systems: readonly System[], hours: number) {
     s.rng.next(); // the main stream moves once a step, so adding a system never changes its draws
     s.activities = s.activities.filter((a) => a.end >= s.hours - step);
   }
+  recordInto(s.graph, null);
   s.flows = mergeFlows(flows);
+  // each flow is an effect of its `what` at its place, and the systems' events besides
+  s.effects = flowEffects(s.graph, s.flows).concat(effects.list());
   s.errors = errors;
 }
 

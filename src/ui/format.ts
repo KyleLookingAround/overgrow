@@ -36,3 +36,32 @@ export function grams(kg: number): string {
   if (Math.abs(g) >= 999.5) return `${num(kg)} kg`;
   return `${num(Math.abs(g) >= 10 ? Math.round(g) : g) || 0} g`;
 }
+
+/** An effect's amount in its unit, as a place's list and the Explain card show it: "12 L", "3 % of the crop". */
+export function effectAmount(amount: number, unit: string): string {
+  switch (unit) {
+    case 'share':
+      return `${num(100 * amount)} % of the crop`;
+    case 'GBP':
+      return money(amount);
+    case 'kgFood':
+    case 'kgWaste':
+      return grams(amount);
+    case 'kgN':
+    case 'kgP':
+    case 'kgK':
+      return `${grams(amount)} ${unit.slice(2)}`;
+    case 'kgCO2e':
+      return `${num(amount)} kg CO₂e`;
+    case 'pests':
+      return num(amount);
+    case 'h':
+      return `${num(amount)} h`;
+    case 'm2':
+      return `${num(amount)} m²`;
+    case 'dd':
+      return `${num(amount)} degree days`;
+    default:
+      return `${num(amount)} ${unit}`;
+  }
+}

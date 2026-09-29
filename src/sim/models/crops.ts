@@ -13,17 +13,22 @@
 //   (Doorenbos & Kassam 1979) for the yield response to water, 1 − Ya/Ym = Ky (1 − ETa/ETm); RB209 (AHDB 2023,
 //   section 6) for the nitrogen, phosphorus and potassium a full crop takes up; Liebig's law of the minimum for the
 //   scarcest nutrient limiting growth; RHS guidance on frost-tender crops (beans and tomatoes killed below 0 °C,
-//   potato haulm blackened and regrowing from the tubers).
+//   potato haulm blackened and regrowing from the tubers). Klein et al. (2007), "Importance of pollinators in changing
+//   landscapes for world crops", for the share of a pollinated crop's yield that depends on visits (src/sim/models/
+//   biodiversity.ts says how many there are).
 // Simplifies: one crop to a bed, all sown at once and growing as one; development from the day's mean temperature (no
 //   day length, no vernalisation, no heat stress); water stress cuts yield and quality but not the pace; uptake in
 //   proportion to development; beans' own nitrogen fixation stands in as a small uptake, with no nitrogen added to the
 //   soil; roots and stubble go to the heap with the residue, not into the soil; seed, seed potatoes and young tomato
-//   plants cost nothing yet (the shed, part 6); a frost reads the grass minimum of the hour.
+//   plants cost nothing yet (the shed, part 6); a frost reads the grass minimum of the hour; pests' damage (src/sim/models/
+//   pests.ts) is a share of the yield lost, like a frost's.
 //   Fast effect: shoots in a week or two, a first cut of salad in about a month in spring, and frost blackening the
 //   beans on a cold night. Slow effect: a cropped bed drawing its nutrients down year by year unless compost goes back.
 import {COVERS, CROPS, GROWTH_PACE, ROTATION, type CropId, type CropSpec} from '../../data/crops';
 import {calendar, type CalendarDate, type System, type TickContext} from '../clock';
+import {note} from '../effects';
 import {qty, type GraphNode, type LeverValue} from '../graph';
+import {pollination} from './biodiversity';
 import {recordWaste} from './kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './soil';
 import {et0} from './water';
@@ -48,6 +53,8 @@ export interface CropState {
   ks: number;
   /** Share of the yield lost to frost setbacks. */
   hurt: number;
+  /** Share of the yield lost to pests: seedlings eaten, leaves grazed, sap taken, tops blighted (src/sim/models/pests.ts). */
+  lost: number;
   /** Game hours of the last frost that reached it, if any, and whether it killed it. */
   frosted?: number;
   dead?: boolean;
@@ -71,6 +78,20 @@ export function stageOf(s: CropState): Stage {
   if (s.dd < c.dd.emerge) return 'sown';
   if (s.dd < c.dd.mature) return 'growing';
   return s.dd < c.dd.mature + c.dd.picking ? 'ready' : 'over';
+}
+
+/** Degree days from sowing to the end of its harvest. */
+export const totalDd = (c: CropSpec) => c.dd.mature + (c.harvest === 'repeat' ? c.dd.picking : 0);
+/** The share of a crop's growth still to come, 0–1: what a stand lost now takes off its yield. */
+export const remaining = (s: CropState) => Math.max(0, 1 - s.dd / Math.max(1, totalDd(specOf(s))));
+
+/** A pest's damage: a share more of the crop's yield lost (never quite all of it). Returns the share taken. */
+export function harm(n: GraphNode, share: number): number {
+  const s = cropOf(n);
+  if (!s || s.dead || !(share > 0)) return 0;
+  const lost = Math.min(0.95, s.lost + share);
+  setCrop(n, {...s, lost});
+  return lost - s.lost;
 }
 
 /** How far a crop is from sowing to its first harvest, 0–1 (1 once ready). */
@@ -115,13 +136,13 @@ export function cropCover(n: GraphNode): {cover: number; kc: number; p: number} 
 /** The share of a full yield the crop is on course for: water (FAO-33's Ky), nutrients (the scarcest) and frost. */
 export function yieldFactor(s: CropState): number {
   const c = specOf(s), water = s.etc > 0 ? s.eta / s.etc : 1, nutrients = s.need > 0 ? s.got / s.need : 1;
-  return Math.max(0, 1 - c.ky * (1 - water)) * (1 - 0.8 * (1 - nutrients)) * (1 - s.hurt);
+  return Math.max(0, 1 - c.ky * (1 - water)) * (1 - 0.8 * (1 - nutrients)) * (1 - s.hurt) * (1 - s.lost);
 }
 
 /** Quality, 0–100: stress shows as tough leaves, split roots and small pods. */
 export function quality(s: CropState): number {
   const water = s.etc > 0 ? s.eta / s.etc : 1, nutrients = s.need > 0 ? s.got / s.need : 1;
-  return Math.round(100 * Math.max(0, 1 - 0.6 * (1 - water) - 0.4 * (1 - nutrients) - s.hurt));
+  return Math.round(100 * Math.max(0, 1 - 0.6 * (1 - water) - 0.4 * (1 - nutrients) - s.hurt - 0.3 * s.lost));
 }
 
 // ---- the plan ----
@@ -138,7 +159,7 @@ export function plannedCrop(n: GraphNode, d: CalendarDate): CropId | null {
     const history = (n.levers.history as string[] | undefined) ?? [], last = ROTATION.indexOf(history[history.length - 1] as never);
     for (let i = 1; i <= ROTATION.length; i++) {
       const family = ROTATION[(last + i + ROTATION.length) % ROTATION.length];
-      const crop = Object.values(CROPS).find((c) => c.family === family && inSeason(c, d));
+      const crop = Object.values(CROPS).find((c) => c.family === family && !c.flower && inSeason(c, d));
       if (crop) return crop.id;
     }
     return null;
@@ -149,7 +170,7 @@ export function plannedCrop(n: GraphNode, d: CalendarDate): CropId | null {
 
 /** Sows (or plants) a crop in a bed: the gardener calls it when the job's done. */
 export function sow(n: GraphNode, id: CropId, hours: number) {
-  setCrop(n, {id, sown: hours, dd: 0, eta: 0, etc: 0, need: 0, got: 0, made: 0, ks: 1, hurt: 0});
+  setCrop(n, {id, sown: hours, dd: 0, eta: 0, etc: 0, need: 0, got: 0, made: 0, ks: 1, hurt: 0, lost: 0});
 }
 
 /**
@@ -159,7 +180,7 @@ export function sow(n: GraphNode, id: CropId, hours: number) {
  */
 export function overwintered(n: GraphNode, id: CropId, sownHoursAgo: number, ddToGo: number) {
   const c = CROPS[id], dd = Math.max(0, c.dd.mature - ddToGo), grown = Math.max(0, dd - c.dd.emerge) / Math.max(1, c.dd.mature + (c.harvest === 'repeat' ? c.dd.picking : 0) - c.dd.emerge);
-  setCrop(n, {id, sown: -sownHoursAgo, dd, eta: 0, etc: 0, need: grown, got: grown, made: 0, ks: 1, hurt: 0});
+  setCrop(n, {id, sown: -sownHoursAgo, dd, eta: 0, etc: 0, need: grown, got: grown, made: 0, ks: 1, hurt: 0, lost: 0});
 }
 
 /** The levers the crop model declares on every bed: the plan's (what to sow, from when, and whether to dig it) and its own. */
@@ -203,11 +224,12 @@ function uptake(c: TickContext, n: GraphNode, spec: CropSpec, share: number): nu
 
 function cropDay(c: TickContext, n: GraphNode, s0: CropState) {
   const spec = specOf(s0), area = areaOf(n), w = weatherOf(c.graph);
-  if (s0.dead) return finish(c, n, s0, 'frost');
+  if (s0.dead) return finish(c, n, s0, 'frost damage');
   const days = w ? (w.step ?? [w]) : [];
   const s: CropState = {...s0};
-  const before = s.dd, total = spec.dd.mature + (spec.harvest === 'repeat' ? spec.dd.picking : 0);
+  const before = s.dd, total = totalDd(spec);
   for (const d of days) s.dd += Math.max(0, (d.tmax + d.tmin) / 2 - spec.base) * GROWTH_PACE;
+  if (s.dd > before) note(c, 'growth', n.id, s.dd - before, 'dd');
   // water: how stressed it is today, weighted by what it would have used
   const cover = cropCover(n);
   if (cover) {
@@ -215,6 +237,7 @@ function cropDay(c: TickContext, n: GraphNode, s0: CropState) {
     const et = days.reduce((sum, d) => sum + et0(d), 0) * cover.kc * cover.cover;
     s.etc += et;
     s.eta += et * s.ks;
+    if (s.ks < 1) note(c, 'water stress', n.id, 1 - s.ks, 'share');
   }
   // nutrients, in step with its development after emergence
   const span = Math.max(1, total - spec.dd.emerge), was = Math.min(1, Math.max(0, before - spec.dd.emerge) / span);
@@ -233,6 +256,12 @@ function cropDay(c: TickContext, n: GraphNode, s0: CropState) {
   }
   // what's been left too long on the plant goes off
   if (spec.harvest === 'repeat' && spec.keeps.plant > 0) spoil(c, n, spec.product, ripe(n) * (1 - Math.exp(-days.length / spec.keeps.plant)), 'rotting');
+  // pollinators: a pollinated crop sets more with more visits (Klein et al. 2007)
+  if (make > 1e-9 && spec.pollinated) {
+    const f = pollination(c.graph, spec.pollinated), without = make * (1 - spec.pollinated);
+    make *= f;
+    if (make > without) note(c, 'pollination', n.id, make - without, 'kgFood');
+  }
   if (make > 1e-9) {
     c.flow({what: 'ripening', unit: 'kgFood', product: spec.product, amount: qty(make, 'kgFood'), from: {boundary: 'growth'}, to: {node: n.id, stock: key}});
     s.made += make;
@@ -251,9 +280,13 @@ export const shelter = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')] ??
 function cropFrost(c: TickContext, n: GraphNode, s: CropState) {
   const spec = specOf(s);
   if (spec.frost === 'none' || s.dead || s.dd < spec.dd.emerge) return;
-  if (spec.frost === 'plant') return setCrop(n, {...s, dead: true, frosted: c.hours, ks: 0});
+  if (spec.frost === 'plant') {
+    note(c, 'frost damage', n.id, 1, 'share');
+    return setCrop(n, {...s, dead: true, frosted: c.hours, ks: 0});
+  }
   // once they're ready the tubers are made: a frost on the haulm then costs nothing more
   if (s.dd >= spec.dd.mature || (s.frosted !== undefined && c.hours - s.frosted < 24)) return;
+  note(c, 'frost damage', n.id, Math.min(0.9, s.hurt + 0.1) - s.hurt, 'share');
   setCrop(n, {...s, dd: Math.max(spec.dd.emerge, s.dd - 100), hurt: Math.min(0.9, s.hurt + 0.1), frosted: c.hours});
 }
 
@@ -267,6 +300,7 @@ export const crops: System = {
       if (w.day !== mid.dayIndex) return;
       const ground = hourOf(w, mid.hour + mid.minute / 60).ground;
       if (ground >= 0) return;
+      note(c, 'frost', 'lawn', -ground, '°C');
       for (const n of Object.values(c.graph.nodes)) {
         const s = n.kind === 'bed' ? cropOf(n) : null;
         if (s && ground + shelter(n) < 0) cropFrost(c, n, s);

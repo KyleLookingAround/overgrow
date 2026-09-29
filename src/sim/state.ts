@@ -1,15 +1,18 @@
 // The game's state, what a new game starts from, and the snapshot the UI is shown. What's saved is exactly the State
-// below less `rejected` and `errors` (src/sim/save.ts); anything only the screen needs lives in the UI. The founding
+// below less `rejected`, `errors` and `effects` (src/sim/save.ts); anything only the screen needs lives in the UI. The founding
 // spec's "The simulation's state and time" sets the list.
 import {BUTT_LITRES, GARDEN, PLACES, START_MONEY, WAYS} from '../data/garden';
 import type {Speed} from '../data/ladder';
 import type {Activity} from './activity';
+import type {Effect} from './effects';
 import {levelClock} from './clock';
 import {copyNode, makeGraph, qty, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec} from './graph';
 import {GARDENER, GARDENER_LEVERS} from './gardener';
+import {BED_FLOWER_LEVERS, LAWN_LEVERS} from './models/biodiversity';
 import {BED_LEVERS, overwintered} from './models/crops';
 import {newLedger, type Ledger} from './models/kitchen';
 import {rng, type Rng} from './random';
+import {BED_PEST_LEVERS, LAWN_PEST_LEVERS, startingSlugs} from './models/pests';
 import {startingSoil} from './models/soil';
 
 /** A level the player has finished, sealed into one node of the next: its totals and its plan (part 7). */
@@ -45,6 +48,8 @@ export interface State {
   rejected: string | null;
   /** Flows a system tried that couldn't move, in the last tick. Not saved; the long run asserts there are none. */
   errors: string[];
+  /** Every effect of the last tick command with its cause and place, merged (src/sim/effects.ts). Not saved. */
+  effects: Effect[];
 }
 
 /** The air above the level: emissions go to its carbon stock and sinks draw from it, so carbon balances in the graph. */
@@ -66,7 +71,10 @@ export function gardenGraph(): Graph {
     if (p.id === 'butt') spec.stocks = {water: {unit: 'L', amount: qty(BUTT_LITRES.start, 'L'), cap: qty(BUTT_LITRES.cap, 'L')}};
     if (p.id === 'kitchen') spec.stocks = {money: {unit: 'GBP', amount: qty(START_MONEY, 'GBP')}};
     if (p.soil) spec.stocks = startingSoil(p.soil, spec.land![p.land]!, p.land === 'grass');
-    if (p.kind === 'bed') spec.levers = BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none');
+    // slugs in the dug beds and the lawn's edge (src/sim/models/pests.ts)
+    if (p.id === 'lawn' || p.dug) Object.assign(spec.stocks!, startingSlugs(spec.land![p.land]!, p.id === 'lawn'));
+    if (p.kind === 'bed') spec.levers = {...BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS()};
+    if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
     if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue};
     return spec;
   });
@@ -76,6 +84,8 @@ export function gardenGraph(): Graph {
   nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null}});
   const edges: Edge[] = WAYS.map((w, i) => ({id: `way-${i + 1}`, from: w.from, to: w.to, carries: [...w.carries]}));
   for (const p of PLACES) edges.push({id: `air-${p.id}`, from: p.id, to: ATMOSPHERE, carries: ['kgCO2e']});
+  // slugs crawl between the lawn's edge and every bed
+  for (const p of PLACES) if (p.kind === 'bed') edges.push({id: `slugs-${p.id}`, from: 'lawn', to: p.id, carries: ['pests']});
   const g = makeGraph(nodes, edges);
   overwintered(g.nodes[HEAD_START.bed]!, HEAD_START.crop, HEAD_START.sownHoursAgo, HEAD_START.ddToGo);
   return g;
@@ -86,7 +96,7 @@ export function newState(seed: number, speed: Speed = 1): State {
     seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], ladder: [],
     // the gardener stands by the shed on the first morning
     activities: [{id: 'g-start', who: GARDENER, kind: 'person', doing: 'rest', from: 'shed', to: 'shed', start: 0, end: 0.5}],
-    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], rejected: null, errors: [],
+    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], rejected: null, errors: [], effects: [],
   };
 }
 
@@ -109,6 +119,8 @@ export interface Snapshot {
   edges: Edge[];
   /** The flows of the last tick command, merged. */
   flows: Flow[];
+  /** The last tick command's effects, each with its kind, cause, amount and place (src/sim/effects.ts). */
+  effects: Effect[];
   activities: Activity[];
   /** The kitchen's ledger: the day's ask and what met it, and what's been picked, eaten, wasted, sold and earned. */
   kitchen: Ledger | null;
@@ -122,7 +134,7 @@ export function snapshotOf(s: State): Snapshot {
     seed: s.seed, hours: s.hours, level: s.level, step: levelClock(s.level).stepHours, speed: s.speed,
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
-    rev: s.graph.rev, nodes: nodes.map(copyNode), edges: s.graph.edges.slice(), flows: s.flows,
+    rev: s.graph.rev, nodes: nodes.map(copyNode), edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects,
     activities: s.activities.map((a) => ({...a})),
     kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,
   };

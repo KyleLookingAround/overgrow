@@ -3,7 +3,8 @@
 // (src/ui/map/draw.ts), the people and things moving from the snapshot's activities at the view time the clock loop
 // gives it (one figure for each person, where their latest-started activity puts them, with what they carry), the
 // weather (a shower crossing the garden while the sim says it rains, a rime while it says there's frost), the crops in
-// the beds, and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours change; what
+// the beds, the garden's pests and wildlife (src/ui/map/life.ts), the gardener's torch after dark, a ring pulsing at the
+// place an Explain card is about, and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours change; what
 // moves is a pool of particles placed each frame, so thousands stay cheap. Nothing drawn changes the game.
 // docs/systems/map.md.
 import {Application, Graphics, Particle, ParticleContainer, type Texture} from 'pixi.js';
@@ -14,6 +15,7 @@ import type {View} from '../../app/clock-loop';
 import {darkness} from './daylight';
 import type {Stage} from '../../sim/models/crops';
 import {camera, drawItem, drawLive, drawNode, drawPerson, groundKey, itemOf, weatherAt, type Camera} from './draw';
+import {drawLife, type Creature, type LifeStats} from './life';
 import type {Palette} from './palette';
 
 export interface MapRenderer {
@@ -26,9 +28,16 @@ export interface MapRenderer {
   draw(v: View): void;
   /** The drawn node under a point in CSS pixels, or null. */
   hit(x: number, y: number): NodeId | null;
+  /** The creature drawn nearest a point in CSS pixels, within a finger's width, or null. */
+  creatureAt(x: number, y: number): Creature | null;
+  /** A ring pulsing at a place (the Explain card's), or none. */
+  setPulse(at: NodeId | null): void;
   /** For the checks: the last frames' times in ms, where the first movers are drawn (in CSS pixels), the weather, each
    *  dug bed's crop stage, and the gardener: what they're doing, where, and what they carry. */
-  stats(): {frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; gardener: GardenerStats | null};
+  stats(): {
+    frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; gardener: GardenerStats | null;
+    life: LifeStats; creatures: Creature[]; torch: boolean; pulse: NodeId | null;
+  };
   destroy(): void;
 }
 
@@ -90,10 +99,10 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     canvas, width: w, height: h, resolution: window.devicePixelRatio || 1, autoDensity: true, antialias: true, backgroundAlpha: 0,
     preference: ['webgl', 'canvas'], autoStart: false, sharedTicker: false,
   });
-  const ground = new Graphics(), live = new Graphics(), night = new Graphics(), carried = new Graphics();
+  const ground = new Graphics(), live = new Graphics(), life = new Graphics(), night = new Graphics(), carried = new Graphics(), glow = new Graphics(), ring = new Graphics();
   const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
   const rain = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
-  app.stage.addChild(ground, live, movers, carried, rain, night);
+  app.stage.addChild(ground, live, life, movers, carried, rain, night, glow, ring);
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null;
   let person: Texture | null = null, drop: Texture | null = null, still = false, garden: Box | null = null;
   const drops: Particle[] = [];
@@ -102,6 +111,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   let boxes = new Map<NodeId, Box>(), drawn: GraphNode[] = [];
   const pool: Particle[] = [], frames: number[] = [];
   let lastMovers: {id: string; x: number; y: number}[] = [];
+  let creatures: Creature[] = [], lifeStats: LifeStats = {slugs: 0, slime: 0, aphids: 0, bees: 0, ladybirds: 0, cat: false}, torch = false, pulse: NodeId | null = null;
 
   const rebuild = (nodes: GraphNode[]) => {
     drawn = nodes.filter((n) => n.box);
@@ -219,10 +229,18 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       const w = weatherAt(v), {crops: grown, ...lived} = drawLive(live, v, c, pal, w), fell = shower(v, c, w);
       weather = {rain: fell.n, drops: fell.out, ...lived};
       crops = grown;
+      // the pests and wildlife, from the sim's populations
+      const dusk = darkness(calendar(v.hours));
+      life.clear();
+      const drawnLife = drawLife(life, v, c, pal, dusk, still ? Math.floor(v.hours) * 0.37 : performance.now() / 1000, still);
+      creatures = drawnLife.creatures;
+      lifeStats = drawnLife.stats;
       // the people and things moving, one figure each, from their activities at the view time
       const out: {id: string; x: number; y: number}[] = [], shown = movers.particleChildren;
       let used = 0;
       carried.clear();
+      glow.clear();
+      torch = false;
       gardener = null;
       for (const l of byWho(cur.activities)) {
         const a = current(l, v.hours);
@@ -235,6 +253,12 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
         const item = itemOf(a.carry), s = Math.max(MIN_PERSON_PX / 0.5, c.s);
         if (item) drawItem(carried, item, at.x + 0.2 * s, at.y + 0.02 * s, s, pal);
         if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item};
+        // out after dark with a torch: a pool of light on the ground ahead of them, over the night
+        if (a.doing === 'torch') {
+          glow.circle(at.x + 0.25 * s, at.y + 0.1 * s, 0.7 * s).fill({color: pal.torch.color, alpha: 0.28});
+          glow.circle(at.x + 0.25 * s, at.y + 0.1 * s, 0.35 * s).fill({color: pal.torch.color, alpha: 0.3});
+          torch = true;
+        }
         used++;
       }
       if (shown.length !== used) {
@@ -243,7 +267,15 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
         movers.update();
       }
       lastMovers = out;
-      night.alpha = darkness(calendar(v.hours)) * pal.nightMax;
+      night.alpha = dusk * pal.nightMax;
+      // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
+      ring.clear();
+      const box = pulse ? boxes.get(pulse) : undefined;
+      if (box) {
+        const k = still ? 0.5 : (performance.now() / 1000) % 1, grow = (0.1 + 0.5 * k) * c.s, t = Math.max(2, 0.06 * c.s);
+        ring.roundRect(c.x + box.x * c.s - grow, c.y + box.y * c.s - grow, box.w * c.s + 2 * grow, box.h * c.s + 2 * grow, 0.2 * c.s + grow)
+          .stroke({width: t, color: pal.pulse.color, alpha: pal.pulse.alpha * (1 - k * 0.8)});
+      }
       app.render();
       frames.push(performance.now() - t0);
       if (frames.length > 240) frames.shift();
@@ -257,7 +289,21 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       }
       return null;
     },
-    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather, crops, gardener}),
+    creatureAt(x, y) {
+      let best: Creature | null = null, d = 22 * 22;
+      for (const k of creatures) {
+        const e = (k.x - x) ** 2 + (k.y - y) ** 2;
+        if (e <= d) {
+          d = e;
+          best = k;
+        }
+      }
+      return best;
+    },
+    setPulse(at) {
+      pulse = at;
+    },
+    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather, crops, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
     },
