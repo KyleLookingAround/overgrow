@@ -15,6 +15,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 - `get_session` on the ids the brief and your own starts know, not `list_sessions`: it returns every session on the account, another project's too, and filled most of the first coordinator's context.
 - For each live Overgrow session: `status_bucket`, `usage.cost_usd` against its brief's estimate, `context_usage.used_tokens`, and `rate_limit_info`.
+- A session whose last turn failed on a usage limit ("You've hit your session limit") stays stopped after the limit resets: nothing wakes it but a message. Send one (§4) for a minute after `resetsAt` (29 Sep: part 5 and two models-ahead sessions sat idle for half an hour after a 05:20 reset).
 - `list_triggers` for booked check-ins.
 - Open PRs, with their check runs and mergeability.
 - Open `needs-owner` issues, and any that have passed 12 hours.
