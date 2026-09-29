@@ -14,6 +14,7 @@ Today the game is the back garden on the graph, with the clock, saving and the p
 - [The gardener](systems/gardener.md) (`src/sim/gardener.ts`, `src/sim/gardener.test.ts`, `src/data/jobs.ts`, `src/sim/models/crops.ts`, `src/sim/models/kitchen.ts`, `src/sim/models/carbon.ts`, `src/ui/map/renderer.ts`, `src/ui/GardenTab.tsx`)
 - [The graph](systems/graph.md) (`src/sim/graph.ts`, `src/sim/state.ts`, `src/data/garden.ts`, `src/sim/churn.ts`)
 - [The kitchen](systems/kitchen.md) (`src/sim/models/kitchen.ts`, `src/sim/models/kitchen.test.ts`, `src/data/kitchen.ts`, `src/data/garden.ts`, `src/ui/KitchenTab.tsx`)
+- [The carry-over rule (sealing, events across scales and the step-up test)](systems/ladder.md) (`src/sim/ladder.ts`, `src/sim/ladder.test.ts`, `src/data/ladder-rules.ts`, `src/data/ladder.ts`)
 - [Livestock](systems/livestock.md) (`src/sim/models/livestock.ts`, `src/sim/models/livestock.test.ts`, `src/data/livestock.ts`)
 - [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`, `src/ui/GardenTab.tsx`, `src/ui/KitchenTab.tsx`)
 - [Saving](systems/saving.md) (`src/sim/save.ts`, `src/sim/random.ts`, `src/app/storage.ts`, `src/app/main.tsx`)
@@ -50,6 +51,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/data/garden.ts` | The back garden's layout: a UK back garden about 12 × 8 m behind the house, with six bed plots (two dug), a tap, a water butt, a compost heap, a shed, the lawn, the kitchen and an honesty box by the side gate, and the paths and pipes between them. |
 | `src/data/jobs.ts` | The gardener's time: the hours they have, how fast they walk, and how long each job takes with each tool. |
 | `src/data/kitchen.ts` | The kitchen: what the household wants of the garden each day, and the honesty box at the gate. |
+| `src/data/ladder-rules.ts` | The carry-over rule's numbers: each level's rhythm (the window its headline numbers are taken over), what goes into the Health index, how a sealed node's Health drifts and what it costs, the tolerance of inflating, and the step-up offer's test. |
 | `src/data/ladder.ts` | The ladder's clock: each level's rate (real seconds per game day at 1×) and the length of the sim's fixed step, the speeds, and the date the game starts on. |
 | `src/data/livestock.ts` | Livestock: the species the garden and the smallholding keep, with what the livestock model (src/sim/models/livestock.ts) needs of each. |
 | `src/data/soils.ts` | Soils: the textures the garden's beds and lawn are made of, and what a soil starts with. |
@@ -60,6 +62,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/sim/gardener.ts` | The gardener: one person with about four hours a day for the garden (six at weekends), who does everything the plan and the garden call for. |
 | `src/sim/graph.ts` | The graph every level is made of (docs/decisions/ADR-2026-09-28-scale-free-graph.md): nodes with stocks, levers and totals whatever their size, edges between them, and flows in SI units that are conserved. |
 | `src/sim/index.ts` | The simulation: pure TypeScript with no DOM, so the same code runs in a Web Worker (the game, src/app/sim.worker.ts), in Node (the checks and the bot) and in a Vitest test. |
+| `src/sim/ladder.ts` | The carry-over rule's maths, pure: a small history a level keeps and the five headline numbers taken from it, a sealed node's tick, an event shown at any level, inflating's target and layout key, and the step-up offer's test. |
 | `src/sim/models/carbon.ts` | Carbon and land: the compost heap, compost going back to the beds, and digging a bed out of the lawn. |
 | `src/sim/models/crops.ts` | Crops: what grows in each dug bed, from sowing to the compost heap. |
 | `src/sim/models/kitchen.ts` | The kitchen: the household's daily ask of the garden, what met it, and the honesty box at the gate. |
