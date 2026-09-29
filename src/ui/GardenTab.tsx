@@ -1,7 +1,8 @@
 // The Garden tab: the gardener's card (the day's hours ticking down and the job in hand) and the plan (what to sow in
 // each dug bed and from when, or the rotation, a border of flowers along its edge, the moisture below which the gardener
 // waters, and the pest policy for each pest the garden's crops draw: leave, pick, trap or treat). The pest lines and
-// the flowers appear only once they've come up in the garden (src/data/unfold.ts). The plan changes the
+// the flowers, and the watering line, appear only once they've come up in the garden (src/data/unfold.ts): they're
+// levers, so "Show all details" doesn't show them before the sim would take them. The plan changes the
 // game only through `plan` and `policy` commands; the gardener picks it up at once.
 import {CROP_IDS, CROPS, FLOWER_IDS, type CropId} from '../data/crops';
 import {POLICIES, START_POLICY, type PestId, type Policy} from '../data/pests';
@@ -180,7 +181,7 @@ function drawn(nodes: GraphNode[]): PestId[] {
 export function GardenTab({nodes, acts, hours, seen, send, onExplain}: {
   nodes: GraphNode[]; acts: Activity[]; hours: number; seen: readonly string[]; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
 }) {
-  const pests = drawn(nodes).filter((p) => unfolded(seen, `pests.${p}`));
+  const pests = drawn(nodes).filter((p) => unfolded(seen, `garden.${p}`));
   const beds = nodes.filter((n) => n.kind === 'bed' && isDug(n)), me = nodes.find((n) => n.id === GARDENER);
   const line = Number(me?.levers.waterBelow ?? 0.5);
   return (
@@ -189,16 +190,16 @@ export function GardenTab({nodes, acts, hours, seen, send, onExplain}: {
       <section class="plan" aria-labelledby="plan-title">
         <h3 id="plan-title">The plan</h3>
         {beds.map((n) => (
-          <BedPlan n={n} flowers={unfolded(seen, 'flowers')} onPlan={(lever, value) => send({type: 'plan', node: n.id, lever, value})} />
+          <BedPlan n={n} flowers={unfolded(seen, 'garden.flowers')} onPlan={(lever, value) => send({type: 'plan', node: n.id, lever, value})} />
         ))}
-        <div class="bed-plan">
+        {unfolded(seen, 'garden.water') && <div class="bed-plan">
           <label for="plan-water">Water when the soil’s moisture is</label>
           <select id="plan-water" value={String(line)} onChange={(e) => send({type: 'plan', node: GARDENER, lever: 'waterBelow', value: Number((e.target as HTMLSelectElement).value)})}>
             {LINES.map(([label, v]) => (
               <option value={String(v)}>{label}</option>
             ))}
           </select>
-        </div>
+        </div>}
       </section>
       {pests.length > 0 && (
       <section class="plan pest-plan" aria-labelledby="pests-title">

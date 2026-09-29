@@ -1,6 +1,6 @@
 // The Explain card (src/ui/Explain.tsx, src/data/explain.ts, src/sim/effects.ts): a seeded week played hour by hour
 // records no cause without an entry in the Explain table; one effect of each kind seen is tapped in its place's panel
-// and opens its card (title, mechanism, fast and slow effects, source) with the map pulsing at the place; a creature
+// and opens its card (title, what happened, the lever that helps, the mechanism and the source) with the map pulsing at the place; a creature
 // drawn on the map opens its card when tapped; and on a 320 px phone on an evening with slugs out their badge is placed inside the map
 // with no two badges overlapping (the same placement helper the map draws with, src/ui/map/placement.ts), and a tap on
 // it opens the card inside the map; and the slugs' policy line stays hidden (and refused) until the slugs come up
@@ -9,7 +9,7 @@ import {join} from 'node:path';
 
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
 const card=page=>page.evaluate(()=>{const c=document.querySelector('.card-overlay'),e=c?.querySelector('.explain');if(!c||!e)return null;const b=c.getBoundingClientRect();
-  return {cause:e.dataset.cause,kind:e.dataset.kind,title:c.querySelector('.card-title')?.textContent??'',rows:c.querySelectorAll('.explain-rows dd').length,source:c.querySelector('.card-foot')?.textContent??'',
+  return {cause:e.dataset.cause,kind:e.dataset.kind,title:c.querySelector('.card-title')?.textContent??'',rows:c.querySelectorAll('.explain-rows dd').length,helps:c.querySelector(".helps")?.textContent??"",source:c.querySelector('.card-foot')?.textContent??'',
     box:{x:b.x,y:b.y,r:b.right,b:b.bottom}}});
 const shut=page=>page.evaluate(()=>document.querySelector('.card-close')?.click());
 
@@ -34,7 +34,7 @@ export default async function({ok,open,out}){
       const tapped=await page.waitForSelector(sel,{timeout:3000}).then(e=>e.click().then(()=>true),()=>false);
       const c=tapped?await page.waitForFunction(()=>document.querySelector('.card-overlay .explain'),null,{timeout:3000}).then(()=>card(page),()=>null):null;
       const pulse=await page.evaluate(()=>window.__sim.view().pulse);
-      const fine=c&&c.kind===kind&&c.title&&c.rows===3&&/Source/.test(c.source)&&(!name||pulse===at);
+      const fine=c&&c.kind===kind&&c.title&&c.rows===2&&c.helps&&/Source/.test(c.source)&&(!name||pulse===at);
       if(!fine)bad.push(`${kind} at ${at}: ${tapped?JSON.stringify({...c,box:undefined,pulse}):'nothing to tap'}`);
       if(kind==='pest')await page.screenshot({path:join(out,'explain-card-1440x900.png')});
       await shut(page);

@@ -84,6 +84,9 @@
   --pause-squeeze: -2px; /* draws the pause bars close together */
   --focus-offset: 1px;
   --touch: 40px; /* the smallest tap target on touch screens */
+  --pulse-ms: 1600ms; /* the one first-time pulse of an unfold sign (static under reduced motion) */
+  --pulse-ring: 3px; /* its ring */
+  --goal-meter: 36px; /* each of the goal bar's three small meters */
   --panel-w: 360px; /* the panel's width beside the map on wide screens */
   --panel-w-landscape: 40%; /* beside the map on a phone on its side */
   --panel-min-landscape: 220px;

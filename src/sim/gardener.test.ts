@@ -112,7 +112,7 @@ describe('gardener', () => {
     // not until the slugs have come up (the first evening's patrol: src/data/unfold.ts)
     expect(sim.apply({type: 'policy', node: GARDENER, lever: 'slugs', value: 'leave'}).rejected).toMatch(/hasn’t come up/);
     play(sim, 24);
-    expect(sim.snapshot().seen).toContain('pests.slugs');
+    expect(sim.snapshot().seen).toContain('garden.slugs');
     expect(sim.apply({type: 'plan', node: GARDENER, lever: 'slugs', value: 'trap'}).rejected).toMatch(/pest policy/);
     expect(sim.apply({type: 'policy', node: GARDENER, lever: 'slugs', value: 'bait'}).rejected).toMatch(/leave, pick, trap, treat/);
     expect(sim.apply({type: 'policy', node: GARDENER, lever: 'aphids', value: 'pick'}).rejected).toMatch(/hasn’t come up/);

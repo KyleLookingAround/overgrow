@@ -75,7 +75,8 @@ export function gardenGraph(): Graph {
     if (p.id === 'lawn' || p.dug) Object.assign(spec.stocks!, startingSlugs(spec.land![p.land]!, p.id === 'lawn'));
     if (p.kind === 'bed') spec.levers = {...BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS()};
     if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
-    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue};
+    // the kitchen's ledger, and the level's history for the goal, started on the first Monday (src/sim/goal.ts)
+    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: null};
     return spec;
   });
   // the gardener: their hours for the day, the watering line, their tools and the day's jobs (src/sim/gardener.ts)
@@ -121,8 +122,10 @@ export interface Snapshot {
   flows: Flow[];
   /** The last tick command's effects, each with its kind, cause, amount and place (src/sim/effects.ts). */
   effects: Effect[];
-  /** What has unfolded (src/data/unfold.ts): the instruments the player has influence over so far. */
+  /** What has unfolded (src/data/unfold.ts): the instruments the player has influence over so far, and the cards answered. */
   seen: string[];
+  /** The page's saved settings ('details': show every number early). */
+  settings: Record<string, LeverValue>;
   activities: Activity[];
   /** The kitchen's ledger: the day's ask and what met it, and what's been picked, eaten, wasted, sold and earned. */
   kitchen: Ledger | null;
@@ -136,7 +139,7 @@ export function snapshotOf(s: State): Snapshot {
     seed: s.seed, hours: s.hours, level: s.level, step: levelClock(s.level).stepHours, speed: s.speed,
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
-    rev: s.graph.rev, nodes: nodes.map(copyNode), edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects, seen: s.seen,
+    rev: s.graph.rev, nodes: nodes.map(copyNode), edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings,
     activities: s.activities.map((a) => ({...a})),
     kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,
   };

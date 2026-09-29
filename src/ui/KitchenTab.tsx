@@ -1,6 +1,6 @@
 // The Kitchen tab: the day's ask by group and what met it at the last meal, the last week's share, what's in the kitchen
 // and at the honesty box, and the running totals: picked, eaten, sold (and what the box took) and wasted. The ask and
-// the box's takings open their Explain cards.
+// the box's takings open their Explain cards; the takings show once money has unfolded (src/data/unfold.ts).
 import {CROPS, type Group} from '../data/crops';
 import {ASK, MEAL_HOUR} from '../data/kitchen';
 import type {GraphNode} from '../sim/graph';
@@ -32,7 +32,7 @@ function Held({n, title}: {n: GraphNode | undefined; title: string}) {
   );
 }
 
-export function KitchenTab({ledger, nodes, onExplain}: {ledger: Ledger; nodes: GraphNode[]; onExplain: (cause: string, at: string | null) => void}) {
+export function KitchenTab({ledger, nodes, money: purse, onExplain}: {ledger: Ledger; nodes: GraphNode[]; money: boolean; onExplain: (cause: string, at: string | null) => void}) {
   const ate = (g: Group) => Object.entries(ledger.ate).reduce((s, [p, kg]) => s + (Object.values(CROPS).find((c) => c.product === p)?.group === g ? kg : 0), 0);
   const week = ledger.week.length ? ledger.week.reduce((s, x) => s + x, 0) / ledger.week.length : 0;
   return (
@@ -63,7 +63,7 @@ export function KitchenTab({ledger, nodes, onExplain}: {ledger: Ledger; nodes: G
         <Held n={nodes.find((n) => n.id === 'gate')} title="In the honesty box" />
         <h4>Since the start</h4>
         <dl>
-          {([['Picked', grams(ledger.picked), 'picking'], ['Eaten', grams(ledger.eaten), 'eating'], ['Sold at the box', `${grams(ledger.sold)}, ${money(ledger.earned)}`, 'honesty box'],
+          {([['Picked', grams(ledger.picked), 'picking'], ['Eaten', grams(ledger.eaten), 'eating'], ['Sold at the box', purse ? `${grams(ledger.sold)}, ${money(ledger.earned)}` : grams(ledger.sold), 'honesty box'],
             ['Gone off or rotted', grams(ledger.wasted), 'going off']] as const).map(([k, v, cause]) => (
             <div class="row">
               <dt>{k}</dt>
