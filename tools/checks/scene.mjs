@@ -128,6 +128,8 @@ export default async function({ok,open,out}){
     const {ctx,page,errs}=await open(vp,{touch});await ready(page);
     const cdp=await ctx.newCDPSession(page);if(throttle)await cdp.send('Emulation.setCPUThrottlingRate',{rate:throttle});
     if(n)await page.evaluate(([n,m])=>window.__sim.bench(n,m),[n,m]);
+    // the garden's own game opens paused on the first plan's card: answering it starts the clock
+    else await page.evaluate(()=>window.__sim.send({type:'card',id:'first-plan',answer:'accept'}));
     await page.waitForTimeout(1500);
     const c0=(await page.evaluate(()=>window.__sim.copyTimes())).read.length,f0=await page.evaluate(()=>{window.__fps=0;const f=()=>{window.__fps++;requestAnimationFrame(f)};requestAnimationFrame(f);return performance.now()});
     await page.waitForTimeout(3000);

@@ -1,6 +1,7 @@
 // The Explain table: what to say about every cause of an effect in the game (the founding spec, "Every effect can be
 // explained"). Each entry covers one or more causes (a flow's `what`, or an event's name, src/sim/effects.ts) and says what
-// happened, the mechanism behind it, its fast and its slow effect, and its source, as the model files' headers name them.
+// happened, the lever that helps, the mechanism behind it, its fast and its slow effect, and its source, as the model files'
+// headers name them; the card shows what happened, what helps, the mechanism and the source (part 5's look back).
 // An entry's kind and causes (CAUSES) are kept apart from its words (WORDS), so the sim, which needs only the kinds,
 // ships without the words. The Explain card reads it; the `explain` check and src/sim/effects.test.ts fail on any cause the game records with no
 // entry here. A new model adds its causes here in the same PR (the beer trap, nematodes and the advisers in part 6).
@@ -23,6 +24,8 @@ export interface Explanation {
   slow: string;
   /** Where the numbers come from. */
   source: string;
+  /** The lever that helps, in a line (HELPS). */
+  helps: string;
 }
 
 export const KIND_NAME: Record<Kind, string> = {
@@ -79,7 +82,7 @@ export const CAUSES = {
 export type Entry = keyof typeof CAUSES;
 
 /** What each entry says. */
-export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes'>> = {
+export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>> = {
   soilborne: {
     title: 'Soil-borne pests',
     says: 'A pest or disease in the bed’s soil held the crop back: clubroot, potato cyst nematode or root rot.',
@@ -426,12 +429,59 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes'>> = {
   },
 };
 
+/** The lever that helps, in a line: what the Explain card offers after what happened. */
+export const HELPS: Record<Entry, string> = {
+  soilborne: 'Follow the rotation, so a family comes back to a bed only every few years.',
+  rain: 'Nothing to do: the butt keeps some for the next dry week.',
+  frost: 'Sow tender crops from mid-May, after the last frost.',
+  evapotranspiration: 'The watering line: water sooner in a dry, sunny spell.',
+  drainage: 'Compost holds more water in the soil; a butt catches the roof’s.',
+  watering: 'The watering line: when the soil is below it, the gardener waters.',
+  drought: 'Raise the watering line, so the gardener waters before the soil dries out.',
+  waterlogging: 'Lower the watering line in a wet spell; compost helps a heavy soil drain.',
+  decay: 'Compost on the beds puts back what decay takes.',
+  mineralisation: 'Compost feeds it; warm, moist soil speeds it up.',
+  leaching: 'Keep beds planted through the winter so roots take the nitrate first.',
+  soilHealth: 'Compost, the rotation and steady watering raise it.',
+  uptake: 'Compost puts back what each crop takes.',
+  growth: 'Sow in season; water and feed so nothing holds it back.',
+  ripening: 'The gardener picks what’s ripe each morning: keep a bed sown for the next.',
+  waterStress: 'Raise the watering line.',
+  frostDamage: 'Sow tender crops after the last frost, from mid-May.',
+  picking: 'Plan a mix of crops so there’s something to pick every week.',
+  bolting: 'Sow a little and often, so less is ready at once.',
+  residue: 'It goes to the heap and comes back as compost.',
+  eating: 'Grow a mix: potatoes, salad, tomatoes and green veg.',
+  goingOff: 'Sow less at once; the surplus goes to the honesty box.',
+  box: 'Grow more than the household eats, and keep its quality up.',
+  heap: 'Everything the garden doesn’t eat goes on it; its compost feeds the beds.',
+  compost: 'Keep the heap fed with scraps and residue.',
+  digging: 'Dig only the beds the gardener has time for.',
+  carbon: 'Compost the garden’s waste, and dig only what you need.',
+  work: 'A simpler plan: fewer beds to sow, water and pick.',
+  slugs: 'The slugs’ policy: pick at dusk, set traps, or scatter pellets.',
+  slugNumbers: 'Pick or trap through a wet spell, before they breed.',
+  handPicking: 'Traps catch slugs without the gardener’s evenings.',
+  trapping: 'Picking at dusk catches more, at the cost of the gardener’s time.',
+  pellets: 'Picking or traps keep the purse and the soil clear of them.',
+  aphids: 'The aphids’ policy: squash or spray them; flowers bring ladybirds.',
+  squashing: 'Flowers nearby bring ladybirds to do it for free.',
+  insecticide: 'Squashing by hand spares the ladybirds and bees.',
+  blight: 'The blight policy: pick off blighted leaves, or spray to protect the tops.',
+  deleafing: 'Spraying protects the tops before blight starts.',
+  fungicide: 'Picking off leaves costs time but spares the ladybirds.',
+  ladybirds: 'Flowers along a bed’s edge bring them in.',
+  pollination: 'Flowers along a bed’s edge bring the bees.',
+  flowers: 'Plant marigolds along an edge, or a bed of them.',
+  cat: 'Nothing to do: it’s the neighbour’s.',
+};
+
 /** The kind of each cause: all the sim needs of the table. */
 export const KIND_BY_CAUSE: Record<string, Kind> = Object.fromEntries(Object.values(CAUSES).flatMap((e) => e.causes.map((c) => [c, e.kind as Kind])));
 const ENTRY_BY_CAUSE: Record<string, Entry> = Object.fromEntries((Object.keys(CAUSES) as Entry[]).flatMap((k) => CAUSES[k].causes.map((c) => [c, k])));
 
 /** An entry with its words, by its key. */
-export const entry = (k: Entry): Explanation => ({...CAUSES[k], kind: CAUSES[k].kind as Kind, ...WORDS[k]});
+export const entry = (k: Entry): Explanation => ({...CAUSES[k], kind: CAUSES[k].kind as Kind, ...WORDS[k], helps: HELPS[k]});
 /** Every entry, by its key. */
 export const entries = (): [Entry, Explanation][] => (Object.keys(CAUSES) as Entry[]).map((k) => [k, entry(k)]);
 /** The entry that explains a cause, or undefined if there's none. */

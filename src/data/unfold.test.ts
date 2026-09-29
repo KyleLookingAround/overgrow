@@ -1,19 +1,38 @@
 import {describe, expect, it} from 'vitest';
-import {gateOf, UNFOLD, unfolded} from './unfold';
+import {CAUSES} from './explain';
+import {gateOf, GATES, revealed, shows, UNFOLD, unfolded} from './unfold';
 
 describe('unfold', () => {
-  it('fails closed: a key not in the table never unfolds, whatever has been seen', () => {
+  it('fails closed: a key not in the table never unfolds or shows, whatever has been seen or set', () => {
     expect(unfolded(['no.such.key'], 'no.such.key')).toBe(false);
-    expect(unfolded([], 'pests.slugs')).toBe(false);
-    expect(unfolded(['pests.slugs'], 'pests.slugs')).toBe(true);
-    for (const u of Object.values(UNFOLD)) expect(u.causes.length).toBeGreaterThan(0);
+    expect(shows(['no.such.key'], 'no.such.key', true)).toBe(false);
+    expect(unfolded([], 'garden.slugs')).toBe(false);
+    expect(unfolded(['garden.slugs'], 'garden.slugs')).toBe(true);
+    expect(shows([], 'garden.money', true)).toBe(true);
+    expect(shows([], 'garden.money')).toBe(false);
   });
-  it('gates the pest policy, flowers along an edge and a bed of marigolds, and nothing else', () => {
-    expect(gateOf('slugs', 'trap')).toBe('pests.slugs');
-    expect(gateOf('edge', 'marigolds')).toBe('flowers');
+  it('names every key by level and system, with a cause the Explain table knows and a short line on why', () => {
+    const known = new Set(Object.values(CAUSES).flatMap((e) => e.causes));
+    for (const [k, u] of Object.entries(UNFOLD)) {
+      expect(k).toMatch(/^garden\.[a-z]+$/);
+      expect(u.causes.length).toBeGreaterThan(0);
+      for (const c of u.causes) expect(known.has(c), `${k}: ${c}`).toBe(true);
+      expect(u.why.length).toBeLessThan(90);
+    }
+    for (const g of GATES) expect(g.key in UNFOLD).toBe(true);
+  });
+  it('reveals every key a batch of causes reaches, once, in the table’s order', () => {
+    expect(revealed([], ['spreading compost'])).toEqual(['garden.soil', 'garden.carbon']);
+    expect(revealed(['garden.soil'], ['spreading compost', 'watering'])).toEqual(['garden.water', 'garden.carbon']);
+    expect(revealed([], ['rain', 'growth'])).toEqual([]);
+  });
+  it('gates the watering line, the pest policy, flowers along an edge and a bed of marigolds, and nothing else', () => {
+    expect(gateOf('waterBelow', 0.5)).toBe('garden.water');
+    expect(gateOf('slugs', 'trap')).toBe('garden.slugs');
+    expect(gateOf('edge', 'marigolds')).toBe('garden.flowers');
     expect(gateOf('edge', 'none')).toBeNull();
-    expect(gateOf('sow', 'marigolds')).toBe('flowers');
+    expect(gateOf('sow', 'marigolds')).toBe('garden.flowers');
     expect(gateOf('sow', 'radish')).toBeNull();
-    expect(gateOf('waterBelow', 0.5)).toBeNull();
+    expect(gateOf('dig', true)).toBeNull();
   });
 });

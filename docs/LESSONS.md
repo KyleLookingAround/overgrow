@@ -11,6 +11,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
 ### Coordinator
 
+- [The first slice's second coordinator (#46) · 29 Sep 2026](lessons/46-second-coordinator.md)
 - [The first slice's first coordinator · 28–29 Sep 2026 (#28)](lessons/28-first-coordinator.md)
 
 ### Model
@@ -31,6 +32,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Not sorted yet
 
 - [The rotation and field-soil model, ahead of part 11 (#43) · 29 Sep 2026](lessons/2026-09-29-10-rotation-and-fields-model.md)
+- [Unfolding and the first minute, the first slice's part 6a (#45) · 29 Sep 2026](lessons/45-unfolding-first-minute.md)
 - [Hooks for the models written ahead (#38, #39) · 29 Sep 2026](lessons/39-model-hooks.md)
 - [The owner's answers on the systems web, written into the spec (#37) · 29 Sep 2026](lessons/37-spec-answers.md)
 - [Pests, wildlife and Explain, the first slice's part 5 (#35) · 29 Sep 2026](lessons/35-pests-wildlife-explain.md)

@@ -5,13 +5,18 @@
 // scheme, and the top bar and panel working by keyboard alone. The top bar as a row (the owner's wins W2 and W11): one
 // row where it's 640 px or wider inside its padding, with the four speeds, and below that at most two rows with the speeds folded into one
 // button that cycles them, tapped on a touch page; safe areas kept clear on every side; and a tap on the map landing
-// through the layer over it (W12).
+// through the layer over it (W12). Each page answers the first plan's card and shows every detail, the fullest the
+// chrome gets (src/data/unfold.ts).
 import {join} from 'node:path';
 
 const box=(page,sel)=>page.evaluate(s=>{const e=document.querySelector(s);if(!e)return null;const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}},sel);
 const inside=(b,vw,vh)=>b&&b.w>0&&b.h>0&&b.x>=-0.5&&b.y>=-0.5&&b.r<=vw+0.5&&b.b<=vh+0.5;
 
-export default async function({ok,open,out}){
+export default async function({ok,open:bare,out}){
+  // each page with the first plan's card answered and every detail showing: the fullest the chrome gets
+  const open=async(...a)=>{const r=await bare(...a);await r.page.waitForSelector('[data-sim="ready"]',{timeout:8000}).catch(()=>{});
+    await r.page.evaluate(async()=>{await window.__sim.send({type:'card',id:'first-plan',answer:'accept'});await window.__sim.send({type:'setting',key:'details',value:true})});
+    await r.page.waitForFunction(()=>document.querySelectorAll('.tab').length===3,null,{timeout:5000}).catch(()=>{});return r};
   const sizes=[[320,568,true],[568,320,true],[390,844,true],[844,390,true],[768,1024,true],[1440,900,false]];
   for(const [w,h,touch] of sizes){
     const {ctx,page,errs}=await open({width:w,height:h},{touch});
