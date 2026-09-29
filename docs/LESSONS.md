@@ -11,6 +11,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
 ### Runbook
 
+- [Easy wins from Final Call (#14) · 29 Sep 2026](lessons/14-final-call-wins.md)
 - [The runbook, from Final Call, then reworked with the owner (#1) · 28 Sep 2026](lessons/1-runbook.md)
 
 ### Spec
