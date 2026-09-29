@@ -92,6 +92,9 @@ export function healthIndex(parts: Sample['health']): number {
   return w ? sum / w : 0;
 }
 
+/** Reliability as a per-day figure: a sample of several days is already averaged, so its spread is scaled up by the square root of its days. */
+const perDayReliability = (perDay: readonly number[], sampleDays: number) => clamp(100 - (100 - reliability(perDay)) * Math.sqrt(sampleDays), 0, 100);
+
 export interface WindowTotals {
   totals: Totals;
   /** Game days the samples cover. */
@@ -102,7 +105,7 @@ export interface WindowTotals {
 
 /**
  * The five headline numbers, the carbon and the land over the ring (null while it's empty). Output, Upkeep and carbon
- * are per-day means; Quality and Freshness are weighted by output; Reliability is over the per-day series; Health is the
+ * are per-day means; Quality and Freshness are weighted by output; Reliability is over the series of samples, restated per day (a weekly sample's spread scaled up by √7); Health is the
  * index at the end of the window (it's a stock, not a flow); land is as it stands.
  */
 export function windowTotals(h: History): WindowTotals | null {
@@ -122,7 +125,7 @@ export function windowTotals(h: History): WindowTotals | null {
   const days = n * d;
   return {
     totals: {
-      output: out / days, quality: out > 0 ? q / out : 0, reliability: reliability(perDay), upkeep: up / days,
+      output: out / days, quality: out > 0 ? q / out : 0, reliability: perDayReliability(perDay, d), upkeep: up / days,
       health: healthIndex(h.samples[n - 1]!.health), freshness: out > 0 ? fr / out : 0, carbon: co2 / days, land: {...h.land},
     },
     days,
@@ -176,7 +179,7 @@ export interface SealedNode {
 
 /** Seals a level's totals into a node at a game hour, with the plan starting where the node stands. */
 export function sealNode(totals: Totals, hours: number, plan?: Partial<SealPlan>): SealedNode {
-  return {totals: {...totals, land: {...totals.land}}, plan: {health: totals.health, ...plan}, events: [], at: hours};
+  return {totals: {...totals, land: {...totals.land}}, plan: {...plan, health: plan?.health ?? totals.health}, events: [], at: hours};
 }
 
 /** What a point of Health below 50 costs: 1 % of Output each, down to nothing. */
@@ -313,7 +316,10 @@ export function showEvent(event: GameEvent, showingLevel: number, out?: {node: n
   return {mode, event, size, days, text, tint: mode === 'region' ? event.kind : ''};
 }
 
-/** The expected food an event destroys, kg, as the level shows it: its size × the output shown × the days shown. */
+/**
+ * The expected food an event destroys, kg, as the level shows it: its size × the output shown × the days shown. Pass the
+ * output of what the event is shown on: the node's for a thing or a tile, the region's for a region (its size is a share of that).
+ */
 export const eventKgLost = (shown: Pick<ShownEvent, 'size' | 'days'>, outputKgPerDay: number) => shown.size * outputKgPerDay * shown.days;
 
 // ---- inflating ----

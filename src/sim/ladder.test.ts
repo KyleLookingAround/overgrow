@@ -88,6 +88,20 @@ describe('the totals over a cycle', () => {
     expect(w.days).toBe(14);
   });
 
+  it('restates a weekly level\'s Reliability per day, so a sealed node ticking daily keeps the spread', () => {
+    const r = rng(5), weekly: number[] = [];
+    let h = emptyHistory(7);
+    for (let i = 0; i < 53; i++) {
+      let kg = 0;
+      for (let d = 0; d < 7; d++) kg += 10 * Math.exp(0.5 * (r.next() + r.next() + r.next() - 1.5) * 2);
+      weekly.push(kg);
+      h = record(h, sample(kg));
+    }
+    const daily = windowTotals(h)!.totals.reliability, raw = reliability(weekly.map((x) => x / 7));
+    expect(daily).toBeLessThan(raw);
+    expect(100 - daily).toBeCloseTo((100 - raw) * Math.sqrt(7), 6);
+  });
+
   it('keeps a small ring: a season of a garden is a few hundred numbers, not the level', () => {
     let h = emptyHistory(1);
     for (let d = 0; d < 200; d++) h = record(h, sample(2));
