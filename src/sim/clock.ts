@@ -57,39 +57,48 @@ export function calendar(hours: number): CalendarDate {
   return date;
 }
 
-function dateAt(hours: number): CalendarDate {
-  const ms = START_MS + hours * HOUR_MS, d = new Date(ms);
+/** A day's part of the calendar, kept for the day's last few hours: only the hour and minute change within it. */
+type DayPart = Omit<CalendarDate, 'hour' | 'minute'>;
+const days: {day: number; part: DayPart}[] = [];
+function dayPart(day: number): DayPart {
+  for (const r of days) if (r.day === day) return r.part;
+  const ms = day * 24 * HOUR_MS, d = new Date(ms);
   const y = d.getUTCFullYear(), m = d.getUTCMonth();
-  const dayIndex = Math.floor((ms - START_YEAR_MS) / (24 * HOUR_MS));
-  const anniversary = (yr: number) => Date.UTC(yr, START.month - 1, START.day);
-  return {
-    year: y - START.year + (ms >= anniversary(y) ? 1 : 0),
+  const part: DayPart = {
+    year: y - START.year + (ms >= Date.UTC(y, START.month - 1, START.day) ? 1 : 0),
     month: m + 1,
     day: d.getUTCDate(),
     weekday: (d.getUTCDay() + 6) % 7,
-    hour: d.getUTCHours(),
-    minute: d.getUTCMinutes(),
     dayOfYear: Math.floor((Date.UTC(y, m, d.getUTCDate()) - Date.UTC(y, 0, 1)) / (24 * HOUR_MS)) + 1,
-    dayIndex,
+    dayIndex: Math.floor((ms - START_YEAR_MS) / (24 * HOUR_MS)),
     season: SEASONS[m]!,
   };
+  days.unshift({day, part});
+  if (days.length > 2) days.pop();
+  return part;
+}
+
+function dateAt(hours: number): CalendarDate {
+  const ms = START_MS + hours * HOUR_MS, day = Math.floor(ms / (24 * HOUR_MS)), within = ms - day * 24 * HOUR_MS;
+  return {...dayPart(day), hour: Math.floor(within / HOUR_MS), minute: Math.floor((within % HOUR_MS) / 60e3)};
 }
 
 // counters that change exactly when a tick's boundary is crossed: midnight, Monday midnight, the first of March, June,
 // September and December (the meteorological seasons, as the Met Office counts them), and midnight on the game's
-// anniversary (the game year the top bar shows)
-const counters = (hours: number) => {
-  const ms = START_MS + hours * HOUR_MS, d = new Date(ms), days = Math.floor(ms / (24 * HOUR_MS));
-  const months = d.getUTCFullYear() * 12 + d.getUTCMonth();
-  const anniversary = Date.UTC(d.getUTCFullYear(), START.month - 1, START.day);
-  const year = d.getUTCFullYear() + (ms >= anniversary ? 1 : 0);
-  return {day: days, week: Math.floor((days + 3) / 7), season: Math.floor((months - 2) / 3), year}; // 1 Jan 1970 was a Thursday
+// anniversary (the game year the top bar shows); within a day only the day counter is needed, so the rest are read
+// from the day's calendar, kept
+const counters = (day: number) => {
+  const d = new Date(day * 24 * HOUR_MS), months = d.getUTCFullYear() * 12 + d.getUTCMonth();
+  return {week: Math.floor((day + 3) / 7), season: Math.floor((months - 2) / 3), year: dayPart(day).year}; // 1 Jan 1970 was a Thursday
 };
+const dayOfHours = (hours: number) => Math.floor((START_MS + hours * HOUR_MS) / (24 * HOUR_MS));
+const HOUR_ONLY: readonly Tick[] = Object.freeze(['hour']);
 
 /** The ticks a step from one hour to the next fires, in order. Every step fires 'hour'; each other at most once. */
-export function ticksCrossed(from: number, to: number): Tick[] {
-  const a = counters(from), b = counters(to), out: Tick[] = ['hour'];
-  if (a.day !== b.day) out.push('day');
+export function ticksCrossed(from: number, to: number): readonly Tick[] {
+  const da = dayOfHours(from), db = dayOfHours(to);
+  if (da === db) return HOUR_ONLY;
+  const a = counters(da), b = counters(db), out: Tick[] = ['hour', 'day'];
   if (a.week !== b.week) out.push('week');
   if (a.season !== b.season) out.push('season');
   if (a.year !== b.year) out.push('year');

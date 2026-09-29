@@ -70,7 +70,7 @@ function tick(s: State, systems: readonly System[], hours: number) {
   for (let i = 0; i < steps; i++) {
     s.hours = runStep(systems, ctx, s.seed, s.hours);
     s.rng.next(); // the main stream moves once a step, so adding a system never changes its draws
-    s.activities = s.activities.filter((a) => a.end >= s.hours - step);
+    if (s.activities.some((a) => a.end < s.hours - step)) s.activities = s.activities.filter((a) => a.end >= s.hours - step);
   }
   recordInto(s.graph, null);
   s.flows = mergeFlows(flows);

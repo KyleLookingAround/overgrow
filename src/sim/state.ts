@@ -183,26 +183,36 @@ function recopy(n: GraphNode, c: GraphNode, moved: Set<string> | undefined): Gra
   const totals = sameTotals(n.totals, c.totals) ? c.totals : {...n.totals, land: {...n.totals.land}};
   let stocks = c.stocks;
   if (moved) {
-    stocks = {};
-    for (const k in n.stocks) {
-      const had = c.stocks[k];
-      stocks[k] = had && !moved.has(k) ? had : copyStock(n.stocks[k]!);
-    }
+    // a flow only moves or makes a stock (one set or removed directly marks the node ALL, copied whole)
+    stocks = {...c.stocks};
+    for (const k of moved) if (n.stocks[k]) stocks[k] = copyStock(n.stocks[k]);
   }
   return stocks === c.stocks && levers === c.levers && totals === c.totals ? c : {...c, stocks, levers, totals};
 }
 
 /** The nodes, copied: again where they changed, the last copy where they didn't. */
 function nodeCopies(s: State): GraphNode[] {
-  const had = copies.get(s), changed = takeTouched(s.graph), now = new Map<NodeId, GraphNode>(), out: GraphNode[] = [];
+  const had = copies.get(s), changed = takeTouched(s.graph), now = had && changed ? had : new Map<NodeId, GraphNode>(), out: GraphNode[] = [];
   for (const id in s.graph.nodes) {
     const n = s.graph.nodes[id]!, c = had?.get(id), moved = changed?.get(id);
     const copy = !c || !changed || moved?.has(ALL) ? copyNode(n) : recopy(n, c, moved);
-    now.set(id, copy);
+    if (copy !== c) now.set(id, copy);
     out.push(copy);
   }
+  // nodes gone from the graph leave the kept copies too
+  if (now.size > out.length) for (const id of now.keys()) if (!(id in s.graph.nodes)) now.delete(id);
   copies.set(s, now);
   return out;
+}
+
+/** The edges' copy, kept while the graph's revision and edge list stay the same (edges change only with the revision). */
+const edgeCopies = new WeakMap<Graph, {rev: number; n: number; copy: Edge[]}>();
+function edgesOf(g: Graph): Edge[] {
+  const had = edgeCopies.get(g);
+  if (had && had.rev === g.rev && had.n === g.edges.length) return had.copy;
+  const copy = g.edges.slice();
+  edgeCopies.set(g, {rev: g.rev, n: g.edges.length, copy});
+  return copy;
 }
 
 export function snapshotOf(s: State): Snapshot {
@@ -211,7 +221,7 @@ export function snapshotOf(s: State): Snapshot {
     seed: s.seed, hours: s.hours, level: s.level, step: levelClock(s.level).stepHours, speed: s.speed,
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
-    rev: s.graph.rev, nodes, edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings,
+    rev: s.graph.rev, nodes, edges: edgesOf(s.graph), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings,
     // an activity never changes once started (src/sim/activity.ts): the list is copied, the activities shared
     activities: s.activities.slice(),
     kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,
