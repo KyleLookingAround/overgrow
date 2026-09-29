@@ -45,7 +45,14 @@ export function block(run: Run): string {
   const reached = MILESTONES.filter((m) => m.reached).map((m) => `${m.id}: ${m.id in run.reached ? `day ${run.reached[m.id]}` : '—'}`);
   const bought = run.bought.map((b) => `${b.id}: day ${b.day}`).join(', ');
   const food = `eaten ${run.days.reduce((a, d) => a + d.eaten, 0).toFixed(1)}, sold ${run.days.reduce((a, d) => a + d.sold, 0).toFixed(1)}, preserved ${run.preserved.toFixed(1)}, given ${run.given.toFixed(1)}, wasted ${run.wasted.toFixed(1)}`;
-  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `FOOD kg {${food}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
+  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `FOOD kg {${food}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, ...(run.allotment ? [allotmentLine(run.allotment)] : []), `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
+}
+
+/** The allotment's line: the step-up day, and the plot's and the neighbours' numbers at the end. */
+function allotmentLine(a: NonNullable<Run['allotment']>): string {
+  const n = a.neighbours;
+  return `ALLOTMENT {step-up: day ${a.day}, days: ${Math.round(a.days)}, plan: ${a.plan}, plot kg/day: ${a.output.toFixed(3)}, health: ${a.health.toFixed(1)}, upkeep £/day: ${a.upkeep.toFixed(2)}, saved £: ${a.saved.toFixed(2)}, ` +
+    `neighbours kg/day: ${n.output.toFixed(3)}, health: ${n.health.toFixed(1)}, neglected health: ${n.neglected.toFixed(1)}}`;
 }
 
 function main() {

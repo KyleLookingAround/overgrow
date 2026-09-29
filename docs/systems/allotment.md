@@ -1,0 +1,82 @@
+# The allotment (the step up and level 2)
+
+The step up that seals the garden into a plot, and the allotment it opens. The player's plot is the sealed garden, and eleven neighbours' plots are drawn from the seed. The level runs on its own clock under a three-lever plan.
+
+- **Where it lives:**
+  - `src/sim/allotment.ts`, tested in `src/sim/allotment.test.ts`;
+  - its numbers in `src/data/allotment.ts`;
+  - the page's side in `src/ui/StepUpCard.tsx`, `src/ui/AllotmentPanel.tsx` and `src/ui/map/allotment.ts`.
+- **Where it comes from:** part 7 of the founding spec, from `docs/briefs/step-up.md`, with its spec in `docs/specs/step-up.md`.
+
+- **The latch** (`Goal.offered` in `src/sim/goal.ts`):
+  - The goal's weekly sample sets `offered` to the game hour the first time `gardenStatus()` is ready, and never clears it.
+  - The step-up card comes from the latch, and so does the `year` card's "Stay in the garden a while" (`{type: 'card', id: 'year', answer: 'ok'}`).
+  - Staying keeps the offer on the goal bar.
+- **The step up** (`{type: 'step-up'}`, `stepUp()`):
+  - It is refused unless the offer is latched and the level is 1.
+  - `gardenTotals()` gives the garden's year to seal:
+    - `windowTotals()` of the goal's ring;
+    - Reliability as the offer counted it (the weeks' shares of the veg met, `docs/decisions/ADR-2026-09-29-garden-reliability.md`), not the ring's spread;
+    - the land as it stands (`landOf()`: every node's land but the household's and the air's);
+    - the household's veg basket as the mix (`basketMix()`), since the ring keeps no groups.
+  - `sealNode()` seals it.
+  - The garden's graph goes into `State.ladder` as a `Below` (level, game hour, totals and graph) for part 9's zoom back in.
+  - `allotmentGraph()` builds level 2. The household's money and members carry over, the level becomes 2, and the home node is `household`.
+  - The command's effect is `sealing` at `plot-1`, whose Explain card says "this is your garden's last year, as one plot".
+- **The graph** (`allotmentGraph()`):
+  - **Twelve plots:** nodes of kind `plot`, four to a row in three rows of 12 × 8 m tiles (`plotBox()`, the garden's own shape).
+    - `plot-1` is the player's. Its levers are `sealed` (a `SealedNode`), `base` (the garden's totals as sealed), `payer` (`household`, which pays its upkeep), and the plan's `care`, `mix` and `feed`.
+    - `plot-2` to `plot-12` are the neighbours'. Their levers are `sealed` and `holder` (`Holder`: id, name, habit, hours a week, `neglected`).
+  - **The shared places:** `sheds`, the `spine` path and `path-1` and `path-2` between the rows, and the `trough`, which holds 600 of 1000 L (part 8 uses its water).
+  - **The household:** its money, `members`, the level's `ledger` (`AllotmentLedger`) and `goal` (a `History` for level 2's own offer, part 10).
+  - **The air** starts the level's carbon dial at 0.
+- **The neighbours** (`neighbourPlots()`):
+  - **Who:** `allotment(rng(seed))` from `src/sim/models/agency.ts`, the same draw `neglectedPlot(seed)` makes, so part 9's slugs come from the same plot.
+  - **Their totals:** drawn with `layoutRng(seed, 'allotment')`.
+    - Output is the garden's × 0.6 to 1.4 by their household's keptness, with ±15 % luck.
+    - Health is 38 to 72 by keptness, ±7.5.
+    - Reliability, upkeep and carbon are the garden's ±15 %.
+  - **The neglected plot's** Health is held at 35 or less.
+  - **Their plans:** tidy plots aim 8 points higher, lazy ones 8 lower, and competitive ones 4 higher; the neglected one aims 10 lower. So they drift apart slowly by the sealing rules.
+- **The plan** (`planFor()`), recomputed onto the sealed node each day before it ticks:
+  - **Care:** 1–4 h a week. Health's target moves 30 points across the whole range of `keptness(h, 250 m²)` against the garden's 2 h. Hours beyond what the household has are a trade in its time.
+  - **Mix:**
+    - `as grown` (the default);
+    - `roots` (potatoes ×2.2, kg ×1.12);
+    - `greens` (salads and greens ×1.8, kg ×0.92);
+    - `fruit` (tomatoes ×2.5).
+  - **Feed:**
+    - `compost` (the default, no change);
+    - `bought` (kg ×1.1, +£0.10 and +0.12 kg CO₂e a day, Health's target −8).
+  - **Upkeep:** the garden's plus the plot's rent (£100 a year).
+  - **The default plan** leaves the garden's totals as they were, but for the rent.
+  - **Unfolding:** the levers unfold in turn (`LEVER_DAYS`, `plotDays()`): care at once, the mix after a week, the feed after three. The sim refuses one before its day ("that hasn’t come up at the allotment yet"), a neighbour's plot ("that’s a neighbour’s plot") and any other lever on the plot.
+- **The sealed nodes' tick** (`sealedSystem` in `src/sim/ladder.ts`, listed after `allotment`):
+  - `SealPlan` gained `output`, `mix` and `upkeep`, each the sealed figure when left out. The tick's totals take them, so a plot's tile shows its plan's numbers.
+  - Upkeep is paid from the node its `payer` lever names, while it holds enough.
+- **The day** (`allotment`, which runs only at level 2; `System.levels` in `src/sim/clock.ts` rests the garden's systems there):
+  - Yesterday's food leaves each plot. The player's goes as `eaten from the plot`, counted by the plot's mix into the week. A neighbour's goes as `a neighbour’s harvest`.
+  - The holder walks to their plot on the days it gave food (`walk`, `work`, `walk`, `away` activities, from the sheds by the spine). They go after work on weekdays and late morning at the weekend, for their hours a week.
+- **The week:**
+  - Wages come in, the shop buys the basket less what the plot gave (at `PRICE`), and the rest of life goes out.
+  - The ledger adds groceries saved, eaten and given away.
+  - The level's `History` records the plot's week (`sampleOf()` by group, upkeep, carbon, and Health as soil).
+- **The `carry` check** (`carryReport()`, run by `tools/carry.ts` for `tools/checks/carry.mjs`):
+  - The plot's Output as sealed against its year's own samples, within 1 %.
+  - The land and carbon, exactly.
+  - One cycle rebuilt from the sealed node, day by day, against `inflateTarget()` by `carryCheck()`: every number inside `INFLATE_TOLERANCE`, and Reliability inside `INFLATE_RELIABILITY_TOLERANCE` (15 %). A spread measured over one year of lumpy days has a sampling error of its own, 1–9 % on seeds 1–8.
+  - Part 9 replaces the rebuilt cycle with the garden inflated in detail.
+- **The bot** (`tools/bot/player.ts`):
+  - `takePlot` takes the plot the morning after the offer latches.
+  - `plotPlan` sets care to 3 h, the mix that saves the most at the shop's prices (`bestMix()`), and keeps compost.
+  - `tools/bot/play.ts` reports `ALLOTMENT {…}`: the step-up day, the plan, the plot's kg a day, Health, upkeep, groceries saved, the neighbours' mean and the neglected plot's Health.
+  - The long headless run crosses the step up (`src/sim/index.test.ts`).
+- **Speed:** an allotment day is well under 0.1 ms headless (the test asserts under 0.5 ms). The garden's day is unchanged, since the garden's systems carry one more `levels` test each.
+
+## For part 8
+
+- **The neighbours:** `holder` becomes the full agent. Add `agent`, `relation`, `takings` and `week` on a node per neighbour, as `docs/systems/agency.md` says, and list `agency` in `src/sim/systems.ts` with `levels: [2]`.
+- **The plots:** each plot's `kept` should drive its sealed plan's Health instead of the habit's lean here.
+- **The trough:** the `trough` node's water and the `trough-water` edge are the rota's.
+- **The committee:** `docs/systems/committee.md` reads the neighbours' `holder` and the plots' Health.
+- **The panel:** its "Coming soon at the allotment" line is the place to unfold part 8's problems.

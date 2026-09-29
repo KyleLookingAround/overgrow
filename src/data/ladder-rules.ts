@@ -64,6 +64,12 @@ export const SEASON_DAYS = SEASON;
 
 /** How close a rebuilt detail level's first cycle must come to the totals it was sealed with (the `carry` test). */
 export const INFLATE_TOLERANCE = 0.05;
+/**
+ * Reliability's own tolerance in the `carry` check: a rebuilt cycle's Reliability is a spread measured over one year of
+ * lumpy days, so it has a sampling error of its own (the sealed node's noise over seeds 1 to 8 gave 1 to 9 %), which
+ * 5 % can't hold. 15 % is about three of those errors: a wrong spread still fails it.
+ */
+export const INFLATE_RELIABILITY_TOLERANCE = 0.15;
 
 /**
  * The smallest a totals' figure is taken to be when comparing, so a node with almost no carbon isn't held to 5 % of

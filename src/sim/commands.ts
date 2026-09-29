@@ -6,7 +6,8 @@ import type {Speed} from '../data/ladder';
 import {SPEEDS} from '../data/ladder';
 import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
 import {kindOf} from './effects';
-import {gardenStatus, goalOf} from './goal';
+import {goalOf, offered} from './goal';
+import {stepUp} from './allotment';
 import {buyFlow, chit, digOver, fleece, orderSeeds, placeOf, rakeLeaves, warmSoil} from './shed';
 import {GLUT_POLICIES, type GlutPolicy} from '../data/kitchen';
 import type {Variety} from '../data/shed';
@@ -38,8 +39,11 @@ export type Command =
    *  follow the rotation), and the one "try faster" nudge ('yes' goes to 2×, 'no' leaves it). */
   | {type: 'card'; id: 'first-plan'; answer: 'accept' | 'choose'}
   | {type: 'card'; id: 'try-faster'; answer: 'yes' | 'no'}
-  /** The garden's year done: the allotment offer's requirements met (src/sim/goal.ts); 'ok' carries on playing. */
+  /** The garden's year done: the allotment offer's requirements met and latched (src/sim/goal.ts); 'ok' stays in the
+   *  garden a while, the offer kept on the goal bar. */
   | {type: 'card'; id: 'year'; answer: 'ok'}
+  /** Take the plot: the garden sealed into it and the allotment opened (src/sim/allotment.ts), once the offer is latched. */
+  | {type: 'step-up'}
   /** The week's decisions, each asked once for what it's about (the State's `answered`): a glut sold, preserved or given
    *  away (the kitchen's `glut` policy); next year's seed from the winter catalogue, or later; fleece over the tender
    *  crops for a forecast frost; and the watering line raised for a dry spell, put back after the next rain. */
@@ -73,6 +77,7 @@ export const FIRST_PLAN = {bed: 'bed-2', chosen: 'rotation'} as const;
 /** Asks each system in turn; the first answer that isn't undefined wins. */
 function ask(systems: readonly System[], s: State, cmd: Command): string | null | undefined {
   for (const sys of systems) {
+    if (sys.levels && !sys.levels.includes(s.level)) continue;
     const r = sys.command?.(cmd, s.graph, s.level);
     if (r !== undefined) return r;
   }
@@ -158,6 +163,10 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
     }
     case 'card':
       return answer(s, cmd, systems);
+    case 'step-up':
+      s.rejected = stepUp(s);
+      if (!s.rejected) seeOnce(s, CARDS.year);
+      return s;
     case 'setting':
       if (!(cmd.key in SETTINGS)) s.rejected = `no setting ${cmd.key}`;
       else if (!SETTINGS[cmd.key]!.includes(cmd.value)) s.rejected = `${cmd.key} is ${SETTINGS[cmd.key]!.join(' or ')}`;
@@ -269,7 +278,7 @@ function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readon
   if (!key) s.rejected = `no card ${String(cmd.id)}`;
   else if (s.seen.includes(key)) s.rejected = 'that’s been answered';
   else if (cmd.id === 'year') {
-    if (!gardenStatus(goalOf(s.graph)).ready) s.rejected = 'the garden’s year isn’t done yet';
+    if (!offered(goalOf(s.graph))) s.rejected = 'the garden’s year isn’t done yet';
     else if (cmd.answer !== 'ok') s.rejected = 'ok';
     else seeOnce(s, key);
   } else if (cmd.id === 'first-year') {
