@@ -43,6 +43,8 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 - Write its brief from `docs/briefs/TEMPLATE.md` and run `node tools/brief.mjs` on it.
 - Every brief carries "How it fits and grows", answered for what the part adds and naming its rows in the systems web (`docs/specs/overgrow/systems-web.md`); `node tools/brief.mjs` fails a brief without it. A gap the web shows (a mechanic with no destination, a late system with no seed, or a model that needs a hook to grow) goes into the brief of the part it belongs to.
+- A brief that sets a check's pass mark says how it was measured. Find the mark's ceiling first: the best the fix can reach while what the brief leaves alone stays as it is. #48's 70 % on every seed was out of reach on seed 1 because of clubroot and nitrogen, and the session waited half an hour on the coordinator to settle it.
+- A part estimated past about $25 is split before it starts (6c into the shed and the hens, and the advisers and the garden's year, on 29 Sep).
 - `create_session` with `source_url` (`https://github.com/KyleLookingAround/overgrow`), `source_revision: "main"`, `outcome_branch: "feature/<name>"`, a title, an `overgrow:<feature>` tag, and the model.
 - First message: the brief, with one line asking the session to save it as `docs/briefs/<name>.md` in its PR. Paste a brief once; later messages pass on only what changes the session's current work.
 - A brief that sets a check's pass mark ("year three at least 70 % of year one") first measures its ceiling: the same run with the input the fix is about made unlimited. A mark above that ceiling on any seed can't be met by the fix, and the session has to stop and ask (the garden's nutrients, #48: seed 1 held at 67 % by clubroot and nitrogen).
