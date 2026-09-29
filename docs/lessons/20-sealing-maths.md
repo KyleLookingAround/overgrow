@@ -1,5 +1,5 @@
 Theme: model
-# The carry-over rule's maths, ahead of part 7 (#17) · 29 Sep 2026
+# The carry-over rule's maths, ahead of part 7 (#20) · 29 Sep 2026
 
 - **Numbers:** estimate $8; cost not yet known when the PR opened (read as unknown, not free). New files only, so nothing to merge from `main` and no bot run: nothing is wired, so `PLAY` can't change. Speed measured in Node and noted in `docs/systems/ladder.md`.
 - **Went well:**
