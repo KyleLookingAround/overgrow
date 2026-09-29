@@ -8,12 +8,13 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 ## 1. Start fresh, retire the old one
 
 - A coordinator starts fresh for each feature or wave, from a brief, never carrying over a finished one's conversation: a long conversation re-reads its whole history every turn (Final Call's coordinator of 27 Sep had cost $176 and used 642k of context over 25 hours).
+- Context runs out before cost: hand over to a fresh coordinator, with a brief carrying everything it knows, at about 500k of context or at its cost estimate, whichever comes first (the first slice's first coordinator handed over at 628k and $21 against $20).
 - When a new coordinator takes over, it retires the old one: `list_triggers`, `delete_trigger` its heartbeat (§9) and any other Routine bound to it, then `archive_session`.
 
 ## 2. The sweep, at each check-in
 
-- `list_sessions` (`mine: true`).
-- For each live Overgrow session, `get_session`: `status_bucket`, `usage.cost_usd` against its brief's estimate, `context_usage.used_tokens`, and `rate_limit_info`.
+- `get_session` on the ids the brief and your own starts know, not `list_sessions`: it returns every session on the account, another project's too, and filled most of the first coordinator's context.
+- For each live Overgrow session: `status_bucket`, `usage.cost_usd` against its brief's estimate, `context_usage.used_tokens`, and `rate_limit_info`.
 - `list_triggers` for booked check-ins.
 - Open PRs, with their check runs and mergeability.
 - Open `needs-owner` issues, and any that have passed 12 hours.
@@ -34,6 +35,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 - At most about four default-model sessions at once; put the rest on the cheaper model (`create_session` with `model` set to the cheaper model's current id, from the owner) and stagger their starts. On `allowed_warning`, start nothing new unless the brief says to ignore it; on `rejected` or `isUsingOverage`, book a `send_later` for a minute after `resetsAt` and end the turn. Final Call's ten default-model sessions started within 45 minutes spent the five-hour allowance in 80 minutes and stalled every one of them for five hours.
 - Small changes and routine jobs (look backs, save fixtures, doc moves, screenshot reviews) go to the cheaper model.
+- Put a crude bot as early in the order as something grows: its first run finds design gaps, not just ranges (the first slice's part 4 found no sales, a hungry kitchen and a rotation that didn't pay, after three parts had built on them).
 - Only parts that edit the same game code are ordered, in the spec's order of work. A refactor that changes what other files call runs in a quiet window, never alongside a wave of feature sessions.
 
 ## 6. Starting a session
@@ -41,7 +43,9 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 - Write its brief from `docs/briefs/TEMPLATE.md` and run `node tools/brief.mjs` on it.
 - Every brief carries "How it fits and grows", answered for what the part adds and naming its rows in the systems web (`docs/specs/overgrow/systems-web.md`); `node tools/brief.mjs` fails a brief without it. A gap the web shows (a mechanic with no destination, a late system with no seed, or a model that needs a hook to grow) goes into the brief of the part it belongs to.
 - `create_session` with `source_url` (`https://github.com/KyleLookingAround/overgrow`), `source_revision: "main"`, `outcome_branch: "feature/<name>"`, a title, an `overgrow:<feature>` tag, and the model.
-- First message: the brief, with one line asking the session to save it as `docs/briefs/<name>.md` in its PR.
+- First message: the brief, with one line asking the session to save it as `docs/briefs/<name>.md` in its PR. Paste a brief once; later messages pass on only what changes the session's current work.
+- A part's brief says what the part before it left undone (part 3 couldn't touch part 1's shell, so container queries and safe areas moved to part 5).
+- The owner designs in bursts while sessions run: record each decision at once in one list in the coordinator's brief, and write it into the briefs it touches.
 - One item per session: when a session's item merges, it stops, and new work goes to a fresh session with its own brief.
 
 ## 7. One check-in, and helpers only review
@@ -58,5 +62,5 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 ## 9. The heartbeat
 
-- A coordinator running overnight books one hourly Routine bound to its own session: `create_trigger` with an hourly cron and **no** `persistent_session_id` (leaving it out binds the calling session; filling in your own id targets a different session). It needs no connectors, since the session it wakes has them, and it survives a usage-limit stall that kills a one-shot check-in.
+- A coordinator books one hourly Routine when the first part starts (in its first turn, when it takes over), bound to its own session, not after the first stall (a five-hour usage limit stopped the first coordinator for two and a half hours on the first night): `create_trigger` with an hourly cron and **no** `persistent_session_id` (leaving it out binds the calling session; filling in your own id targets a different session). It needs no connectors, since the session it wakes has them, and it survives a usage-limit stall that kills a one-shot check-in.
 - On each firing, end the turn at once if a check-in is already booked; otherwise run the sweep (§2).
