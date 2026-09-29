@@ -4,8 +4,9 @@
 // down; at dusk slugs come out on the damp beds (the check makes the evening damp itself, so a new draw of the dice can't
 // move it) and the gardener goes out with a torch; a tap on a slug's badge opens the first Explain card; by the next
 // morning the Shed tab shows the beer trap and the goal bar counts down to the first harvest; the kitchen's first ask
-// comes on day 2; no "try faster" nudge shows in the first minute, and after the first harvest it shows once, at 1×,
-// and goes when answered. "Let them choose" hands bed 2 to the gardener's rotation.
+// comes on day 2; the gardener leaves for work at 08:30 on day 1 with no sign, and their job unfolds in the kitchen's
+// sign on day 2's evening, not one of its own; no "try faster" nudge shows in the first minute, and after the first
+// harvest it shows once, at 1×, and goes when answered. "Let them choose" hands bed 2 to the gardener's rotation.
 import {join} from 'node:path';
 
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
@@ -48,6 +49,11 @@ export default async function({ok,open,out}){
     const morning=await hourly(page,6),left1=(await snap(page)).nodes.find(n=>n.id==='gardener').stocks.hours.amount;
     ok('first minute: in the morning the gardener sows bed 2 and waters it in, their hours ticking down',
       morning.some(a=>a.doing==='sow'&&a.to==='bed-2')&&morning.some(a=>a.doing==='water'&&a.to==='bed-2')&&left1>0&&left1<4,`${morning.map(a=>a.doing).join(' ')}; ${left1.toFixed(2)} h of 4 left`);
+    // then off to work through the gate, before 08:30, after the sowing and watering: no sign for it on day 1
+    const leave=morning.find(a=>a.doing==='leave'),sown=morning.filter(a=>a.doing==='water'||a.doing==='sow').every(a=>a.end<=(leave?.start??0)+1e-9);
+    const signs1=await page.evaluate(()=>document.querySelectorAll('.notice.unfold[data-keys*="household"]').length),seen1=(await snap(page)).seen;
+    ok('first minute: after the sowing and watering the gardener leaves for work through the gate by 08:30, with no sign for it',
+      leave?.to==='gate'&&leave.end<=2.5+1e-9&&sown&&morning.some(a=>a.doing==='away')&&!signs1&&!seen1.includes('household.commute'),JSON.stringify({leave,sown,signs1}));
     // dusk: the check makes the evening damp itself (W21), so the slugs come out on any draw of the dice
     // (the save from the morning's end, so the dusk is more than four steps on: a paused view follows a jump that long)
     await send(page,{type:'tick',hours:Math.max(0,6-(await snap(page)).hours)});
@@ -85,12 +91,14 @@ export default async function({ok,open,out}){
     ok('first minute: by the second morning the Shed tab shows the beer trap, and the goal bar counts down to the first harvest',
       /Beer trap/.test(shed)&&/costs no time/.test(shed)&&/^First harvest: .+ in Bed \d, (\d+ % grown|ready to pick)$/.test(goal),`${shed} | ${goal}`);
     await page.click('#tab-garden').catch(()=>{});
-    // day 2, evening: the kitchen's first ask
-    const noAsk=!(await page.evaluate(()=>!!document.querySelector('#tab-kitchen')));
+    // day 2, evening: the kitchen's first ask, and the gardener home from work in the same sign
+    const noAsk=!(await page.evaluate(()=>!!document.querySelector('#tab-kitchen'))),noJob=!(await snap(page)).seen.includes('household.commute');
     await drawnAt(page,37);
+    const sign=await page.waitForSelector('.notice.unfold[data-keys*="garden.kitchen"]',{timeout:4000}).then(e=>e.getAttribute('data-keys'),()=>'');
     await page.click('#tab-kitchen').catch(()=>{});
     const ask=await page.waitForFunction(()=>document.querySelector('#ask-title')?.textContent,null,{timeout:4000}).then(r=>r.jsonValue(),()=>'');
     ok('first minute: the kitchen’s first ask comes on the second evening',noAsk&&/The day’s ask/.test(ask),`before ${!noAsk}, ${ask}`);
+    ok('first minute: the gardener’s job unfolds in the kitchen’s sign on the second evening, not in a sign of its own',noJob&&/household\.commute/.test(sign??''),`before ${!noJob}, sign ${sign}`);
     await page.click('#tab-garden').catch(()=>{});
     // no nudge in the first minute
     const early=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)));

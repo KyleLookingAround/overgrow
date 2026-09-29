@@ -1,8 +1,10 @@
 // Unfolding (src/data/unfold.ts, src/sim/commands.ts, the top bar, the panel and the badges): a new game shows only
 // the core (the date, the speeds, the gardener, the sowing plan and the places) under the first plan's card; each
 // trigger reveals its key (the first watering the watering line and moisture, the first slugs their policy line, the
-// first evening's patrol the Shed tab, the second evening's ask the Kitchen tab, the first sale the money, the first
-// compost the soil's numbers and the carbon dial); a key not in the table fails closed, even from a save; a hidden
+// first evening's patrol the Shed tab, the second evening's ask the Kitchen tab and, with it, the gardener home from work
+// their job's line, the first payday the money, the first week the garden fed the household groceries saved, the first
+// compost the soil's numbers, the carbon dial and the shop food's footprint beside it); a key not in the table fails
+// closed, even from a save; a hidden
 // lever's command is refused; the keys a tick reaches together make one sign, not one each, and the sign is still under
 // reduced motion; and "Show all details" shows every number, tab and dial but opens no lever (the sim's gates stay).
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
@@ -16,13 +18,15 @@ const shows=(page,sel,on=true)=>page.waitForFunction(([s,o])=>!!document.querySe
 const rowsOf=page=>page.evaluate(()=>[...document.querySelectorAll('.place dt')].map(d=>d.textContent));
 const pick=(page,name)=>page.evaluate(n=>[...document.querySelectorAll('.place-button')].find(b=>b.textContent===n)?.click(),name);
 
-// what each key shows, and when it first unfolds on seed 1 (days)
+// what each key shows, when it first unfolds on seed 1 (days), the step to tick by, and the tab it shows on
 const TRIGGERS=[
   ['garden.water','#plan-water',1,1],
   ['garden.slugs','#policy-slugs',2,1],
   ['garden.shed','#tab-shed',2,1],
   ['garden.kitchen','#tab-kitchen',3,1],
-  ['garden.money','.topbar .money',70,24],
+  ['household.commute','.job-line',3,1],
+  ['garden.money','.topbar .money',8,24],
+  ['household.groceries','[data-cause="groceries saved"]',30,24,'#tab-kitchen'],
 ];
 
 export default async function({ok,open}){
@@ -50,29 +54,33 @@ export default async function({ok,open}){
   await send(page,{type:'new-game',seed:1,speed:0});
   const got=[],none=[];
   for(const [,sel] of TRIGGERS)if(await has(page,sel))none.push(sel);
-  for(const [key,sel,days,step] of TRIGGERS){
+  for(const [key,sel,days,step,tab] of TRIGGERS){
+    if(tab)await page.click(tab).catch(()=>{});
     const before=none.includes(sel),at=await until(page,key,days,step);
     // a paused view jumps only on a tick of more than four steps, to the step before the newest
     await send(page,{type:'tick',hours:5});
     await page.waitForFunction(h=>window.__sim.view().cur>=h,at??0,{timeout:8000}).catch(()=>{});
+    if(tab)await page.click(tab).catch(()=>{});
     const after=await shows(page,sel);
+    if(tab)await page.click('#tab-garden').catch(()=>{});
     got.push(`${key}: ${at===null?"never":`day ${Math.floor((at+6)/24)+1}`}${!before&&after?"":` ✗ ${before} ${after}`}`);
   }
-  ok('unfold: each trigger reveals its key and what it shows (the watering line, the slugs’ line, the Shed and Kitchen tabs, the money)',!got.some(g=>/never|✗/.test(g))&&!errs.length,got.join('; '));
+  ok('unfold: each trigger reveals its key and what it shows (the watering line, the slugs’ line, the Shed and Kitchen tabs, the job, the money, groceries saved)',!got.some(g=>/never|✗/.test(g))&&!errs.length,got.join('; '));
   await pick(page,'Bed 1');
   const wet=await rowsOf(page);
   ok('unfold: moisture shows with the watering line, N-P-K not yet',wet.includes('Moisture')&&!wet.includes('Organic matter'),wet.join(', '));
 
-  // the first compost is the first feeding and the first carbon choice at once: one sign for the two, never one each
+  // the first compost is the first feeding and the first carbon choice at once, and the shop food's footprint comes beside
+  // the dial: one sign for the three, never one each
   const soil=await until(page,'garden.carbon',160,24);
   await page.waitForSelector('.notice.unfold[data-keys*="garden.carbon"]',{timeout:4000}).catch(()=>{});
   const signs=await page.evaluate(()=>[...document.querySelectorAll('.notice.unfold')].map(n=>n.dataset.keys));
-  const both=signs.filter(k=>/garden\.(soil|carbon)/.test(k));
-  const dial=await shows(page,'.dial');
+  const both=signs.filter(k=>/garden\.(soil|carbon)|household\.footprint/.test(k));
+  const dial=await shows(page,'.dial'),bag=await shows(page,'.topbar .dial-shop');
   await pick(page,'Bed 2');
   const fed=await rowsOf(page);
-  ok('unfold: two keys that unfold together make one sign with both, and each shows what it reveals (the dial, organic matter)',
-    soil!==null&&both.length===1&&/garden\.soil/.test(both[0])&&/garden\.carbon/.test(both[0])&&dial&&fed.includes('Organic matter'),JSON.stringify({soil,signs,dial,fed}));
+  ok('unfold: keys that unfold together make one sign with all of them, and each shows what it reveals (the dial, the footprint beside it, organic matter)',
+    soil!==null&&both.length===1&&/garden\.soil/.test(both[0])&&/garden\.carbon/.test(both[0])&&/household\.footprint/.test(both[0])&&dial&&bag&&fed.includes('Organic matter'),JSON.stringify({soil,signs,dial,bag,fed}));
   await page.emulateMedia({reducedMotion:'reduce'});
   const still=await page.evaluate(()=>{const n=document.querySelector('.notice.unfold');return n?getComputedStyle(n).animationName:null});
   ok('unfold: under reduced motion the sign is a still ring, not a pulse',still==='none',String(still));
@@ -86,10 +94,11 @@ export default async function({ok,open}){
     await send(page,{type:'tick',hours:2});
     await pick(page,'Bed 1');
     const all=await page.evaluate(()=>({tabs:[...document.querySelectorAll('.tab')].map(t=>t.textContent),money:!!document.querySelector('.topbar .money'),dial:!!document.querySelector('.dial'),
+      footprint:!!document.querySelector('.topbar .dial-shop'),job:!!document.querySelector('.job-line'),
       temp:!!document.querySelector('.temp'),rows:[...document.querySelectorAll('.place dt')].map(d=>d.textContent)}));
     const aphids=(await send(page,{type:'policy',node:'gardener',lever:'aphids',value:'pick'})).rejected;
-    ok('unfold: “Show all details” shows every tab, the money, the dial, the temperature and the soil’s numbers, and opens no lever',
-      all.tabs.join()==='Garden,Shed,Kitchen'&&all.money&&all.dial&&all.temp&&all.rows.includes('Organic matter')&&!(await has(page,'#policy-aphids'))&&/come up/.test(aphids??'')&&!errs.length,
+    ok('unfold: “Show all details” shows every tab, the money, the dial and the footprint, the job, the temperature and the soil’s numbers, and opens no lever',
+      all.tabs.join()==='Garden,Shed,Kitchen'&&all.money&&all.dial&&all.footprint&&all.job&&all.temp&&all.rows.includes('Organic matter')&&!(await has(page,'#policy-aphids'))&&/come up/.test(aphids??'')&&!errs.length,
       JSON.stringify({...all,aphids}));
     await ctx.close()}
 }

@@ -67,6 +67,11 @@ This part makes the garden's year a game: **earn, spend, grow, see the result, r
   - **What:** screenshots at days 2, 7, 20, 45, 90, 180 and 365, at 1440 × 900 and 390 × 844, playing as a player would (buying and digging).
   - **In the PR:** a short "does it feel like a game now" review, with what's still flat.
   - The coordinator runs a second playtest before the owner tries it.
+- **What 6b left for this part** (#53, `docs/lessons/49-household.md`):
+  - `SAVE_VERSION` is 7.
+  - The purse now has a weekly wage and a weekly shop, and the household buys what the garden doesn't grow, so groceries saved are a reason to grow more.
+  - The garden-day speed test's 2 ms has little headroom: CI once measured 2.13 ms. Measure over the busiest stretch (summer), not only across a year. Weigh a lever (copied by reference) against a new stock, since every stock is copied each hour.
+  - A job the planner may build twice must reset what it accumulates at its top.
 - **Strategic and long** (the owner's decision 12): each upgrade is a trade-off, with no dominant buy. Report any the bot finds that beats every other on every seed.
 - **It may touch:**
   - **the sim** (`src/sim/`: `commands.ts`, `systems.ts`, `state.ts`, `save.ts`, the gardener's jobs, crops, the kitchen, the goal, and pests' and soil's hooks for what an upgrade changes);

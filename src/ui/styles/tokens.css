@@ -56,6 +56,7 @@
   --map-can: #5f8fa8; /* the watering can */
   --map-basket: #c99a58; /* the basket of produce */
   --map-compost: #3a2a19; /* a bucket of compost or waste */
+  --map-bags: #e9e2cf; /* the weekly shop's bags */
   --map-slug: #4b3a26; /* a slug on the move */
   --map-slime: #e6ecf0b3; /* the silvery trail it leaves */
   --map-aphid: #1f2a1c; /* black bean aphids clustered on the tips */
@@ -73,6 +74,7 @@
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
   --text: 16px;
   --text-small: 0.85rem;
+  --line-tight: 1.15; /* two short lines in one control: the dial's figure and the footprint under it */
   --radius: 10px;
   --gap: 12px;
   --gap-small: 6px;
@@ -92,6 +94,8 @@
   --panel-min-landscape: 220px;
   --sheet-max: 45vh; /* the sheet's most height on a portrait phone */
   --dial: 40px; /* the carbon dial */
+  --bag: 12px; /* the shop's footprint under the dial's figure */
+  --bag-handle: 1.5; /* its handle, in its 16-unit drawing */
   --focus-ring: 3px;
   --meter-w: 6rem; /* the gardener's hours and the kitchen's groups */
   --meter-h: 0.8rem;
@@ -155,6 +159,7 @@
     --map-can: #4c7489;
     --map-basket: #a07b46;
     --map-compost: #2a1e12;
+    --map-bags: #b9b19d;
     --map-slug: #6a5238;
     --map-slime: #c7d0d699;
     --map-aphid: #10160f;

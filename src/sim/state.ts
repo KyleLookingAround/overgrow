@@ -2,15 +2,17 @@
 // below less `rejected`, `errors` and `effects` (src/sim/save.ts); anything only the screen needs lives in the UI. The founding
 // spec's "The simulation's state and time" sets the list.
 import {BUTT_LITRES, GARDEN, PLACES, START_MONEY, WAYS} from '../data/garden';
+import type {FoodGroup} from '../data/household';
 import type {Speed} from '../data/ladder';
 import type {Activity} from './activity';
 import type {Effect} from './effects';
 import {levelClock} from './clock';
-import {copyNode, makeGraph, qty, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec} from './graph';
+import {copyNode, makeGraph, qty, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
 import {GARDENER, GARDENER_LEVERS} from './gardener';
 import {BED_FLOWER_LEVERS, LAWN_LEVERS} from './models/biodiversity';
 import {BED_LEVERS, overwintered} from './models/crops';
-import {newLedger, type Ledger} from './models/kitchen';
+import {householdNode, startCupboard} from './models/household';
+import {newLedger, shopProduct, type Ledger} from './models/kitchen';
 import {rng, type Rng} from './random';
 import {BED_PEST_LEVERS, LAWN_PEST_LEVERS, startingSlugs} from './models/pests';
 import {startingSoil} from './models/soil';
@@ -69,18 +71,21 @@ export function gardenGraph(): Graph {
   const nodes: NodeSpec[] = PLACES.map((p) => {
     const spec: NodeSpec = {id: p.id, kind: p.kind, name: p.name, box: {...p.box}, land: {[p.land]: p.id === 'lawn' ? GARDEN.w * GARDEN.h - built : area(p.box)}};
     if (p.id === 'butt') spec.stocks = {water: {unit: 'L', amount: qty(BUTT_LITRES.start, 'L'), cap: qty(BUTT_LITRES.cap, 'L')}};
-    if (p.id === 'kitchen') spec.stocks = {money: {unit: 'GBP', amount: qty(START_MONEY, 'GBP')}};
+    if (p.id === 'kitchen') spec.stocks = {money: {unit: 'GBP', amount: qty(START_MONEY, 'GBP')}, ...cupboard()};
     if (p.soil) spec.stocks = startingSoil(p.soil, spec.land![p.land]!, p.land === 'grass');
     // slugs in the dug beds and the lawn's edge (src/sim/models/pests.ts)
     if (p.id === 'lawn' || p.dug) Object.assign(spec.stocks!, startingSlugs(spec.land![p.land]!, p.id === 'lawn'));
     if (p.kind === 'bed') spec.levers = {...BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS()};
     if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
     // the kitchen's ledger, and the level's history for the goal, started on the first Monday (src/sim/goal.ts)
-    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: null};
+    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: null, quality: {}};
+    if (p.id === 'gate') spec.levers = {quality: {}};
     return spec;
   });
   // the gardener: their hours for the day, the watering line, their tools and the day's jobs (src/sim/gardener.ts)
   nodes.push({id: GARDENER, kind: 'person', name: 'The gardener', box: null, stocks: {hours: {unit: 'h', amount: qty(0, 'h')}}, levers: GARDENER_LEVERS()});
+  // the household beside the garden: the gardener alone, in a full-time job (src/sim/models/household.ts)
+  nodes.push(householdNode());
   // the air carries the level's weather (src/sim/models/weather.ts), drawn from the first hour
   nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null}});
   const edges: Edge[] = WAYS.map((w, i) => ({id: `way-${i + 1}`, from: w.from, to: w.to, carries: [...w.carries]}));
@@ -90,6 +95,16 @@ export function gardenGraph(): Graph {
   const g = makeGraph(nodes, edges);
   overwintered(g.nodes[HEAD_START.bed]!, HEAD_START.crop, HEAD_START.sownHoursAgo, HEAD_START.ddToGo);
   return g;
+}
+
+/** The kitchen's cupboard on day 1: last week's shop, its veg and the rest of the diet. */
+function cupboard(): Record<string, Stock> {
+  const out: Record<string, Stock> = {};
+  for (const [g, kg] of Object.entries(startCupboard()) as [FoodGroup, number][]) {
+    const product = shopProduct(g), had = out[`food.${product}`]?.amount ?? 0;
+    out[`food.${product}`] = {unit: 'kgFood', amount: qty(had + kg, 'kgFood'), product};
+  }
+  return out;
 }
 
 export function newState(seed: number, speed: Speed = 1): State {

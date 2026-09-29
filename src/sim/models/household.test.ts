@@ -1,11 +1,9 @@
 // The household economy's plausibility test: a full-time gardener gets about four garden hours on a weekday and more at
-// weekends (the figure src/data/jobs.ts has); a partner moving from work to help cuts the wage and adds garden hours; a
+// weekends (the owner's figure, which the gardener now takes from here); a partner moving from work to help cuts the wage and adds garden hours; a
 // garden that meets the veg ask saves its kg at shop prices; a week's shop's carbon is mostly meat and dairy and its
 // transport share is small; the kitchen's ask is the basket's veg; poorer households spend more of their income on
 // food; and many households' demand is the sum of each.
 import {describe, expect, it} from 'vitest';
-import {ASK} from '../../data/kitchen';
-import {HOURS} from '../../data/jobs';
 import {DECILES, FOOD_GROUPS, PLOT, PRICE, VEG, type FoodGroup} from '../../data/household';
 import {applyFlow, makeGraph} from '../graph';
 import type {Flow} from '../graph';
@@ -23,9 +21,9 @@ const sumKg = (o: Partial<Record<FoodGroup, number>>) => Object.values(o).reduce
 
 describe('members and hours', () => {
   it('gives a full-time gardener about four garden hours on a weekday and more at weekends, as jobs.ts does', () => {
-    for (let d = 0; d < 5; d++) expect(gardenHours(gardener, d)).toBeCloseTo(HOURS.weekday, 0);
+    for (let d = 0; d < 5; d++) expect(gardenHours(gardener, d)).toBeCloseTo(4, 6);
     for (let d = 5; d < 7; d++) {
-      expect(gardenHours(gardener, d)).toBeCloseTo(HOURS.weekend, 0);
+      expect(gardenHours(gardener, d)).toBeCloseTo(6, 6);
       expect(gardenHours(gardener, d)).toBeGreaterThan(gardenHours(gardener, 0));
     }
   });
@@ -79,6 +77,8 @@ describe('members and hours', () => {
 
 describe('the weekly basket and shop', () => {
   it('has a kitchen ask that falls out of the basket within 10 % of the fixed one, and grows with the household', () => {
+    // the kitchen's fixed ask before part 6b: about 1 kg a day for an average household of 2.4 (NHS five a day, ONS)
+    const ASK = {potatoes: 0.4, salads: 0.3, tomatoes: 0.15, greens: 0.15};
     const ask = kitchenAsk(2.4), fixed = Object.values(ASK).reduce((s, v) => s + v, 0);
     const total = VEG.reduce((s, g) => s + ask[g], 0);
     expect(Math.abs(total - fixed) / fixed).toBeLessThan(0.1);

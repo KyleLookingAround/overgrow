@@ -116,6 +116,32 @@ button.num {
   stroke-width: var(--dial-needle);
   stroke-linecap: round;
 }
+/* the dial's figure, with the shop food's footprint under it once it has unfolded: a bag and its kg */
+.dial-text {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: var(--line-tight);
+}
+.dial-shop {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-hair);
+  font-size: var(--text-small);
+  color: var(--soft);
+}
+.dial-shop svg {
+  width: var(--bag);
+  height: var(--bag);
+}
+.dial-shop .bag {
+  fill: var(--soft);
+}
+.dial-shop .bag-handle {
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: var(--bag-handle);
+}
 .speeds {
   display: inline-flex;
   gap: var(--gap-tiny);

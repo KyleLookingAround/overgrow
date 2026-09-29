@@ -1,7 +1,8 @@
 // The map's renderer: PixiJS on WebGL, or Pixi's Canvas 2D renderer where WebGL is missing
 // (docs/decisions/ADR-2026-09-28-webgl-map.md). It draws the level's nodes in the flat, top-down, soft style
 // (src/ui/map/draw.ts), the people and things moving from the snapshot's activities at the view time the clock loop
-// gives it (one figure for each person, where their latest-started activity puts them, with what they carry), the
+// gives it (one figure for each person, where their latest-started activity puts them, with what they carry, and none
+// while they're away at work beyond the gate), the
 // weather (a shower crossing the garden while the sim says it rains, a rime while it says there's frost), the crops in
 // the beds, the garden's pests and wildlife (src/ui/map/life.ts), the gardener's torch after dark, a ring pulsing at the
 // place an Explain card is about, and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours change; what
@@ -248,6 +249,11 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       for (const l of byWho(cur.activities)) {
         const a = current(l, v.hours);
         if (!place(a, v.hours, c)) continue;
+        // out at work through the gate: not in the garden until they come home
+        if (a.doing === 'away') {
+          if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item: null};
+          continue;
+        }
         let p = pool[used];
         if (!p) pool.push((p = new Particle({texture: person!, anchorX: 0.5, anchorY: 0.6})));
         p.x = at.x;
