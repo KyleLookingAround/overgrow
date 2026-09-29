@@ -1,0 +1,2 @@
+Section: now
+- **The carry-over rule's maths** (ahead of part 7, `docs/briefs/sealing-maths.md`, #16): the history a level keeps and the five headline numbers taken from it, a sealed node's tick (Output × events × Health × noise by Reliability), events across scales with the kg conserved, inflating's 5 % target and layout key, and the step-up offer's test naming what holds the player back. Pure and tested in `src/sim/ladder.ts`, with its notes in `docs/systems/ladder.md`; part 7 wires it to the step-up card, the zoom-out and the `carry` check.

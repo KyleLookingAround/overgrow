@@ -9,6 +9,10 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ## The lessons
 
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
+### Model
+
+- [The carry-over rule's maths, ahead of part 7 (#20) · 29 Sep 2026](lessons/20-sealing-maths.md)
+
 ### Runbook
 
 - [Easy wins from Final Call (#14) · 29 Sep 2026](lessons/14-final-call-wins.md)
