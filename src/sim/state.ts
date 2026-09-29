@@ -42,7 +42,7 @@ export interface State {
   laws: string[];
   goals: Record<string, LeverValue>;
   settings: Record<string, LeverValue>;
-  /** Cards and hints already shown. */
+  /** Cards, hints and instruments already shown: what has unfolded (src/data/unfold.ts). */
   seen: string[];
   /** Why the last command was refused, or null. Not saved. */
   rejected: string | null;
@@ -121,6 +121,8 @@ export interface Snapshot {
   flows: Flow[];
   /** The last tick command's effects, each with its kind, cause, amount and place (src/sim/effects.ts). */
   effects: Effect[];
+  /** What has unfolded (src/data/unfold.ts): the instruments the player has influence over so far. */
+  seen: string[];
   activities: Activity[];
   /** The kitchen's ledger: the day's ask and what met it, and what's been picked, eaten, wasted, sold and earned. */
   kitchen: Ledger | null;
@@ -134,7 +136,7 @@ export function snapshotOf(s: State): Snapshot {
     seed: s.seed, hours: s.hours, level: s.level, step: levelClock(s.level).stepHours, speed: s.speed,
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
-    rev: s.graph.rev, nodes: nodes.map(copyNode), edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects,
+    rev: s.graph.rev, nodes: nodes.map(copyNode), edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects, seen: s.seen,
     activities: s.activities.map((a) => ({...a})),
     kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,
   };

@@ -5,7 +5,9 @@
 // from late May onto beans (and less keenly lettuce and tomatoes), multiply by degree days, take a share of the crop's
 // growth as sap, and are eaten by the ladybirds the flowers bring (src/sim/models/biodiversity.ts). Blight starts on
 // potatoes and tomatoes in a Smith period and spreads over the tops, fastest in muggy weather, cutting the growth still
-// to come and rotting ripe tubers and fruit; spores left in the garden start it earlier next year. Slugs and aphids are
+// to come and rotting ripe tubers and fruit; spores left in the garden start it earlier next year. Soil-borne pests of a
+// family (clubroot on brassicas, potato cyst nematode, beans' root rots) build up in a bed each time the family finishes
+// there and die away slowly without it, holding back the next crop of that family: the reason for rotation. Slugs and aphids are
 // stocks in the 'pests' unit ('pests.slugs', 'pests.aphids'), so every one born, arriving, eaten or caught is a flow; a
 // bed's blight and treatments are its `pests` lever and the garden's Smith-period count and spores the lawn's
 // `outbreak` lever. The gardener does the policy's work (src/sim/gardener.ts) and calls control() as each job ends.
@@ -21,7 +23,9 @@
 //   II functional response). The Smith period (Smith 1956; two consecutive days with a minimum of 10 °C or more and at
 //   least 11 hours at 90 % relative humidity or more; the Met Office and AHDB's BlightWatch) for when blight starts, and
 //   Cooke et al. (2011), "Epidemiology and integrated control of potato late blight in Europe", for how fast it spreads,
-//   what a protectant fungicide does, and inoculum carried over on volunteer and discarded tubers.
+//   what a protectant fungicide does, and inoculum carried over on volunteer and discarded tubers. RHS, "Crop rotation",
+//   Wallenhammar (1996) for clubroot's resting spores (a half-life of about 3.6 years) and AHDB's clubroot and potato cyst
+//   nematode guidance for their build-up under the host and decline without it.
 // Simplifies: the weather gives no humidity, so an hour counts as humid while it rains or while the air is within 2 °C of
 //   the dew point, taken as the day's minimum (FAO-56's rule for a humid climate) and a degree higher on a wet day; one
 //   population of slugs a bed, all alike (no eggs or sizes), feeding at a flat rate while out; slugs' damage to seedlings
@@ -29,12 +33,13 @@
 //   forms, their damage a share of the day's growth; blight as the share of the tops infected, growing logistically,
 //   with no strains, no spread between beds and no tuber blight in store; the garden's own populations only, with
 //   none arriving from the neighbours' gardens yet (the allotment's slugs from a neglected plot are part 8's); slugs
-//   are hourly at the garden's hour step and skipped at longer ones (their nights need hours).
+//   are hourly at the garden's hour step and skipped at longer ones (their nights need hours); a soil-borne pest is one
+//   number a bed for its family, doubling as each crop of it finishes and halving over its years without one.
 //   Fast effect: a seedling bed nibbled on one wet night, aphids thick on the bean tips in a warm week, and a potato bed's
 //   tops browning within days of a muggy spell. Slow effect: slug numbers building over a wet season, aphids held down
 //   year after year where there are flowers for the ladybirds, and blight spores carried to the next year on tubers left
-//   in the ground.
-import {APHIDS, BLIGHT, CONTROL, LADYBIRDS, SLUGS, type PestId, type Policy} from '../../data/pests';
+//   in the ground, and a family grown bed after bed losing more each time.
+import {APHIDS, BLIGHT, CONTROL, LADYBIRDS, SLUGS, SOILBORNE, type PestId, type Policy} from '../../data/pests';
 import {calendar, type System, type TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type Graph, type GraphNode, type LeverValue} from '../graph';
@@ -61,6 +66,10 @@ export interface BedPests {
   picked: number;
   /** kg of produce lost to pests on it since the start: eaten, or rotted by blight. */
   eaten: number;
+  /** Soil-borne inoculum by family, 0–1 (clubroot, potato cyst nematode, foot and root rot), and the crop last seen in
+   *  the bed (when sown, its family), so one finishing is noticed. */
+  soil: Record<string, number>;
+  grew: {sown: number; family: string} | null;
 }
 
 /** The garden's blight risk: the lawn's `outbreak` lever. */
@@ -76,7 +85,9 @@ export interface Outbreak {
 
 export const SLUG_KEY = 'pests.slugs', APHID_KEY = 'pests.aphids';
 const LAWN = 'lawn';
-export const NO_PESTS: BedPests = {out: 0, night: 0, slimed: null, blight: 0, pellets: 0, sprayed: 0, fungicide: 0, picked: 0, eaten: 0};
+export const NO_PESTS: BedPests = {out: 0, night: 0, slimed: null, blight: 0, pellets: 0, sprayed: 0, fungicide: 0, picked: 0, eaten: 0, soil: {}, grew: null};
+/** A dug bed's starting inoculum of each soil-borne pest. */
+const startingSoil = () => Object.fromEntries(Object.entries(SOILBORNE).map(([f, s]) => [f, s.start]));
 const QUIET: Outbreak = {streak: 0, smith: null, spores: 0, wet: null};
 
 export const pestsOf = (n: GraphNode): BedPests => (n.levers.pests as unknown as BedPests | undefined) ?? NO_PESTS;
@@ -90,7 +101,7 @@ export const slugsOn = (n: GraphNode) => Math.max(0, n.stocks[SLUG_KEY]?.amount 
 export const aphidsOn = (n: GraphNode) => Math.max(0, n.stocks[APHID_KEY]?.amount ?? 0);
 
 /** The levers the model declares: every bed's pests, and the lawn's blight risk. */
-export const BED_PEST_LEVERS = (): Record<string, LeverValue> => ({pests: {...NO_PESTS} as unknown as LeverValue});
+export const BED_PEST_LEVERS = (): Record<string, LeverValue> => ({pests: {...NO_PESTS, soil: startingSoil()} as unknown as LeverValue});
 export const LAWN_PEST_LEVERS = (): Record<string, LeverValue> => ({outbreak: {...QUIET} as unknown as LeverValue});
 /** The slugs a dug bed and the lawn's edge start with. */
 export const startingSlugs = (area: number, lawn: boolean) => ({[SLUG_KEY]: {unit: 'pests' as const, amount: qty(lawn ? SLUGS.start.edge : SLUGS.start.perM2 * area, 'pests'), product: 'slugs'}});
@@ -275,6 +286,27 @@ function blightDay(c: TickContext, beds: GraphNode[], days: WeatherDay[], smith:
   return left;
 }
 
+/** Soil-borne pests: a finished crop's family builds up in its bed, every family dies away over time, and a crop of an
+ *  infested family loses a share of the day's growth. */
+function soilDay(c: TickContext, beds: GraphNode[], days: WeatherDay[]) {
+  for (const b of beds) {
+    const p = pestsOf(b), s = cropOf(b), soil: Record<string, number> = {};
+    for (const [f, x] of Object.entries(p.soil ?? {})) soil[f] = x * Math.pow(0.5, days.length / (SOILBORNE[f]?.halfLife ?? 365));
+    // the crop last seen here has finished (or been replaced): its family's spores and cysts go into the soil
+    if (p.grew && (!s || s.sown !== p.grew.sown)) {
+      const d = SOILBORNE[p.grew.family];
+      if (d) soil[p.grew.family] = Math.min(1, (soil[p.grew.family] ?? 0) * (1 + d.gain));
+    }
+    const spec = s && specOf(s), d = spec ? SOILBORNE[spec.family] : undefined;
+    if (s && spec && d && !s.dead && stageOf(s) !== 'sown') {
+      const grew = days.reduce((sum, w) => sum + Math.max(0, (w.tmax + w.tmin) / 2 - spec.base), 0) / Math.max(1, totalDd(spec));
+      const took = harm(b, d.harm * (soil[spec.family] ?? 0) * grew);
+      if (took > 0) note(c, d.name, b.id, took, 'share');
+    }
+    setPests(b, {soil, grew: s ? {sown: s.sown, family: specOf(s).family} : null});
+  }
+}
+
 function day(c: TickContext) {
   const g = c.graph, w = weatherOf(g);
   if (!w || !g.nodes[LAWN]) return;
@@ -293,6 +325,7 @@ function day(c: TickContext) {
   setOutbreak(g, {streak, smith: smith ? c.hours : o.smith, spores: Math.min(1, spores + left)});
   aphidDay(c, beds, days, mean);
   slugDay(c, days, mean);
+  soilDay(c, beds, days);
 }
 
 // ---- the policy's work ----

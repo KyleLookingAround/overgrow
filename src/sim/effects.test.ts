@@ -11,13 +11,14 @@ describe('effects', () => {
   it('has an Explain entry for every cause two years of the game record, whatever the pest policy', () => {
     const seen = new Map<string, string>(), missing = new Set<string>();
     for (const how of ['pick', 'trap', 'treat'] as const) {
-      const sim = createSim(3);
-      for (const pest of Object.keys(POLICIES) as PestId[])
-        if ((POLICIES[pest] as string[]).includes(how)) expect(sim.apply({type: 'policy', node: 'gardener', lever: pest, value: how}).rejected).toBeNull();
-      sim.apply({type: 'plan', node: 'bed-2', lever: 'edge', value: 'marigolds'});
+      const sim = createSim(3), set = new Set<string>();
       sim.apply({type: 'plan', node: 'bed-3', lever: 'dig', value: true});
       sim.apply({type: 'plan', node: 'bed-3', lever: 'sow', value: 'potatoes'});
       for (let h = 0; h < 24 * 365 * 2; h += 6) {
+        // each lever as soon as it has unfolded
+        for (const pest of Object.keys(POLICIES) as PestId[])
+          if (!set.has(pest) && (POLICIES[pest] as string[]).includes(how) && sim.apply({type: 'policy', node: 'gardener', lever: pest, value: how}).rejected === null) set.add(pest);
+        if (!set.has('edge') && sim.apply({type: 'plan', node: 'bed-2', lever: 'edge', value: 'marigolds'}).rejected === null) set.add('edge');
         const s = sim.apply({type: 'tick', hours: 6});
         const ids = new Set(s.nodes.map((n) => n.id));
         for (const e of s.effects) {

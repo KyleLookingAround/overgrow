@@ -4,6 +4,7 @@
 // them. docs/systems/commands.md says how each is handled.
 import type {Speed} from '../data/ladder';
 import {SPEEDS} from '../data/ladder';
+import {gateOf, UNFOLD, unfolded} from '../data/unfold';
 import {levelClock, runStep, type System} from './clock';
 import {flowEffects, recordInto, Recorder} from './effects';
 import {applyFlow, mergeFlows, type Flow, type LeverValue, type NodeId} from './graph';
@@ -58,6 +59,9 @@ function tick(s: State, systems: readonly System[], hours: number) {
   s.flows = mergeFlows(flows);
   // each flow is an effect of its `what` at its place, and the systems' events besides
   s.effects = flowEffects(s.graph, s.flows).concat(effects.list());
+  // an instrument unfolds the first time one of its causes happens (src/data/unfold.ts)
+  for (const [key, u] of Object.entries(UNFOLD))
+    if (!s.seen.includes(key) && s.effects.some((e) => u.causes.includes(e.cause))) s.seen = [...s.seen, key];
   s.errors = errors;
 }
 
@@ -87,6 +91,7 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       const n = s.graph.nodes[cmd.node];
       if (!n) s.rejected = `no node ${cmd.node}`;
       else if (!(cmd.lever in n.levers)) s.rejected = `${n.name} has no ${cmd.type} lever ${cmd.lever}`;
+      else if (gateOf(cmd.lever, cmd.value) && !unfolded(s.seen, gateOf(cmd.lever, cmd.value)!)) s.rejected = `that hasn’t come up in the garden yet`;
       else {
         const r = ask(systems, s, cmd);
         if (r) s.rejected = r;

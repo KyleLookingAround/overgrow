@@ -73,12 +73,21 @@ export const CAUSES = {
   pollination: {kind: 'wildlife', causes: ['pollination', 'bees']},
   flowers: {kind: 'wildlife', causes: ['flowers']},
   cat: {kind: 'wildlife', causes: ['cat']},
+  soilborne: {kind: 'pest', causes: ['clubroot', 'potato cyst nematode', 'foot and root rot']},
 } satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
 
 export type Entry = keyof typeof CAUSES;
 
 /** What each entry says. */
 export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes'>> = {
+  soilborne: {
+    title: 'Soil-borne pests',
+    says: 'A pest or disease in the bed’s soil held the crop back: clubroot, potato cyst nematode or root rot.',
+    mechanism: 'Each lives in the soil on one family; growing that family again multiplies it, and it dies away slowly without it.',
+    fast: 'A crop of the same family in the same bed grows less.',
+    slow: 'Rotating families starves it out over years; clubroot spores last decades.',
+    source: 'RHS, “Crop rotation”; Wallenhammar (1996); AHDB clubroot and potato cyst nematode guidance.',
+  },
   rain: {
     title: 'Rain',
     says: 'Rain fell on the beds, the lawn and the shed’s roof, which fills the butt.',

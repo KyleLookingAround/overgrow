@@ -1,9 +1,11 @@
 // The Garden tab: the gardener's card (the day's hours ticking down and the job in hand) and the plan (what to sow in
 // each dug bed and from when, or the rotation, a border of flowers along its edge, the moisture below which the gardener
-// waters, and the pest policy for each pest the garden's crops draw: leave, pick, trap or treat). The plan changes the
+// waters, and the pest policy for each pest the garden's crops draw: leave, pick, trap or treat). The pest lines and
+// the flowers appear only once they've come up in the garden (src/data/unfold.ts). The plan changes the
 // game only through `plan` and `policy` commands; the gardener picks it up at once.
 import {CROP_IDS, CROPS, FLOWER_IDS, type CropId} from '../data/crops';
 import {POLICIES, START_POLICY, type PestId, type Policy} from '../data/pests';
+import {unfolded} from '../data/unfold';
 import type {Activity} from '../sim/activity';
 import type {Command} from '../sim/commands';
 import {GARDENER, hoursOn} from '../sim/gardener';
@@ -122,7 +124,7 @@ function status(n: GraphNode): string {
   }
 }
 
-function BedPlan({n, onPlan}: {n: GraphNode; onPlan: (lever: string, value: LeverValue) => void}) {
+function BedPlan({n, onPlan, flowers}: {n: GraphNode; onPlan: (lever: string, value: LeverValue) => void; flowers: boolean}) {
   const sow = String(n.levers.sow ?? 'none'), from = n.levers.sowFrom as number | null, id = `plan-${n.id}`, edge = String(n.levers.edge ?? 'none');
   return (
     <div class="bed-plan">
@@ -131,7 +133,7 @@ function BedPlan({n, onPlan}: {n: GraphNode; onPlan: (lever: string, value: Leve
       <div class="pair">
         <select id={id} value={sow} onChange={(e) => onPlan('sow', (e.target as HTMLSelectElement).value)}>
           <option value="rotation">Follow the rotation</option>
-          {CROP_IDS.map((c) => (
+          {CROP_IDS.filter((c) => flowers || !CROPS[c].flower || c === sow).map((c) => (
             <option value={c}>{CROPS[c].name}</option>
           ))}
           <option value="none">Leave empty</option>
@@ -146,10 +148,10 @@ function BedPlan({n, onPlan}: {n: GraphNode; onPlan: (lever: string, value: Leve
           {from !== null && !FROM.some(([, v]) => v === from) && <option value={String(from)}>From day {from}</option>}
         </select>
       </div>
-      <label class="check">
+      {flowers && <label class="check">
         <input type="checkbox" checked={edge !== 'none'} onChange={(e) => onPlan('edge', (e.target as HTMLInputElement).checked ? FLOWER_IDS[0]! : 'none')} />
         {CROPS[FLOWER_IDS[0]!].name} along the edge
-      </label>
+      </label>}
     </div>
   );
 }
@@ -175,7 +177,10 @@ function drawn(nodes: GraphNode[]): PestId[] {
   return (Object.keys(POLICIES) as PestId[]).filter((p) => [...crops].some((c) => CROPS[c].pests.includes(p)));
 }
 
-export function GardenTab({nodes, acts, hours, send, onExplain}: {nodes: GraphNode[]; acts: Activity[]; hours: number; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void}) {
+export function GardenTab({nodes, acts, hours, seen, send, onExplain}: {
+  nodes: GraphNode[]; acts: Activity[]; hours: number; seen: readonly string[]; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
+}) {
+  const pests = drawn(nodes).filter((p) => unfolded(seen, `pests.${p}`));
   const beds = nodes.filter((n) => n.kind === 'bed' && isDug(n)), me = nodes.find((n) => n.id === GARDENER);
   const line = Number(me?.levers.waterBelow ?? 0.5);
   return (
@@ -184,7 +189,7 @@ export function GardenTab({nodes, acts, hours, send, onExplain}: {nodes: GraphNo
       <section class="plan" aria-labelledby="plan-title">
         <h3 id="plan-title">The plan</h3>
         {beds.map((n) => (
-          <BedPlan n={n} onPlan={(lever, value) => send({type: 'plan', node: n.id, lever, value})} />
+          <BedPlan n={n} flowers={unfolded(seen, 'flowers')} onPlan={(lever, value) => send({type: 'plan', node: n.id, lever, value})} />
         ))}
         <div class="bed-plan">
           <label for="plan-water">Water when the soil’s moisture is</label>
@@ -195,9 +200,10 @@ export function GardenTab({nodes, acts, hours, send, onExplain}: {nodes: GraphNo
           </select>
         </div>
       </section>
+      {pests.length > 0 && (
       <section class="plan pest-plan" aria-labelledby="pests-title">
         <h3 id="pests-title">Pests</h3>
-        {drawn(nodes).map((pest) => (
+        {pests.map((pest) => (
           <div class="bed-plan">
             <label for={`policy-${pest}`}>{PEST_NAME[pest]}</label>
             <select id={`policy-${pest}`} value={String(me?.levers[pest] ?? START_POLICY[pest])}
@@ -209,6 +215,7 @@ export function GardenTab({nodes, acts, hours, send, onExplain}: {nodes: GraphNo
           </div>
         ))}
       </section>
+      )}
     </>
   );
 }

@@ -87,6 +87,22 @@ export const BLIGHT = {
   fade: 0.5,
 };
 
+/**
+ * Soil-borne pests and diseases of a family, building up in a bed that grows the family again and dying away while it
+ * doesn't: the reason for rotation (RHS, "Crop rotation"). Each is the bed's inoculum, 0–1: `start` in a dug bed, times
+ * (1 + `gain`) when a crop of the family finishes (roots rotting release spores and cysts), halving every `halfLife`
+ * days without it; a crop of the family loses up to `harm` of its growth at full inoculum. Clubroot on brassicas: resting
+ * spores with a half-life of about 3.6 years (Wallenhammar 1996, Plant Pathology 45) and a crop on badly infested ground
+ * lost (AHDB clubroot guidance); potato cyst nematode on potatoes and tomatoes: cysts declining about 30 % a year
+ * without a host and multiplying many times under one (AHDB, "Potato cyst nematode"); foot and root rots of beans
+ * (Aphanomyces, Fusarium) lasting a few years. Lettuce has none here.
+ */
+export const SOILBORNE: Record<string, {name: string; start: number; gain: number; halfLife: number; harm: number}> = {
+  brassica: {name: 'clubroot', start: 0.02, gain: 1, halfLife: 3.6 * 365, harm: 0.5},
+  solanum: {name: 'potato cyst nematode', start: 0.02, gain: 1, halfLife: 2 * 365, harm: 0.5},
+  legume: {name: 'foot and root rot', start: 0.02, gain: 1, halfLife: 1.5 * 365, harm: 0.3},
+};
+
 export type PestId = 'slugs' | 'aphids' | 'blight';
 export type Policy = 'leave' | 'pick' | 'trap' | 'treat';
 

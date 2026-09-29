@@ -109,8 +109,13 @@ describe('gardener', () => {
 
   it('takes the pest policy only as a policy, with a choice each pest has', () => {
     const sim = createSim(1);
+    // not until the slugs have come up (the first evening's patrol: src/data/unfold.ts)
+    expect(sim.apply({type: 'policy', node: GARDENER, lever: 'slugs', value: 'leave'}).rejected).toMatch(/hasn’t come up/);
+    play(sim, 24);
+    expect(sim.snapshot().seen).toContain('pests.slugs');
     expect(sim.apply({type: 'plan', node: GARDENER, lever: 'slugs', value: 'trap'}).rejected).toMatch(/pest policy/);
-    expect(sim.apply({type: 'policy', node: GARDENER, lever: 'aphids', value: 'trap'}).rejected).toMatch(/leave, pick, treat/);
+    expect(sim.apply({type: 'policy', node: GARDENER, lever: 'slugs', value: 'bait'}).rejected).toMatch(/leave, pick, trap, treat/);
+    expect(sim.apply({type: 'policy', node: GARDENER, lever: 'aphids', value: 'pick'}).rejected).toMatch(/hasn’t come up/);
     expect(sim.apply({type: 'policy', node: GARDENER, lever: 'slugs', value: 'leave'}).rejected).toBeNull();
     const {acts} = play(sim, 24);
     expect(acts.some((a) => a.doing === 'torch')).toBe(false);

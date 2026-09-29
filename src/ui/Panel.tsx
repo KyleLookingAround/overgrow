@@ -11,6 +11,7 @@ import type {GraphNode, NodeId} from '../sim/graph';
 import {borderOf, inFlower} from '../sim/models/biodiversity';
 import {cropOf, quality} from '../sim/models/crops';
 import {pestsOf} from '../sim/models/pests';
+import {unfolded} from '../data/unfold';
 import type {Ledger} from '../sim/models/kitchen';
 import {hasSoil, health, limitsOf, moisture, organicMatter, SOIL} from '../sim/models/soil';
 import type {EffectsLog, Logged} from './effects-log';
@@ -57,12 +58,12 @@ function soilRows(n: GraphNode): Row[] {
   ];
 }
 /** A bed's pests and flowers beyond its slug and aphid stocks. */
-function pestRows(n: GraphNode): Row[] {
+function pestRows(n: GraphNode, seen: readonly string[]): Row[] {
   if (n.kind !== 'bed') return [];
-  const p = pestsOf(n), c = cropOf(n), b = borderOf(n), rows: Row[] = [];
-  if (p.blight > 0) rows.push(['Blight', `${Math.round(100 * p.blight)} % of the tops`, 'blight']);
-  if (c && c.lost > 0.005) rows.push(['Lost to pests', `${Math.round(100 * c.lost)} % of the crop`, 'slugs']);
-  if (p.eaten > 0.001) rows.push(['Eaten or rotted', grams(p.eaten), 'slugs']);
+  const p = pestsOf(n), c = cropOf(n), b = borderOf(n), rows: Row[] = [], any = ['slugs', 'aphids', 'blight'].some((k) => unfolded(seen, `pests.${k}`));
+  if (p.blight > 0 && unfolded(seen, 'pests.blight')) rows.push(['Blight', `${Math.round(100 * p.blight)} % of the tops`, 'blight']);
+  if (any && c && c.lost > 0.005) rows.push(['Lost to pests', `${Math.round(100 * c.lost)} % of the crop`, 'slugs']);
+  if (any && p.eaten > 0.001) rows.push(['Eaten or rotted', grams(p.eaten), 'slugs']);
   if (b) rows.push(['Border', `${CROPS[b.id].name}${inFlower(b) ? ', in flower' : ''}`, 'flowers']);
   return rows;
 }
@@ -91,19 +92,19 @@ function Lately({n, log, onExplain}: {n: GraphNode; log: EffectsLog; onExplain: 
   );
 }
 
-function Place({n, log, onExplain}: {n: GraphNode; log: EffectsLog; onExplain: (cause: string, at: string | null) => void}) {
+function Place({n, log, seen, onExplain}: {n: GraphNode; log: EffectsLog; seen: readonly string[]; onExplain: (cause: string, at: string | null) => void}) {
   const soil = hasSoil(n);
   const rows = Object.entries(n.stocks).map(([k, s]): Row | null => {
     if (soil && SHOWN.has(k)) return null;
     if (soil && k === SOIL.humus) return ['Carbon in the soil', amount(s), 'decay'];
     const land = k.startsWith('land.');
     if (land && !s.amount) return null;
-    if (s.unit === 'pests' && s.amount < 0.5) return null;
+    if (s.unit === 'pests' && (s.amount < 0.5 || !unfolded(seen, `pests.${s.product}`))) return null;
     const name = land ? `Land (${LAND[k.slice(5)] ?? k.slice(5)})` : STOCK_NAME[k] ?? (s.product ? s.product[0]!.toUpperCase() + s.product.slice(1) : k);
     return [name, s.unit === 'pests' ? num(Math.round(s.amount)) : amount(s), causeOf(n, k)];
   }).filter((r): r is Row => !!r);
   if (soil) rows.unshift(...soilRows(n));
-  rows.push(...pestRows(n));
+  rows.push(...pestRows(n, seen));
   return (
     <section class="place">
       <h3>{n.name}</h3>
@@ -125,7 +126,7 @@ type Tab = 'garden' | 'kitchen';
 const TABS: [Tab, string][] = [['garden', 'Garden'], ['kitchen', 'Kitchen']];
 
 export function Panel(props: {
-  nodes: GraphNode[]; acts: Activity[]; hours: number; ledger: Ledger | null; log: EffectsLog; selected: NodeId | null; onSelect: (id: NodeId) => void;
+  nodes: GraphNode[]; acts: Activity[]; hours: number; ledger: Ledger | null; log: EffectsLog; seen: readonly string[]; selected: NodeId | null; onSelect: (id: NodeId) => void;
   open: boolean; onToggle: () => void; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
 }) {
   const [tab, setTab] = useState<Tab>('garden');
@@ -157,7 +158,7 @@ export function Panel(props: {
           <KitchenTab ledger={props.ledger} nodes={props.nodes} onExplain={props.onExplain} />
         ) : (
           <>
-            <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} send={props.send} onExplain={props.onExplain} />
+            <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} send={props.send} onExplain={props.onExplain} />
             <h3 class="places-title">Places</h3>
             <ul class="places" aria-label="Places in the garden">
               {places.map((n) => (
@@ -168,7 +169,7 @@ export function Panel(props: {
                 </li>
               ))}
             </ul>
-            {chosen ? <Place n={chosen} log={props.log} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
+            {chosen ? <Place n={chosen} log={props.log} seen={props.seen} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
           </>
         )}
       </div>

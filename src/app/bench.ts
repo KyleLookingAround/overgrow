@@ -21,6 +21,6 @@ export function benchSnapshot(n: number, hours: number, m = n): Snapshot {
   });
   return {
     seed: 0, hours, level: 1, step: 1, speed: 1, money: 0, carbon: 0, rev: 1_000_000 + n, nodes, edges: [], flows: [], activities,
-    kitchen: null, rejected: null, errors: [], effects: [],
+    kitchen: null, rejected: null, errors: [], effects: [], seen: [],
   };
 }

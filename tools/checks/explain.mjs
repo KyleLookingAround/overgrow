@@ -3,7 +3,8 @@
 // and opens its card (title, mechanism, fast and slow effects, source) with the map pulsing at the place; a creature
 // drawn on the map opens its card when tapped; and on a 320 px phone on an evening with slugs out their badge is placed inside the map
 // with no two badges overlapping (the same placement helper the map draws with, src/ui/map/placement.ts), and a tap on
-// it opens the card inside the map.
+// it opens the card inside the map; and the slugs' policy line stays hidden (and refused) until the slugs come up
+// (src/data/unfold.ts).
 import {join} from 'node:path';
 
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
@@ -52,6 +53,8 @@ export default async function({ok,open,out}){
   {const {ctx,page,errs}=await open({width:320,height:568},{touch:true});
     await ready(page);
     await page.evaluate(()=>window.__sim.send({type:'speed',speed:0}));
+    const before=await page.evaluate(()=>({line:!!document.querySelector('#policy-slugs'),refused:null}));
+    before.refused=await page.evaluate(()=>window.__sim.send({type:'policy',node:'gardener',lever:'slugs',value:'trap'}).then(s=>s.rejected));
     // on to the first hour slugs are out (a mild, damp evening)
     const at=await page.evaluate(async()=>{for(let i=0;i<24*7;i++){const s=await window.__sim.send({type:'tick',hours:1});
       if(s.nodes.some(n=>n.levers.pests?.out>=4))return s.hours}return null});
@@ -59,6 +62,8 @@ export default async function({ok,open,out}){
     if(at!==null)await page.evaluate(()=>window.__sim.send({type:'tick',hours:1}));
     await page.waitForFunction(h=>window.__sim.view().cur>=h,at??0,{timeout:8000}).catch(()=>{});
     await page.waitForSelector('.badge[data-cause="slugs"]',{timeout:5000}).catch(()=>{});
+    const after=await page.waitForSelector('#policy-slugs',{timeout:5000}).then(()=>true,()=>false);
+    ok('explain: the slugs’ policy line unfolds once the slugs come up, and is refused before',!before.line&&/come up/.test(before.refused??'')&&after,JSON.stringify({before,after}));
     const badges=await page.evaluate(()=>{const m=document.querySelector('.map').getBoundingClientRect();
       return {map:{x:m.x,y:m.y,r:m.right,b:m.bottom},list:[...document.querySelectorAll('.badge')].map(b=>{const r=b.getBoundingClientRect();return {cause:b.dataset.cause,x:r.x,y:r.y,w:r.width,h:r.height}})}});
     const l=badges.list,apart=l.every((a,i)=>l.every((b,j)=>j<=i||Math.abs(a.x-b.x)>=a.w-0.5||Math.abs(a.y-b.y)>=a.h-0.5));

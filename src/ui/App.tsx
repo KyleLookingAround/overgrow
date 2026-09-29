@@ -62,7 +62,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const speed = (s: Speed) => send({type: 'speed', speed: s});
   const explainAt = (cause: string, at: string | null) => setExplain({cause, at});
   const nodes = shown?.snap.nodes ?? [];
-  const badges = shown ? badgesOf(nodes, hourNow(shown.snap, shown.hour)) : [];
+  const badges = shown ? badgesOf(nodes, hourNow(shown.snap, shown.hour), shown.snap.seen) : [];
   return (
     <div class="page" data-sim={shown ? 'ready' : 'waiting'}>
       <h1 class="visually-hidden">Overgrow</h1>
@@ -73,7 +73,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
           <Notices list={notices} onDismiss={(id) => setNotices((l) => l.filter((n) => n.id !== id))} />
           {explain && <Explain what={explain} nodes={nodes} log={log} onClose={() => setExplain(null)} />}
         </MapView>
-        <Panel nodes={nodes} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null} log={log}
+        <Panel nodes={nodes} seen={shown?.snap.seen ?? []} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null} log={log}
           selected={selected} onSelect={setSelected} open={open} onToggle={() => setOpen(!open)} send={send} onExplain={explainAt} />
       </main>
     </div>
