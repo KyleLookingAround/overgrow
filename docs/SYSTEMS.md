@@ -18,6 +18,7 @@ Today the game is the back garden on the graph, with the clock, saving and the p
 - [The kitchen](systems/kitchen.md) (`src/sim/models/kitchen.ts`, `src/sim/models/kitchen.test.ts`, `src/data/kitchen.ts`, `src/data/garden.ts`, `src/ui/KitchenTab.tsx`)
 - [Labour](systems/labour.md) (`src/sim/models/labour.ts`, `src/sim/models/labour.test.ts`, `src/data/labour.ts`, `src/sim/systems.ts`)
 - [The carry-over rule (sealing, events across scales and the step-up test)](systems/ladder.md) (`src/sim/ladder.ts`, `src/sim/ladder.test.ts`, `src/data/ladder-rules.ts`, `src/data/ladder.ts`)
+- [Livestock](systems/livestock.md) (`src/sim/models/livestock.ts`, `src/sim/models/livestock.test.ts`, `src/data/livestock.ts`)
 - [Machinery](systems/machinery.md) (`src/sim/models/machinery.ts`, `src/sim/models/machinery.test.ts`, `src/data/machinery.ts`, `src/sim/systems.ts`)
 - [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`, `src/ui/GardenTab.tsx`, `src/ui/KitchenTab.tsx`)
 - [Saving](systems/saving.md) (`src/sim/save.ts`, `src/sim/random.ts`, `src/app/storage.ts`, `src/app/main.tsx`)
@@ -59,6 +60,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/data/labour.ts` | Labour: the hours a person has, the work a hectare of each crop needs by month, what a person costs, and how skill changes the time a job takes. |
 | `src/data/ladder-rules.ts` | The carry-over rule's numbers: each level's rhythm (the window its headline numbers are taken over), what goes into the Health index, how a sealed node's Health drifts and what it costs, the tolerance of inflating, and the step-up offer's test. |
 | `src/data/ladder.ts` | The ladder's clock: each level's rate (real seconds per game day at 1×) and the length of the sim's fixed step, the speeds, and the date the game starts on. |
+| `src/data/livestock.ts` | Livestock: the species the garden and the smallholding keep, with what the livestock model (src/sim/models/livestock.ts) needs of each. |
 | `src/data/machinery.ts` | Machinery: what a small second-hand tractor and its implements use, how fast they work against hand work, when they fail and what fails costs, and how hard their wheels press on wet ground. |
 | `src/data/soils.ts` | Soils: the textures the garden's beds and lawn are made of, and what a soil starts with. |
 | `src/sim/activity.ts` | Activities: who is doing what, where, from when to when (the gardener watering bed 3 from 08:00 to 08:20; a lorry on a run leaving at 05:00). |
@@ -75,6 +77,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/sim/models/household.ts` | The household economy: who lives in the household, their jobs, hours and wages, the weekly shop, what shop food carries in carbon, land and water, the purse, and the same baskets summed over many households (an allotment's neighbours, a box scheme's customers, a town's income deciles). |
 | `src/sim/models/kitchen.ts` | The kitchen: the household's daily ask of the garden, what met it, and the honesty box at the gate. |
 | `src/sim/models/labour.ts` | Labour: the hours a person has by season and day of the week, the work a hectare of each crop needs by month, what a role costs, how skill stretches a job's time, and what doesn't fit waiting. |
+| `src/sim/models/livestock.ts` | Livestock: a herd or flock kept on a node (three hens in a run, a flock of ewes on a field, pigs in a paddock): what it eats, drinks and makes, the manure and methane it gives off, its welfare and the chance it falls ill. |
 | `src/sim/models/machinery.ts` | Machinery: a second-hand tractor's fuel and hours by operation against hand work, its breakdowns (a hazard rising with its age and the hours since it was serviced, drawn from a passed Rng), what repairs and services cost, and the soil compaction its wheels leave on wet ground, which takes structure off the soil and so yield. |
 | `src/sim/models/soil.ts` | Soil: what each bed and the lawn is made of, how much water it holds, its organic matter and nutrients, and its health. |
 | `src/sim/models/water.ts` | Water: the FAO-56 soil water balance for each bed and the lawn, every step. |
