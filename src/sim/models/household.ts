@@ -303,7 +303,7 @@ function tally(c: TickContext, node: NonNullable<Graph['nodes'][string]>) {
   const supplied: Kg = {...l.supplied};
   for (const [product, kg] of Object.entries(k.ate)) {
     const crop = CROPS[product as keyof typeof CROPS];
-    if (crop) supplied[crop.group] = kgOf(supplied, crop.group) + kg;
+    if (crop?.group) supplied[crop.group] = kgOf(supplied, crop.group) + kg;
   }
   node.levers.ledger = {...l, day: k.day, supplied} as unknown as LeverValue;
 }

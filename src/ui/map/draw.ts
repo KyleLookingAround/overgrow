@@ -2,14 +2,17 @@
 // flat, top-down and soft, rounded shapes with no outlines and soft shadows, in greens, soil browns and cream. Shapes
 // are drawn in CSS pixels through the camera, so they stay crisp at any zoom. Colours come from the tokens (palette.ts).
 // The weather and the soil are drawn from the snapshot's day of weather and each bed's water, never announced; the crops
-// from each bed's crop (its stage, its water stress, frost) and the produce waiting on it; and what the gardener carries
-// from their activity.
+// from each bed's crop (its stage, its water stress, frost, the leaves pests have nibbled and blight has browned) and the
+// produce waiting on it; flowers in bloom and a border of them along a bed's edge; and what the gardener carries from
+// their activity.
 import type {Graphics} from 'pixi.js';
 import {START} from '../../data/ladder';
 import {calendar} from '../../sim/clock';
 import type {CropId} from '../../data/crops';
 import type {Box, GraphNode} from '../../sim/graph';
 import {cropOf, foodKey, progress, specOf, stageOf, type Stage} from '../../sim/models/crops';
+import {borderOf, inFlower} from '../../sim/models/biodiversity';
+import {pestsOf} from '../../sim/models/pests';
 import {limitsOf} from '../../sim/models/soil';
 import {hourOf, type WeatherDay, type WeatherHour} from '../../sim/models/weather';
 import type {Snapshot} from '../../sim/state';
@@ -186,8 +189,8 @@ export function surfaceWet(w: {day: WeatherDay; t: number} | null): number {
 export const soilColour = (wet: number, pal: Palette) => (wet < 0 ? mix(pal['bed-dug'], pal['bed-dry'], -wet) : mix(pal['bed-dug'], pal['bed-wet'], wet));
 
 /** How a crop sits in a 2 × 1.5 m bed: rows by plants in a row. */
-const GRID: Record<CropId, [number, number]> = {salad: [4, 9], radish: [4, 8], lettuce: [3, 5], beans: [2, 6], potatoes: [2, 4], tomatoes: [2, 3]};
-const LIGHT = new Set<CropId>(['lettuce', 'radish', 'salad']);
+const GRID: Record<CropId, [number, number]> = {salad: [4, 9], radish: [4, 8], lettuce: [3, 5], beans: [2, 6], potatoes: [2, 4], tomatoes: [2, 3], marigolds: [3, 6]};
+const LIGHT = new Set<CropId>(['lettuce', 'radish', 'salad', 'marigolds']);
 
 /** A bed's crop, drawn from its state: drills before the shoots, plants growing to their size, drooping and yellowing
  *  as the soil dries past their stress point, blackened by frost, and the ripe produce showing. Returns its stage. */
@@ -204,9 +207,12 @@ function drawCrop(g: Graphics, n: GraphNode, hours: number, c: Camera, pal: Pale
   }
   const size = 0.2 + 0.8 * progress(s), stress = Math.max(0, Math.min(1, (0.75 - s.ks) / 0.75));
   const burnt = s.dead ? 1 : s.frosted !== undefined ? Math.max(0, 1 - (hours - s.frosted) / (24 * 7)) : 0;
-  const leaf = LIGHT.has(s.id) ? pal['leaf-light'] : pal.leaf;
-  const top = burnt > 0 ? mix(leaf, pal.blackened, burnt) : mix(leaf, pal.wilt, stress);
-  const under = burnt > 0 ? mix(pal['leaf-dark'], pal.blackened, burnt) : mix(pal['leaf-dark'], pal.wilt, stress * 0.7);
+  const leaf = LIGHT.has(s.id) ? pal['leaf-light'] : pal.leaf, blight = pestsOf(n).blight;
+  // blight browns the tops as it spreads, over any wilting
+  const brown = (c: number): Paint => ({color: c, alpha: 1});
+  const top0 = burnt > 0 ? mix(leaf, pal.blackened, burnt) : mix(leaf, pal.wilt, stress);
+  const under0 = burnt > 0 ? mix(pal['leaf-dark'], pal.blackened, burnt) : mix(pal['leaf-dark'], pal.wilt, stress * 0.7);
+  const top = blight > 0 ? mix(brown(top0), pal.blight, blight) : top0, under = blight > 0 ? mix(brown(under0), pal.blight, blight * 0.8) : under0;
   const rad = Math.min(cw, ch) * 0.5 * size * (1 - 0.2 * stress);
   for (let i = 0; i < rows; i++)
     for (let j = 0; j < cols; j++) g.circle(r.x + pad + cw * (j + 0.5), r.y + pad + ch * (i + 0.5), rad);
@@ -214,6 +220,21 @@ function drawCrop(g: Graphics, n: GraphNode, hours: number, c: Camera, pal: Pale
   for (let i = 0; i < rows; i++)
     for (let j = 0; j < cols; j++) g.circle(r.x + pad + cw * (j + 0.5) - rad * 0.15, r.y + pad + ch * (i + 0.5) - rad * 0.2, rad * 0.72);
   g.fill(top);
+  // nibbled leaves: bites out of the plants' edges, more the more the pests have taken
+  if (s.lost > 0.03 && !s.dead) {
+    const bites = Math.min(rows * cols, Math.ceil(rows * cols * Math.min(1, s.lost * 2)));
+    for (let k = 0; k < bites; k++) {
+      const i = k % rows, j = Math.floor(k / rows) % cols, a = (i * 7 + j * 3) % 6;
+      g.circle(r.x + pad + cw * (j + 0.5) + Math.cos(a) * rad * 0.7, r.y + pad + ch * (i + 0.5) + Math.sin(a) * rad * 0.7, rad * 0.35);
+    }
+    g.fill(pal['bed-dug']);
+  }
+  // marigolds in bloom
+  if (s.id === 'marigolds' && stage !== 'growing' && !s.dead) {
+    for (let i = 0; i < rows; i++)
+      for (let j = 0; j < cols; j++) g.circle(r.x + pad + cw * (j + 0.5), r.y + pad + ch * (i + 0.5) - rad * 0.2, rad * 0.45);
+    g.fill(pal.marigold);
+  }
   // what's ripe, where it shows: tomatoes and radishes by colour, beans as pods
   const ripe = n.stocks[foodKey(spec.product)]?.amount ?? 0;
   if (ripe > 0.01 && !s.dead && (s.id === 'tomatoes' || s.id === 'radish' || s.id === 'beans')) {
@@ -244,6 +265,13 @@ export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weat
     soil[n.id] = wet;
     const stage = drawCrop(g, n, v.hours, c, pal);
     if (stage) crops[n.id] = stage;
+    // a border of flowers along the bed's front edge: green plants, orange once in bloom
+    const b = borderOf(n);
+    if (b) {
+      const k = Math.min(1, 0.4 + b.dd / 400), dot = Math.max(1.5, 0.07 * c.s * k), y = r.y + r.h - 0.1 * c.s;
+      for (let i = 0; i < 9; i++) g.circle(r.x + r.w * (0.08 + (0.84 * i) / 8), y, dot);
+      g.fill(inFlower(b) ? pal.marigold : pal['leaf-light']);
+    }
   }
   for (const n of cur.butts) {
     const fill = (node: GraphNode | undefined) => {

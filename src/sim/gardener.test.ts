@@ -1,5 +1,6 @@
 // The gardener: the day's jobs in order within their hours, each step a new activity, watering from the butt and then
-// the tap, a trip per can, what doesn't fit waiting for tomorrow, and a change of plan changing what they do next.
+// the tap, a trip per can, what doesn't fit waiting for tomorrow, a change of plan changing what they do next, and the
+// pest policy: a torch patrol at dusk picking slugs on a damp evening, and the policy refused unless it's a policy.
 import {describe, expect, it} from 'vitest';
 import {HOURS} from '../data/jobs';
 import type {Activity} from './activity';
@@ -92,5 +93,31 @@ describe('gardener', () => {
     expect(hoursOn(calendar(0))).toBe(HOURS.weekday);
     expect(nextStart(3)).toBe(24 + HOURS.start - 6);
     expect(nextStart(-1)).toBe(HOURS.start - 6);
+  });
+
+  it('goes out at dusk with a torch on the first evening to pick slugs, and takes the time from the day’s hours', () => {
+    const sim = createSim(1), {acts, flows} = play(sim, 24);
+    const torch = acts.filter((a) => a.doing === 'torch');
+    expect(torch.length).toBeGreaterThan(0);
+    // after dark (sunset is about 18:00 in mid-March, and the day's work stops at 20:00)
+    expect(torch.every((a) => calendar(a.start).hour >= HOURS.stop)).toBe(true);
+    expect(torch.some((a) => a.to === 'bed-1')).toBe(true);
+    expect(flows.some((f) => f.what === 'hand-picking' && f.unit === 'pests' && f.amount > 0)).toBe(true);
+    const spent = flows.filter((f) => f.unit === 'h' && f.what === 'work').reduce((s, f) => s + f.amount, 0);
+    expect(spent).toBeLessThanOrEqual(hoursOn(calendar(0)) + 1e-9);
+  });
+
+  it('takes the pest policy only as a policy, with a choice each pest has', () => {
+    const sim = createSim(1);
+    // not until the slugs have come up (the first evening's patrol: src/data/unfold.ts)
+    expect(sim.apply({type: 'policy', node: GARDENER, lever: 'slugs', value: 'leave'}).rejected).toMatch(/hasn’t come up/);
+    play(sim, 24);
+    expect(sim.snapshot().seen).toContain('pests.slugs');
+    expect(sim.apply({type: 'plan', node: GARDENER, lever: 'slugs', value: 'trap'}).rejected).toMatch(/pest policy/);
+    expect(sim.apply({type: 'policy', node: GARDENER, lever: 'slugs', value: 'bait'}).rejected).toMatch(/leave, pick, trap, treat/);
+    expect(sim.apply({type: 'policy', node: GARDENER, lever: 'aphids', value: 'pick'}).rejected).toMatch(/hasn’t come up/);
+    expect(sim.apply({type: 'policy', node: GARDENER, lever: 'slugs', value: 'leave'}).rejected).toBeNull();
+    const {acts} = play(sim, 24);
+    expect(acts.some((a) => a.doing === 'torch')).toBe(false);
   });
 });

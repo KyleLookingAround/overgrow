@@ -29,6 +29,8 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Not sorted yet
 
+- [The owner's answers on the systems web, written into the spec (#37) · 29 Sep 2026](lessons/37-spec-answers.md)
+- [Pests, wildlife and Explain, the first slice's part 5 (#35) · 29 Sep 2026](lessons/35-pests-wildlife-explain.md)
 - [The systems web, every mechanic across the ladder (#31) · 29 Sep 2026](lessons/31-systems-web.md)
 - [The household economy's model, ahead of part 6b (#30) · 29 Sep 2026](lessons/30-household-model.md)
 - [Livestock model, ahead of parts 6 and 12 (#18) · 29 Sep 2026](lessons/18-livestock-model.md)

@@ -1,0 +1,438 @@
+// The Explain table: what to say about every cause of an effect in the game (the founding spec, "Every effect can be
+// explained"). Each entry covers one or more causes (a flow's `what`, or an event's name, src/sim/effects.ts) and says what
+// happened, the mechanism behind it, its fast and its slow effect, and its source, as the model files' headers name them.
+// An entry's kind and causes (CAUSES) are kept apart from its words (WORDS), so the sim, which needs only the kinds,
+// ships without the words. The Explain card reads it; the `explain` check and src/sim/effects.test.ts fail on any cause the game records with no
+// entry here. A new model adds its causes here in the same PR (the beer trap, nematodes and the advisers in part 6).
+
+/** What sort of effect: the card's heading and the badges group by it. */
+export type Kind = 'weather' | 'water' | 'soil' | 'crop' | 'work' | 'kitchen' | 'carbon' | 'pest' | 'wildlife';
+
+export interface Explanation {
+  kind: Kind;
+  /** The card's title. */
+  title: string;
+  /** The causes it covers: flows' `what` and events' names. */
+  causes: string[];
+  /** What happened, in a sentence. */
+  says: string;
+  /** How it works. */
+  mechanism: string;
+  /** What it does now, and what it does over seasons and years. */
+  fast: string;
+  slow: string;
+  /** Where the numbers come from. */
+  source: string;
+}
+
+export const KIND_NAME: Record<Kind, string> = {
+  weather: 'Weather', water: 'Water', soil: 'Soil', crop: 'Crops', work: 'The gardener', kitchen: 'The kitchen', carbon: 'Carbon', pest: 'Pests', wildlife: 'Wildlife',
+};
+
+/** Each entry's kind and the causes it covers: all the sim needs (src/sim/effects.ts), so the words below stay out of its worker. */
+export const CAUSES = {
+  rain: {kind: 'weather', causes: ['rain']},
+  frost: {kind: 'weather', causes: ['frost']},
+  evapotranspiration: {kind: 'water', causes: ['evapotranspiration']},
+  drainage: {kind: 'water', causes: ['drainage', 'runoff', 'overflow']},
+  watering: {kind: 'water', causes: ['watering']},
+  drought: {kind: 'water', causes: ['drought']},
+  waterlogging: {kind: 'water', causes: ['waterlogging']},
+  decay: {kind: 'soil', causes: ['decay', 'humification', 'grass']},
+  mineralisation: {kind: 'soil', causes: ['mineralisation']},
+  leaching: {kind: 'soil', causes: ['leaching']},
+  soilHealth: {kind: 'soil', causes: ['soil health']},
+  uptake: {kind: 'crop', causes: ['uptake']},
+  growth: {kind: 'crop', causes: ['growth']},
+  ripening: {kind: 'crop', causes: ['ripening']},
+  waterStress: {kind: 'crop', causes: ['water stress']},
+  frostDamage: {kind: 'crop', causes: ['frost damage']},
+  picking: {kind: 'crop', causes: ['picking', 'picked']},
+  bolting: {kind: 'crop', causes: ['bolting', 'rotting', 'spent']},
+  residue: {kind: 'crop', causes: ['residue']},
+  eating: {kind: 'kitchen', causes: ['eating', 'ask']},
+  goingOff: {kind: 'kitchen', causes: ['going off']},
+  box: {kind: 'kitchen', causes: ['to the honesty box', 'honesty box', 'money']},
+  heap: {kind: 'carbon', causes: ['to the heap', 'plant carbon', 'plant nitrogen', 'composting', 'methane and nitrous oxide']},
+  compost: {kind: 'carbon', causes: ['spreading compost', 'compost']},
+  digging: {kind: 'carbon', causes: ['digging']},
+  carbon: {kind: 'carbon', causes: ['carbon']},
+  work: {kind: 'work', causes: ['work', 'unused', 'a day’s hours']},
+  slugs: {kind: 'pest', causes: ['slugs']},
+  slugNumbers: {kind: 'pest', causes: ['slugs breeding', 'slugs dying', 'slugs moving']},
+  handPicking: {kind: 'pest', causes: ['hand-picking']},
+  trapping: {kind: 'pest', causes: ['trapping']},
+  pellets: {kind: 'pest', causes: ['slug pellets']},
+  aphids: {kind: 'pest', causes: ['aphids', 'aphids arriving', 'aphids breeding', 'aphids dying', 'aphids leaving']},
+  squashing: {kind: 'pest', causes: ['squashing aphids']},
+  insecticide: {kind: 'pest', causes: ['insecticide']},
+  blight: {kind: 'pest', causes: ['blight', 'Smith period', 'blight rot']},
+  deleafing: {kind: 'pest', causes: ['removing blighted leaves']},
+  fungicide: {kind: 'pest', causes: ['fungicide']},
+  ladybirds: {kind: 'wildlife', causes: ['ladybirds']},
+  pollination: {kind: 'wildlife', causes: ['pollination', 'bees']},
+  flowers: {kind: 'wildlife', causes: ['flowers']},
+  cat: {kind: 'wildlife', causes: ['cat']},
+  soilborne: {kind: 'pest', causes: ['clubroot', 'potato cyst nematode', 'foot and root rot']},
+} satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
+
+export type Entry = keyof typeof CAUSES;
+
+/** What each entry says. */
+export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes'>> = {
+  soilborne: {
+    title: 'Soil-borne pests',
+    says: 'A pest or disease in the bed’s soil held the crop back: clubroot, potato cyst nematode or root rot.',
+    mechanism: 'Each lives in the soil on one family; growing that family again multiplies it, and it dies away slowly without it.',
+    fast: 'A crop of the same family in the same bed grows less.',
+    slow: 'Rotating families starves it out over years; clubroot spores last decades.',
+    source: 'RHS, “Crop rotation”; Wallenhammar (1996); AHDB clubroot and potato cyst nematode guidance.',
+  },
+  rain: {
+    title: 'Rain',
+    says: 'Rain fell on the beds, the lawn and the shed’s roof, which fills the butt.',
+    mechanism: 'Wet and dry days follow each other by chance, with the month’s odds and amounts; a wet day is likelier after a wet one.',
+    fast: 'Beds darken and fill up; the butt fills; slugs come out.',
+    slow: 'Wet winters drain through the soil and wash out nitrate; warming brings wetter winters and drier summers.',
+    source: 'Richardson (1981) weather generator; Met Office 1991–2020 normals; UKCP18 for the warming.',
+  },
+  frost: {
+    title: 'Frost',
+    says: 'The grass fell below 0 °C: a ground frost.',
+    mechanism: 'On a clear night the ground loses heat to the sky and cools a few degrees below the air.',
+    fast: 'Tender crops die; potato tops blacken; a rime on the lawn.',
+    slow: 'The last frost in spring sets when beans and tomatoes can go out.',
+    source: 'Met Office, “Ground frost”; FAO-56 for the day’s temperature curve.',
+  },
+  evapotranspiration: {
+    title: 'Evapotranspiration',
+    says: 'Water went back to the air from the soil and the leaves.',
+    mechanism: 'Sun, warmth and dry air pull water out; a crop’s coefficient and its stress say how much of the reference rate it uses.',
+    fast: 'Beds dry through a sunny day, faster under a full crop.',
+    slow: 'A dry summer’s demand runs the soil down and the gardener must water.',
+    source: 'FAO Irrigation and Drainage Paper 56 (Allen et al. 1998), Penman-Monteith.',
+  },
+  drainage: {
+    title: 'Drainage and runoff',
+    says: 'Water the soil couldn’t hold drained below the roots, ran off, or overflowed the butt.',
+    mechanism: 'Above field capacity water drains down over about half a day; above saturation it runs off; a full butt spills.',
+    fast: 'A soaked bed is back to moist within a day.',
+    slow: 'Winter drainage carries nitrate away and recharges the ground.',
+    source: 'FAO-56 root-zone water balance; Saxton & Rawls (2006) for what a soil holds; CIRIA C753 for roofs.',
+  },
+  watering: {
+    title: 'Watering',
+    says: 'The gardener watered a bed from the butt or the tap.',
+    mechanism: 'Below the plan’s moisture line the gardener carries cans until the bed is back to field capacity.',
+    fast: 'The crop’s stress lifts and the bed darkens.',
+    slow: 'Butt water saves the mains; watering well keeps yields and quality up.',
+    source: 'FAO-56 water stress (Ks); garden can and tap rates (src/data/jobs.ts).',
+  },
+  drought: {
+    title: 'Drought',
+    says: 'The soil dried below half its available water.',
+    mechanism: 'Roots find water harder to draw as the soil dries towards wilting point.',
+    fast: 'Plants wilt and grow less; the soil’s health score drops.',
+    slow: 'Repeated droughts cut yields; slugs retreat and die off.',
+    source: 'FAO-56 depletion fraction; Saxton & Rawls (2006).',
+  },
+  waterlogging: {
+    title: 'Waterlogging',
+    says: 'The soil held more water than it can keep: its pores are filling.',
+    mechanism: 'Past field capacity the soil drains; until it does, roots get less air.',
+    fast: 'The soil’s health score dips; slugs thrive.',
+    slow: 'Clay soils waterlog often; organic matter helps them drain.',
+    source: 'Saxton & Rawls (2006); FAO-56.',
+  },
+  decay: {
+    title: 'Soil organic matter',
+    says: 'Organic matter in the soil broke down, some to the air and some into humus; grass fed the lawn’s.',
+    mechanism: 'Microbes eat fresh matter fast and humus slowly, faster when warm and moist and on bare ground.',
+    fast: 'A little CO₂ each day, and nitrogen freed for crops.',
+    slow: 'Bare ground loses organic matter year by year; compost and grass put it back, and the soil holds more water.',
+    source: 'RothC-26.3 (Coleman & Jenkinson 1996); Van Bemmelen factor.',
+  },
+  mineralisation: {
+    title: 'Nitrogen freed',
+    says: 'Decay freed nitrogen from the organic matter as nitrate.',
+    mechanism: 'As organic matter breaks down, its nitrogen is released in a form roots can take.',
+    fast: 'More nitrate for the crops, and for the rain to wash out.',
+    slow: 'A soil rich in organic matter feeds its crops for years.',
+    source: 'RB209 (AHDB 2023), section 1; RothC.',
+  },
+  leaching: {
+    title: 'Nitrate leaching',
+    says: 'Nitrate drained away with the water.',
+    mechanism: 'Nitrate dissolves, so it leaves with drainage in proportion to the water that goes.',
+    fast: 'Heavy rain on bare soil strips its nitrate.',
+    slow: 'Winter leaching empties bare beds; cover and timing keep it in.',
+    source: 'RB209 (AHDB 2023), section 1.',
+  },
+  soilHealth: {
+    title: 'Soil health',
+    says: 'Soil health scores organic matter, structure and moisture out of 100.',
+    mechanism: 'Organic matter holds water and nutrients; carbon against clay sets the structure; too dry or wet stresses roots.',
+    fast: 'Moisture moves the score day by day.',
+    slow: 'Organic matter and structure move it over years.',
+    source: 'Johannes et al. (2017); Prout et al. (2021); Loveland & Webb (2003).',
+  },
+  uptake: {
+    title: 'Nutrient uptake',
+    says: 'The crop took nitrogen, phosphorus and potassium from the soil.',
+    mechanism: 'A crop takes its nutrients in step with its growth; the scarcest limits it.',
+    fast: 'A hungry crop yields less and tastes worse.',
+    slow: 'Cropping draws a bed down unless compost goes back.',
+    source: 'RB209 (AHDB 2023), section 6; Liebig’s law of the minimum.',
+  },
+  growth: {
+    title: 'Growth',
+    says: 'The crop grew by the day’s warmth above its base temperature.',
+    mechanism: 'Development runs on degree days: each degree of the day’s mean above a crop’s base counts.',
+    fast: 'Warm days bring harvests closer; cold days stall them.',
+    slow: 'Warming lengthens the season and brings crops forward.',
+    source: 'McMaster & Wilhelm (1997), growing degree days; RHS sowing calendars.',
+  },
+  ripening: {
+    title: 'Ripening',
+    says: 'Produce came ready on the plant, waiting to be picked.',
+    mechanism: 'Its yield is a full crop’s less what water, nutrients, frost and pests took.',
+    fast: 'Food to pick today.',
+    slow: 'Yields rise as the soil, water and pests are looked after.',
+    source: 'FAO-33 (Doorenbos & Kassam 1979); RHS and allotment yields.',
+  },
+  waterStress: {
+    title: 'Water stress',
+    says: 'The crop was short of water.',
+    mechanism: 'Past a share of the available water a crop closes its pores and grows less.',
+    fast: 'Wilting leaves; less yield and tougher produce.',
+    slow: 'Stress at flowering costs the most; a mulched, rich soil buffers it.',
+    source: 'FAO-56 Ks (eq. 84); FAO-33 yield response (Ky).',
+  },
+  frostDamage: {
+    title: 'Frost damage',
+    says: 'A frost killed a tender crop or blackened potato tops.',
+    mechanism: 'Ice forms in the leaves of tender plants below 0 °C; potatoes regrow from the tubers.',
+    fast: 'Beans and tomatoes die; potatoes set back a week.',
+    slow: 'Planting after the last frost, or a cold frame, avoids it.',
+    source: 'RHS guidance on frost-tender crops.',
+  },
+  picking: {
+    title: 'Harvest',
+    says: 'The gardener picked what was ready and carried it to the kitchen.',
+    mechanism: 'Ripe produce is picked a basket at a time; a crop picked clean is done.',
+    fast: 'Food in the kitchen for tonight.',
+    slow: 'Steady picking keeps repeat crops cropping.',
+    source: 'Garden picking rates (src/data/crops.ts).',
+  },
+  bolting: {
+    title: 'Left too long',
+    says: 'Produce left on the plant bolted, rotted or finished.',
+    mechanism: 'Ripe crops keep only so long on the plant before they spoil or run to seed.',
+    fast: 'Food lost to the heap.',
+    slow: 'A plan that picks on time wastes less.',
+    source: 'WRAP food waste studies; RHS crop guides.',
+  },
+  residue: {
+    title: 'Crop residue',
+    says: 'A finished crop left its leaves, stems and roots on the bed.',
+    mechanism: 'What isn’t harvested is green waste for the heap.',
+    fast: 'Waste to clear before the next sowing.',
+    slow: 'Composted, it feeds the soil back.',
+    source: 'Crop residue rates (src/data/crops.ts).',
+  },
+  eating: {
+    title: 'The day’s ask',
+    says: 'The household ate what the garden gave towards its kilo of veg a day.',
+    mechanism: 'Each evening they eat the day’s ask by group; a short group is made up by another.',
+    fast: 'Today’s ask met, or not.',
+    slow: 'The share of the household’s veg the garden grows.',
+    source: 'DEFRA Family Food; NHS 5 A Day; ONS households.',
+  },
+  goingOff: {
+    title: 'Going off',
+    says: 'Produce kept too long in the kitchen or the box went off.',
+    mechanism: 'Fresh food spoils at a steady rate by its shelf life: salad in days, potatoes in weeks.',
+    fast: 'Scraps for the heap.',
+    slow: 'Picking to the ask and selling the glut wastes less.',
+    source: 'WRAP household food waste studies.',
+  },
+  box: {
+    title: 'The honesty box',
+    says: 'Surplus went to the box at the gate, and passers-by paid for it.',
+    mechanism: 'What the kitchen won’t eat fresh goes to the box; passers-by take a little a day at a flat price.',
+    fast: 'Money in the purse.',
+    slow: 'A glut turned into money for the shed.',
+    source: 'A farm-gate honesty box at a flat price per kg.',
+  },
+  heap: {
+    title: 'The compost heap',
+    says: 'Green waste went on the heap and broke down.',
+    mechanism: 'Microbes turn waste into compost, sending some carbon to the air as CO₂ and a little methane and nitrous oxide.',
+    fast: 'The carbon dial moves as the heap works.',
+    slow: 'Compost carries carbon and nitrogen back to the beds.',
+    source: 'IPCC 2006 vol. 5 ch. 4; IPCC AR6 WGI ch. 7; Bernal et al. (2009).',
+  },
+  compost: {
+    title: 'Compost',
+    says: 'Compost from the heap went on a bed before sowing.',
+    mechanism: 'Its carbon and nitrogen join the soil’s fresh organic matter.',
+    fast: 'Nitrogen for the next crop as it breaks down.',
+    slow: 'Organic matter kept up year after year.',
+    source: 'RHS, “Compost”; RothC.',
+  },
+  digging: {
+    title: 'Digging',
+    says: 'Part of the lawn was dug into a bed.',
+    mechanism: 'Turning grass to cropland is a land-use change: bare, dug soil loses carbon faster.',
+    fast: 'More room to grow.',
+    slow: 'The soil settles at about 0.7 of its grassland carbon over decades.',
+    source: 'IPCC 2006 vol. 4 ch. 5 and 6.',
+  },
+  carbon: {
+    title: 'The carbon dial',
+    says: 'The dial shows the carbon the garden has put into the air, less what it took out.',
+    mechanism: 'Decay and composting emit; plants and grass take carbon in.',
+    fast: 'It moves as the heap and the soil work.',
+    slow: 'At the top levels, carbon warms the climate the garden grows in.',
+    source: 'IPCC 2006 Guidelines; IPCC AR6 TCRE.',
+  },
+  work: {
+    title: 'The gardener’s time',
+    says: 'The gardener spent their hours on the day’s jobs.',
+    mechanism: 'About four hours a day (six at weekends); each job takes time with the best tool they have; what doesn’t fit waits.',
+    fast: 'Jobs done today, or left for tomorrow.',
+    slow: 'Better tools buy time for more beds.',
+    source: 'The owner’s figure (#2); garden job times (src/data/jobs.ts).',
+  },
+  slugs: {
+    title: 'Slugs',
+    says: 'Slugs came out after dark and ate from a bed.',
+    mechanism: 'Slugs feed at night when it’s damp and above about 3 °C; a seedling is a meal, a grown plant only nibbled.',
+    fast: 'A seedling bed thinned in one wet night.',
+    slow: 'A wet season builds their numbers.',
+    source: 'AHDB, “Slug control”; RHS, “Slugs and snails”.',
+  },
+  slugNumbers: {
+    title: 'Slug numbers',
+    says: 'Slugs bred, died or crawled between the lawn’s edge and the beds.',
+    mechanism: 'Eggs hatch in mild, moist spring and autumn; drought and hard frost kill; on wet nights they roam to planted beds.',
+    fast: 'Fresh slugs on a bed after a wet night.',
+    slow: 'Numbers swell in wet years and crash in dry ones.',
+    source: 'AHDB, “Slug control”.',
+  },
+  handPicking: {
+    title: 'Picking slugs',
+    says: 'The gardener went out at dusk with a torch and picked slugs off the beds.',
+    mechanism: 'Slugs are easiest to find on the move after dark; a patrol catches about half of those out.',
+    fast: 'Fewer slugs feeding tonight.',
+    slow: 'Nightly picking in a wet spell keeps numbers down, at the cost of the gardener’s time.',
+    source: 'RHS, “Slugs and snails”.',
+  },
+  trapping: {
+    title: 'Slug traps',
+    says: 'The gardener emptied the traps: slugs caught last night.',
+    mechanism: 'A sunken jar or a board draws slugs in overnight; checked each morning, it takes a share.',
+    fast: 'A few minutes each morning.',
+    slow: 'Steady but partial; a bought beer trap does better.',
+    source: 'RHS, “Slugs and snails”; AHDB.',
+  },
+  pellets: {
+    title: 'Slug pellets',
+    says: 'Ferric phosphate pellets were bought and scattered, and slugs died.',
+    mechanism: 'Slugs that eat the bait stop feeding and die; a dose lasts about two weeks; it adds a trace of phosphate.',
+    fast: 'Slugs cut quickly, for a few pence.',
+    slow: 'Iron phosphate baits have harmed earthworms in trials; metaldehyde is banned in the UK.',
+    source: 'AHDB; Edwards et al. (2009).',
+  },
+  aphids: {
+    title: 'Aphids',
+    says: 'Aphids fed on a crop’s sap, multiplied, died or flew.',
+    mechanism: 'Winged aphids arrive from late May; above about 4 °C they breed by degree days, doubling in days when warm.',
+    fast: 'Colonies thick on the bean tips in a warm week.',
+    slow: 'Held down year after year where flowers keep ladybirds.',
+    source: 'Degree-day insect models (Campbell et al. 1974); AHDB Aphid News.',
+  },
+  squashing: {
+    title: 'Squashing aphids',
+    says: 'The gardener squashed aphid colonies and pinched out the bean tips.',
+    mechanism: 'Colonies cluster on tips; rubbing them off takes most.',
+    fast: 'Fewer aphids, for ten minutes a bed.',
+    slow: 'Harmless to ladybirds and bees.',
+    source: 'RHS, “Aphids”.',
+  },
+  insecticide: {
+    title: 'Insecticide',
+    says: 'A contact spray was bought and killed most of a bed’s aphids.',
+    mechanism: 'A pyrethrin spray kills the insects it touches, pests and helpers alike.',
+    fast: 'Aphids gone at once.',
+    slow: 'Fewer ladybirds and bees for weeks, so the aphids come back.',
+    source: 'RHS, “Aphids”; Dixon (2000).',
+  },
+  blight: {
+    title: 'Blight',
+    says: 'Late blight struck the potatoes or tomatoes after warm, humid weather.',
+    mechanism: 'Two days in a row above 10 °C at night with 11 humid hours (a Smith period) let spores infect; it spreads leaf to leaf.',
+    fast: 'Tops brown within days; tubers and fruit rot.',
+    slow: 'Spores on tubers left in the ground start it earlier next year.',
+    source: 'Smith (1956); Met Office and AHDB BlightWatch; Cooke et al. (2011).',
+  },
+  deleafing: {
+    title: 'Picking off blighted leaves',
+    says: 'The gardener picked off blighted leaves.',
+    mechanism: 'Removing infected leaves takes spores away and slows the spread.',
+    fast: 'A slower spread for a day or so.',
+    slow: 'It can’t stop a muggy summer’s blight.',
+    source: 'RHS, “Potato and tomato blight”.',
+  },
+  fungicide: {
+    title: 'Fungicide',
+    says: 'A protectant fungicide was bought and sprayed on the potatoes or tomatoes.',
+    mechanism: 'It coats the leaves so spores can’t infect, for about a week or until heavy rain washes it off.',
+    fast: 'New infection mostly stopped.',
+    slow: 'Weekly sprays all summer; a little hard on ladybirds.',
+    source: 'Cooke et al. (2011).',
+  },
+  ladybirds: {
+    title: 'Ladybirds',
+    says: 'Ladybirds ate aphids.',
+    mechanism: 'Each eats up to about 50 aphids a day, fewer when they’re scarce; flowers keep them in the garden.',
+    fast: 'Aphids falling within days.',
+    slow: 'A garden with flowers every year keeps its aphids down.',
+    source: 'Dixon (2000); Holling’s type II response.',
+  },
+  pollination: {
+    title: 'Pollination',
+    says: 'Bees and hoverflies set more pods and fruit.',
+    mechanism: 'Beans and tomatoes mostly pollinate themselves; visits add a few per cent, up to every flower visited.',
+    fast: 'A little more yield on warm days with bees about.',
+    slow: 'Flowers keep pollinators coming each year; sprays drive them off.',
+    source: 'Klein et al. (2007); Garibaldi et al. (2013).',
+  },
+  flowers: {
+    title: 'Flowers',
+    says: 'Marigolds in flower brought bees and ladybirds.',
+    mechanism: 'Nectar and pollen feed pollinators and adult ladybirds between aphids.',
+    fast: 'More bees and ladybirds about.',
+    slow: 'Fewer aphids and better-set crops year after year.',
+    source: 'Wood et al. (2015); RHS, “Companion planting”.',
+  },
+  cat: {
+    title: 'The cat',
+    says: 'The neighbour’s cat, out on a dry day.',
+    mechanism: 'It strolls across the lawn.',
+    fast: 'Nothing: it does nothing to the garden here.',
+    slow: 'Nothing.',
+    source: 'Every UK garden.',
+  },
+};
+
+/** The kind of each cause: all the sim needs of the table. */
+export const KIND_BY_CAUSE: Record<string, Kind> = Object.fromEntries(Object.values(CAUSES).flatMap((e) => e.causes.map((c) => [c, e.kind as Kind])));
+const ENTRY_BY_CAUSE: Record<string, Entry> = Object.fromEntries((Object.keys(CAUSES) as Entry[]).flatMap((k) => CAUSES[k].causes.map((c) => [c, k])));
+
+/** An entry with its words, by its key. */
+export const entry = (k: Entry): Explanation => ({...CAUSES[k], kind: CAUSES[k].kind as Kind, ...WORDS[k]});
+/** Every entry, by its key. */
+export const entries = (): [Entry, Explanation][] => (Object.keys(CAUSES) as Entry[]).map((k) => [k, entry(k)]);
+/** The entry that explains a cause, or undefined if there's none. */
+export const explain = (cause: string): Explanation | undefined => (ENTRY_BY_CAUSE[cause] ? entry(ENTRY_BY_CAUSE[cause]!) : undefined);

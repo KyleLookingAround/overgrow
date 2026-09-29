@@ -2,19 +2,26 @@
 // and the garden call for. Each morning they plan the day's jobs in order (pick what's ready, water the beds below the
 // plan's line, clear, compost, sow and water in what's due, carry the kitchen's surplus to the honesty box and its scraps
 // to the heap, dig), each taking its time with the best tool they have (src/data/jobs.ts), and what doesn't fit waits
-// until tomorrow. Every step is an activity the map draws, a new id each trip, and each job's flows move when the step
+// until tomorrow. The plan's pest policy (src/data/pests.ts) adds its jobs: traps checked, pellets scattered, aphids
+// squashed or sprayed, blighted leaves picked off or the potatoes sprayed, a border of flowers planted, and on a damp
+// evening a patrol with a torch at dusk to pick slugs off the beds, its time kept back from the day's hours first. Every step is an activity the map draws, a new id each trip, and each job's flows move when the step
 // that does it ends. A change to the plan during the working day re-plans the rest of it, finishing the job in hand
 // first. docs/systems/gardener.md.
 import {CROPS, type CropId} from '../data/crops';
+import {BORDER} from '../data/flowers';
+import {CONTROL, POLICIES, SLUGS, START_POLICY, type PestId, type Policy} from '../data/pests';
 import {FILL_L_PER_MIN, HOURS, START_TOOLS, TOOLS, WALK, WATER_IN, COMPOST_PER_M2, type Job, type JobTime, type Tool} from '../data/jobs';
 import {START} from '../data/ladder';
 import type {Activity} from './activity';
 import {calendar, type CalendarDate, type System, type TickContext} from './clock';
 import {qty, type Graph, type GraphNode, type LeverValue, type NodeId, type Unit} from './graph';
 import {compostOn, dig, spread, toHeap} from './models/carbon';
-import {cropOf, foodKey, PICK_MIN, plannedCrop, ripe, sow, specOf, wasteOn} from './models/crops';
+import {borderOf, plantBorder} from './models/biodiversity';
+import {cropOf, foodKey, inSeason, PICK_MIN, plannedCrop, ripe, sow, specOf, wasteOn} from './models/crops';
+import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
 import {GATE, KITCHEN, recordPick, surplus} from './models/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
+import {hourOf, sunOn, weatherOf} from './models/weather';
 
 export const GARDENER = 'gardener';
 const HOME = 'shed';
@@ -27,7 +34,9 @@ export type Effect =
   | {kind: 'heap'; from: NodeId; kg: number}
   | {kind: 'spread'; bed: NodeId; kg: number}
   | {kind: 'dig'; bed: NodeId; m2: number}
-  | {kind: 'box'; items: {product: string; kg: number}[]};
+  | {kind: 'box'; items: {product: string; kg: number}[]}
+  | {kind: 'pest'; bed: NodeId; pest: PestId; how: Policy}
+  | {kind: 'border'; bed: NodeId; flower: CropId};
 
 /** One step of the day: an activity to show when it starts, and its effect when it ends. */
 export interface Step {
@@ -55,13 +64,16 @@ export interface Day {
 }
 
 export const dayOf = (g: Graph): Day | null => (g.nodes[GARDENER]?.levers.day as unknown as Day | null | undefined) ?? null;
-export const GARDENER_LEVERS = (): Record<string, LeverValue> => ({waterBelow: 0.5, tools: [...START_TOOLS], day: null});
+export const GARDENER_LEVERS = (): Record<string, LeverValue> => ({waterBelow: 0.5, ...START_POLICY, tools: [...START_TOOLS], day: null});
+const PESTS = Object.keys(POLICIES) as PestId[];
+/** What the plan's pest policy says for a pest. */
+export const policyOf = (g: Graph, pest: PestId): Policy => (g.nodes[GARDENER]?.levers[pest] as Policy | undefined) ?? START_POLICY[pest];
 const OWN = new Set(['tools', 'day']);
 
 /** The plan the day's jobs come from: the watering line and every bed's plan. */
 function planKey(g: Graph): string {
-  const parts: LeverValue[] = [g.nodes[GARDENER]?.levers.waterBelow ?? null];
-  for (const n of Object.values(g.nodes)) if (n.kind === 'bed') parts.push(n.id, n.levers.sow ?? null, n.levers.sowFrom ?? null, n.levers.dig ?? null);
+  const me = g.nodes[GARDENER]?.levers, parts: LeverValue[] = [me?.waterBelow ?? null, ...PESTS.map((p) => me?.[p] ?? null)];
+  for (const n of Object.values(g.nodes)) if (n.kind === 'bed') parts.push(n.id, n.levers.sow ?? null, n.levers.sowFrom ?? null, n.levers.dig ?? null, n.levers.edge ?? null);
   return JSON.stringify(parts);
 }
 
@@ -92,9 +104,11 @@ class Planner {
   steps: Step[] = [];
   butt: number;
   compost: number;
+  money: number;
   constructor(readonly g: Graph, public pos: NodeId, public t: number, public left: number, public next: number, readonly dayIndex: number) {
     this.butt = g.nodes.butt?.stocks.water?.amount ?? 0;
     this.compost = compostOn(g);
+    this.money = g.nodes[KITCHEN]?.stocks.money?.amount ?? 0;
   }
   private centre(id: NodeId) {
     const b = this.g.nodes[id]?.box;
@@ -104,6 +118,15 @@ class Planner {
     if (a === b) return 0;
     const p = this.centre(a), q = this.centre(b);
     return Math.hypot(p.x - q.x, p.y - q.y) / WALK;
+  }
+  /** Hours to walk a round from the shed through some places and back. */
+  round(ids: NodeId[]) {
+    let h = 0, at = HOME;
+    for (const id of [...ids, HOME]) {
+      h += this.walkTime(at, id);
+      at = id;
+    }
+    return h;
   }
   /** Tries a job made of steps; keeps it only if all of it fits in the hours left. */
   job(build: (j: JobBuilder) => void): boolean {
@@ -241,11 +264,62 @@ function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
   }) && ((p.compost -= kg), (p.butt -= fromButt), true);
 }
 
+/** A treatment's job: fetch it from the shed, then treat the bed; only if the purse has its price. */
+function treat(p: Planner, bed: GraphNode, doing: string, minutes: number, cost: number, pest: PestId) {
+  if (p.money < cost) return;
+  if (p.job((j) => {
+    j.walk(HOME, 'fetch');
+    j.walk(bed.id);
+    j.work(doing, minutes / 60, undefined, {kind: 'pest', bed: bed.id, pest, how: 'treat'});
+  })) p.money -= cost;
+}
+
+/** The pest policy's daytime jobs on the dug beds: traps, pellets, aphids and blight. */
+function pestJobs(p: Planner, dug: GraphNode[], date: CalendarDate) {
+  const slugs = policyOf(p.g, 'slugs'), aphids = policyOf(p.g, 'aphids'), blight = policyOf(p.g, 'blight');
+  const inPlace = (bed: GraphNode, doing: string, minutes: number, pest: PestId, how: Policy) =>
+    p.job((j) => {
+      j.walk(bed.id);
+      j.work(doing, minutes / 60, undefined, {kind: 'pest', bed: bed.id, pest, how});
+    });
+  for (const b of dug) {
+    const pests = pestsOf(b), dense = aphidsOn(b) / Math.max(1e-6, areaOf(b)), slugged = slugsOn(b) >= 1 && draws(b, 'slugs');
+    if (slugs === 'trap' && slugged && pests.night > 0) inPlace(b, 'trap', CONTROL.slugs.trap.minutes, 'slugs', 'trap');
+    if (slugs === 'treat' && slugged && pests.pellets <= p.t + 12) treat(p, b, 'pellets', CONTROL.slugs.treat.minutes, CONTROL.slugs.treat.cost, 'slugs');
+    if (aphids === 'pick' && draws(b, 'aphids') && dense > CONTROL.aphids.pick.over) inPlace(b, 'squash', CONTROL.aphids.pick.minutes, 'aphids', 'pick');
+    if (aphids === 'treat' && draws(b, 'aphids') && dense > CONTROL.aphids.treat.over && pests.sprayed <= p.t)
+      treat(p, b, 'spray', CONTROL.aphids.treat.minutes, CONTROL.aphids.treat.cost, 'aphids');
+    if (blight === 'pick' && draws(b, 'blight') && pests.blight > CONTROL.blight.pick.over) inPlace(b, 'deleaf', CONTROL.blight.pick.minutes, 'blight', 'pick');
+    if (blight === 'treat' && draws(b, 'blight') && CONTROL.blight.treat.months.includes(date.month) && pests.fungicide <= p.t)
+      treat(p, b, 'spray', CONTROL.blight.treat.minutes, CONTROL.blight.treat.cost, 'blight');
+  }
+}
+
+/** The beds worth a torch patrol tonight: the policy picks slugs, and a planted bed has slugs and a damp, mild enough
+ *  evening coming. */
+function patrolBeds(g: Graph, dug: GraphNode[], date: CalendarDate): GraphNode[] {
+  if (policyOf(g, 'slugs') !== 'pick') return [];
+  const w = weatherOf(g), today = !!w && w.day === date.dayIndex, wet = today && w!.wet;
+  // not on a night too cold for slugs to be out
+  if (today && hourOf(w!, (duskOf(g, date) + START.hour) % 24).temp < SLUGS.minTemp) return [];
+  return dug.filter((b) => slugsOn(b) >= 1 && draws(b, 'slugs') && (wet || moisture(b) >= 0.5));
+}
+
+/** When the dusk patrol goes out, game hours: half an hour after sunset, and not before the day's work stops. */
+function duskOf(g: Graph, date: CalendarDate): number {
+  const w = weatherOf(g), length = w && w.day === date.dayIndex ? w.length : sunOn(date.dayOfYear).length;
+  return date.dayIndex * 24 - START.hour + Math.max(HOURS.stop, Math.min(23, 12 + length / 2 + 0.5));
+}
+
 /** The day's jobs, in order, from a place and time with the hours left. */
 function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number, next: number): {steps: Step[]; next: number} {
-  const p = new Planner(g, pos, t, left, next, date.dayIndex), line = Number(g.nodes[GARDENER]?.levers.waterBelow ?? 0.5);
   const beds = Object.values(g.nodes).filter((n) => n.kind === 'bed');
   const dug = beds.filter((n) => (n.stocks['land.crops']?.amount ?? 0) > 0);
+  // the dusk patrol's time comes off the day's hours first, so it's always done
+  const probe = new Planner(g, pos, t, left, next, date.dayIndex), tour = patrolBeds(g, dug, date);
+  const patrol = tour.length ? probe.round(tour.map((b) => b.id)) + (tour.length * CONTROL.slugs.pick.minutes) / 60 : 0;
+  const night = patrol > 0 && patrol <= left ? tour : [];
+  const p = new Planner(g, pos, t, left - (night.length ? patrol : 0), next, date.dayIndex), line = Number(g.nodes[GARDENER]?.levers.waterBelow ?? 0.5);
   // 1. pick what's ready
   for (const b of dug) if (ripe(b) >= PICK_MIN) harvest(p, b);
   // 2. water what's below the line
@@ -255,12 +329,24 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
     const lim = limitsOf(b), m = moisture(b, lim);
     if (m < line) water(p, b, lim.fc - (b.stocks[SOIL.water]?.amount ?? 0));
   }
+  // 2b. the pest policy's daytime work
+  pestJobs(p, dug, date);
   // 3. sow what's due (clearing and composting first, watering in after)
   const sown = new Set<string>();
   for (const b of dug) {
     if (cropOf(b) || (b.stocks['land.grass']?.amount ?? 0) > 0) continue;
     const crop = plannedCrop(b, date);
     if (crop && sowBed(p, b, crop)) sown.add(b.id);
+  }
+  // and a border of flowers along a bed's edge, where the plan wants one and it's their season
+  for (const b of dug) {
+    const want = b.levers.edge;
+    if (typeof want !== 'string' || !(want in CROPS) || borderOf(b) || !inSeason(CROPS[want as CropId], date)) continue;
+    p.job((j) => {
+      j.walk(HOME, 'fetch');
+      j.walk(b.id);
+      j.work('plant', BORDER.minutes / 60, undefined, {kind: 'border', bed: b.id, flower: want as CropId});
+    });
   }
   // 4. carry: the kitchen's surplus to the honesty box, scraps and waste to the heap
   const kitchen = g.nodes[KITCHEN], carry = best(g, 'carry');
@@ -300,9 +386,18 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
       grass -= m2;
     }
   }
-  // home to the shed, to rest until tomorrow's start
+  // home to the shed; out again at dusk with a torch if there's a patrol; then rest until tomorrow's start
   const back = new JobBuilder(p);
   back.walk(HOME);
+  if (night.length) {
+    const dusk = duskOf(g, date);
+    if (dusk > back.t) back.step('rest', HOME, dusk - back.t);
+    for (const b of night) {
+      back.walk(b.id, 'torch');
+      back.work('torch', CONTROL.slugs.pick.minutes / 60, undefined, {kind: 'pest', bed: b.id, pest: 'slugs', how: 'pick'});
+    }
+    back.walk(HOME, 'torch');
+  }
   back.step('rest', HOME, Math.max(0.01, nextStart(back.t) - back.t));
   return {steps: [...p.steps, ...back.steps], next: back.next};
 }
@@ -346,6 +441,14 @@ function apply(c: TickContext, e: Effect) {
     case 'dig': {
       const bed = g.nodes[e.bed];
       if (bed) dig(c, bed, e.m2);
+      return;
+    }
+    case 'pest':
+      control(c, e.bed, e.pest, e.how);
+      return;
+    case 'border': {
+      const bed = g.nodes[e.bed];
+      if (bed && !borderOf(bed)) plantBorder(bed, e.flower, c.hours);
       return;
     }
     case 'box':
@@ -420,6 +523,11 @@ export const gardener: System = {
     if (cmd.lever === 'waterBelow') {
       if (cmd.type !== 'plan') return 'when to water is the plan’s';
       return typeof cmd.value === 'number' && cmd.value >= 0 && cmd.value <= 1 ? null : 'a moisture from 0 to 1';
+    }
+    if ((PESTS as string[]).includes(cmd.lever)) {
+      if (cmd.type !== 'policy') return 'what’s done about pests is the pest policy’s';
+      const ok = POLICIES[cmd.lever as PestId] as string[];
+      return typeof cmd.value === 'string' && ok.includes(cmd.value) ? null : `for ${cmd.lever}: ${ok.join(', ')}`;
     }
     void g;
     return undefined;
