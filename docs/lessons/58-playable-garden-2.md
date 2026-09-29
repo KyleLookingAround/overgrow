@@ -2,7 +2,7 @@
 
 - **Numbers:**
   - The estimate was $30. The session's cost read nothing (not reported) at its one reading. The session started at 18:53 UTC and the PR opened at about 21:10 UTC, with items 0 to 8 in it.
-  - There were four full `npm run check` runs before the push. Every failure was a check reading an old number or an old wording (£4.50 of edging, the gardener digging at 18:00 on day 1, the goal bar's text, a click on "the first choice button").
+  - There were four full `npm run check` runs before the push. Every failure was a check reading an old number or an old wording (£4.50 of edging, the gardener digging at 18:00 on day 1, the goal bar's text, a click on "the first choice button"). CI was green on the first push, and there was one merge from `main` by hand (#52's briefs), which was clean.
 - **Went well:**
   - **Speed first, fingerprinted.** Hashing snapshots and saves on seeds 1–3 over 400 days before and after each change made every speed cut provably play-neutral. The A/B against a `main` worktree, alternating and with nothing else running, gave clean numbers: 23 % faster.
   - **The bot found the economy's shape before any UI.** The first run with the new budget showed the purse at £20–40 all year. The bot then bought six raised beds before saving for anything big. Ordering the bot's shopping (small kit, then the big buys, then raised beds) was a player-priority question, not a price one.

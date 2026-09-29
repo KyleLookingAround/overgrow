@@ -1,6 +1,6 @@
 # The playable garden, round two
 
-Issue: #58 · Status: Approved. The brief for round two (in #52) approves it in advance, from the owner's decisions 14 and 15. · PRs: (added as they open)
+Issue: #58 · Status: Approved. The brief for round two (in #52) approves it in advance, from the owner's decisions 14 and 15. · PRs: #59
 
 ## What the player gets
 
