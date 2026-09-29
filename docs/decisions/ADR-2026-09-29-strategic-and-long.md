@@ -34,4 +34,8 @@ Option 2 (the owner, 29 Sep 2026, taking the recommendation on #29):
 - The `balance` playbook judges the longest quiet stretch; the project notes' pacing line changes to match. Part 6c writes the measure and resets the baselines; until then the old baselines are out of date, not targets.
 - The sealing maths' garden window moves from 28 days to a year with the session that adds the other approved hooks (`docs/systems/ladder.md`).
 - A level that lasts longer than its slowest lever needs still has to fill its time with decisions: each level's spec answers what the player is choosing across its years, and the bot's quiet-stretch measure fails a level that leaves them with nothing to do.
-- The garden becomes about two and a half hours at 1× (thirty-six minutes at 4×); the owner accepted this by taking the recommendation.
+- The garden becomes about 53 minutes at 1× (13 at 4×), after the amendment below; it was first about two and a half hours at 1× (thirty-six minutes at 4×), which the owner accepted by taking the recommendation.
+
+## Amendment, 29 Sep 2026: a shorter garden year
+
+After playing round three the owner said "52 weeks does feel quite long to play." The coordinator kept the full year (the soil, the rotation, winter and the first-year card are built round it, and the offer measures a year) and made it pass faster in real time: the garden's day is 12 real seconds at 1×, not 24, and a quiet night passes four times faster on the page (`docs/systems/clock.md`), with an 8× speed. The game days are unchanged, so play is too; the year takes about 53 minutes at 1× and 13 at 4× on seeds 1–3, against about 73 and 18 without the quiet nights. The other levels keep their rates.

@@ -151,6 +151,33 @@ button.num {
 .speed-cycle {
   font-variant-numeric: tabular-nums;
 }
+/* the moon while a quiet night passes quickly, just before the speeds, glowing softly (still under reduced motion) */
+.quiet-night {
+  display: inline-grid;
+  place-items: center;
+  margin-left: auto;
+  color: var(--soft);
+  animation: moon-glow var(--moon-ms) ease-in-out infinite alternate;
+}
+.quiet-night svg {
+  width: var(--moon);
+  height: var(--moon);
+  fill: currentColor;
+}
+.quiet-night + .speeds,
+.quiet-night ~ .speed-cycle {
+  margin-left: 0;
+}
+@keyframes moon-glow {
+  from {
+    opacity: var(--moon-low);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quiet-night {
+    animation: none;
+  }
+}
 .speed-cycle {
   display: none;
   margin-left: auto;
@@ -700,7 +727,7 @@ select {
     display: none;
   }
 }
-/* a narrow top bar: the four speeds fold into one button that cycles them (the owner's win W11) */
+/* a narrow top bar: pause and the speeds fold into one button that cycles them (the owner's win W11) */
 @container topbar (max-width: 639px) {
   .speeds {
     display: none;

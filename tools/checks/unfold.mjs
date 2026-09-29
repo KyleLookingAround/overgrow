@@ -38,7 +38,7 @@ export default async function({ok,open}){
     temp:!!document.querySelector('.temp'),water:!!document.querySelector('#plan-water'),sow:!!document.querySelector('#plan-bed-2'),gardener:!!document.querySelector('.card .job'),
     speeds:document.querySelectorAll('.speeds .speed').length,goal:!!document.querySelector('.goal-bar')}));
   ok('unfold: a new game shows only the core, paused under the first plan’s card',
-    core.card==='The first plan'&&core.speed===0&&core.tabs.join()==='Garden'&&!core.money&&!core.dial&&!core.temp&&!core.water&&core.sow&&core.gardener&&core.speeds===4&&!core.goal,JSON.stringify(core));
+    core.card==='The first plan'&&core.speed===0&&core.tabs.join()==='Garden'&&!core.money&&!core.dial&&!core.temp&&!core.water&&core.sow&&core.gardener&&core.speeds===5&&!core.goal,JSON.stringify(core));
   await pick(page,'Bed 1');
   const bare=await rowsOf(page);
   ok('unfold: a bed’s panel shows no soil numbers before they unfold',!bare.some(r=>/Moisture|Organic|Nitrogen|Carbon/.test(r)),bare.join(', '));

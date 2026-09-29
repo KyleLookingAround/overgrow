@@ -71,7 +71,7 @@ if (window.__seed !== undefined)
       return {
         hours: v?.hours ?? null, alpha: v?.alpha ?? null, prev: v?.prev.hours ?? null, cur: v?.cur.hours ?? null, renderer: renderer?.kind ?? null,
         frames: st?.frames ?? [], movers: st?.movers ?? [], cam: st?.cam ?? null, weather: st?.weather ?? null, crops: st?.crops ?? null,
-        gardener: st?.gardener ?? null, life: st?.life ?? null, creatures: st?.creatures ?? [], torch: st?.torch ?? false, pulse: st?.pulse ?? null,
+        gardener: st?.gardener ?? null, life: st?.life ?? null, creatures: st?.creatures ?? [], torch: st?.torch ?? false, pulse: st?.pulse ?? null, quiet: v?.quiet ?? false,
       };
     },
     bench: (n: number, m?: number, speed?: number) => loop.bench(n, m, speed),

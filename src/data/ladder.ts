@@ -17,7 +17,7 @@ export interface LevelClock {
 const DAY = 24, WEEK = 7 * 24, MONTH = (365 * 24) / 12;
 
 export const LEVELS: readonly LevelClock[] = [
-  {n: 1, name: 'Back Garden', node: 'bed', secondsPerDay: 24, stepHours: 1},
+  {n: 1, name: 'Back Garden', node: 'bed', secondsPerDay: 12, stepHours: 1},
   {n: 2, name: 'Allotment', node: 'plot', secondsPerDay: 4, stepHours: 1},
   {n: 3, name: 'Smallholding', node: 'field', secondsPerDay: 1, stepHours: DAY},
   {n: 4, name: 'Farm', node: 'enterprise', secondsPerDay: 2 / 3, stepHours: DAY},
@@ -27,9 +27,13 @@ export const LEVELS: readonly LevelClock[] = [
   {n: 8, name: 'The Planet', node: 'country', secondsPerDay: 1 / 300, stepHours: MONTH},
 ];
 
-/** Pause, 1×, 2× and 4×, at every level. */
-export const SPEEDS = [0, 1, 2, 4] as const;
+/** Pause, 1×, 2×, 4× and 8×, at every level. */
+export const SPEEDS = [0, 1, 2, 4, 8] as const;
 export type Speed = (typeof SPEEDS)[number];
+
+/** How many times faster than the chosen speed a quiet night passes on the page, at the levels that step by the hour
+ *  (src/ui/quiet-night.ts): pacing in the real-time loop only, never the sim's steps. */
+export const QUIET_BOOST = 4;
 
 /**
  * Day 1 of every game: 06:00 on Monday 15 March, early spring, as a UTC calendar (no clock change) so every date

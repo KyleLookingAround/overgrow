@@ -3,7 +3,7 @@
 // overflow, the panel's tab strip fitting its row with the sheet's toggle, every button and menu at least 40 px on
 // touch, the sheet still showing a useful panel under the fixed chrome, the sheet folding to its heading, the dark
 // scheme, and the top bar and panel working by keyboard alone. The top bar as a row (the owner's wins W2 and W11): one
-// row where it's 640 px or wider inside its padding, with the four speeds, and below that at most two rows with the speeds folded into one
+// row where it's 640 px or wider inside its padding, with pause and the four speeds, and below that at most two rows with the speeds folded into one
 // button that cycles them, tapped on a touch page; safe areas kept clear on every side; and a tap on the map landing
 // through the layer over it (W12). Notices (the playable garden) never bury a phone's map: three at once show one, in a
 // line, over less than a quarter of the map at 390×844 and 320×568. Each page answers the first plan's card and shows every detail, the fullest the
@@ -26,7 +26,7 @@ export default async function({ok,open:bare,out}){
     const [top,map,panel,head]=await Promise.all(['.topbar','.map','.panel','.panel-head'].map(s=>box(page,s)));
     const parts=await page.evaluate(()=>[...document.querySelectorAll('.topbar .level,.topbar .date,.topbar .money,.topbar .dial,.topbar .speed,.topbar .speed-cycle')].filter(e=>e.getClientRects().length).map(e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}}));
     const bar=await page.evaluate(()=>{const t=document.querySelector('.topbar');if(!t)return 0;const cs=getComputedStyle(t);return Math.round(t.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight))});
-    const folded=bar<640,want=folded?5:8;
+    const folded=bar<640,want=folded?5:9;
     const flow=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,sh:document.documentElement.scrollHeight,ch:document.documentElement.clientHeight}));
     const sheet=w<700&&!(h<=500&&w>=500);
     const placed=sheet?panel&&map&&panel.y>=map.b-1&&panel.b<=h+0.5:panel&&map&&panel.x>=map.r-1&&panel.y>=top.b-1;
@@ -38,8 +38,8 @@ export default async function({ok,open:bare,out}){
     // the row, not only each control: the parts' rows counted by where they sit, and the speeds folded below 640 px
     const rows=parts.length?[...new Set(parts.map(p=>Math.round((p.y+p.h/2)/12)))].length:0;
     const fold=await page.evaluate(()=>({four:[...document.querySelectorAll('.topbar .speed')].filter(e=>e.getClientRects().length).length,one:!!document.querySelector('.topbar .speed-cycle')?.getClientRects().length}));
-    ok(`layout: at ${w}×${h} the top bar (${bar} px) is ${folded?'at most two rows, its speeds folded into one button':'one row with its four speeds'}`,
-      folded?rows<=2&&fold.one&&fold.four===0:rows===1&&!fold.one&&fold.four===4,`${rows} rows, ${fold.four} speeds, cycle ${fold.one}`);
+    ok(`layout: at ${w}×${h} the top bar (${bar} px) is ${folded?'at most two rows, its speeds folded into one button':'one row with pause and its four speeds'}`,
+      folded?rows<=2&&fold.one&&fold.four===0:rows===1&&!fold.one&&fold.four===5,`${rows} rows, ${fold.four} speeds, cycle ${fold.one}`);
     if(folded&&touch){
       const before=await page.evaluate(()=>window.__sim.snapshot()?.speed);
       const c=await box(page,'.topbar .speed-cycle');

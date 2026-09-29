@@ -1,10 +1,11 @@
 // The top bar: the level, the date and time with the air's temperature, the money, the carbon dial with the shop food's
 // footprint beside it (a consumption figure, never added to the dial: the founding spec's two carbon numbers), and pause
-// with the three speeds. The temperature, the money, the dial and the footprint each show once they've unfolded
+// with the four speeds, a moon before them while a quiet night passes quickly (src/ui/quiet-night.ts). The
+// temperature, the money, the dial and the footprint each show once they've unfolded
 // (src/data/unfold.ts: the first frost on a crop, the first payday, sale or purchase, the first carbon choice), or all
 // at once with "Show all details". The speed is a command through the sim like any other change to the game. The money and the dial open
-// their Explain cards. When the bar is narrow (a container query on its own width, the owner's wins W2 and W11) the four
-// speeds fold into one button that shows the speed and cycles it, a tap on a paused game resuming it.
+// their Explain cards. When the bar is narrow (a container query on its own width, the owner's wins W2 and W11) pause
+// and the speeds fold into one button that shows the speed and cycles it, a tap on a paused game resuming it.
 // The money flashes once at the first sale (src/ui/moments.ts).
 import {LEVELS, SPEEDS, START, type Speed} from '../data/ladder';
 import {shows} from '../data/unfold';
@@ -45,13 +46,13 @@ function CarbonDial({kg, shop, onExplain}: {kg: number; shop: number | null; onE
   );
 }
 
-const SPEED_LABEL: Record<Speed, string> = {0: 'Pause', 1: '1×', 2: '2×', 4: '4×'};
+const SPEED_LABEL: Record<Speed, string> = {0: 'Pause', 1: '1×', 2: '2×', 4: '4×', 8: '8×'};
 /** The folded speed button's next speed: pause to 1× (a tap resumes), then up through the speeds and back to pause. */
 export const nextSpeed = (s: Speed): Speed => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length]!;
 
 /** The snapshot the map is showing, its hour, and the speed last set (which can be a step ahead of the map). */
-export function TopBar({snap, hours, speed, flash = false, onSpeed, onExplain}: {
-  snap: Snapshot; hours: number; speed: Speed; flash?: boolean; onSpeed: (s: Speed) => void; onExplain: (cause: string, at: string | null) => void;
+export function TopBar({snap, hours, speed, flash = false, quiet = false, onSpeed, onExplain}: {
+  snap: Snapshot; hours: number; speed: Speed; flash?: boolean; quiet?: boolean; onSpeed: (s: Speed) => void; onExplain: (cause: string, at: string | null) => void;
 }) {
   const d = calendar(hours), level = LEVELS[snap.level - 1]!;
   const day = snap.nodes.find((n) => n.kind === 'atmosphere')?.levers.weather as unknown as WeatherDay | null | undefined;
@@ -68,6 +69,11 @@ export function TopBar({snap, hours, speed, flash = false, onSpeed, onExplain}: 
       {see('garden.money') && <button type="button" class={flash ? 'money plain flash' : 'money plain'} title="Money" aria-label={`Money: ${money(snap.money)}. Explain`} onClick={() => onExplain('money', 'gate')}>{money(snap.money)}</button>}
       {see('garden.carbon') && (
         <CarbonDial kg={snap.carbon} shop={see('household.footprint') ? snap.nodes.find((n) => n.id === HOUSEHOLD)?.stocks.carbon?.amount ?? 0 : null} onExplain={() => onExplain('carbon', 'heap')} />
+      )}
+      {quiet && (
+        <span class="quiet-night" role="img" aria-label="Quiet night: passing quickly" title="Quiet night: passing quickly">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M 10.5 2 A 6 6 0 1 0 14 11.5 A 5 5 0 0 1 10.5 2 Z" /></svg>
+        </span>
       )}
       <span class="speeds" role="group" aria-label="Speed">
         {SPEEDS.map((s) => (

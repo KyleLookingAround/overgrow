@@ -2,9 +2,10 @@
 // ladder, src/data/ladder.ts), and gives the map a view time between two snapshots to interpolate at. The sim is kept up
 // to two steps ahead of what's shown, so the map never waits on it; pausing freezes the view at once. The game only runs
 // while the page is open and showing: a hidden tab gets no frames, and a long gap between frames counts as a short one.
+// A quiet night the page names (src/ui/quiet-night.ts) passes QUIET_BOOST times faster, up to its dawn: the same steps.
 // docs/systems/clock.md says how it works.
 import {hoursPerSecond} from '../sim/clock';
-import type {Speed} from '../data/ladder';
+import {QUIET_BOOST, type Speed} from '../data/ladder';
 import type {Snapshot} from '../sim/state';
 import type {SimClient} from './sim-client';
 
@@ -16,6 +17,8 @@ export interface View {
   hours: number;
   /** 0 at prev, 1 at cur. */
   alpha: number;
+  /** A quiet night passing quickly now. */
+  quiet: boolean;
 }
 
 export interface Loop {
@@ -31,12 +34,15 @@ export interface Loop {
   benching(): boolean;
   /** Movement jumps per tick instead of gliding (prefers-reduced-motion). */
   setReducedMotion(on: boolean): void;
+  /** A quiet night up to a game hour (its dawn), passing QUIET_BOOST times faster until then; null when it isn't. */
+  setQuiet(until: number | null): void;
 }
 
 const AHEAD = 2, MAX_STEPS = 8, MAX_GAP = 0.25, JUMP = 4;
 
 export function createLoop(sim: SimClient): Loop {
   let queue: Snapshot[] = [], target = 0, inFlight = false, last = 0, reduced = false, benchN = 0, benchM = 0, benchRate = 4;
+  let quiet: number | null = null, fast = false; // the quiet night's dawn, and whether it's passing quickly now
   let game: Snapshot | null = null; // the game's latest, kept while a bench runs
   const frames: ((v: View, now: number) => void)[] = [];
 
@@ -74,8 +80,8 @@ export function createLoop(sim: SimClient): Loop {
     while (i > 0 && queue[i - 1]!.hours >= target) i--;
     const cur = queue[i]!, prev = queue[Math.max(0, i - 1)]!;
     const span = cur.hours - prev.hours, alpha = span > 0 ? Math.min(1, Math.max(0, (target - prev.hours) / span)) : 1;
-    if (reduced) return alpha >= 1 ? {prev: cur, cur, hours: cur.hours, alpha: 1} : {prev, cur: prev, hours: prev.hours, alpha: 1};
-    return {prev, cur, hours: target, alpha};
+    if (reduced) return alpha >= 1 ? {prev: cur, cur, hours: cur.hours, alpha: 1, quiet: fast} : {prev, cur: prev, hours: prev.hours, alpha: 1, quiet: fast};
+    return {prev, cur, hours: target, alpha, quiet: fast};
   };
 
   const frame = (now: number) => {
@@ -84,8 +90,11 @@ export function createLoop(sim: SimClient): Loop {
     last = now;
     const top = queue[queue.length - 1];
     if (!top) return;
-    const rate = benchN ? benchRate : hoursPerSecond(top.level, top.speed);
-    target = Math.min(target + dt * rate, top.hours);
+    const base = benchN ? benchRate : hoursPerSecond(top.level, top.speed);
+    // a quiet night passes faster, handing back at its dawn
+    fast = !benchN && base > 0 && quiet !== null && target < quiet;
+    const rate = fast ? base * QUIET_BOOST : base;
+    target = Math.min(target + dt * rate, fast ? quiet! : Infinity, top.hours);
     if (top.hours - target > JUMP * top.step) target = top.hours - top.step; // moved far ahead by a command: catch up at once
     // drop what's behind the view, keeping the one just before it to interpolate from
     while (queue.length > 2 && queue[1]!.hours <= target) queue.shift();
@@ -103,6 +112,7 @@ export function createLoop(sim: SimClient): Loop {
       return () => void frames.splice(frames.indexOf(fn) >>> 0, 1);
     },
     setReducedMotion: (on) => void (reduced = on),
+    setQuiet: (until) => void (quiet = until),
     benching: () => benchN > 0,
     bench(n, m = n, speed = 4) {
       benchRate = hoursPerSecond(1, speed as Speed);
