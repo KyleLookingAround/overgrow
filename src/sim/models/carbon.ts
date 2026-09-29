@@ -1,8 +1,9 @@
 // Carbon and land: the compost heap, compost going back to the beds, and digging a bed out of the lawn. Green waste
 // the gardener brings to the heap carries the carbon its plants took from the air (counted as it reaches the heap) and
-// its nitrogen; the heap breaks it down by the day's warmth, sending some carbon back to the air as CO₂, a little
-// methane and nitrous oxide besides, and keeping the rest as compost, which the gardener spreads on a bed before sowing:
-// its carbon and nitrogen go into the bed's fresh organic matter, where the soil model takes over. Digging moves a plot's
+// its nitrogen, phosphorus and potassium; the heap breaks it down by the day's warmth, sending some carbon back to the
+// air as CO₂, a little methane and nitrous oxide besides, and keeping the rest as compost, which the gardener spreads on
+// a bed before sowing: its carbon and nitrogen go into the bed's fresh organic matter, where the soil model takes over,
+// and its phosphorus and potassium into the bed's pools, so what the crops took comes back, less what left as food. Digging moves a plot's
 // land from grass to crops, a land-use change whose soil carbon effect is the soil model's: bare, dug ground loses
 // organic matter faster and gets none of grass's back. docs/systems/carbon.md says how it works.
 //
@@ -11,12 +12,14 @@
 //   waste's dry matter; IPCC AR6 WGI ch. 7 for the gases' 100-year warming (non-fossil CH₄ 27, N₂O 273); Bernal, Alburquerque
 //   & Moral (2009), "Composting of animal manures and chemical criteria for compost maturity assessment", for a heap
 //   losing about half its carbon as CO₂ and a fifth of its nitrogen as it matures; RothC's temperature factor (Coleman &
-//   Jenkinson 1996) for the pace; fresh vegetable matter of about 12 % dry matter, 42 % of it carbon and 3 % nitrogen.
+//   Jenkinson 1996) for the pace; fresh vegetable matter of about 12 % dry matter, 42 % of it carbon. A bed's waste
+//   carries the nutrients its crops left in their residue (src/sim/models/crops.ts, RB209's offtake); other waste fresh
+//   produce's (McCance & Widdowson, src/data/crops.ts); WRAP's PAS 100 compost analyses for the compost's P and K.
 //   IPCC 2006 vol. 4 ch. 5 and 6 for the land-use change: cropland's long-term soil carbon about 0.7 of grassland's
 //   (F_LU for long-term cultivation, temperate moist) over the default 20 years.
 // Simplifies: one heap, well mixed, breaking down at one rate set by the air's temperature (no hot phase, no turning,
-//   no moisture); compost is one product, with the heap's carbon and nitrogen shared across it by the steady ratios of
-//   mature compost; methane and nitrous oxide counted as CO₂e as the waste breaks down; the plants' carbon counted when
+//   no moisture); compost is one product, carrying the steady carbon of mature compost and a share of the heap's
+//   nitrogen, phosphorus and potassium by its part of the compost there and the compost the heap's waste will make; methane and nitrous oxide counted as CO₂e as the waste breaks down; the plants' carbon counted when
 //   their waste reaches the heap, not as they grow (what's eaten breathes its carbon out elsewhere); the lawn's clippings
 //   aren't collected. A bag of peat compost (part 6) will come in from the `bought` boundary with its carbon, and its
 //   extraction's emissions from `bought` to the air, spread the same way as this compost.

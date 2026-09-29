@@ -61,8 +61,8 @@ export interface CropSpec {
   residue: number;
   /** Uptake from the soil for a full crop, kg per hectare of N, P and K (beans fix most of their own nitrogen). */
   uptake: {n: number; p: number; k: number};
-  /** The share of its phosphorus and potassium in the part that's eaten (its nutrient harvest index): that leaves as
-   *  food, the rest (leaves, stems, roots) goes back to the heap with the residue. */
+  /** The share of its phosphorus and potassium in the part that's eaten (its nutrient harvest index), standing in for
+   *  its nitrogen too: that leaves as food, the rest (leaves, stems, roots) goes back to the heap with the residue. */
   harvestIndex: number;
   /** Killed outright by a frost ('plant'), set back ('tops'), or unharmed ('none'). */
   frost: 'plant' | 'tops' | 'none';

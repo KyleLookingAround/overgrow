@@ -110,7 +110,7 @@ describe('crops', () => {
       const sim = createSim(2);
       sim.apply({type: 'plan', node: 'bed-2', lever: 'sow', value: plan});
       let uptake = 0;
-      for (let d = 0; d < 365; d++) uptake += sim.apply({type: 'tick', hours: 24}).flows.filter((f) => f.what === 'uptake' && f.unit === 'kgN' && 'node' in f.from && f.from.node === 'bed-2').reduce((s, f) => s + f.amount, 0);
+      for (let d = 0; d < 365; d++) uptake += sim.apply({type: 'tick', hours: 24}).flows.filter((f) => f.what === 'uptake' && f.unit === 'kgN' && 'node' in f.from && f.from.node === 'bed-2' && f.from.stock === SOIL.nitrate).reduce((s, f) => s + f.amount, 0);
       const bed = sim.snapshot().nodes.find((n) => n.id === 'bed-2')!;
       return {uptake, p: bed.stocks[SOIL.phosphorus]!.amount, k: bed.stocks[SOIL.potassium]!.amount};
     };

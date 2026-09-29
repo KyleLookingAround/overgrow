@@ -11,7 +11,8 @@
 //   Paper 56 (Allen et al. 1998) for the crop coefficients by stage (table 12, the four-stage curve of figure 25), the
 //   depletion fraction p (table 22) and the water stress coefficient Ks (eq. 84); FAO Irrigation and Drainage Paper 33
 //   (Doorenbos & Kassam 1979) for the yield response to water, 1 − Ya/Ym = Ky (1 − ETa/ETm); RB209 (AHDB 2023,
-//   section 6) for the nitrogen, phosphorus and potassium a full crop takes up; Liebig's law of the minimum for the
+//   section 6) for the nitrogen, phosphorus and potassium a full crop takes up, and its offtake in the produce for the
+//   share of them that leaves as food (the harvest index); McCance & Widdowson for the nutrients in produce that rots; Liebig's law of the minimum for the
 //   scarcest nutrient limiting growth; RHS guidance on frost-tender crops (beans and tomatoes killed below 0 °C,
 //   potato haulm blackened and regrowing from the tubers). Klein et al. (2007), "Importance of pollinators in changing
 //   landscapes for world crops", for the share of a pollinated crop's yield that depends on visits (src/sim/models/
@@ -19,12 +20,13 @@
 // Simplifies: one crop to a bed, all sown at once and growing as one; development from the day's mean temperature (no
 //   day length, no vernalisation, no heat stress); water stress cuts yield and quality but not the pace; uptake in
 //   proportion to development; beans' own nitrogen fixation stands in as a small uptake, with no nitrogen added to the
-//   soil; roots and stubble go to the heap with the residue, not into the soil; seed, seed potatoes and young tomato
+//   soil; roots and stubble go to the heap with the residue, not into the soil; what a crop takes is held in it until
+//   it's done, and then one harvest index (set for P and K, standing in for N too) splits it between food and residue; seed, seed potatoes and young tomato
 //   plants cost nothing yet (the shed, part 6); a frost reads the grass minimum of the hour; pests' damage (src/sim/models/
 //   pests.ts) is a share of the yield lost, like a frost's.
 //   Fast effect: shoots in a week or two, a first cut of salad in about a month in spring, and frost blackening the
 //   beans on a cold night. Slow effect: a cropped bed drawing its nutrients down year by year unless compost goes back.
-import {COVERS, CROPS, GROWTH_PACE, ROTATION, type CropId, type CropSpec} from '../../data/crops';
+import {COVERS, CROPS, GROWTH_PACE, PRODUCE, ROTATION, type CropId, type CropSpec} from '../../data/crops';
 import {calendar, type CalendarDate, type System, type TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type GraphNode, type LeverValue} from '../graph';
@@ -196,11 +198,13 @@ const OWN = new Set(['crop', 'history']);
 
 // ---- the day ----
 
-/** Moves produce that has gone off on a bed to waste on it, and counts it as food wasted. */
+/** Moves produce that has gone off on a bed to waste on it, with the nutrients it holds, and counts it as food wasted. */
 function spoil(c: TickContext, n: GraphNode, product: string, kg: number, what: string) {
   if (kg <= 1e-9) return;
   c.flow({what, unit: 'kgFood', product, amount: qty(kg, 'kgFood'), from: {node: n.id, stock: foodKey(product)}, to: {boundary: 'decay'}});
   c.flow({what, unit: 'kgWaste', product: GREENS, amount: qty(kg, 'kgWaste'), from: {boundary: 'decay'}, to: {node: n.id, stock: WASTE}});
+  // its nutrients left with the harvest's share (to growth, as food); rotting on the bed, they come back for the heap
+  for (const [key, unit] of NUTRIENTS) c.flow({what, unit, amount: qty(kg * PRODUCE[key], unit), from: {boundary: 'growth'}, to: {node: n.id, stock: IN_WASTE[key]}});
   recordWaste(c.graph, kg);
 }
 

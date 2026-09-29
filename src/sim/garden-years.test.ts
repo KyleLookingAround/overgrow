@@ -1,6 +1,6 @@
 // The garden over four years, the check for Bug #47 (its output fell to a fifth by year three once the beds' phosphorus
 // and potassium ran out): on seeds 1 to 3, with the garden's own gardener and plan, the kitchen still picks most of
-// year one's kg in year three, and no dug bed's phosphorus or potassium ever runs out.
+// year one's kg in year three, and no dug bed's phosphorus or potassium runs out, not for a day.
 import {describe, expect, it} from 'vitest';
 import {createSim} from './index';
 import {SOIL} from './models/soil';
