@@ -7,6 +7,7 @@ import {runStep} from '../clock';
 import {applyFlow, makeNode, type Flow, type Graph, type LeverValue} from '../graph';
 import {rng} from '../random';
 import {gardenGraph} from '../state';
+import {ENERGY_INDEX} from './energy';
 import {structure} from './soil';
 import {
   breakdownChance, COMPACTION_LEVER, compactedStructure, compactionOf, expectedRepairPerHour, handHours, hazardPerHour, jobOf, machinery, operate, recovered,
@@ -131,6 +132,22 @@ describe('machinery', () => {
     expect(tractorOf(shed)!.hoursSinceService).toBe(0);
     // no tractor, no work
     expect(operate(ctx as never, g.nodes.kitchen!, wetBed, 'plough', 1)).toBeNull();
+  });
+
+  it('burns diesel at the index the level above sets: dearer fuel costs more, the same litres and carbon', () => {
+    const job = (index?: object) => {
+      const g = gardenGraph(), {ctx} = context(g);
+      g.nodes.shed!.levers[TRACTOR] = {...usedTractor(), ageYears: 2, hours: 300, hoursSinceService: 10} as unknown as LeverValue;
+      if (index) g.nodes.shed!.levers[ENERGY_INDEX] = index as LeverValue;
+      const money = g.nodes.kitchen!.stocks.money!.amount, air = g.nodes.atmosphere!.stocks.carbon!.amount;
+      const o = operate(ctx as never, shed(g), g.nodes['bed-1']!, 'plough', 1, 'kitchen')!;
+      return {o, spent: money - g.nodes.kitchen!.stocks.money!.amount, emitted: g.nodes.atmosphere!.stocks.carbon!.amount - air};
+    };
+    const shed = (g: Graph) => g.nodes.shed!;
+    const base = job(), dear = job({price: {diesel: 2}, gridCo2e: 0.01});
+    expect(dear.o.litres).toBe(base.o.litres); // the same job (the same draws): only the price moves
+    expect(dear.emitted).toBeCloseTo(base.emitted, 9); // diesel's carbon is not the grid's
+    expect(dear.spent - base.spent).toBeCloseTo(base.o.litres * 0.85, 6); // the extra is one more litre's price a litre, £0.85
   });
 
   it('fades compaction and mends a broken tractor over the days', () => {

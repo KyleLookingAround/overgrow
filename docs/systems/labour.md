@@ -11,6 +11,14 @@ The hours people have, the work a field needs, what a hand costs and what doesn'
 - **Fast effect** a day's hours spent and a job left waiting; **slow effect** a hand's skill and wages over the seasons, and a farm growing past one person.
 - **Speed**: the `labour` system, 20 workers and 50 fields, 20 loaded stores with the other two models' systems, takes about 0.14 ms a game day headless in Node 22 (a 2.1 GHz Xeon), all three together; `fit()` on 100 jobs and 20 workers takes about 0.2 ms, and is only called when the wiring part plans a day.
 
+## Hooks for the levels above
+
+Added for the owner's answers on #29 (all pure, none wired):
+
+- **Wages as a parameter** (`Wages`, `WAGES` the default, `wageCost(role, hours, wages?)`, `hireBenefit({… wages})`): the table is passed, so a level above can set it; `withMinimumWage(minimum, wages?)` gives a new table with every paid role's hourly wage at least the minimum (the owner stays unpaid, and the default table is left alone). A higher wage raises the cost and lowers what a hand nets.
+- **A wage-payment flow** (`payWages(c, worker, hours, payer, wages?)`): the wage goes from the payer's `money` to the worker's own `money` stock if their node has one, else out of the model to `bought`, and the employer's on-cost (holiday, pension, National Insurance) goes to `bought`. It returns the wage, the on-cost and the total; nothing is paid without hours, a payer with a purse or a worker record.
+- **An off-farm role for the owner** (`Worker.goals.offFarm`, `offFarmDay(job, weekday, share?)`, `earnOffFarm(c, node, job, weekday, share?)`): the household model's job (`JOBS` and `WAGE` in `src/data/household.ts`): its hours at work, the commute on a working day and the take-home pay (about £14.75 an hour). A worker with a job away has those hours and the commute taken off their weekdays (`dayHours`, and so `hoursOver`), so a full-time job leaves the owner about an hour on a summer weekday and the weekend, and the pay comes into the farm's purse from outside as the `off-farm pay` flow. A test holds the hours, commute and pay to the household model's for every weekday.
+
 ## Wiring
 
 For part 13:

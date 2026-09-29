@@ -1,0 +1,3 @@
+Section: now
+- **Hooks for the models written ahead** (`docs/briefs/model-hooks.md`, #38, from #29's answers Q2, Q3, Q6 and Q15): the sealing maths carry demand, hours and Output by product group, a wildlife part in Health, a function summing sealed children, an event's money loss and a year-long step-up window; livestock gains hours a head, sales with a price, illness as an outbreak event and a per-head aggregate; labour, machinery and energy gain wages as a parameter, a wage flow, an owner's off-farm job and the energy index the level above sets. Pure and tested, none wired: parts 6c, 7, 12 and 13 wire them.
+Theme: model

@@ -10,6 +10,12 @@ What each fuel emits and costs, and a pump's, a cold store's and a polytunnel he
 - **Fast effect** a day's bill and its carbon, and a frosty night's heater; **slow effect** the running total of energy used and carbon emitted, which the dial and the farm's account carry for years.
 - **Speed**: the `energy` system with 20 stores, each with two loads, is part of the 0.14 ms a game day the three models take together (with 20 workers and 50 fields), measured headless in Node 22 on a 2.1 GHz Xeon.
 
+## Hooks for the levels above
+
+Added for the owner's answers on #29 (a lever, nothing wired):
+
+- **The index the level above sets** (`EnergyIndex`, the `energy.index` lever, `indexOf()`): `gridCo2e`, the grid's kg CO₂e a kWh (it falls as the grid decarbonises), and `price`, a multiple by fuel of `FUELS`' price (1 is as now). `co2e()`, `costOf()`, `burn()` and `pump()` take it as an optional last argument; `burn()` finds it itself on the burning node's lever, else the payer's, else uses none, so a machine's diesel, a pump and the standing loads all follow it and the carbon account stays whole (the flow to the air is the indexed figure). Only electricity's carbon follows the grid; a fuel's price follows its own multiple. Without an index everything is as it was. It has no lag, tariff structure or standing charge.
+
 ## Wiring
 
 For part 13 (and part 14's cold chain):

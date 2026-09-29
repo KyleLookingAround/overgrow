@@ -4,16 +4,17 @@
 // lowers welfare and output and wears the ground; a missed feed or a cold snap cuts today's eggs; a flock's methane
 // adds up; the risk of illness rises with density and low welfare; and on the graph, the day's flows balance.
 import {describe, expect, it} from 'vitest';
-import {N_RANGE, PER_KG, PRODUCT_ROW, SPECIES, EGG_KG, type SpeciesId} from '../../data/livestock';
+import {N_RANGE, PER_KG, PRODUCT_ROW, SALE_PRICE, SPECIES, EGG_KG, type SpeciesId} from '../../data/livestock';
 import {runStep, type TickContext} from '../clock';
 import {applyFlow, imbalance, makeNode, qty, stockTotals, type Flow, type Graph, type LeverValue} from '../graph';
 import {rng} from '../random';
 import {gardenGraph} from '../state';
 import {HEAP} from './carbon';
 import {
-  availableN, clearOut, dayFlows, diseaseRisk, fallsIll, footprint, GWP_CH4, heapGases, herdOf, LIVE, livestock, manureGases, newHerd,
-  setHerd, step, stocking, treat, type Conditions, type Herd,
+  aggregate, availableN, clearOut, dayFlows, diseaseRisk, fallsIll, footprint, GWP_CH4, heapGases, herdOf, hoursNeeded, ILL_DAYS, LIVE, livestock,
+  manureGases, newHerd, OUTBREAKS, outbreak, outbreaksOf, perHead, priceOf, sellEggs, setHerd, slaughter, step, stocking, treat, type Conditions, type Herd,
 } from './livestock';
+import {eventKgLost, showEvent} from '../ladder';
 import {sunOn, type WeatherDay} from './weather';
 
 const FULL = {feed: 1e6, water: 1e6};
@@ -292,5 +293,153 @@ describe('livestock: on the graph', () => {
     let h = 6;
     for (let d = 0; d < 20; d++) h = runStep([livestock], raw as never, 1, h);
     expect((performance.now() - t0) / 20).toBeLessThan(10); // ms a game day for a hundred herds: the note gives the measured figure
+  });
+});
+
+describe('livestock: hooks for the levels above', () => {
+  const g0 = () => {
+    const g: Graph = gardenGraph();
+    g.nodes.paddock = makeNode({id: 'paddock', kind: 'paddock', name: 'Paddock', land: {grass: 100}, stocks: {
+      [LIVE.eggs]: {unit: 'kgFood', product: 'eggs', amount: qty(4, 'kgFood')}, [LIVE.mass]: {unit: 'kgFood', product: 'liveweight', amount: qty(100, 'kgFood')},
+      [LIVE.feed]: {unit: 'kgFeed', product: 'feed', amount: qty(1e3, 'kgFeed')}, [LIVE.water]: {unit: 'L', amount: qty(1e3, 'L')},
+    }});
+    g.edges.push(
+      {id: 'paddock-heap', from: 'paddock', to: HEAP, carries: ['kgWaste', 'kgCO2e', 'kgN']}, {id: 'paddock-air', from: 'paddock', to: 'atmosphere', carries: ['kgCO2e']},
+    );
+    g.nodes.atmosphere!.levers.weather = {day: 0, dayOfYear: 120, wet: false, rain: 0, rainFrom: 0, rainHours: 0, tmax: 14, tmin: 6, sun: 5, length: 14, zMax: 0, zMin: 0, zSun: 0, warming: 0} as unknown as LeverValue;
+    return g;
+  };
+  const ctxOf = (g: Graph) => {
+    const flows: Flow[] = [];
+    const raw = {dt: 24, level: 3, graph: g, activity: () => {}, flow: (f: Flow) => {
+      const bad = applyFlow(g, f);
+      if (bad) throw new Error(bad);
+      flows.push(f);
+      return null;
+    }};
+    return {c: {...raw, hours: 24} as unknown as TickContext, flows, raw};
+  };
+
+  it('gives hours a head, a good deal more for a cow than a hen, and more when ill', () => {
+    expect(hoursNeeded(newHerd('hen', 3, 12))).toBeCloseTo(3 * SPECIES.hen.hours, 9);
+    expect(SPECIES.hen.hours * 365).toBeGreaterThan(1); // a hen takes an hour or two a year
+    expect(SPECIES.hen.hours * 365).toBeLessThan(3);
+    expect(SPECIES.ewe.hours * 365).toBeGreaterThan(4); // Nix: a ewe 5–8 h a year
+    expect(SPECIES.ewe.hours * 365).toBeLessThan(10);
+    expect(SPECIES.cow.hours).toBeGreaterThan(SPECIES.ewe.hours);
+    const pigs = newHerd('pig', 20, 2000);
+    expect(hoursNeeded({...pigs, ill: 10})).toBeGreaterThan(hoursNeeded(pigs));
+    expect(hoursNeeded(pigs, 7)).toBeCloseTo(7 * hoursNeeded(pigs), 9);
+    expect(hoursNeeded({...pigs, head: 0})).toBe(0);
+  });
+
+  it('sells eggs at a price: the food leaves to `sold`, the money comes into the purse, and the graph balances', () => {
+    const g = g0(), {c, flows} = ctxOf(g), before = stockTotals(Object.values(g.nodes)), purse = g.nodes.kitchen!.stocks.money!.amount;
+    const r = sellEggs(c, g.nodes.paddock!, 3);
+    expect(r).toMatchObject({kg: 3, head: 0});
+    expect(r.gbp).toBeCloseTo(3 * priceOf('hen'), 9);
+    expect(g.nodes.paddock!.stocks[LIVE.eggs]!.amount).toBeCloseTo(1, 9);
+    expect(g.nodes.kitchen!.stocks.money!.amount).toBeCloseTo(purse + r.gbp, 9);
+    expect(imbalance(before, stockTotals(Object.values(g.nodes)), flows)).toEqual({});
+    expect(sellEggs(c, g.nodes.paddock!).kg).toBeCloseTo(1, 9); // the rest
+    expect(sellEggs(c, g.nodes.paddock!)).toEqual({kg: 0, gbp: 0, head: 0}); // none left
+    // about £3 a kg is about £2 a dozen
+    expect(priceOf('hen') * EGG_KG * 12).toBeGreaterThan(1.5);
+    expect(priceOf('hen') * EGG_KG * 12).toBeLessThan(3);
+  });
+
+  it('slaughters some of a herd: their share of the liveweight leaves as carcass and waste, the money is for whole carcasses, the herd is fewer', () => {
+    const g = g0(), {c, flows} = ctxOf(g), node = g.nodes.paddock!, before = stockTotals(Object.values(g.nodes)), purse = g.nodes.kitchen!.stocks.money!.amount;
+    setHerd(node, newHerd('pig', 10, 1000, {weight: 100}));
+    const r = slaughter(c, node, 4);
+    expect(r.head).toBe(4);
+    expect(r.kg).toBeCloseTo(100 * 0.4 * SPECIES.pig.dressing, 9); // 40 % of the stock, as carcass
+    expect(r.gbp).toBeCloseTo(4 * 100 * SPECIES.pig.dressing * SALE_PRICE.pig.perKg, 9); // £900 or so for four pigs of 75 kg carcass at £3
+    expect(r.gbp).toBeGreaterThan(400);
+    expect(herdOf(node)!.head).toBe(6);
+    expect(node.stocks[LIVE.mass]!.amount).toBeCloseTo(60, 9);
+    expect(g.nodes.kitchen!.stocks.money!.amount).toBeCloseTo(purse + r.gbp, 9);
+    expect(imbalance(before, stockTotals(Object.values(g.nodes)), flows)).toEqual({}); // the waste left as `decay`
+    // more than there are is all of them, and lamb fetches more a kg than pork or mutton
+    expect(slaughter(c, node, 100).head).toBe(6);
+    expect(slaughter(c, node)).toEqual({kg: 0, gbp: 0, head: 0});
+    expect(priceOf('lamb')).toBeGreaterThan(priceOf('pig'));
+    expect(priceOf('cow')).toBeGreaterThan(priceOf('ewe'));
+  });
+
+  it('makes illness an event that shows a level up and two levels up with the kg the herd loses', () => {
+    const h = newHerd('hen', 100, 400), e = outbreak('coop', h, 240);
+    expect(e).toMatchObject({kind: 'disease', homeLevel: 1, size: 0.5, days: ILL_DAYS, from: 240, product: 'eggs'});
+    expect(outbreak('field', newHerd('ewe', 10, 8000), 0).homeLevel).toBe(3);
+    expect(outbreak('field', newHerd('lamb', 10, 3000, {level: 4}), 0).homeLevel).toBe(4);
+    const eggsAWeek = (ill: number) => {
+      let herd = {...h, ill};
+      let kg = 0;
+      for (let d = 0; d < ILL_DAYS; d++) {
+        const r = step(herd, WARM, FULL);
+        herd = r.herd;
+        kg += r.eggs;
+      }
+      return kg;
+    };
+    const well = eggsAWeek(0), sick = eggsAWeek(ILL_DAYS), perDay = well / ILL_DAYS;
+    // the herd's own loss over the illness is half its output (and a little more as welfare falls behind it)
+    expect(well - sick).toBeGreaterThan(0.5 * well * 0.95);
+    expect(well - sick).toBeLessThan(0.5 * well * 1.5);
+    // the event's kg are that half at home, one level up and two up (a region of 20 such coops: this one is a twentieth of its output)
+    const home = showEvent(e, 1)!, tile = showEvent(e, 2)!, region = showEvent(e, 3, {node: perDay, region: 20 * perDay})!;
+    expect(home.mode).toBe('thing');
+    expect(tile.text).toBe('Output −50 % for 21 days');
+    expect(region.text).toBe('outbreak: eggs −3 %');
+    expect(region.tint).toBe('disease');
+    const kg = eventKgLost(home, perDay);
+    expect(kg).toBeCloseTo(0.5 * well, 9);
+    expect(eventKgLost(tile, perDay)).toBeCloseTo(kg, 9);
+    expect(eventKgLost(region, 20 * perDay)).toBeCloseTo(kg, 9);
+    // a treated outbreak is shorter, and loses fewer kg
+    expect(eventKgLost(showEvent(outbreak('coop', h, 0, 4), 1)!, perDay)).toBeLessThan(kg / 4);
+  });
+
+  it('raises the event on the node when a herd falls ill, and drops it once it is over', () => {
+    const g = g0(), {raw} = ctxOf(g), node = g.nodes.paddock!;
+    // packed tight, badly kept and unfed: the daily chance is at its highest
+    setHerd(node, newHerd('pig', 40, 40, {welfare: 0, ground: 0.2}));
+    let hours = 0, found = -1;
+    for (let d = 0; d < 4000 && found < 0; d++) {
+      node.stocks[LIVE.feed]!.amount = qty(0, 'kgFeed');
+      hours = runStep([livestock], raw as never, 3, hours);
+      if (outbreaksOf(node).length) found = d;
+    }
+    expect(found).toBeGreaterThanOrEqual(0);
+    const ev = outbreaksOf(node)[0]!;
+    expect(node.levers[OUTBREAKS]).toHaveLength(1);
+    expect(ev).toMatchObject({kind: 'disease', label: 'outbreak', homeLevel: 3, size: 0.5, days: ILL_DAYS, product: 'meat'});
+    expect(ev.from).toBeGreaterThan(0);
+    expect(ev.from).toBeLessThanOrEqual(hours);
+    expect(herdOf(node)!.ill).toBeGreaterThan(0);
+  });
+
+  it('gives a herd of many a per-head day: the same as stepping the whole herd, and hens near their yearly eggs', () => {
+    const many = newHerd('hen', 2000, 8000, {disease: false, shelter: 0.9}), r = step(many, WARM, FULL), p = perHead('hen', WARM);
+    const agg = aggregate(p, 2000);
+    expect(agg.eggs).toBeCloseTo(r.eggs, 6);
+    expect(agg.feed).toBeCloseTo(r.feed, 6);
+    expect(agg.methane).toBeCloseTo(r.methane, 9);
+    expect(agg.manure).toBeCloseTo(r.manure.kg, 6);
+    expect(agg.hours).toBeCloseTo(hoursNeeded(many), 9);
+    // sheep on grass: the aggregate is a herd of one, not a real herd's sward (it grazes as much as it takes, the good density)
+    const ewe = perHead('ewe', MILD), flock = step(newHerd('ewe', 300, 300 * SPECIES.ewe.land, {disease: false, sward: 0.25}), MILD, FULL);
+    expect(aggregate(ewe, 300).methane).toBeCloseTo(flock.methane, 6);
+    expect(aggregate(ewe, 300).manure).toBeCloseTo(flock.manure.kg, 6);
+    // a hen lays 250–300 eggs a year over the seasons, up to her rate (0.95 a day) at the best of the light
+    const eggs = (p.eggs / EGG_KG) * 365;
+    expect(eggs).toBeGreaterThan(300);
+    expect(eggs).toBeLessThan(365);
+    // more days and more head scale it up, and a poorly kept herd makes less
+    expect(aggregate(p, 10, 7).eggs).toBeCloseTo(70 * p.eggs, 9);
+    expect(perHead('hen', WARM, 0.5).eggs).toBeLessThan(p.eggs);
+    // a lamb has a carcass to sell and a hen has none
+    expect(perHead('lamb', MILD).meat).toBeGreaterThan(0);
+    expect(perHead('hen', MILD).meat).toBe(0);
   });
 });

@@ -6,6 +6,11 @@
 // welfare index, from space, feed, water and warmth, cuts what it makes when it's low. docs/systems/livestock.md says how
 // it works and what part 6 (the hens) and part 12 (the flock and pigs) wire.
 //
+// Hooks for the levels above (the owner's answers on #29): the keeper's hours a head (`hoursNeeded`, to feed labour); eggs
+// and meat sold, with a price (`sellEggs`, `slaughter`); an outbreak as a `GameEvent` the sealing maths shows one and two
+// levels up (`outbreak`, raised on the node's `events` lever when a herd falls ill); and a per-head day for a herd of many
+// (`perHead`, `aggregate`).
+//
 // Sources: FAO (2013), "Tackling climate change through livestock" and "Greenhouse gas emissions from ruminant supply chains"
 //   (GLEAM), and FAO's feed intake and conversion tables, for intake and feed conversion; IPCC 2006 Guidelines vol. 4 ch. 10 (tables
 //   10.10–10.11, Tier 1 enteric methane per head a year; 10.14–10.15 and 10A, manure methane from volatile solids, B₀ and
@@ -13,7 +18,7 @@
 //   nitrogen on soils, EF3 for what's left on pasture); IPCC AR6 WGI ch. 7 (non-fossil CH₄ 27, N₂O 273 times CO₂ over
 //   100 years); RB209 (AHDB, 9th edition) for how much of a manure's nitrogen a crop can use; the RHS's and industry
 //   breeders' management guides (a hybrid layer 250–300 eggs a year, few in the dark months, since laying follows day length); the RSPCA and Soil Association stocking rates for space; Poore & Nemecek (2018),
-//   Science 360, for land, water and emissions of a kg of each product (in src/data/livestock.ts).
+//   Science 360, for land, water and emissions of a kg of each product (in src/data/livestock.ts); the Farm Management Pocketbook's and Nix's labour tables for the keeper's hours a head, and AHDB's and Defra's farm-gate prices for what each product sells for (both in src/data/livestock.ts).
 // Simplifies: one herd, one species, on a node; the animals are all alike (no ages, breeds, lactation or breeding: a ewe's
 //   lambs and a cow's milk are data for later parts); liveweight gain stops at finishing weight and never goes negative;
 //   feed and grass are counted together in kg of dry matter; welfare is one index and there are no deaths; illness is
@@ -23,14 +28,21 @@
 //   emissions (its fields, its lorry) belong to the crops and the supply chain, not to the herd, and the manure's carbon is
 //   drawn from the air as it's dropped while the feed's carbon just leaves as `eaten`, so a herd is a small net sink until
 //   its manure decays.
+//   The hooks add: hours a head are one figure a species, up half when ill; a slaughtered herd sells the carcass of its
+//   whole animals at the price, while the graph's `liveweight` stock only holds the gain made on the node, so its share
+//   of that leaves (the carcass to `sold`, the rest to `decay`); an outbreak's size is the half of its output an illness
+//   takes, for the days it lasts (the herd's welfare, falling on top, is the slow cost the event doesn't count); a
+//   per-head day is a well herd at the good density, fed to need, so it's the average of a big herd, not any one farm's.
 //   Fast effect: a missed feed, an empty trough or a cold snap cuts today's eggs and gain. Slow effect: overstocking wears
 //   welfare down and the ground bare over a season, and a flock's methane adds up in the air over years.
 import type {System, TickContext} from '../clock';
 import {qty, type Flow, type GraphNode, type LeverValue} from '../graph';
 import type {Rng} from '../random';
 import {ATMOSPHERE} from '../state';
-import {EGG_KG, GRASS, LAYING, MANAGED, MANURE_C, MANURE_VS, N_AVAILABLE, SPECIES, type Managed, type Species, type SpeciesId} from '../../data/livestock';
+import {EGG_KG, GRASS, ILL_HOURS, LAYING, MANAGED, MANURE_C, MANURE_VS, N_AVAILABLE, OUTBREAK_SIZE, SALE_PRICE, SPECIES, type Managed, type Species, type SpeciesId} from '../../data/livestock';
+import type {GameEvent} from '../ladder';
 import {HEAP, HEAPED, OTHER_GASES} from './carbon';
+import {PURSE} from './energy';
 import {SOIL} from './soil';
 import {weatherOf, type WeatherDay} from './weather';
 
@@ -85,6 +97,8 @@ export interface Herd {
   risk: number;
   /** False for a herd that never falls ill (the garden's hens until part 12's vet). */
   disease?: boolean;
+  /** The level of the ladder it's hands-on at, 1 to 8 (an outbreak's `homeLevel`): a garden's hens 1, a field's herd 3 unless set. */
+  level?: number;
   /** For manure left or spread on a field: the node of its soil, if not this one; and the heap, if not the garden's. */
   field?: string;
   heap?: string;
@@ -107,6 +121,9 @@ export interface Conditions {
   length: number;
   dayOfYear: number;
 }
+
+/** The level a herd's outbreaks are hands-on at: the garden's hens, else the smallholding's field. */
+export const homeLevelOf = (h: Herd) => h.level ?? (h.species === 'hen' ? 1 : 3);
 
 /** A weather day, or a step of several (a week at higher levels), as the herd feels it. */
 export function conditionsOf(w: WeatherDay): Conditions {
@@ -175,6 +192,16 @@ export function diseaseRisk(h: Herd, days = 1) {
   return 1 - Math.pow(1 - yearly, days / 365);
 }
 
+/**
+ * The event a herd falling ill is, for the sealing maths (`GameEvent`): its home level, half of what the herd makes
+ * destroyed (the size) for the days the illness lasts, from the game hour it began. `showEvent()` then gives one level up
+ * a tile ("Output −50 % for 21 days") and two or more a regional tint, with the same kg lost at each. Treated (`treat`),
+ * the same event is shorter: pass the days. Ids repeat only for one node at one hour.
+ */
+export function outbreak(node: string, h: Herd, hours: number, days = ILL_DAYS): GameEvent {
+  return {id: `outbreak:${node}:${hours}`, kind: 'disease', label: 'outbreak', product: SPECIES[h.species].product, homeLevel: homeLevelOf(h), size: OUTBREAK_SIZE, from: hours, days};
+}
+
 /** Rolls the dice: true if the herd falls ill. Draws once from the `Rng` it's given, whatever the chance. */
 export const fallsIll = (risk: number, r: Rng) => r.next() < risk;
 
@@ -191,6 +218,12 @@ export function manureGases(sp: Species, m: Manure, kgDry: number, manage: Manag
 
 /** What a heap will book for a kg of manure once it's there: the carbon model's composting gases, kg CO₂e (for the Explain card). */
 export const heapGases = (kg: number) => kg * OTHER_GASES;
+
+/** The keeper's hours a herd needs over `days` days: hours a head, up by `ILL_HOURS` while it's ill. It feeds the labour model's demand. */
+export const hoursNeeded = (h: Herd, days = 1) => h.head * SPECIES[h.species].hours * (h.ill > 0 ? ILL_HOURS : 1) * days;
+
+/** The price a kg of a species' product fetches, £: eggs for a hen, carcass for an animal sold for meat. */
+export const priceOf = (species: SpeciesId) => SALE_PRICE[species].perKg;
 
 /** The nitrogen of a manure a crop can use in the year (RB209's share), kg N. */
 export const availableN = (species: SpeciesId, kgN: number) => kgN * N_AVAILABLE[species];
@@ -289,6 +322,94 @@ export function clearOut(c: TickContext, node: GraphNode, kg = Infinity) {
   if (n > 1e-9) c.flow({what: 'clearing out', unit: 'kgN', amount: qty(n, 'kgN'), from: at(node.id, LIVE.nitrogen), to: at(heap.id, HEAPED.nitrogen)});
 }
 
+/** What a sale came to: kg of food that left, its carcass or eggs, and £ paid. */
+export interface Sold {
+  kg: number;
+  gbp: number;
+  head: number;
+}
+
+const paid = (c: TickContext, what: string, gbp: number, purse: string) => {
+  if (gbp > 1e-9 && c.graph.nodes[purse]?.stocks.money) c.flow({what, unit: 'GBP', amount: qty(gbp, 'GBP'), from: {boundary: 'sold'}, to: {node: purse, stock: 'money'}});
+};
+
+/** Sells the eggs waiting on a node (all, or `kg`) at the price: the food leaves to `sold` and the money comes into the purse. */
+export function sellEggs(c: TickContext, node: GraphNode, kg = Infinity, purse = PURSE): Sold {
+  const kgSold = Math.min(kg, node.stocks[LIVE.eggs]?.amount ?? 0);
+  if (!(kgSold > 1e-9)) return {kg: 0, gbp: 0, head: 0};
+  c.flow({what: 'selling eggs', unit: 'kgFood', product: 'eggs', amount: qty(kgSold, 'kgFood'), from: at(node.id, LIVE.eggs), to: {boundary: 'sold'}});
+  const gbp = kgSold * priceOf('hen');
+  paid(c, 'selling eggs', gbp, purse);
+  return {kg: kgSold, gbp, head: 0};
+}
+
+/**
+ * Slaughters some of a herd's head for meat (all of them by default): the herd is that many fewer, their share of the
+ * node's `liveweight` leaves (the carcass to `sold`, the rest, offal and hide, to `decay`), and the money for a
+ * whole carcass at the price comes into the purse. The graph only holds the gain made on the node, so the £ are for the
+ * whole animals (their starting weight isn't a stock) and the kg that move are that share of the stock.
+ */
+export function slaughter(c: TickContext, node: GraphNode, head = Infinity, purse = PURSE): Sold {
+  const h = herdOf(node);
+  if (!h || h.head <= 0) return {kg: 0, gbp: 0, head: 0};
+  const sp = SPECIES[h.species], n = Math.min(head, h.head);
+  if (!(n > 0)) return {kg: 0, gbp: 0, head: 0};
+  const live = (node.stocks[LIVE.mass]?.amount ?? 0) * (n / h.head), kg = live * sp.dressing;
+  if (kg > 1e-9) c.flow({what: 'slaughter', unit: 'kgFood', product: 'liveweight', amount: qty(kg, 'kgFood'), from: at(node.id, LIVE.mass), to: {boundary: 'sold'}});
+  if (live - kg > 1e-9) c.flow({what: 'slaughter waste', unit: 'kgFood', product: 'liveweight', amount: qty(live - kg, 'kgFood'), from: at(node.id, LIVE.mass), to: {boundary: 'decay'}});
+  const gbp = n * h.weight * sp.dressing * priceOf(h.species);
+  paid(c, 'slaughter', gbp, purse);
+  setHerd(node, {...h, head: h.head - n});
+  return {kg, gbp, head: n};
+}
+
+/** A herd's day, per head, at the good density and fed to need: the average a herd of many is run by (see `aggregate`). */
+export interface PerHead {
+  /** kg of eggs, kg of liveweight gained, and kg of that as carcass: the product of a head's day. */
+  eggs: number;
+  gain: number;
+  meat: number;
+  /** kg of feed and grass eaten, L drunk, kg of fresh manure and kg N in it. */
+  feed: number;
+  grass: number;
+  water: number;
+  manure: number;
+  nitrogen: number;
+  /** kg CO₂e of enteric methane, and of manure gases as they're managed. */
+  methane: number;
+  gases: number;
+  /** The keeper's hours. */
+  hours: number;
+}
+
+/**
+ * One head's day for a species in a day's conditions: a herd of one at the good density, well and on good ground, fed
+ * and watered to need (`step` with plenty), the welfare given (1 by default). For a herd of many (a region's flock, the
+ * nation's hens) the level runs this once and multiplies by the head instead of stepping every herd. Pure.
+ */
+export function perHead(species: SpeciesId, c: Conditions, welfare = 1, manage?: Managed): PerHead {
+  const sp = SPECIES[species];
+  const h = newHerd(species, 1, sp.land, {welfare, disease: false, sward: GRASS.standing, shelter: species === 'hen' ? 0.9 : 0.2, ...(manage ? {manage} : {})});
+  const r = step(h, c, {feed: 1e6, water: 1e6});
+  return {
+    eggs: r.eggs, gain: r.gain, meat: carcass(species, r.gain), feed: r.feed, grass: r.grass, water: r.water, manure: r.manure.kg,
+    nitrogen: r.manure.nitrogen, methane: r.methane, gases: r.gases, hours: sp.hours,
+  };
+}
+
+/** A herd of many head over some days, from one head's day: every amount times the head and the days. */
+export function aggregate(p: PerHead, head: number, days = 1): PerHead {
+  const k = head * days;
+  return {
+    eggs: p.eggs * k, gain: p.gain * k, meat: p.meat * k, feed: p.feed * k, grass: p.grass * k, water: p.water * k, manure: p.manure * k,
+    nitrogen: p.nitrogen * k, methane: p.methane * k, gases: p.gases * k, hours: p.hours * k,
+  };
+}
+
+/** The node's list of outbreaks (`GameEvent`s), a lever the level above reads to show them: kept until the wiring part or a sealed node takes them. */
+export const OUTBREAKS = 'events';
+export const outbreaksOf = (n: GraphNode) => (Array.isArray(n.levers[OUTBREAKS]) ? (n.levers[OUTBREAKS] as unknown as GameEvent[]) : []);
+
 /** The herd's day on the graph: reads the weather and the node's stocks, moves the flows, keeps the herd's next state. */
 function dayOn(c: TickContext, node: GraphNode, herd: Herd) {
   const w = weatherOf(c.graph);
@@ -298,7 +419,11 @@ function dayOn(c: TickContext, node: GraphNode, herd: Herd) {
   const field = herd.field && c.graph.nodes[herd.field] ? herd.field : node.id;
   for (const f of dayFlows(node.id, res, {field, heap: herd.heap ?? HEAP})) c.flow(f);
   let next = res.herd;
-  if (next.disease !== false && next.ill <= 0 && fallsIll(next.risk, c.rng)) next = {...next, ill: ILL_DAYS};
+  if (next.disease !== false && next.ill <= 0 && fallsIll(next.risk, c.rng)) {
+    next = {...next, ill: ILL_DAYS};
+    // it shows as an event too, so the tile above and the region above that can say so; those that ended are dropped
+    node.levers[OUTBREAKS] = [...outbreaksOf(node).filter((e) => e.from + e.days * 24 > c.hours), outbreak(node.id, next, c.hours)] as unknown as LeverValue;
+  }
   setHerd(node, next);
 }
 

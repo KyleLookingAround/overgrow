@@ -10,6 +10,10 @@ A second-hand tractor's fuel and hours, its breakdowns and repairs, and the comp
 - **Fast effect** a lost day, or three, at harvest, and its bill; **slow effect** a compacted field losing structure and yield for years.
 - **Speed**: `operate()` takes about 5 µs a job in Node 22 (a 2.1 GHz Xeon); the `machinery` system, with 50 fields, is part of the 0.14 ms a game day the three models take together with the `labour` and `energy` systems and 20 workers and 20 loaded stores.
 
+## Hooks for the levels above
+
+Added for the owner's answers on #29: nothing changes in the model itself. A job's diesel is burnt through the energy model, so the energy index a level above sets (fuel prices, the grid's carbon factor; `docs/systems/energy.md`) on the tractor's node or the payer's changes what a job costs, with the litres, hours, wear and compaction the same; a test holds it. A driver's hours are `Job.hours` and are paid through the labour model's wages (`payWages`), which the wiring part (13) joins.
+
 ## Wiring
 
 For part 13:

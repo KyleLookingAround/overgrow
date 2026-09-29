@@ -6,6 +6,11 @@
 // from the National Living Wage (£12.71 an hour from April 2026) and the Agricultural Wages orders' grades. Gross margins
 // are AHDB-style rounded figures for small growers selling direct. All are rounded facts, not copied text, so no licence
 // is carried. Invented places only.
+//
+// Wages are kept as a parameter (`Wages`, with `WAGES` the default) so a level above can set them, a minimum wage among
+// them (#29): the model reads the table it is given. An owner's off-farm job is the household model's (src/data/household.ts:
+// its `JOBS` hours and commute, and `WAGE`, ASHE's median full-time take-home of about £590 for a 40-hour week, so about
+// £14.75 an hour); nothing here restates them.
 
 export type Role = 'owner' | 'hired hand' | 'seasonal picker';
 export type Season = 'winter' | 'spring' | 'summer' | 'autumn';
@@ -33,7 +38,8 @@ export const DAY_HOURS: Record<Role, Record<Season, {weekday: number; weekend: n
 };
 
 /** What a role costs: £ an hour in cash (the owner takes profit, not a wage) and the employer's on-cost on top (holiday pay, pension, National Insurance). */
-export const WAGES: Record<Role, {hourly: number; onCost: number}> = {
+export type Wages = Record<Role, {hourly: number; onCost: number}>;
+export const WAGES: Wages = {
   owner: {hourly: 0, onCost: 0},
   'hired hand': {hourly: 13.5, onCost: 0.2},
   'seasonal picker': {hourly: 12.71, onCost: 0.2},

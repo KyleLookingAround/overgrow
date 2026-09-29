@@ -4,6 +4,12 @@
 // each product costs the planet, the RSPCA and the Soil Association for space); they are facts and rates, not creative
 // work, and are written out here as our own rough numbers. Licence: none needed (no table is copied; the figures are
 // rounded, and the sources are named so a reader can check them). No real place or brand is named.
+//
+// Added for the hooks the owner's answers on #29 ask of it: hours a head a day (the Farm Management Pocketbook's and
+// Nix's labour tables give a laying hen about 1–2 hours a year, a ewe about 5–8, a finishing pig about 2–3 over its
+// four months and a suckler cow about 12–20, rounded, with a full day's checks in them), and what a kg of each product
+// sells for (AHDB's and Defra's rough 2026 farm-gate figures, rounded: eggs by the kg at about £3, deadweight lamb
+// about £8 a kg carcass, pork about £3, beef about £5.50, cull ewe meat about £3, milk about 35 p a litre).
 
 export type SpeciesId = 'hen' | 'ewe' | 'lamb' | 'pig' | 'cow';
 
@@ -50,6 +56,8 @@ export interface Species {
   manure: {fresh: number; dry: number; b0: number};
   /** Manure nitrogen's direct nitrous oxide when it's left on the ground: kg N₂O-N per kg N (IPCC 2006 table 11.1: EF3 PRP). */
   n2oPasture: number;
+  /** Keeper's time a head a day, hours (feeding, watering, checking, clearing out; more when ill, see `ILL_HOURS`). */
+  hours: number;
   /** A breeding stock that its young carry: head-years a year for each head raised (a ewe for every 1.5 lambs). */
   breeders?: {species: SpeciesId; headYears: number};
 }
@@ -59,27 +67,32 @@ export const SPECIES: Record<SpeciesId, Species> = {
     id: 'hen', name: 'Laying hens', product: 'eggs', weight: 2, intake: 0.115, finish: 0, gain: 0, dressing: 0.7,
     layRate: 0.95, milk: 0, water: 0.25, comfort: {low: 8, high: 27}, land: 4, crowding: 0.4, grazes: 0, wear: 0.004,
     illness: 0.15, methane: 0, nRate: 0.83, manure: {fresh: 0.14, dry: 0.25, b0: 0.39}, n2oPasture: 0.02,
+    hours: 0.005,
   },
   ewe: {
     id: 'ewe', name: 'Ewes', product: 'lambs', weight: 70, intake: 1.8, finish: 0, gain: 0, dressing: 0.45,
     layRate: 0, milk: 0, water: 4, comfort: {low: -10, high: 25}, land: 800, crowding: 0.8, grazes: 1, wear: 0.004,
     illness: 0.3, methane: 8, nRate: 0.36, manure: {fresh: 2.4, dry: 0.25, b0: 0.19}, n2oPasture: 0.01,
+    hours: 0.02,
   },
   lamb: {
     id: 'lamb', name: 'Lambs', product: 'meat', weight: 25, intake: 1.1, finish: 40, gain: 0.25, dressing: 0.45,
     layRate: 0, milk: 0, water: 2.5, comfort: {low: -5, high: 25}, land: 300, crowding: 0.8, grazes: 1, wear: 0.004,
     illness: 0.3, methane: 5, nRate: 0.36, manure: {fresh: 1.4, dry: 0.25, b0: 0.19}, n2oPasture: 0.01,
+    hours: 0.008,
     breeders: {species: 'ewe', headYears: 1 / 1.5},
   },
   pig: {
     id: 'pig', name: 'Pigs', product: 'meat', weight: 60, intake: 2.2, finish: 100, gain: 0.75, dressing: 0.75,
     layRate: 0, milk: 0, water: 5.5, comfort: {low: 15, high: 25}, land: 100, crowding: 1, grazes: 0.1, wear: 0.008,
     illness: 0.25, methane: 1.5, nRate: 0.42, manure: {fresh: 3, dry: 0.13, b0: 0.45}, n2oPasture: 0.02,
+    hours: 0.03,
   },
   cow: {
     id: 'cow', name: 'Cattle', product: 'milk', weight: 550, intake: 14, finish: 0, gain: 0, dressing: 0.5,
     layRate: 0, milk: 22, water: 55, comfort: {low: -5, high: 25}, land: 5000, crowding: 0.8, grazes: 1, wear: 0.004,
     illness: 0.3, methane: 57, nRate: 0.33, manure: {fresh: 30, dry: 0.12, b0: 0.24}, n2oPasture: 0.02,
+    hours: 0.05,
   },
 };
 
@@ -137,3 +150,21 @@ export const GRASS = {growth: 0.012, standing: 0.25, take: 0.6, base: 5, best: 1
 
 /** Eggs by the light: a hen lays little below `DARK` hours of daylight and her best from `LIGHT`; the least she'll lay is `FLOOR` of it. */
 export const LAYING = {dark: 8, light: 13, floor: 0.4};
+
+/**
+ * What each species sells for, £: a kg of eggs, and a kg of carcass for the animals sold as meat (a cull ewe's is mutton),
+ * a litre of milk. Rough 2026 farm-gate figures from AHDB and Defra's market prices, rounded.
+ */
+export const SALE_PRICE: Record<SpeciesId, {product: 'eggs' | 'meat' | 'milk'; perKg: number}> = {
+  hen: {product: 'eggs', perKg: 3},
+  ewe: {product: 'meat', perKg: 3},
+  lamb: {product: 'meat', perKg: 8},
+  pig: {product: 'meat', perKg: 3},
+  cow: {product: 'meat', perKg: 5.5},
+};
+/** Milk, £ a litre (data for later levels: nothing milks yet). */
+export const MILK_PRICE = 0.35;
+/** A sick herd needs this many times the keeper's time (treating, isolating, more checks). */
+export const ILL_HOURS = 1.5;
+/** How much of a day's output an outbreak destroys while it lasts: illness halves what the herd makes (livestock.ts). */
+export const OUTBREAK_SIZE = 0.5;

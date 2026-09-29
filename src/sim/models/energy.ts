@@ -11,7 +11,10 @@
 //   belongs to the level above); a fuel's upstream emissions are in its factor, not counted as a separate flow; the
 //   cold store's load is linear in outside temperature and volume, with no door openings or stock heat; the tunnel is
 //   held at one setpoint with no sun, no wind and no thermal screen; prices are flat (the energy loop in part 14 moves
-//   them). Fast effect: a day's bill and its carbon, and a frosty night's heater. Slow effect: the running total of
+//   them). The index the level above sets (the owner's answers on #29: the grid's carbon factor and fuel prices are
+//   the region's and the world's, not the farm's) is one lever, the electricity's kg CO₂e a kWh and a price multiple by
+//   fuel, with no lag, no tariff structure and no standing charge; without it everything is as above.
+//   Fast effect: a day's bill and its carbon, and a frosty night's heater. Slow effect: the running total of
 //   energy used and carbon emitted, which the dial and the farm's account carry for years.
 import {COLD_STORE, FUELS, PUMP, TUNNEL, type Fuel} from '../../data/energy';
 import type {System, TickContext} from '../clock';
@@ -26,10 +29,31 @@ export const PURSE = 'kitchen';
 /** The lever a node lists its standing loads in: cold stores and tunnel heaters, run each day by the energy system. */
 export const LOADS = 'loads';
 
-/** kg CO₂e for a litre (diesel, petrol) or a kWh (electricity, gas) of a fuel. */
-export const co2e = (fuel: Fuel, amount: number) => amount * FUELS[fuel].co2e;
-/** £ for a litre or a kWh of a fuel. */
-export const costOf = (fuel: Fuel, amount: number) => amount * FUELS[fuel].price;
+/** The lever a node (or the payer of its bills) keeps the energy index in, which the level above sets. */
+export const ENERGY_INDEX = 'energy.index';
+
+/**
+ * What the level above says about energy: the grid's carbon factor (kg CO₂e a kWh, which falls as it decarbonises) and
+ * each fuel's price as a multiple of `FUELS`' (1 is as it is now). A field left out is as `FUELS` has it.
+ */
+export interface EnergyIndex {
+  gridCo2e?: number;
+  price?: Partial<Record<Fuel, number>>;
+}
+
+/** The index in force at a node: its own lever, else its payer's, else none. */
+export function indexOf(c: TickContext, node: string, payer?: string): EnergyIndex | undefined {
+  for (const id of [node, payer]) {
+    const v = id ? c.graph.nodes[id]?.levers[ENERGY_INDEX] : undefined;
+    if (v && typeof v === 'object' && !Array.isArray(v)) return v as unknown as EnergyIndex;
+  }
+  return undefined;
+}
+
+/** kg CO₂e for a litre (diesel, petrol) or a kWh (electricity, gas) of a fuel; the grid's factor is the index's if it sets one. */
+export const co2e = (fuel: Fuel, amount: number, index?: EnergyIndex) => amount * (fuel === 'electricity' && index?.gridCo2e !== undefined ? index.gridCo2e : FUELS[fuel].co2e);
+/** £ for a litre or a kWh of a fuel, times the index's price multiple for it. */
+export const costOf = (fuel: Fuel, amount: number, index?: EnergyIndex) => amount * FUELS[fuel].price * (index?.price?.[fuel] ?? 1);
 /** kWh of energy in a litre or a kWh of a fuel. */
 export const kWhOf = (fuel: Fuel, amount: number) => amount * FUELS[fuel].kWh;
 
@@ -65,8 +89,8 @@ export interface Use {
  * `bought` to the air node, and its price from the payer's purse (a node with a `money` stock) out to `bought`. Every
  * use is a flow, so the carbon account stays whole.
  */
-export function burn(c: TickContext, node: string, fuel: Fuel, amount: number, what: string, payer?: string): Use {
-  const spec = FUELS[fuel], use: Use = {fuel, amount, kWh: kWhOf(fuel, amount), co2e: co2e(fuel, amount), cost: costOf(fuel, amount)};
+export function burn(c: TickContext, node: string, fuel: Fuel, amount: number, what: string, payer?: string, index = indexOf(c, node, payer)): Use {
+  const spec = FUELS[fuel], use: Use = {fuel, amount, kWh: kWhOf(fuel, amount), co2e: co2e(fuel, amount, index), cost: costOf(fuel, amount, index)};
   if (!(amount > 1e-9)) return {...use, amount: 0, kWh: 0, co2e: 0, cost: 0};
   c.flow({what, unit: 'kWh', amount: qty(use.kWh, 'kWh'), from: {boundary: spec.from}, to: {node, stock: ENERGY_USED}});
   if (c.graph.nodes[ATMOSPHERE]) c.flow({what, unit: 'kgCO2e', amount: qty(use.co2e, 'kgCO2e'), from: {boundary: 'bought'}, to: {node: ATMOSPHERE, stock: 'carbon'}});
@@ -75,8 +99,8 @@ export function burn(c: TickContext, node: string, fuel: Fuel, amount: number, w
 }
 
 /** A pump lifting some litres through a head at a node, on the grid. */
-export const pump = (c: TickContext, node: string, litres: number, headM: number, payer?: string) =>
-  burn(c, node, 'electricity', pumpKWh(litres, headM), 'pumping', payer);
+export const pump = (c: TickContext, node: string, litres: number, headM: number, payer?: string, index?: EnergyIndex) =>
+  burn(c, node, 'electricity', pumpKWh(litres, headM), 'pumping', payer, index ?? indexOf(c, node, payer));
 
 /** A standing load on a node's `loads` lever. */
 export type Load = {kind: 'cold store'; m3: number} | {kind: 'tunnel heater'; m2: number; fuel: 'electricity' | 'gas'};
