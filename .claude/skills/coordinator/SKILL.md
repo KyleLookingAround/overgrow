@@ -24,6 +24,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 - Read its PR's title and description for attribution that shouldn't be there.
 - Look for lines the change makes wrong outside its own diff: the README, code comments, the project notes.
+- Read the PR and its checks, not the session's own summary line: one said "PLAY diff deferred" when its checks and Balance run were green and nothing was deferred (Final Call's coordinator look back for 29 Sep, its PR #176).
 
 ## 4. Talking to a session
 
@@ -34,7 +35,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 ## 5. A cap on sessions
 
-- At most about four default-model sessions at once; put the rest on the cheaper model (`create_session` with `model` set to the cheaper model's current id, from the owner) and stagger their starts. On `allowed_warning`, start nothing new unless the brief says to ignore it; on `rejected` or `isUsingOverage`, book a `send_later` for a minute after `resetsAt` and end the turn. Final Call's ten default-model sessions started within 45 minutes spent the five-hour allowance in 80 minutes and stalled every one of them for five hours.
+- At most about three default-model sessions at once; put the rest on the cheaper model (`create_session` with `model` set to the cheaper model's current id, from the owner) and stagger their starts. On `allowed_warning`, start nothing new unless the brief says to ignore it; on `rejected` or `isUsingOverage`, book a `send_later` for a minute after `resetsAt` and end the turn. Final Call's ten default-model sessions started within 45 minutes spent the five-hour allowance in 80 minutes and stalled every one of them for five hours; on 29 Sep four default-model plus three cheaper ones hit the limit again in under two hours (its coordinator's look back, PR #176).
 - Small changes and routine jobs (look backs, save fixtures, doc moves, screenshot reviews) go to the cheaper model.
 - Put a crude bot as early in the order as something grows: its first run finds design gaps, not just ranges (the first slice's part 4 found no sales, a hungry kitchen and a rotation that didn't pay, after three parts had built on them).
 - Only parts that edit the same game code are ordered, in the spec's order of work. A refactor that changes what other files call runs in a quiet window, never alongside a wave of feature sessions.
@@ -46,6 +47,10 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 - `create_session` with `source_url` (`https://github.com/KyleLookingAround/overgrow`), `source_revision: "main"`, `outcome_branch: "feature/<name>"`, a title, an `overgrow:<feature>` tag, and the model.
 - First message: the brief, with one line asking the session to save it as `docs/briefs/<name>.md` in its PR. Paste a brief once; later messages pass on only what changes the session's current work.
 - A brief that sets a check's pass mark ("year three at least 70 % of year one") first measures its ceiling: the same run with the input the fix is about made unlimited. A mark above that ceiling on any seed can't be met by the fix, and the session has to stop and ask (the garden's nutrients, #48: seed 1 held at 67 % by clubroot and nitrogen).
+- A brief says what proves a change meant to leave play alone (the Balance workflow's tables, not local bot runs), or the session stops to ask; and where it deliberately leaves out a file the rules normally need, why, in the same line, so a reviewer isn't told twice (Final Call, its coordinator's look back, PR #176, and `lessons/92-polish-noise.md`).
+- A brief that says "wait for #N" gets a message from the coordinator the moment #N merges: a session that opens its PR before the one it depends on needs a second round.
+- End a wave with a small loose-ends brief (the cheaper model, about $5), and have each part list what it hands on in its PR under one heading: work handed to a part that had already merged fell through twice in Final Call's wave (its coordinator's look back, PR #176).
+- Estimate a brief's cost from its size, not its model: on 29 Sep Final Call's well-scoped cheaper-model briefs cost 22–37% of their estimates while the default model's came in near theirs (same look back).
 - A part's brief says what the part before it left undone (part 3 couldn't touch part 1's shell, so container queries and safe areas moved to part 5).
 - The owner designs in bursts while sessions run: record each decision at once in one list in the coordinator's brief, and write it into the briefs it touches.
 - One item per session: when a session's item merges, it stops, and new work goes to a fresh session with its own brief.
