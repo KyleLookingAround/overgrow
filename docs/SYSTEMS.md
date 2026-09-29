@@ -7,10 +7,12 @@ Today the game is the back garden on the graph, with the clock, saving and the p
 ## Systems
 
 <!-- joined:systems from docs/systems/ by tools/join.mjs: don't edit between these lines -->
+- [Agency and trust](systems/agency.md) (`src/sim/models/agency.ts`, `src/sim/models/agency.test.ts`, `src/data/agency.ts`, `src/sim/systems.ts`)
 - [Biodiversity](systems/biodiversity.md) (`src/sim/models/biodiversity.ts`, `src/sim/models/biodiversity.test.ts`, `src/data/flowers.ts`, `src/data/crops.ts`, `src/sim/models/crops.ts`, `src/sim/models/pests.ts`, `src/sim/gardener.ts`, `src/ui/GardenTab.tsx`, `src/ui/map/life.ts`, `src/ui/map/draw.ts`)
 - [Carbon and land](systems/carbon.md) (`src/sim/models/carbon.ts`, `src/sim/models/carbon.test.ts`, `src/sim/gardener.ts`, `src/sim/models/soil.ts`, `src/ui/TopBar.tsx`)
 - [The clock](systems/clock.md) (`src/sim/clock.ts`, `src/data/ladder.ts`, `src/sim/systems.ts`, `src/app/clock-loop.ts`)
 - [Commands and snapshots](systems/commands.md) (`src/sim/commands.ts`, `src/sim/index.ts`, `src/sim/state.ts`, `src/sim/activity.ts`, `src/app/sim.worker.ts`, `src/app/sim-client.ts`, `src/app/delta.ts`, `src/app/bench.ts`)
+- [The allotment committee](systems/committee.md) (`src/sim/models/committee.ts`, `src/sim/models/committee.test.ts`, `src/data/committee.ts`, `src/sim/systems.ts`)
 - [Crops](systems/crops.md) (`src/sim/models/crops.ts`, `src/sim/models/crops.test.ts`, `src/data/crops.ts`, `src/sim/models/water.ts`, `src/ui/map/draw.ts`, `src/ui/GardenTab.tsx`)
 - [Energy](systems/energy.md) (`src/sim/models/energy.ts`, `src/sim/models/energy.test.ts`, `src/data/energy.ts`, `src/sim/systems.ts`)
 - [Explain](systems/explain.md) (`src/sim/effects.ts`, `src/sim/effects.test.ts`, `src/data/explain.ts`, `src/ui/Explain.tsx`, `src/ui/Card.tsx`, `src/ui/effects-log.ts`, `src/ui/badges.ts`, `src/ui/Badges.tsx`, `src/ui/map/placement.ts`, `src/ui/map/placement.test.ts`, `src/ui/Num.tsx`, `src/ui/Panel.tsx`, `src/ui/GardenTab.tsx`, `src/ui/KitchenTab.tsx`, `src/ui/TopBar.tsx`, `src/ui/notices.ts`, `src/ui/notices.test.ts`, `src/ui/Notices.tsx`, `src/data/unfold.ts`, `src/data/unfold.test.ts`, `src/ui/map/renderer.ts`, `src/ui/map/life.ts`, `src/ui/MapView.tsx`, `src/ui/App.tsx`)
@@ -25,6 +27,7 @@ Today the game is the back garden on the graph, with the clock, saving and the p
 - [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`, `src/ui/GardenTab.tsx`, `src/ui/KitchenTab.tsx`, `src/ui/map/life.ts`)
 - [The box scheme and the farm shop](systems/market.md) (`src/sim/models/market.ts`, `src/sim/models/market.test.ts`, `src/data/market.ts`, `src/data/storage.ts`, `src/sim/systems.ts`)
 - [Pests](systems/pests.md) (`src/sim/models/pests.ts`, `src/sim/models/pests.test.ts`, `src/data/pests.ts`, `src/sim/models/crops.ts`, `src/sim/gardener.ts`, `src/ui/GardenTab.tsx`, `src/data/unfold.ts`, `src/ui/map/life.ts`, `src/ui/map/draw.ts`)
+- [Rotation](systems/rotation.md) (`src/sim/models/rotation.ts`, `src/sim/models/rotation.test.ts`, `src/data/rotation.ts`, `src/data/pests.ts`, `src/data/flowers.ts`, `src/sim/systems.ts`)
 - [Saving](systems/saving.md) (`src/sim/save.ts`, `src/sim/random.ts`, `src/app/storage.ts`, `src/app/main.tsx`)
 - [Soil](systems/soil.md) (`src/sim/models/soil.ts`, `src/sim/models/soil.test.ts`, `src/data/soils.ts`, `src/data/garden.ts`, `src/sim/state.ts`, `src/ui/Panel.tsx`)
 - [Storage and spoilage](systems/storage.md) (`src/sim/models/storage.ts`, `src/sim/models/storage.test.ts`, `src/data/storage.ts`, `src/sim/systems.ts`)
@@ -56,7 +59,9 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/app/sim-client.ts` | The page's end of the simulation: commands go to the worker (src/app/sim.worker.ts) and snapshots come back. |
 | `src/app/sim.worker.ts` | The simulation in a Web Worker: the page posts commands, the worker answers with snapshots, so a big graph ticking never stalls the map on a phone. |
 | `src/app/storage.ts` | The save's home on the device: localStorage under the one key (src/sim/save.ts has the format). |
+| `src/data/agency.ts` | The allotment's people: the four habits and what each wants, the eleven neighbours and their households, the helper's share and what an unwatched one takes beyond it, what watching costs, how trust and goodwill move, and the seed catalogue's interest. |
 | `src/data/climate-normals.ts` | The garden's climate: monthly normals for an invented lowland station in southern England, about 60 m up at 51.5° N, with the daily spread the weather generator (src/sim/models/weather.ts) draws around them. |
+| `src/data/committee.ts` | The allotment committee's numbers: its four motions and what each does for each want, how goodwill and persuasion tip a vote, political capital, and the rules a passed motion sets and what they cost the plots. |
 | `src/data/crops.ts` | Crops: the six the back garden grows, with what the crop model (src/sim/models/crops.ts) needs of each. |
 | `src/data/energy.ts` | Energy: what each fuel emits and costs, and the loads a smallholding puts on it. |
 | `src/data/explain.ts` | The Explain table: what to say about every cause of an effect in the game (the founding spec, "Every effect can be explained"). |
@@ -72,6 +77,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/data/machinery.ts` | Machinery: what a small second-hand tractor and its implements use, how fast they work against hand work, when they fail and what fails costs, and how hard their wheels press on wet ground. |
 | `src/data/market.ts` | The smallholding's first markets: the box scheme (households who take a box a week at a set price) and the farm shop (walk-in customers), with prices, footfall, goodwill and churn. |
 | `src/data/pests.ts` | Pests: the garden's slugs, aphids and potato and tomato blight, and what the gardener's pest policy costs and does, for the pest model (src/sim/models/pests.ts). |
+| `src/data/rotation.ts` | Rotation: what each thing a field can carry in a year (a cash crop, a cover crop, a grass-clover ley, or fallow) costs, earns, takes from the soil and leaves in it, per hectare, for the rotation model (src/sim/models/rotation.ts). |
 | `src/data/shed.ts` | The shed: what's worth having next, shown in the Shed tab once the garden first needs it (src/data/unfold.ts, `garden.shed`). |
 | `src/data/soils.ts` | Soils: the textures the garden's beds and lawn are made of, and what a soil starts with. |
 | `src/data/storage.ts` | Storage and spoilage numbers: each product's shelf life and how fast it speeds up with warmth, where produce is kept and how warm that is, the grading standards' graded-out shares, what a van round costs and how much a cold room holds, and where wasted food goes. |
@@ -86,8 +92,10 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/sim/graph.ts` | The graph every level is made of (docs/decisions/ADR-2026-09-28-scale-free-graph.md): nodes with stocks, levers and totals whatever their size, edges between them, and flows in SI units that are conserved. |
 | `src/sim/index.ts` | The simulation: pure TypeScript with no DOM, so the same code runs in a Web Worker (the game, src/app/sim.worker.ts), in Node (the checks and the bot) and in a Vitest test. |
 | `src/sim/ladder.ts` | The carry-over rule's maths, pure: a small history a level keeps and the five headline numbers taken from it, a sealed node's tick, an event shown at any level, inflating's target and layout key, and the step-up offer's test. |
+| `src/sim/models/agency.ts` | Other people as agents: a household, skills, weighted goals, a habit and a hidden integrity; what they do each week from their time and habit; a helper's take against what they report and what watching narrows; goodwill and trust as slow stocks per relationship; and an adviser with an interest (the seed catalogue). |
 | `src/sim/models/biodiversity.ts` | Biodiversity: the flowers in the garden and the wildlife they bring. |
 | `src/sim/models/carbon.ts` | Carbon and land: the compost heap, compost going back to the beds, and digging a bed out of the lawn. |
+| `src/sim/models/committee.ts` | The allotment committee: motions, each member's vote from their goals, habit and goodwill towards the proposer, persuasion by hours spent talking, political capital spent on proposing and replenished by goodwill, the rules a passed motion sets and what they cost the plots, and burning garden waste against composting it. |
 | `src/sim/models/crops.ts` | Crops: what grows in each dug bed, from sowing to the compost heap. |
 | `src/sim/models/energy.ts` | Energy: what fuel and electricity emit and cost, what a pump, a cold store and a polytunnel heater use, and every use as flows: the fuel in from `bought` (electricity from `grid`) to the place that burns it, its carbon to the air node, and its price out of the purse. |
 | `src/sim/models/household.ts` | The household economy: who lives in the household, their jobs, hours and wages, the weekly shop, what shop food carries in carbon, land and water, the purse, and the same baskets summed over many households (an allotment's neighbours, a box scheme's customers, a town's income deciles). |
@@ -97,6 +105,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/sim/models/machinery.ts` | Machinery: a second-hand tractor's fuel and hours by operation against hand work, its breakdowns (a hazard rising with its age and the hours since it was serviced, drawn from a passed Rng), what repairs and services cost, and the soil compaction its wheels leave on wet ground, which takes structure off the soil and so yield. |
 | `src/sim/models/market.ts` | The smallholding's first market beyond the gate: a box scheme (households who take a box a week at a set price, a promised mix, goodwill that decides who stays and who joins), a farm shop (footfall by season and weekday, drawn from the game's dice, buying by households' baskets and a price elasticity), cosmetic grading, seasonal prices and the imports that fill a short box. |
 | `src/sim/models/pests.ts` | Pests: slugs, aphids and potato and tomato blight in the garden, and what the gardener's pest policy does to them. |
+| `src/sim/models/rotation.ts` | Rotation: a year plan over fields (a crop, a cover crop, a grass-clover ley or fallow each year, or "follow the rotation"), what came before on each field (the families grown and the soil-borne disease they build, the nitrogen legumes and manure leave, the carbon cover crops and residues put in, the wheels' compaction), and the soil at field scale, per hectare: organic matter, mineral and organic nitrogen, phosphorus and potassium, leaching and nitrous oxide, health. |
 | `src/sim/models/soil.ts` | Soil: what each bed and the lawn is made of, how much water it holds, its organic matter and nutrients, and its health. |
 | `src/sim/models/storage.ts` | Storage and spoilage: how long each product keeps at each temperature, the lots that age in the field, a shed, a cold store, a van, on a shelf and at home, what is lost at each stage of the chain, what a cold store costs and saves, and what a van's round burns. |
 | `src/sim/models/water.ts` | Water: the FAO-56 soil water balance for each bed and the lawn, every step. |

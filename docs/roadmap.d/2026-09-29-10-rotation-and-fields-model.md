@@ -1,0 +1,3 @@
+Section: now
+- **Rotation over years and soil at field scale, written ahead** (for part 11, `docs/briefs/rotation-and-fields.md`, #43, from #29's answers Q6 and Q15): a year plan over fields (crop, cover, ley or fallow, or "follow the rotation"), what came before on each (soil-borne disease, legume and manure nitrogen, carbon, compaction), and field-scale soil per hectare with leaching and nitrous oxide, so a rotation loses year one and wins over three. Pure and tested in `src/sim/models/rotation.ts`, with its notes in `docs/systems/rotation.md`, which also diagnoses the garden's year-three fall (phosphorus and potassium run out) for part 6c. Part 11 wires it.
+Theme: model

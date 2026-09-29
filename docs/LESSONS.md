@@ -15,6 +15,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Model
 
+- [The agency and committee models, ahead of parts 8 to 10 (#40) · 29 Sep 2026](lessons/2026-09-29-09-agency-and-committee-models.md)
 - [The storage and market models, ahead of part 14 (#34) · 29 Sep 2026](lessons/34-storage-and-market.md)
 - [The carry-over rule's maths, ahead of part 7 (#20) · 29 Sep 2026](lessons/20-sealing-maths.md)
 
@@ -29,6 +30,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Not sorted yet
 
+- [The rotation and field-soil model, ahead of part 11 (#43) · 29 Sep 2026](lessons/2026-09-29-10-rotation-and-fields-model.md)
 - [Unfolding and the first minute, the first slice's part 6a (#45) · 29 Sep 2026](lessons/45-unfolding-first-minute.md)
 - [Hooks for the models written ahead (#38, #39) · 29 Sep 2026](lessons/39-model-hooks.md)
 - [The owner's answers on the systems web, written into the spec (#37) · 29 Sep 2026](lessons/37-spec-answers.md)

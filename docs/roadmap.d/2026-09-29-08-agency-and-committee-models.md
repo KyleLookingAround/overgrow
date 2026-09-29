@@ -1,0 +1,3 @@
+Section: now
+- **Neighbours, agency and trust, and the committee's models** (ahead of parts 8 to 10, `docs/briefs/agency-and-committee.md`): agents with goals, a habit and a hidden integrity, reports against the truth, watching and audits, goodwill and trust as slow stocks, the seed catalogue's interest, and the committee's motions, votes, persuasion, political capital and rules, with the waste system's burning against composting. Pure and tested in `src/sim/models/agency.ts` and `committee.ts`, with their notes in `docs/systems/agency.md` and `committee.md`; parts 8 to 10 wire them to the plots, the map and the panels, and part 13 the hire.
+Theme: model
