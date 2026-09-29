@@ -9,6 +9,14 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ## The lessons
 
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
+### Coordinator
+
+- [The first slice's first coordinator · 28–29 Sep 2026 (#28)](lessons/28-first-coordinator.md)
+
+### Model
+
+- [The carry-over rule's maths, ahead of part 7 (#20) · 29 Sep 2026](lessons/20-sealing-maths.md)
+
 ### Runbook
 
 - [Easy wins from Final Call (#14) · 29 Sep 2026](lessons/14-final-call-wins.md)
@@ -21,7 +29,12 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Not sorted yet
 
 - [Pests, wildlife and Explain, the first slice's part 5 (#35) · 29 Sep 2026](lessons/35-pests-wildlife-explain.md)
+- [The systems web, every mechanic across the ladder (#31) · 29 Sep 2026](lessons/31-systems-web.md)
+- [The household economy's model, ahead of part 6b (#30) · 29 Sep 2026](lessons/30-household-model.md)
+- [Livestock model, ahead of parts 6 and 12 (#18) · 29 Sep 2026](lessons/18-livestock-model.md)
+- [Labour, machinery and energy models, ahead of part 13 (#17) · 29 Sep 2026](lessons/17-labour-machinery-energy.md)
 - [Crops and the gardener, the first slice’s part 3 (#12) · 29 Sep 2026](lessons/12-crops-and-gardener.md)
+- [The bot and the first baselines, the first slice's part 4 (#10) · 29 Sep 2026](lessons/10-bot-and-baselines.md)
 - [Weather, soil and water, the first slice's part 2 (#7) · 29 Sep 2026](lessons/7-weather-soil-water.md)
 - [The graph and the clock, the first slice's part 1 (#5) · 28 Sep 2026](lessons/5-graph-and-clock.md)
 <!-- /joined:lessons -->

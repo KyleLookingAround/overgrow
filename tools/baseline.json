@@ -1,0 +1,21 @@
+{
+  "status": "proposed",
+  "about": "Proposed from the sensible bot on seeds 1-3 through day 120 of the garden with part 3's crops and the owner's head start (#11), against the founding spec's first targets; not agreed until the owner says so (the founding spec, 'Balance'). Each range is the three seeds' spread, widened a little, or the spec's target where the seeds meet it. A milestone not reached within the run counts as later than any day.",
+  "gameTime": "120d",
+  "seeds": [1, 2, 3],
+  "ranges": {
+    "first-sowing": {"min": 1, "max": 1, "unit": "day", "why": "the spec's first minute: radishes sown on the first morning; seeds 1, 1, 1"},
+    "first-harvest": {"min": 2, "max": 8, "unit": "day", "why": "the spec's target, by day 8, met by the head start's overwintered salad; seeds 5, 6, 3"},
+    "first-sale": {"min": 121, "unit": "day", "why": "none in the first 120 days: the kitchen eats all two beds grow, so nothing reaches the honesty box (the spec wants it a minute after the first harvest); seeds none, none, none"},
+    "half-kitchen": {"min": 105, "unit": "day", "why": "two beds meet half the ask for a week only once the potatoes are lifted; seeds none, 114, 113"},
+    "output": {"min": 0.08, "max": 0.35, "unit": "kg/day", "why": "seeds 0.10, 0.30, 0.32: the potatoes' lift falls inside the last 28 days or just after it"},
+    "reliability": {"min": 0, "max": 10, "unit": "0-100", "why": "seeds 0, 0, 0: two beds give food in lumps with empty days between"},
+    "health": {"min": 83, "max": 92, "unit": "0-100", "why": "seeds 87, 88, 88"},
+    "money-30": {"min": 20, "max": 20, "unit": "GBP", "why": "nothing sold or bought yet: the starting £20"},
+    "money-60": {"min": 20, "max": 20, "unit": "GBP", "why": "nothing sold or bought yet"},
+    "money-90": {"min": 20, "max": 20, "unit": "GBP", "why": "nothing sold or bought yet"},
+    "money-120": {"min": 20, "max": 20, "unit": "GBP", "why": "nothing sold or bought yet"},
+    "wasted": {"min": 0.4, "max": 1.5, "unit": "kg", "why": "seeds 0.5, 1.1, 1.3"},
+    "carbon": {"min": 0, "max": 5, "unit": "kg CO2e", "why": "seeds 4.2, 0.2, 2.8: the soils' decay, which the weather sets"}
+  }
+}
