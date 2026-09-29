@@ -1,0 +1,10 @@
+# Livestock model, ahead of parts 6 and 12 (#18) · 29 Sep 2026
+
+- **Numbers:** estimate $8; no cost figure had reached the session when the PR opened (read as unknown, not free). One commit before opening, one CI round expected, no waiting on the owner and no `needs-owner` question.
+- **Went well:**
+  - Writing the model as a pure `step()` over a plain `Herd`, with the graph work in one small `dayFlows()` and `System`, made the plausibility tests cheap: a year of a herd is a loop over `step()` with no graph, and only four tests need one. A day for twelve herds costs about 0.03 ms.
+  - Probing the numbers before fixing the tests moved two constants inside the sources' ranges instead of loosening the tests: the hens' light response (a floor of 0.4 and full lay from 13 hours gives about 265 eggs a year, a third as many a day in December as in June), and the lamb's per-kg methane, which needed its ewe's share (a ewe rears 1.5 lambs) to reach about a third of Poore & Nemecek's whole-chain figure, the enteric share FAO gives.
+- **Lessons:**
+  - The heap's `waste` stock holds product `greens`, and the graph refuses a flow of another product into a stock that has one. Manure had to travel as `greens`, in its own `manure` stock, and a first flow of some other product into a stock would have fixed its product for good. A part that puts a new kind of waste on the heap needs to know this before it names a product.
+  - A model's own gases and the carbon model's can count the same manure twice. The heap route here counts none and leaves it to `heapDay`; the note says so, so the wiring part doesn't add them back.
+  - Feed conversion tests need a warm day and a shelter, or the cold's extra intake and lost gain put a pig outside FAO's range for the wrong reason; and a grower's run must stop at its finishing weight, or the feed it goes on eating after that counts against the ratio.
