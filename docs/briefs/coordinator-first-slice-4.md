@@ -29,6 +29,12 @@ The third coordinator ran from 09:43 to about 20:30 on 29 Sep and handed over at
     - **18. A UI and UX overhaul on the Fable model** (about 23:15): a fullscreen mode, good on every device, and "especially mobile", so it's designed phone-first. It's the "UI overhaul" session's PR. The next gameplay round builds on its components.
     - **19. Cheaper steps towards the big buys** (the coordinator's choice under decision 15, answering #63): stage the big buys (the hen house before the hens, a polytunnel before the greenhouse) and keep the household's income on its ONS figures.
     - **20. Overnight, the coordinator runs the game** (about 23:25): "Keep working on the game overnight, start a new coordinator when you want. Make level 1 feel awesome in all ways, gameplay, pacing, ux/ui, and start on the next levels. You can change anything at any time." So the coordinator may change any rule, playbook, spec or decision record without asking, and starts the next levels (part 7 on) alongside the level 1 work. It still records each change where it belongs, and still asks only for something irreversible, like repo settings or deleting work.
+    - **21. Presentation is everything** (about 23:55): "we have tonnes of information. so presentation is everything." The UI overhaul makes information design its heart:
+      - every surface shows a headline, then a glance, then detail on demand;
+      - readable numbers with their direction;
+      - small inline visuals such as sparklines, rings and meters;
+      - the map first;
+      - general components (a stat, a stat with a trend, a node card, a list of nodes, a legend) that every level reuses.
 - **The plan from here.**
   1. **When #59 merges:** archive its session. Run a third playtest: a helper `Agent` on the cheaper model, about $5, with the same primer as the first two (days 2–365 at 1440 × 900 and 390 × 844, playing as an engaged first-timer). Then send the owner https://kylelookingaround.github.io/overgrow/, what's new, and the playtest's verdict.
   2. **If the playtest says level 1 still isn't a game all year,** brief a round three from its top problems. Put a check-in about 30 minutes after the start.
