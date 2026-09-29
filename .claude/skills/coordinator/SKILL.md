@@ -42,6 +42,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 ## 6. Starting a session
 
 - Write its brief from `docs/briefs/TEMPLATE.md` and run `node tools/brief.mjs` on it.
+- Every brief carries "How it fits and grows", answered for what the part adds and naming its rows in the systems web (`docs/specs/overgrow/systems-web.md`); `node tools/brief.mjs` fails a brief without it. A gap the web shows (a mechanic with no destination, a late system with no seed, or a model that needs a hook to grow) goes into the brief of the part it belongs to.
 - `create_session` with `source_url` (`https://github.com/KyleLookingAround/overgrow`), `source_revision: "main"`, `outcome_branch: "feature/<name>"`, a title, an `overgrow:<feature>` tag, and the model.
 - First message: the brief, with one line asking the session to save it as `docs/briefs/<name>.md` in its PR. Paste a brief once; later messages pass on only what changes the session's current work.
 - A part's brief says what the part before it left undone (part 3 couldn't touch part 1's shell, so container queries and safe areas moved to part 5).

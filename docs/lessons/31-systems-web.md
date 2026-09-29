@@ -1,0 +1,13 @@
+# The systems web, every mechanic across the ladder (#31) · 29 Sep 2026
+
+- **Numbers:** estimate $15; `get_session` didn't report the cost when the PR opened, so it's not yet known. Session started 04:42 UTC, PR opened 05:03. Docs, the brief template and the brief check only: no bot run and no speed budget. The full `npm run check` passed locally once; `brief` and `graph` re-ran after each docs edit. Pushes: three before the look back. Merges from `main`: one by hand (#20 and #26 landed during the session) and two by Catch up (#28, then #32 with the household model), the first of which turned CI red. Two more owner decisions arrived by the coordinator mid-PR (pacing by the longest quiet stretch; strategic and long), each added to the web. Two issues: #27 (Feature) and #29 (`needs-owner`, 13 questions), plus a page for the owner.
+- **Went well:**
+  - A read-only helper summarised the three open model PRs before any writing, so the household section and the hooks on #29 are checked against real code (`Totals` has no demand or hours; wages are constants; the purse is the kitchen), not guessed.
+  - Generating the owner's page from the web's own tables means the page and the doc can't disagree, and the owner's mid-session addition (unfolding) reached both by editing only the web.
+  - The fresh review found real errors: a wrong "From", five rows marked settled that the spec doesn't settle, three overstated figures, and a spine row that wasn't a reversal. All were fixed before opening.
+- **Lessons:**
+  - The first draft of the web's later sections was a skeleton of dashes, rewritten twice. For a long grid, write one system's table in full first, agree its depth, then do the rest at that depth, rather than sketching all of them thin.
+  - Grandfathering a new brief rule needs the names of briefs still in flight, not only those on `main`. Part 5's brief name came from its issue (#19), before its session had pushed. → the list and its warning are beside `BEFORE` in `tools/brief.mjs`.
+  - The grandfather list missed a brief that merged to `main` while this PR was open (#28's second coordinator brief, then #32's household model brief), and each Catch up merge turned CI red or would have. A new brief rule has to be checked again after every merge from `main`, not only at opening. → the warning beside `BEFORE` in `tools/brief.mjs`, and the name added.
+  - An addition from the owner mid-session (unfolding) touched every table. A column added by script from one table of values was quicker and safer than editing 28 tables by hand.
+  - A page script's global named `top` collided with `window.top` and broke the page silently. The one screenshot pass caught it.
