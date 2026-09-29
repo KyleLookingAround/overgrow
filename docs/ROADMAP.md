@@ -13,6 +13,7 @@ What's being worked on, what's next, and ideas not yet agreed. Now, Next, the ru
 ## Next
 
 <!-- joined:next from docs/roadmap.d/ (Section: next) by tools/join.mjs: don't edit between these lines -->
+- **Polish audit** (a part before the founding spec's part 15, the first release; from `docs/ideas/final-call-wins.md` W7): parallel read-only reviewers, each on one device or concern (a new game and the first minute; every tab and card at 320, 390, 768 and 1440; phones on their side; light, dark and night; the shared link, speed and a big screen; explanations and text), drive the built game headless from a one-page primer, and each returns a findings table and a "checked and fine" list as its final message. The part fixes what they find in batches by file, with a check for each fix, and records what was fine. The coordinator briefs it when its turn comes (Final Call's `docs/lessons/main-polish-audit.md` and `106-launch-audit.md`).
 <!-- /joined:next -->
 
 ## The owner's ladder
@@ -39,5 +40,6 @@ How sessions work, not the game. Each item is small and measured in the lessons 
 ## Done
 
 <!-- joined:done from docs/roadmap.d/ (Section: done) by tools/join.mjs: don't edit between these lines -->
+- **Easy wins from Final Call** (`docs/briefs/final-call-wins.md`): the wins to take from Final Call's UX, multi-device, game-design and runbook lessons (`docs/ideas/final-call-wins.md`), the UI and multi-device rules Overgrow adopts and leaves (`docs/decisions/ADR-2026-09-29-ui-from-final-call.md`), a polish audit before the first release, a few playbook lines, and the owner's pick on a `needs-owner` issue and a page; the coordinator folds the chosen wins into the parts' briefs.
 - **The founding spec** (`docs/specs/overgrow.md`, #2): the model (one graph at every scale), the eight-level ladder, the carry-over rule, zooming back in, the systems map with each system's real-world basis, the first playable slice (the back garden and its step up to the allotment), state and time, the bot, the living map and the first roadmap, with #2's `needs-owner` issue for the owner's choices. Nothing is built until the owner approves it.
 <!-- /joined:done -->
