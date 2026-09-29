@@ -10,3 +10,4 @@
   - **A speed test near its limit fails on a slower runner, not on the PR.** The estimate "about 1.6 ms on CI" came from one runner's ratio. #59 then added 0.07 ms and merged with less headroom than it claimed.
   - **Before a merge that adds sim work, check CI's own measured figure from the PR run, not a local ratio.** Where it's within 15 % of the limit, make room first. When a timing test's value is only in the log, print it where the PR's CI summary shows it.
   - **Micro-cuts under noise are unmeasurable.** When a flat profile's biggest share is under 5 %, look for the flow or the loop that multiplies everything else before cutting lines.
+  - **A fixed pause after a tap is a race under load.** The first-minute check read the nudge 600 ms after answering it and once saw it still drawn. It now waits for the nudge to go, then checks it stays gone.
