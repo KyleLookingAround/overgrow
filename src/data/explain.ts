@@ -89,6 +89,10 @@ export const CAUSES = {
   soilborne: {kind: 'pest', causes: ['clubroot', 'potato cyst nematode', 'foot and root rot']},
   seed: {kind: 'household', causes: ['seed']},
   baggedCompost: {kind: 'soil', causes: ['bagged compost']},
+  hens: {kind: 'kitchen', causes: ['laying', 'collecting eggs', 'feeding', 'drinking', 'hen feed', 'water for the hens']},
+  droppings: {kind: 'carbon', causes: ['droppings', 'droppings carbon', 'droppings nitrogen', 'clearing out', 'manure methane and nitrous oxide']},
+  fruit: {kind: 'crop', causes: ['fruit ripening', 'fruit dropping']},
+  building: {kind: 'household', causes: ['building']},
 } satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
 
 export type Entry = keyof typeof CAUSES;
@@ -535,6 +539,38 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
     slow: 'The heap’s own compost costs nothing once it’s going.',
     source: 'RHS, “Digging”; WRAP PAS 100 compost analysis.',
   },
+  hens: {
+    title: 'The hens',
+    says: 'The hens were fed and watered, and their eggs brought in.',
+    mechanism: 'A hybrid hen lays most days while the days are long and few in the dark months; she eats about 115 g of layers’ pellets a day and lays less when feed, water or space run short.',
+    fast: 'Eggs for the kitchen most days in summer; the rest to the honesty box.',
+    slow: 'Feed bought every week; eggs stand in for some of the dairy and eggs the household buys.',
+    source: 'British Hen Welfare Trust; Defra, keeping fewer than 50 birds; the livestock model’s FAO and IPCC figures.',
+  },
+  droppings: {
+    title: 'Droppings',
+    says: 'The hens’ droppings built up in the house and went to the heap.',
+    mechanism: 'Droppings are rich in nitrogen; cleaned out weekly onto the heap they compost with the greens, losing some nitrogen and a little methane and nitrous oxide on the way.',
+    fast: 'A weekly clean-out, and a richer heap.',
+    slow: 'Compost with more nitrogen for the beds.',
+    source: 'IPCC 2006 vol. 4 ch. 10–11; RB209 for manure nitrogen.',
+  },
+  fruit: {
+    title: 'Soft fruit',
+    says: 'Raspberries and currants ripened in the fruit cage.',
+    mechanism: 'Summer raspberries fruit on last year’s canes and currants on older wood, so a new planting crops lightly the next summer and fully after; the net keeps the birds off, and ripe fruit left a few days goes soft and drops.',
+    fast: 'Fruit every few days in July, picked or lost.',
+    slow: 'About 10 kg a summer from the third summer: a slow payback.',
+    source: 'RHS, “Raspberries”, “Blackcurrants” and “Fruit cages”.',
+  },
+  building: {
+    title: 'Building',
+    says: 'A new thing went up on the lawn.',
+    mechanism: 'The lawn gives up the ground it stands on; a greenhouse’s border is the soil that was under the grass.',
+    fast: 'Less lawn, and the new thing in use from today.',
+    slow: 'The garden’s land put to work: food where there was grass.',
+    source: 'The garden’s own layout.',
+  },
 };
 
 /** The lever that helps, in a line: what the Explain card offers after what happened. */
@@ -594,6 +630,10 @@ export const HELPS: Record<Entry, string> = {
   cat: 'Nothing to do: it’s the neighbour’s.',
   seed: 'Order next year’s seed from the catalogue in winter.',
   baggedCompost: 'Keep the heap going: its compost is free.',
+  hens: 'Keep the purse able to pay for the feed: short of it, they lay less.',
+  droppings: 'Clean out weekly: the heap turns it into compost.',
+  fruit: 'Nothing to do: the gardener picks it as it ripens.',
+  building: 'Choose what the lawn is worth most as.',
 };
 
 /** The kind of each cause: all the sim needs of the table. */

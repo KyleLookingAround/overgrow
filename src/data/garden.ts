@@ -49,6 +49,35 @@ export const PLACES: readonly PlaceSpec[] = [
   {id: 'gate', kind: 'gate', name: 'Honesty box', box: {x: 0.1, y: 0.65, w: 0.55, h: 0.45}, land: 'built'},
 ];
 
+/** Where the shed's big buys stand once bought, taken out of the lawn (hidden until then): the greenhouse on the sunny
+ *  side by the shed, cropped like a bed; the hen house and its run, and the fruit cage, along the bottom of the garden.
+ *  Each is a node added to the graph when it's bought (src/sim/shed.ts), its land moved from the lawn's grass. */
+export const SITES = {
+  greenhouse: {id: 'greenhouse', kind: 'bed', name: 'Greenhouse', box: {x: 9.2, y: 3.3, w: 2.4, h: 1.8}, land: 'crops'},
+  hens: {id: 'hens', kind: 'hens', name: 'Hens', box: {x: 0.8, y: 5.75, w: 3.4, h: 2}, land: 'grass'},
+  'fruit-cage': {id: 'fruit', kind: 'fruit', name: 'Fruit cage', box: {x: 4.8, y: 5.75, w: 3, h: 2}, land: 'crops'},
+} as const satisfies Record<string, Omit<PlaceSpec, 'dug' | 'soil'>>;
+/** The ways each site needs, as WAYS has them for the places there from the start. */
+export const SITE_WAYS: Record<keyof typeof SITES, readonly {from: string; to: string; carries: ('L' | 'kgFood' | 'kgWaste' | 'kgCO2e' | 'kgN' | 'kgP' | 'kgK' | 'pests' | 'm2')[]}[]> = {
+  greenhouse: [
+    {from: 'tap', to: 'greenhouse', carries: ['L']},
+    {from: 'butt', to: 'greenhouse', carries: ['L']},
+    {from: 'greenhouse', to: 'kitchen', carries: ['kgFood']},
+    {from: 'greenhouse', to: 'heap', carries: ['kgWaste', 'kgCO2e', 'kgN', 'kgP', 'kgK']},
+    {from: 'lawn', to: 'greenhouse', carries: ['m2', 'pests', 'L', 'kgCO2e', 'kgN', 'kgP', 'kgK']},
+  ],
+  hens: [
+    {from: 'tap', to: 'hens', carries: ['L']},
+    {from: 'hens', to: 'kitchen', carries: ['kgFood']},
+    {from: 'hens', to: 'heap', carries: ['kgWaste', 'kgCO2e', 'kgN']},
+    {from: 'lawn', to: 'hens', carries: ['m2']},
+  ],
+  'fruit-cage': [
+    {from: 'fruit', to: 'kitchen', carries: ['kgFood']},
+    {from: 'lawn', to: 'fruit', carries: ['m2']},
+  ],
+};
+
 /** The water butt: 200 L, half full on day 1. */
 export const BUTT_LITRES = {cap: 200, start: 100};
 /** The roof that fills the butt: the shed's, 2.25 × 1.75 m, of which about 85 % of the rain reaches the gutter (a

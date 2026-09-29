@@ -7,10 +7,16 @@
 // The hose (src/sim/gardener.ts), the compost bin (src/sim/models/carbon.ts), the frame's frost, rain and sowing
 // windows (src/sim/models/crops.ts, src/sim/models/water.ts) are read where they act. docs/systems/shed.md says how.
 import {CROPS, type CropId} from '../data/crops';
-import {BEER_TRAP, NEMATODES, SECOND_BUTT, UPGRADES, type UpgradeId} from '../data/shed';
+import {BEER_TRAP, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, type UpgradeId} from '../data/shed';
 import type {System, TickContext} from './clock';
 import {note} from './effects';
-import {applyFlow, qty, touch, type Flow, type Graph} from './graph';
+import {SITES, SITE_WAYS} from '../data/garden';
+import {applyFlow, makeNode, qty, touch, type Flow, type Graph, type LeverValue, type NodeSpec, type Stock} from './graph';
+import {BED_FLOWER_LEVERS} from './models/biodiversity';
+import {BED_LEVERS} from './models/crops';
+import {LIVE, newHerd} from './models/livestock';
+import {BED_PEST_LEVERS} from './models/pests';
+import {ATMOSPHERE} from './state';
 import {kitOf, owns, setKit} from './kit';
 import {KITCHEN} from './models/kitchen';
 import {pestsOf, SLUG_KEY, slugsOn} from './models/pests';
@@ -21,11 +27,15 @@ const isUpgrade = (id: string): id is UpgradeId => id in UPGRADES;
 const dugBeds = (g: Graph) => Object.values(g.nodes).filter((n) => n.kind === 'bed' && (n.stocks['land.crops']?.amount ?? 0) > 0);
 const purse = (g: Graph) => g.nodes[KITCHEN]?.stocks.money?.amount ?? 0;
 
+/** The next dug bed a raised bed goes on: the first not raised yet (never the greenhouse's border). */
+export const nextRaised = (g: Graph) => dugBeds(g).find((b) => b.levers.raised !== true && b.levers.cover !== 'greenhouse') ?? null;
+
 /** Why a buy is refused, or null if it can go ahead. */
 export function refuseBuy(g: Graph, id: string): string | null {
   if (!isUpgrade(id)) return `no upgrade ${id}`;
   const u = UPGRADES[id];
   if (u.kept && owns(g, id)) return `the garden has ${u.name.toLowerCase()} already`;
+  if (id === 'raised-bed' && !nextRaised(g)) return 'every dug bed is raised already';
   if (id === 'nematodes' && kitOf(g).nematodes > 0) return 'the last pack is still at work';
   if (purse(g) < u.price) return `${u.name} costs £${u.price.toFixed(2)}`;
   return null;
@@ -38,7 +48,19 @@ export const buyFlow = (id: UpgradeId): Flow => ({what: 'buying', unit: 'GBP', a
 function buy(g: Graph, id: UpgradeId) {
   applyFlow(g, buyFlow(id));
   if (id === 'nematodes') return setKit(g, {nematodes: NEMATODES.days});
+  // a raised bed goes on the next dug bed that isn't one; the kit counts each
+  if (id === 'raised-bed') {
+    const bed = nextRaised(g);
+    if (bed) bed.levers.raised = true;
+    return setKit(g, {owned: [...kitOf(g).owned, id]});
+  }
   setKit(g, {owned: [...kitOf(g).owned, id]});
+  if (id === 'water-tank') {
+    const butt = g.nodes.butt?.stocks.water;
+    if (butt?.cap !== undefined) butt.cap = qty(butt.cap + TANK.litres, 'L');
+    touch(g, 'butt');
+  }
+  if (id === 'greenhouse' || id === 'hens' || id === 'fruit-cage') addSite(g, id);
   // the hose joins the gardener's tools: the fastest they have for a job is the one they use (src/data/jobs.ts)
   if (id === 'hose') {
     const me = g.nodes.gardener, tools = (me?.levers.tools as string[] | undefined) ?? [];
@@ -66,6 +88,42 @@ export const seedCost = (g: Graph, crop: CropId) => {
 export function paySeed(c: TickContext, gbp: number) {
   const pay = Math.min(gbp, purse(c.graph));
   if (pay > 1e-9) c.flow({what: 'seed', unit: 'GBP', amount: qty(pay, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
+}
+
+/**
+ * Puts a big buy on the map: its node, taken out of the lawn (its land moved from the lawn's grass, and for the greenhouse
+ * the lawn's soil under it, a share of each of the lawn's stocks, so nothing appears from nowhere), the ways it needs and
+ * its way to the air; then what it starts with: the greenhouse's border planned for tomatoes, the hens in their house
+ * with a week's feed and water, the canes and bushes planted.
+ */
+function addSite(g: Graph, id: keyof typeof SITES) {
+  const site = SITES[id], lawn = g.nodes.lawn;
+  if (!lawn || g.nodes[site.id]) return;
+  const area = site.box.w * site.box.h, grass = lawn.stocks['land.grass']?.amount ?? 0, share = Math.min(1, area / Math.max(1e-9, grass));
+  const spec: NodeSpec = {id: site.id, kind: site.kind, name: site.name, box: {...site.box}, land: {built: 0}};
+  if (site.id === 'greenhouse') spec.levers = {...BED_LEVERS('tomatoes'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS(), cover: 'greenhouse'};
+  if (site.id === 'hens') {
+    spec.stocks = {[LIVE.feed]: {unit: 'kgFeed', amount: qty(0, 'kgFeed'), product: 'feed'}, [LIVE.water]: {unit: 'L', amount: qty(0, 'L')}};
+    spec.levers = {herd: newHerd('hen', HENS.head, HENS.area, {disease: false}) as unknown as LeverValue, cleaned: null};
+  }
+  g.nodes[site.id] = makeNode(spec);
+  for (const w of [...SITE_WAYS[id], {from: site.id, to: ATMOSPHERE, carries: ['kgCO2e' as const]}])
+    g.edges.push({id: `${site.id}-${w.from}-${w.to}`, from: w.from, to: w.to, carries: [...w.carries]});
+  g.rev++;
+  const move = (stock: string, to: string, unit: Stock['unit'], kg: number, product?: string) => {
+    if (kg <= 1e-12) return;
+    const f: Flow = {what: 'building', unit, amount: qty(kg, unit), from: {node: 'lawn', stock}, to: {node: site.id, stock: to}};
+    if (product !== undefined) f.product = product;
+    applyFlow(g, f);
+  };
+  move('land.grass', `land.${site.land}`, 'm2', area);
+  // the greenhouse's border is the lawn's soil under it, dug
+  if (site.id === 'greenhouse')
+    for (const [k, st] of Object.entries(lawn.stocks)) if (!k.startsWith('land.')) move(k, k, st.unit, st.amount * share, st.product);
+  // the canes and bushes go in: the fruit system dates the planting on its next day (src/sim/models/fruit.ts)
+  if (site.id === 'fruit') g.nodes.fruit!.levers.bushes = null;
+  touch(g, 'lawn');
+  touch(g, site.id);
 }
 
 /** Pays for the beer traps' week from the purse; they go dry for the week if it can't. */

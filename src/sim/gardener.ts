@@ -24,12 +24,20 @@ import {borderOf, plantBorder} from './models/biodiversity';
 import {cropOf, foodKey, inSeason, neighbours, PICK_MIN, plannedCrop, quality, ripe, sow, specOf, summerCrop, wasteOn} from './models/crops';
 import {note} from './effects';
 import {paySeed, seedCost} from './shed';
+import {HENS} from '../data/shed';
+import {SPECIES} from '../data/livestock';
+import {BERRIES, ripeFruit} from './models/fruit';
+import {clearOut, herdOf, LIVE} from './models/livestock';
 import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
 import {askOf, GATE, KITCHEN, mixQuality, qualityAt, recordPick, surplus} from './models/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
 import {hourOf, sunOn, weatherOf} from './models/weather';
 
 export const GARDENER = 'gardener';
+/** The hens' node, once they're bought (src/data/garden.ts's SITES). */
+const HENS_NODE = 'hens';
+/** Hours to pick a kg of soft fruit by hand (about two kilos an hour). */
+const FRUIT_PICK = 0.5;
 const HOME = 'shed';
 
 /** What a step does when it ends. */
@@ -44,7 +52,8 @@ export type Effect =
   | {kind: 'box'; items: {product: string; kg: number}[]}
   | {kind: 'pest'; bed: NodeId; pest: PestId; how: Policy}
   | {kind: 'border'; bed: NodeId; flower: CropId; seed: number}
-  | {kind: 'home'; shop: boolean};
+  | {kind: 'home'; shop: boolean}
+  | {kind: 'hens'; clean: boolean};
 
 /** One step of the day: an activity to show when it starts, and its effect when it ends. */
 export interface Step {
@@ -294,6 +303,44 @@ function harvest(p: Planner, bed: GraphNode) {
   }
 }
 
+/** Picks the ripe soft fruit in the cage and carries it to the kitchen, a basketful a trip. */
+function pickFruit(p: Planner, f: GraphNode) {
+  const carry = best(p.g, 'carry');
+  if (!carry) return;
+  let kg = ripeFruit(f);
+  while (kg >= PICK_MIN) {
+    const load = Math.min(kg, carry.trip ?? kg);
+    const ok = p.job((j) => {
+      j.walk(f.id);
+      j.work('pick', load * FRUIT_PICK, {unit: 'kgFood', amount: load, product: BERRIES});
+      j.walk(KITCHEN, 'carry', {unit: 'kgFood', amount: load, product: BERRIES}, {kind: 'pick', bed: f.id, product: BERRIES, kg: load});
+    });
+    if (!ok) return;
+    kg -= load;
+  }
+}
+
+/** The hens' morning: the feed topped up to a week's, bought from the purse as it's used; the trough filled from the tap;
+ *  the eggs brought in to the kitchen; and on a Saturday the house cleaned out, the droppings to the heap. */
+function keepHens(c: TickContext, clean: boolean) {
+  const g = c.graph, n = g.nodes[HENS_NODE], herd = n && herdOf(n);
+  if (!n || !herd) return;
+  const sp = SPECIES[herd.species], want = herd.head * sp.intake * HENS.feedDays, feed = n.stocks[LIVE.feed]?.amount ?? 0;
+  const perKg = HENS.sackGbp / HENS.sackKg, money = g.nodes[KITCHEN]?.stocks.money?.amount ?? 0, kg = Math.min(Math.max(0, want - feed), money / perKg);
+  if (kg > 1e-6) {
+    c.flow({what: 'hen feed', unit: 'GBP', amount: qty(kg * perKg, 'GBP'), from: at(KITCHEN, 'money'), to: {boundary: 'bought'}});
+    c.flow({what: 'hen feed', unit: 'kgFeed', product: 'feed', amount: qty(kg, 'kgFeed'), from: {boundary: 'bought'}, to: at(HENS_NODE, LIVE.feed)});
+  }
+  const water = herd.head * sp.water * 2 - (n.stocks[LIVE.water]?.amount ?? 0);
+  if (water > 1e-6) c.flow({what: 'water for the hens', unit: 'L', amount: qty(water, 'L'), from: {boundary: 'mains'}, to: at(HENS_NODE, LIVE.water)});
+  const eggs = n.stocks[LIVE.eggs]?.amount ?? 0;
+  if (eggs > 1e-9) {
+    recordPick(g, c.hours, eggs);
+    c.flow({what: 'collecting eggs', unit: 'kgFood', product: 'eggs', amount: qty(eggs, 'kgFood'), from: at(HENS_NODE, LIVE.eggs), to: at(KITCHEN, foodKey('eggs'))});
+  }
+  if (clean) clearOut(c, n);
+}
+
 /** Carries the waste on a place to the heap (clearing a bed first). */
 function clear(p: Planner, from: GraphNode, bed: boolean): boolean {
   const kg = wasteOn(from), how = best(p.g, 'clear');
@@ -402,8 +449,20 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   const patrol = tour.length ? probe.round(tour.map((b) => b.id)) + (tour.length * CONTROL.slugs.pick.minutes) / 60 : 0;
   const night = patrol > 0 && patrol <= left ? tour : [];
   const p = new Planner(g, pos, t, left - (night.length ? patrol : 0), next, date.dayIndex, awayOn(g, date, t)), line = Number(g.nodes[GARDENER]?.levers.waterBelow ?? 0.5);
-  // 1. pick what's ready
+  // 0. the hens first thing: fed, watered and their eggs brought in, and cleaned out on a Saturday
+  const hens = g.nodes[HENS_NODE];
+  if (hens && herdOf(hens)) {
+    const clean = date.weekday === 5;
+    p.job((j) => {
+      j.walk(HENS_NODE);
+      j.work('hens', (HENS.dailyMinutes + (clean ? HENS.cleanMinutes : 0)) / 60);
+      const eggs = hens.stocks[LIVE.eggs]?.amount ?? 0;
+      j.walk(KITCHEN, 'carry', eggs > 0.01 ? {unit: 'kgFood', amount: eggs, product: 'eggs'} : undefined, {kind: 'hens', clean});
+    });
+  }
+  // 1. pick what's ready, and the soft fruit in the cage
   for (const b of dug) if (ripe(b) >= PICK_MIN) harvest(p, b);
+  for (const f of Object.values(g.nodes)) if (f.kind === 'fruit' && ripeFruit(f) >= PICK_MIN) pickFruit(p, f);
   // 2. water what's below the line
   for (const b of dug) {
     const s = cropOf(b);
@@ -568,6 +627,9 @@ function apply(c: TickContext, e: Effect) {
         mixQuality(g, GATE, it.product, kg, qualityAt(g.nodes[KITCHEN], it.product));
         c.flow({what: 'to the honesty box', unit: 'kgFood', product: it.product, amount: qty(kg, 'kgFood'), from: at(KITCHEN, foodKey(it.product)), to: at(GATE, foodKey(it.product))});
       }
+      return;
+    case 'hens':
+      keepHens(c, e.clean);
       return;
     case 'home':
       // home from work: the day's commute (noted from the second day, with the kitchen's first ask, so the first minute

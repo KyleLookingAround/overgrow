@@ -29,6 +29,7 @@
 //   plan has nothing in season, and a green manure is dug in where it stands when the summer plan's next crop is due.
 //   Fast effect: shoots in a week or two, a first cut of salad in about a month in spring, and frost blackening the
 //   beans on a cold night. Slow effect: a cropped bed drawing its nutrients down year by year unless compost goes back.
+import {RAISED} from '../../data/shed';
 import {COVERS, CROPS, GROWTH_PACE, PRODUCE, ROTATION, STEP_OF, type CropId, type CropSpec, type Family} from '../../data/crops';
 import {calendar, type CalendarDate, type System, type TickContext} from '../clock';
 import {note} from '../effects';
@@ -170,8 +171,12 @@ export function inSeason(c: CropSpec, d: CalendarDate, extend = 0): boolean {
   return t >= dayOfYear(c.sow.from) - extend && t <= dayOfYear(c.sow.to) + extend;
 }
 
-/** The days a bed's cover widens its sowing windows by (none uncovered). */
-export const coverDays = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')]?.days ?? 0;
+/** The days a bed's cover and a raised bed's frame widen its sowing windows by (none for a bed in the open ground). */
+export const coverDays = (n: GraphNode) => (COVERS[String(n.levers.cover ?? '')]?.days ?? 0) + (n.levers.raised === true ? RAISED.days : 0);
+/** Degrees warmer a bed's growing days run under its cover (the greenhouse's). */
+export const coverWarmth = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')]?.warm ?? 0;
+/** The share of blight's start and spread a bed's cover lets through (under glass the leaves stay dry). */
+export const coverBlight = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')]?.blight ?? 1;
 
 /** The crops growing in the other dug beds of a bed's garden: the rotation plans across the beds. */
 export type Neighbours = readonly CropId[];
@@ -245,7 +250,7 @@ export function overwintered(n: GraphNode, id: CropId, sownHoursAgo: number, ddT
 }
 
 /** The levers the crop model declares on every bed: the plan's (what to sow, from when, and whether to dig it) and its own. */
-export const BED_LEVERS = (sow: string): Record<string, LeverValue> => ({sow, sowFrom: null, winter: 'none', cover: null, dig: false, crop: null, history: []});
+export const BED_LEVERS = (sow: string): Record<string, LeverValue> => ({sow, sowFrom: null, winter: 'none', cover: null, dig: false, raised: false, crop: null, history: []});
 const OWN = new Set(['crop', 'history']);
 
 // ---- the day ----
@@ -302,7 +307,8 @@ function cropDay(c: TickContext, n: GraphNode, s0: CropState) {
   const days = w ? (w.step ?? [w]) : [];
   const s: CropState = {...s0};
   const before = s.dd, total = totalDd(spec);
-  for (const d of days) s.dd += Math.max(0, (d.tmax + d.tmin) / 2 - spec.base) * GROWTH_PACE;
+  const warm = coverWarmth(n);
+  for (const d of days) s.dd += Math.max(0, (d.tmax + d.tmin) / 2 + warm - spec.base) * GROWTH_PACE;
   if (s.dd > before) note(c, 'growth', n.id, s.dd - before, 'dd');
   // water: how stressed it is today, weighted by what it would have used
   const cover = cropCover(n);

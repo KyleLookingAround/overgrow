@@ -15,3 +15,14 @@ export const STORE = {keeps: 60, days: 150};
 
 /** The honesty box: £ per kg, and how much the lane's passers-by take a day (more at weekends). */
 export const BOX = {price: 2.5, perDay: 2, weekend: 3.5};
+
+/** The garden's food beyond its veg: the hens' eggs and the fruit cage's berries. Each stands in for some of a group of the
+ *  rest of the diet the household would otherwise buy (src/data/household.ts's BASKET): up to `perWeek` kg a person a
+ *  week (about four eggs, a little more than Family Food's purchases, since some go into baking; soft fruit in season up
+ *  to the whole fruit ration). It keeps `keeps` days in the kitchen (eggs a month from laying; raspberries a few days),
+ *  and sells at the honesty box at `box` £ a kg (eggs about £1.80 a half dozen; raspberries about £2 a 250 g punnet). */
+export const EXTRAS = [
+  {product: 'eggs', name: 'Eggs', group: 'dairy', perWeek: 0.25, keeps: 28, box: 5},
+  {product: 'berries', name: 'Soft fruit', group: 'fruit', perWeek: 1, keeps: 4, box: 8},
+] as const;
+export type Extra = (typeof EXTRAS)[number];

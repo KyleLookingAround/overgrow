@@ -21,7 +21,7 @@
 //   household's veg the garden grows, week by week, and the food wasted along the way.
 import {CROPS, type Group} from '../../data/crops';
 import {BASKET, FOOD_GROUPS, VEG, type FoodGroup} from '../../data/household';
-import {BOX, KEEP_DAYS, MEAL_HOUR, STORE, STRETCH} from '../../data/kitchen';
+import {BOX, EXTRAS, KEEP_DAYS, MEAL_HOUR, STORE, STRETCH} from '../../data/kitchen';
 import {calendar, type System, type TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type Graph, type GraphNode, type LeverValue} from '../graph';
@@ -105,6 +105,11 @@ export function mixQuality(g: Graph, at: string, product: string, kg: number, q:
 }
 
 const PRODUCTS = Object.values(CROPS);
+/** Everything the kitchen keeps and the box sells: the crops at the box's price, and the eggs and fruit at theirs. */
+const SOLD: {product: string; keeps: number; price: number}[] = [
+  ...PRODUCTS.map((c) => ({product: c.product, keeps: c.keeps.kitchen, price: BOX.price})),
+  ...EXTRAS.map((x) => ({product: x.product, keeps: x.keeps, price: x.box})),
+];
 const inGroup = (group: Group) => PRODUCTS.filter((c) => c.group === group).sort((a, b) => a.keeps.kitchen - b.keeps.kitchen);
 const stockOf = (n: GraphNode, product: string) => n.stocks[`food.${product}`]?.amount ?? 0;
 
@@ -123,8 +128,16 @@ export function surplus(k: GraphNode, ask: Record<Group, number>): {product: str
       if (have - keep > 0.05) out.push({product: c.product, kg: have - keep});
     }
   }
+  // eggs and fruit: what the household will eat while they keep, up to the three weeks, and the rest to the box
+  const people = eaters0(ask);
+  for (const x of EXTRAS) {
+    const have = stockOf(k, x.product), keep = Math.min(have, ((x.perWeek * people) / 7) * Math.min(KEEP_DAYS, x.keeps / 2));
+    if (have - keep > 0.05) out.push({product: x.product, kg: have - keep});
+  }
   return out;
 }
+/** The people an ask is for (the ask is the basket's veg a day, a person's times the people). */
+const eaters0 = (ask: Record<Group, number>) => total(ask) / total(kitchenAsk(1));
 
 function meal(c: TickContext, k: GraphNode, day: number) {
   const ate: Record<string, number> = {};
@@ -145,11 +158,21 @@ function meal(c: TickContext, k: GraphNode, day: number) {
   // a short group made up by more of another, up to its stretch
   for (const g of VEG) if (eaten < want - 1e-9) eaten += eat(g, Math.min(want - eaten, ask[g] * (STRETCH - 1)));
   const met = Math.min(1, eaten / want);
-  // what the garden didn't meet comes from the shop's veg; then the rest of the diet, a seventh of the week's basket
+  // what the garden didn't meet comes from the shop's veg; then the rest of the diet, a seventh of the week's basket,
+  // less the garden's eggs and fruit eaten in its place
   fromShop(c, k, SHOP_VEG, Math.max(0, want - eaten));
   const people = eaters(c.graph);
-  fromShop(c, k, SHOP_FOOD, FOOD_GROUPS.reduce((s, g) => s + ((VEG as readonly string[]).includes(g) ? 0 : (BASKET[g] * people) / 7), 0));
-  update(c.graph, (l) => ({day, ask: want, ate, met, week: [...l.week, met].slice(-7), eaten: l.eaten + eaten}));
+  let extras = 0;
+  for (const x of EXTRAS) {
+    const kg = Math.min(stockOf(k, x.product), (x.perWeek * people) / 7);
+    if (kg <= 1e-9) continue;
+    c.flow({what: 'eating', unit: 'kgFood', product: x.product, amount: qty(kg, 'kgFood'), from: {node: k.id, stock: `food.${x.product}`}, to: {boundary: 'eaten'}});
+    ate[x.product] = kg;
+    extras += kg;
+  }
+  const rest = FOOD_GROUPS.reduce((s, g) => s + ((VEG as readonly string[]).includes(g) ? 0 : (BASKET[g] * people) / 7), 0);
+  fromShop(c, k, SHOP_FOOD, Math.max(0, rest - extras));
+  update(c.graph, (l) => ({day, ask: want, ate, met, week: [...l.week, met].slice(-7), eaten: l.eaten + eaten + extras}));
   // the day's ask of the garden, from the second evening: the first evening's meal is what the house already had in (the
   // founding spec's first minute has the kitchen's first ask on day 2)
   if (day >= 1) note(c, 'ask', k.id, want, 'kgFood');
@@ -166,16 +189,17 @@ function fromShop(c: TickContext, k: GraphNode, product: string, kg: number): nu
 /** Passers-by buy from the honesty box, the best first; the money goes into the household's purse. */
 function sales(c: TickContext, gate: GraphNode, k: GraphNode, weekend: boolean) {
   let room = weekend ? BOX.weekend : BOX.perDay, sold = 0;
-  const best = PRODUCTS.filter((p) => stockOf(gate, p.product) > 1e-9).sort((a, b) => qualityAt(gate, b.product) - qualityAt(gate, a.product));
+  const best = SOLD.filter((p) => stockOf(gate, p.product) > 1e-9).sort((a, b) => qualityAt(gate, b.product) - qualityAt(gate, a.product));
+  let earned = 0;
   for (const crop of best) {
     const kg = Math.min(room, stockOf(gate, crop.product));
     if (kg <= 1e-9) continue;
     c.flow({what: 'honesty box', unit: 'kgFood', product: crop.product, amount: qty(kg, 'kgFood'), from: {node: gate.id, stock: `food.${crop.product}`}, to: {boundary: 'sold'}});
     room -= kg;
     sold += kg;
+    earned += kg * crop.price;
   }
   if (sold <= 0) return;
-  const earned = sold * BOX.price;
   c.flow({what: 'honesty box', unit: 'GBP', amount: qty(earned, 'GBP'), from: {boundary: 'sold'}, to: {node: k.id, stock: 'money'}});
   update(c.graph, (l) => ({sold: l.sold + sold, earned: l.earned + earned, firstSale: l.firstSale ?? c.hours}));
 }
@@ -183,8 +207,8 @@ function sales(c: TickContext, gate: GraphNode, k: GraphNode, weekend: boolean) 
 /** Produce going off where it's kept: in the kitchen to its waste (for the heap), at the box thrown out. */
 function goingOff(c: TickContext, n: GraphNode, days: number, toWaste: boolean) {
   let lost = 0;
-  for (const crop of PRODUCTS) {
-    const kg = stockOf(n, crop.product) * (1 - Math.exp(-days / crop.keeps.kitchen));
+  for (const crop of SOLD) {
+    const kg = stockOf(n, crop.product) * (1 - Math.exp(-days / crop.keeps));
     if (kg <= 1e-6) continue;
     c.flow({what: 'going off', unit: 'kgFood', product: crop.product, amount: qty(kg, 'kgFood'), from: {node: n.id, stock: `food.${crop.product}`}, to: {boundary: 'decay'}});
     if (toWaste) c.flow({what: 'going off', unit: 'kgWaste', product: 'greens', amount: qty(kg, 'kgWaste'), from: {boundary: 'decay'}, to: {node: n.id, stock: 'waste'}});

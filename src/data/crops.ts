@@ -202,6 +202,10 @@ export const STEP_OF: Partial<Record<Family, Family>> = {legume: 'legume', alliu
  */
 export const GROWTH_PACE = 1;
 
-/** What a cover does for a bed, by cover: the degrees of frost it keeps off, and the days it moves a sowing season earlier
- *  in spring and later in autumn (the cold frame, src/data/shed.ts). */
-export const COVERS: Record<string, {frost: number; days: number}> = {'cold-frame': {frost: 3, days: 21}};
+/** What a cover does for a bed, by cover: the degrees of frost it keeps off, the days it moves a sowing season earlier in
+ *  spring and later in autumn, the degrees warmer its growing days run, and the share of blight's start it lets through
+ *  (the cold frame and the greenhouse, src/data/shed.ts). */
+export const COVERS: Record<string, {frost: number; days: number; warm: number; blight: number}> = {
+  'cold-frame': {frost: 3, days: 21, warm: 0, blight: 1},
+  greenhouse: {frost: 5, days: 42, warm: 3, blight: 0.1},
+};
