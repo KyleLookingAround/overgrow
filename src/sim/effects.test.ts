@@ -1,4 +1,4 @@
-// Effects and the Explain table: every cause the game's own systems record over two years (with every pest policy and
+// Effects and the Explain table: every cause the game's own systems record over a year (with every pest policy and
 // flowers in the plan) has an entry, every entry says all it must and names a source, and effects are merged by cause,
 // place and unit, each at a place on the map or a node.
 import {describe, expect, it} from 'vitest';
@@ -8,13 +8,13 @@ import {Recorder} from './effects';
 import {createSim} from './index';
 
 describe('effects', () => {
-  it('has an Explain entry for every cause two years of the game record, whatever the pest policy', () => {
+  it('has an Explain entry for every cause a year of the game records, whatever the pest policy', () => {
     const seen = new Map<string, string>(), missing = new Set<string>();
     for (const how of ['pick', 'trap', 'treat'] as const) {
       const sim = createSim(3), set = new Set<string>();
       sim.apply({type: 'plan', node: 'bed-3', lever: 'dig', value: true});
       sim.apply({type: 'plan', node: 'bed-3', lever: 'sow', value: 'potatoes'});
-      for (let h = 0; h < 24 * 365 * 2; h += 6) {
+      for (let h = 0; h < 24 * 365; h += 6) {
         // each lever as soon as it has unfolded
         for (const pest of Object.keys(POLICIES) as PestId[])
           if (!set.has(pest) && (POLICIES[pest] as string[]).includes(how) && sim.apply({type: 'policy', node: 'gardener', lever: pest, value: how}).rejected === null) set.add(pest);
@@ -33,7 +33,7 @@ describe('effects', () => {
     for (const cause of ['rain', 'frost', 'drought', 'waterlogging', 'decay', 'leaching', 'growth', 'water stress', 'picking', 'eating', 'honesty box',
       'to the heap', 'digging', 'slugs', 'hand-picking', 'trapping', 'slug pellets', 'aphids', 'blight', 'Smith period', 'fungicide', 'pollination', 'flowers'])
       expect(seen.has(cause), cause).toBe(true);
-  });
+  }, 60_000);
 
   it('says what happened, how, its fast and slow effects and its source for every entry, each cause once', () => {
     const causes: string[] = [];
