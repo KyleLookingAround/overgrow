@@ -5,6 +5,7 @@ The second coordinator ran from 04:50 to about 09:40 on 29 Sep and handed over a
 ## Goal and what it may touch
 
 - **The goal** is unchanged: run the first slice from where it stands to its release, polished and well thought out in every way; you sweep, brief, start, message and retire, and build no game code.
+- **It may touch** what the second brief allows: `docs/briefs/`, `docs/roadmap.d/`, `docs/lessons/` and the playbooks, in one small docs-only PR at a time; nothing under `src/` or `tools/`.
 - **Where it stands at 09:40 UTC, 29 Sep.**
   - **Merged since the second coordinator took over** (look backs in `docs/lessons/`):
     - the second coordinator's brief (#28) and the pacing decision (#33);
@@ -54,7 +55,7 @@ As in the second brief: each part and models-ahead session merges its own PR per
 
 ## When to stop and ask
 
-As in the second brief: ask the owner only for something irreversible or outside the brief, or a change to the founding spec's model or carry-over rule; otherwise take the recommended option and tell the owner what was chosen. When they're in the conversation, ask directly.
+As in the second brief: ask the owner only for something irreversible or outside the brief, or a change to the founding spec's model or carry-over rule; otherwise take the recommended option and tell the owner what was chosen. When they're in the conversation, ask directly; if not, open an issue labelled `needs-owner` with the question, the options and the default, and take the default after 12 hours (except for the spec-model questions).
 
 ## Cost budget
 
