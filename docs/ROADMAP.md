@@ -17,6 +17,7 @@ What's being worked on, what's next, and ideas not yet agreed. Now, Next, the ru
 
 <!-- joined:next from docs/roadmap.d/ (Section: next) by tools/join.mjs: don't edit between these lines -->
 - **Polish audit** (a part before the founding spec's part 15, the first release; from `docs/ideas/final-call-wins.md` W7): parallel read-only reviewers, each on one device or concern (a new game and the first minute; every tab and card at 320, 390, 768 and 1440; phones on their side; light, dark and night; the shared link, speed and a big screen; explanations and text), drive the built game headless from a one-page primer, and each returns a findings table and a "checked and fine" list as its final message. The part fixes what they find in batches by file, with a check for each fix, and records what was fine. The coordinator briefs it when its turn comes (Final Call's `docs/lessons/main-polish-audit.md` and `106-launch-audit.md`).
+- **Models ahead: labour, machinery and energy** (#17, `docs/briefs/labour-machinery-energy.md`): three pure models in new files for part 13 to wire: hours and work by crop and month, wages, skill and what waits (labour); a second-hand tractor's fuel, breakdowns, repairs and compaction on wet ground (machinery); DEFRA and BEIS factors, pumps, a cold store and a tunnel heater as flows to the air (energy). Nothing is wired; part 13 adds the systems, stocks, commands and panels.
 <!-- /joined:next -->
 
 ## The owner's ladder

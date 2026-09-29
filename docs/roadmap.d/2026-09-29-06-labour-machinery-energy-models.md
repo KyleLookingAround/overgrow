@@ -1,0 +1,2 @@
+Section: next
+- **Models ahead: labour, machinery and energy** (#17, `docs/briefs/labour-machinery-energy.md`): three pure models in new files for part 13 to wire: hours and work by crop and month, wages, skill and what waits (labour); a second-hand tractor's fuel, breakdowns, repairs and compaction on wet ground (machinery); DEFRA and BEIS factors, pumps, a cold store and a tunnel heater as flows to the air (energy). Nothing is wired; part 13 adds the systems, stocks, commands and panels.
