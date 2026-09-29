@@ -6,13 +6,21 @@
 // the winter line (a winter crop in each bed once the first autumn bed stands empty). A policy on a lever or an offer
 // that unfolds (src/data/unfold.ts) waits until it has, as a player would: the sim refuses it before.
 import {CROPS, type CropId} from '../../src/data/crops';
-import {UPGRADE_IDS, UPGRADES} from '../../src/data/shed';
+import {UPGRADE_IDS, UPGRADES, type UpgradeId} from '../../src/data/shed';
+import {digCost} from '../../src/data/garden';
 import {unfolded} from '../../src/data/unfold';
 import {NO_KIT, SHED, type Kit} from '../../src/sim/kit';
 import type {CalendarDate} from '../../src/sim/clock';
 import type {GraphNode, LeverValue} from '../../src/sim/graph';
 import type {Command, Snapshot} from '../../src/sim/index';
 import {isDug} from './measure';
+import {bedCardOf} from '../../src/ui/bed-card';
+import {goalLine} from '../../src/ui/goal';
+import {decisionsOf} from '../../src/ui/decisions';
+import {PRESERVE} from '../../src/data/kitchen';
+import {cataloguePrice} from '../../src/sim/shed';
+
+const graphOf = (snap: Snapshot) => ({nodes: Object.fromEntries(snap.nodes.map((n) => [n.id, n])), edges: [], rev: 0});
 
 /** What a policy sees: the snapshot after the last tick, and the date. */
 export interface View {
@@ -37,8 +45,10 @@ export interface Player {
   shop: Policy | null;
   /** Another bed dug once every dug bed is in use. */
   dig: Policy | null;
-  /** Each dug bed's winter crop once winter crops have come up. */
+  /** What goes in an empty bed: the bed card's answer, or each dug bed's winter crop once winter crops have come up. */
   winter: Policy | null;
+  /** The week's decision cards (src/ui/decisions.ts): a frost, a glut, a dry spell, the catalogue. */
+  decide?: Policy | null;
 }
 
 /** Sets a lever on every node of a kind that has it, where it isn't set to that already. */
@@ -77,6 +87,11 @@ export const oneCrop = (crop: string): Policy => eachBed(() => crop);
 
 /** Water when the soil is below this share of its available water: half, where FAO-56 puts most vegetables' stress. */
 export const WATER_LINE = 0.5;
+/** Sets the watering line to WATER_LINE once it's come up, and never lowers it after a dry spell's card has raised it. */
+export const waterLine: Policy = once('garden.water', ({snap}) => {
+  const me = snap.nodes.find((n) => n.kind === 'person' && 'waterBelow' in n.levers);
+  return me && Number(me.levers.waterBelow) < WATER_LINE ? [{type: 'plan', node: me.id, lever: 'waterBelow', value: WATER_LINE}] : [];
+});
 
 /** Slugs picked at dusk (the plan's start), aphids squashed and blighted leaves picked off by hand once each comes up:
  *  the gardener's time rather than the purse's, and nothing that harms the ladybirds. */
@@ -85,28 +100,43 @@ export const SENSIBLE_PESTS = pestPolicy({slugs: 'pick', aphids: 'pick', blight:
 /** What's been bought, from the shed's `kit` lever in the snapshot. */
 export const kitOf = (snap: Snapshot): Kit => (snap.nodes.find((n) => n.id === SHED)?.levers.kit as unknown as Kit | undefined) ?? NO_KIT;
 
-/** The purse kept back when buying, £: a week's beer and a bed's edging. */
+/** The purse kept back when buying, £: a week's beer and seed for a sowing or two. */
 export const RESERVE = 10;
+/** The big buys in the order a player saves for them: the hens (eggs every week, and droppings for the heap), then the
+ *  greenhouse, then the fruit cage (the slowest to pay back). */
+export const BIG_ORDER = ['hens', 'greenhouse', 'fruit-cage'] as const;
 
-/** Buys the cheapest offer that has come up and isn't owned, once the purse holds its price and the reserve; nematodes
- *  only from April to September, when the soil is warm enough for them, and a pack at a time. */
+/** What the shed offers now that the player would buy: what's come up and isn't owned (a raised bed while a dug bed isn't
+ *  one), nematodes only from April to September, when the soil is warm enough for them, and a pack at a time. */
+function offers(snap: Snapshot, date: CalendarDate): UpgradeId[] {
+  const kit = kitOf(snap), unraised = snap.nodes.some((n) => isDug(n) && n.levers.raised !== true && n.levers.cover !== 'greenhouse');
+  return UPGRADE_IDS.filter((id) => unfolded(snap.seen, `shed.${id}`) && !(UPGRADES[id].kept && kit.owned.includes(id)))
+    .filter((id) => id !== 'raised-bed' || unraised)
+    .filter((id) => id !== 'nematodes' || (kit.nematodes <= 0 && date.month >= 4 && date.month <= 9));
+}
+
+/** Buys the cheapest small offer that has come up once the purse holds its price and the reserve; with none left, saves
+ *  for the next big buy in BIG_ORDER and buys it once the purse holds it; then the beds raised and the tank. */
 export const buyNext: Policy = ({snap, date}) => {
-  const kit = kitOf(snap);
-  const want = UPGRADE_IDS.filter((id) => unfolded(snap.seen, `shed.${id}`) && !(UPGRADES[id].kept && kit.owned.includes(id)))
-    .filter((id) => id !== 'nematodes' || (kit.nematodes <= 0 && date.month >= 4 && date.month <= 9))
-    .sort((a, b) => UPGRADES[a].price - UPGRADES[b].price);
-  const id = want.find((x) => snap.money >= UPGRADES[x].price + RESERVE);
-  return id ? [{type: 'buy', id}] : [];
+  const want = offers(snap, date), small = want.filter((id) => !UPGRADES[id].big && !LATER.includes(id)).sort((a, b) => UPGRADES[a].price - UPGRADES[b].price);
+  const id = small.find((x) => snap.money >= UPGRADES[x].price + RESERVE) ?? BIG_ORDER.find((x) => want.includes(x)) ?? LATER.find((x) => want.includes(x));
+  return id && snap.money >= UPGRADES[id].price + RESERVE ? [{type: 'buy', id}] : [];
 };
+/** What the player buys only once the big buys are in: the beds raised one by one, and the tank. */
+const LATER: readonly UpgradeId[] = ['raised-bed', 'water-tank'];
 
-/** Digs the first plot under grass once "Dig this bed" has come up and every dug bed is in use, one at a time. */
-export const digNext: Policy = ({snap}) => {
+/** Digs the first plot under grass once "Dig this bed" has come up and the purse holds a bed's edging and compost, one at
+ *  a time: in the growing months once every dug bed is in use, and in the winter digging season whenever it can. */
+export const digNext: Policy = ({snap, date}) => {
   if (!unfolded(snap.seen, 'garden.dig')) return [];
   const beds = snap.nodes.filter((n) => n.kind === 'bed'), grass = (n: GraphNode) => (n.stocks['land.grass']?.amount ?? 0) > 1e-6;
   if (beds.some((n) => grass(n) && n.levers.dig === true)) return [];
-  if (beds.some((n) => !grass(n) && n.levers.crop == null)) return [];
+  // in the growing months only once every dug bed is in use; from October to March, the digging season, whenever the
+  // purse can pay (frost breaks up the clods of a bed dug in winter: RHS, "Digging")
+  const winter = date.month >= 10 || date.month <= 3;
+  if (!winter && beds.some((n) => !grass(n) && n.levers.crop == null)) return [];
   const next = beds.find(grass);
-  return next ? [{type: 'plan', node: next.id, lever: 'dig', value: true}] : [];
+  return next && snap.money >= digCost(next.stocks['land.grass']!.amount) + RESERVE ? [{type: 'plan', node: next.id, lever: 'dig', value: true}] : [];
 };
 
 /** The winter crops the bot sows: late ones (sown into November) after a crop a frost ends, early ones after the rest. */
@@ -120,6 +150,22 @@ export const winterCrops: Policy = once('garden.winter', ({snap}) =>
     return [{type: 'plan' as const, node: n.id, lever: 'winter', value: list[i % list.length]!}];
   }));
 
+/** Answers the bed card (src/ui/bed-card.ts) with its first choice: the rotation's pick, or the winter crop it suggests. */
+export const answerBeds: Policy = ({snap}) => bedCardOf(snap)?.actions[0]?.cmds ?? [];
+
+/** What an engaged player answers the week's decisions with: fleece for a frost, a glut preserved while the freezer has
+ *  room (it feeds the winter) and given away when it's full, water sooner in a dry spell, and blight-resistant seed. */
+export const ANSWERS: Record<string, string> = {frost: 'fleece', glut: 'preserve', dry: 'water', catalogue: 'resistant', chit: 'chit', mulch: 'mulch', warm: 'warm'};
+export const decideAll: Policy = ({snap}) =>
+  decisionsOf(snap).flatMap((d) => {
+    let want = ANSWERS[d.id]!;
+    if (d.id === 'glut' && Number(snap.nodes.find((n) => n.id === 'kitchen')?.stocks['food.preserves']?.amount ?? 0) >= PRESERVE.cap - 1) want = 'give';
+    // next year's seed only once the purse has its price and the reserve
+    if (d.id === 'catalogue' && snap.money < cataloguePrice(graphOf(snap), 'resistant') + RESERVE) want = 'later';
+    const pick = d.actions.find((a) => (a.cmd as {answer?: string}).answer === want)?.cmd ?? (want === (d.dismiss as {answer?: string}).answer ? d.dismiss : d.actions[0]!.cmd);
+    return [pick];
+  });
+
 /** The slug policy once the beer traps are in: leave them to the traps and keep the gardener's evenings. */
 export const SLUGS_AFTER_TRAP: Policy = (v) => (kitOf(v.snap).owned.includes('beer-trap') ? pestPolicy({slugs: 'leave'})(v) : []);
 
@@ -127,14 +173,17 @@ export const SLUGS_AFTER_TRAP: Policy = (v) => (kitOf(v.snap).owned.includes('be
 export const PLAYERS: Record<string, Player> = {
   /** Salad leaves and potatoes to start, for early leaves and a big crop by July, then the rotation in both beds. */
   sensible: {
-    name: 'sensible', plan: rotate(['salad', 'potatoes']), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')),
+    name: 'sensible', plan: rotate(['salad', 'potatoes']), water: waterLine,
     pests: (v) => [...SENSIBLE_PESTS(v).filter((c) => !(c.type === 'policy' && c.lever === 'slugs' && kitOf(v.snap).owned.includes('beer-trap'))), ...SLUGS_AFTER_TRAP(v)],
-    shop: buyNext, dig: digNext, winter: winterCrops,
+    shop: buyNext, dig: digNext, winter: answerBeds, decide: decideAll,
   },
   /** The sensible plan with no shopping, digging or winter crops: the garden as it was before the shed opened. */
+  /** Does exactly what the goal bar says, and nothing else (the `feature` playbook's tips, proved by a player who follows
+   *  them): each morning, the bar's one next action's commands, if it names one. */
+  tips: {name: 'tips', plan: (v) => goalLine(v.snap).step?.cmds ?? [], water: () => [], pests: null, shop: null, dig: null, winter: null},
   'two-beds': {name: 'two-beds', plan: rotate(['salad', 'potatoes']), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')), pests: SENSIBLE_PESTS, shop: null, dig: null, winter: null},
   'one-crop': {name: 'one-crop', plan: oneCrop('salad'), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')), pests: SENSIBLE_PESTS, shop: null, dig: null, winter: null},
 };
 
 /** The policies in the order the bot asks them each morning. */
-export const policiesOf = (p: Player): Policy[] => [p.plan, p.water, p.pests, p.shop, p.dig, p.winter].filter((x): x is Policy => x !== null);
+export const policiesOf = (p: Player): Policy[] => [p.plan, p.water, p.pests, p.shop, p.dig, p.winter, p.decide ?? null].filter((x): x is Policy => x !== null);

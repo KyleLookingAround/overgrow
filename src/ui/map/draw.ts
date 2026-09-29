@@ -125,6 +125,19 @@ export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette) {
       g.roundRect(r.x + r.w * 0.25, r.y + r.h * 0.4, r.w * 0.5, r.h * 0.14, 0.02 * c.s).fill(pal['gate-slot']);
       return;
     }
+    case 'hens': {
+      // the run, and the house at its left end with its roof
+      soft(g, r, round, c, pal);
+      g.roundRect(r.x, r.y, r.w, r.h, round).fill(pal.run);
+      const house = {x: r.x + 0.1 * c.s, y: r.y + 0.15 * c.s, w: 1.1 * c.s, h: r.h - 0.3 * c.s};
+      g.roundRect(house.x, house.y, house.w, house.h, 0.1 * c.s).fill(pal['hen-house']);
+      g.roundRect(house.x, house.y, house.w, house.h / 2, 0.1 * c.s).fill(pal['shed-roof']);
+      return;
+    }
+    case 'fruit':
+      soft(g, r, round, c, pal);
+      g.roundRect(r.x, r.y, r.w, r.h, round).fill(pal['bed-dug']);
+      return;
     case 'bench':
       g.rect(r.x, r.y, r.w, r.h).fill(pal['bed-dug']);
       return;
@@ -287,6 +300,7 @@ export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weat
     g.circle(r.x + r.w / 2, r.y + r.h / 2, (r.w / 2) * 0.67 * Math.sqrt(f)).fill(pal.water);
   }
   drawKit(g, v.cur.nodes, c, pal);
+  drawSites(g, v.cur.nodes, v.hours, c, pal);
   // a pale rime over the garden while the grass is below 0 °C, harder the colder it is
   const frost = (w?.hour.frost ?? 0) * pal.frostMax, lawn = cur.lawn?.box;
   if (frost > 0 && lawn) {
@@ -324,11 +338,66 @@ function drawKit(g: Graphics, nodes: readonly GraphNode[], c: Camera, pal: Palet
     g.circle(r.x + r.w / 2 + 0.05 * c.s, r.y + r.h * 1.5 + 0.07 * c.s, r.w / 2).fill(pal.shadow);
     g.circle(r.x + r.w / 2, r.y + r.h * 1.5, r.w / 2).fill(pal.butt);
   }
+  // raised beds: their boards around the bed
+  for (const n of nodes) if (n.kind === 'bed' && n.levers.raised === true) {
+    const r = px(n.box!, c), t = Math.max(2, 0.08 * c.s);
+    g.roundRect(r.x, r.y, r.w, r.h, 0.12 * c.s).stroke({width: t, color: pal.timber.color});
+  }
+  if (owned.includes('water-tank')) {
+    const r = px(TANK_BOX, c);
+    g.roundRect(r.x + 0.05 * c.s, r.y + 0.07 * c.s, r.w, r.h, 0.1 * c.s).fill(pal.shadow);
+    g.roundRect(r.x, r.y, r.w, r.h, 0.1 * c.s).fill(pal.tank);
+  }
   const framed = nodes.find((n) => n.kind === 'bed' && n.levers.cover === 'cold-frame');
   if (framed) {
     const r = px(framed.box!, c), t = Math.max(1.5, 0.05 * c.s);
     g.roundRect(r.x, r.y, r.w, r.h, 0.175 * c.s).fill({color: pal.frame.color, alpha: 0.35}).stroke({width: t, color: pal['frame-edge'].color});
     g.moveTo(r.x + r.w / 2, r.y).lineTo(r.x + r.w / 2, r.y + r.h).stroke({width: t, color: pal['frame-edge'].color});
+  }
+}
+
+/** Where the rainwater tank stands: against the house wall in the corner past the shed. */
+const TANK_BOX: Box = {x: 11.35, y: 0.55, w: 0.55, h: 1.2};
+
+/** The big buys, drawn over their places each frame: the greenhouse's glass and its bars, the hens scratching about their
+ *  run (a cosmetic wander from the clock, the three of them), and the fruit cage's canes and bushes under the net with
+ *  the ripe fruit on them. */
+function drawSites(g: Graphics, nodes: readonly GraphNode[], hours: number, c: Camera, pal: Palette) {
+  for (const n of nodes) {
+    const r = n.box && px(n.box, c);
+    if (!r) continue;
+    if (n.levers.cover === 'greenhouse') {
+      const t = Math.max(1.5, 0.05 * c.s);
+      g.roundRect(r.x, r.y, r.w, r.h, 0.1 * c.s).fill({color: pal.frame.color, alpha: 0.4}).stroke({width: t, color: pal['frame-edge'].color});
+      g.moveTo(r.x, r.y + r.h / 2).lineTo(r.x + r.w, r.y + r.h / 2).stroke({width: t, color: pal['frame-edge'].color});
+      for (let i = 1; i < 4; i++) g.moveTo(r.x + (r.w * i) / 4, r.y).lineTo(r.x + (r.w * i) / 4, r.y + r.h).stroke({width: t / 2, color: pal['frame-edge'].color});
+    }
+    if (n.kind === 'hens') {
+      const head = Number((n.levers.herd as {head?: number} | null)?.head ?? 0), run = {x: r.x + 1.3 * c.s, w: r.w - 1.5 * c.s};
+      for (let i = 0; i < head; i++) {
+        // day and night they keep to the house; by day each wanders its own slow loop
+        const out = (hours + 6) % 24 > 7 && (hours + 6) % 24 < 20, a = hours * 0.9 + i * 2.1;
+        const x = out ? run.x + run.w * (0.5 + 0.4 * Math.sin(a)) : r.x + (0.35 + 0.3 * i) * c.s;
+        const y = out ? r.y + r.h * (0.5 + 0.3 * Math.cos(a * 1.3)) : r.y + r.h * 0.75;
+        g.ellipse(x, y, 0.13 * c.s, 0.1 * c.s).fill(pal.hen);
+        g.circle(x + 0.1 * c.s, y - 0.04 * c.s, 0.035 * c.s).fill(pal.comb);
+      }
+    }
+    if (n.kind === 'fruit') {
+      const ripe = n.stocks['food.berries']?.amount ?? 0, bushes = 6;
+      for (let i = 0; i < bushes; i++) {
+        const x = r.x + ((i % 3) + 0.5) * (r.w / 3), y = r.y + (Math.floor(i / 3) + 0.5) * (r.h / 2);
+        g.circle(x, y, 0.35 * c.s).fill(pal['leaf-dark']);
+        g.circle(x - 0.08 * c.s, y - 0.08 * c.s, 0.22 * c.s).fill(pal.leaf);
+        // the ripe fruit showing, more of it the more there is to pick
+        const dots = Math.min(6, Math.ceil(ripe * 4));
+        for (let k = 0; k < dots; k++) g.circle(x + 0.22 * c.s * Math.cos(k * 1.9 + i), y + 0.22 * c.s * Math.sin(k * 1.9 + i), 0.045 * c.s).fill(pal.berry);
+      }
+      // the net over it all
+      const t = Math.max(1, 0.02 * c.s);
+      for (let x = r.x; x <= r.x + r.w + 1e-6; x += 0.4 * c.s) g.moveTo(x, r.y).lineTo(x, r.y + r.h).stroke({width: t, color: pal.net.color, alpha: pal.net.alpha});
+      for (let y = r.y; y <= r.y + r.h + 1e-6; y += 0.4 * c.s) g.moveTo(r.x, y).lineTo(r.x + r.w, y).stroke({width: t, color: pal.net.color, alpha: pal.net.alpha});
+    }
   }
 }
 

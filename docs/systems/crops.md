@@ -21,3 +21,9 @@ What grows in each dug bed, from sowing to the compost heap (`src/sim/models/cro
 - **Two notes:** `beds full` (every dug bed in use and a plot still under grass) and `empty autumn bed` (a dug bed empty from August to November), which unfold `garden.dig` and `garden.winter`.
 - **A green manure dug in** (`finish()` is exported for it): `src/sim/models/carbon.ts`'s `digIn()`.
 - The bed's `history` keeps the last eight families.
+
+## The playable garden, round two
+
+- **Seed prices** (`seed`, £ a bed's sowing): a packet about £2–3, seed potatoes £4.50, onion sets and garlic, a tray of young tomato, leek or marigold plants (Suttons and Thompson & Morgan, rough 2027). The gardener pays at sowing (`docs/systems/gardener.md`).
+- **Covers** (`COVERS`): each now says the degrees of frost it keeps off, the days it widens the seasons, the degrees warmer its growing days run (`coverWarmth()`, added to the day's mean for degree days) and the share of blight's start and spread it lets through (`coverBlight()`, read by the pest model). The cold frame: 3 °C, 21 days, no warmth, all the blight. The greenhouse: 5 °C, 42 days, 3 °C warmer, a tenth of the blight (the leaves stay dry). A **raised bed** (the bed's `raised` lever, bought in the shed, never planned) widens the seasons 10 days more (`RAISED` in `src/data/shed.ts`) and drains twice as fast (`src/sim/models/water.ts`).
+- **The bed card's rules** (`src/ui/bed-card.ts` shows them): `idle()` is a dug bed with nothing in it, nothing its plan sows in the next three days, and no `fallow` (the player's "leave it empty", a plan lever cleared at the next sowing). `suggestion()` is what the card offers: the rotation's pick in season (`summerCrop()` as if the bed followed the rotation), else a winter crop in season (`winterPick()`: not the family the bed last grew, nor what the other beds grow, food before the green manure).

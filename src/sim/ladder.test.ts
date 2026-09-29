@@ -54,13 +54,13 @@ describe('reliability', () => {
 describe('the totals over a cycle', () => {
   it('takes the last full year of a garden, sampled weekly: means, output-weighted quality, reliability, and health at the end', () => {
     let h = emptyHistory(1);
-    expect(h).toMatchObject({sampleDays: 7, cap: 53});
+    expect(h).toMatchObject({sampleDays: 7, cap: 52}); // the garden's year: 52 weeks from the first day
     const week = {upkeep: qty(3.5, 'GBP'), carbon: qty(-1.4, 'kgCO2e')};
     for (let d = 0; d < 65; d++) h = record(h, sample(d < 12 ? 700 : 14, {...week, quality: d < 12 ? 10 : 70, health: {soil: d, water: 50}}), {crops: 12, grass: 57});
-    expect(h.samples).toHaveLength(53); // the first twelve weeks, and their odd figures, have dropped out
+    expect(h.samples).toHaveLength(52); // the first thirteen weeks, and their odd figures, have dropped out
     const w = windowTotals(h)!;
     expect(w.full).toBe(true);
-    expect(w.days).toBe(371);
+    expect(w.days).toBe(364);
     expect(w.totals.output).toBeCloseTo(2, 6);
     expect(w.totals.quality).toBeCloseTo(70, 6);
     expect(w.totals.reliability).toBe(100);
@@ -275,7 +275,7 @@ describe('inflating', () => {
 
   it('targets the sealed totals over the level\'s cycle, and a sealed then unsealed node passes its own test', () => {
     const t = inflateTarget(totals(), 1, [EVENT]);
-    expect(t).toMatchObject({tolerance: 0.05, windowDays: 365, events: [EVENT]});
+    expect(t).toMatchObject({tolerance: 0.05, windowDays: 364, events: [EVENT]});
     expect(inflateTarget(totals(), 2).windowDays).toBe(365);
     let h = emptyHistory(1);
     for (let d = 0; d < 53; d++) h = record(h, sample(14, {health: {soil: 60}}), {crops: 9, grass: 60});
@@ -325,7 +325,7 @@ describe('the step-up offer', () => {
     expect(early.ready).toBe(false);
     expect(early.binding).toBeNull();
     expect(early.days).toBe(100);
-    expect(early.windowDays).toBe(365);
+    expect(early.windowDays).toBe(364);
     const none = stepUpStatus(null);
     expect(none.ready).toBe(false);
     expect(none.binding).not.toBeNull();

@@ -23,7 +23,7 @@
 //   extremes over decades, once the higher levels put enough carbon in the air.
 import {NORMALS, PER_DEGREE, STATION, WET_SHIFT} from '../../data/climate-normals';
 import {calendar, type System} from '../clock';
-import type {Graph, LeverValue} from '../graph';
+import type {Graph, GraphNode, LeverValue} from '../graph';
 import type {Rng} from '../random';
 import {ATMOSPHERE} from '../state';
 
@@ -80,6 +80,21 @@ export const TCRE = 0.45 / 1e15;
  */
 export function warmingIndex(g: Graph): number {
   return TCRE * (g.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0);
+}
+
+/** The forecast the air keeps from each morning: tomorrow's weather as it will be drawn, and the days in a row so far
+ *  with less than a millimetre of rain (today's among them). */
+export interface Forecast {
+  day: WeatherDay;
+  dry: number;
+}
+export const forecastOf = (g: {nodes: Record<string, GraphNode>}): Forecast | null => (g.nodes[ATMOSPHERE]?.levers.forecast as unknown as Forecast | undefined) ?? null;
+/** The coldest the grass gets from this evening to tomorrow's mid-morning, °C: tonight's frost, if it's below 0. */
+export function tonight(today: WeatherDay, tomorrow: WeatherDay): number {
+  let min = Infinity;
+  for (let h = 18; h < 24; h++) min = Math.min(min, hourOf(today, h).ground);
+  for (let h = 0; h < 10; h++) min = Math.min(min, hourOf(tomorrow, h).ground);
+  return min;
 }
 
 /** Today's weather on a graph, or null before the first hour has run. */
@@ -230,7 +245,14 @@ export const weather: System = {
       if (was && was.day === start.dayIndex) return;
       // yesterday's persists into today
       if (c.dt <= 24) {
-        air.levers.weather = nextDay(was, start, warming, c.rng) as unknown as LeverValue;
+        const today = nextDay(was, start, warming, c.rng);
+        air.levers.weather = today as unknown as LeverValue;
+        // the forecast: tomorrow drawn now from the dice it will be drawn with (the warming won't move in a day), and
+        // the days in a row with less than a millimetre of rain; a garden's hourly steps only
+        if (c.dt === 1 && c.rngAt) {
+          const tomorrow = calendar(c.hours - c.dt + 24);
+          air.levers.forecast = {day: nextDay(today, tomorrow, warming, c.rngAt(c.hours + 24)), dry: today.rain < 1 ? Number(forecastOf(c.graph)?.dry ?? 0) + 1 : 0} as unknown as LeverValue;
+        }
         return;
       }
       // a week's or a month's step draws each of its days in turn, so its rain comes in days, not one downpour
@@ -241,7 +263,7 @@ export const weather: System = {
     },
   },
   command(cmd) {
-    if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && cmd.node === ATMOSPHERE && cmd.lever === 'weather') return 'the weather is nobody’s to set';
+    if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && cmd.node === ATMOSPHERE && (cmd.lever === 'weather' || cmd.lever === 'forecast')) return 'the weather is nobody’s to set';
     return undefined;
   },
 };

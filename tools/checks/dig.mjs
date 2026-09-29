@@ -21,12 +21,12 @@ export default async function({ok,open}){
   await pick(page,'Bed 4');await pick(page,'Bed 3');
   const offered=await shows(page,'.dig-offer button.dig'),text=await page.evaluate(()=>document.querySelector('.dig-offer')?.textContent??'');
   ok('dig: “Dig this bed” shows on a grass plot’s card only once every dug bed is in use, with its hours, price and carbon',
-    hidden&&s&&offered&&/h of the gardener’s time/.test(text)&&/£4\.50 for edging/.test(text)&&/carbon/.test(text),JSON.stringify({hidden,s,offered,text}));
+    hidden&&s&&offered&&/h of the gardener’s time/.test(text)&&/£36\.90 for edging and compost/.test(text)&&/carbon/.test(text),JSON.stringify({hidden,s,offered,text}));
   const money=await page.evaluate(()=>window.__sim.snapshot().money),carbon=await page.evaluate(()=>window.__sim.snapshot().carbon);
   await page.click('.dig-offer button.dig');
   await page.waitForFunction(()=>window.__sim.snapshot().nodes.find(n=>n.id==='bed-3').levers.dig===true,null,{timeout:4000}).catch(()=>{});
   const started=await bed(page,'bed-3');
-  // over the next few days the gardener digs it, a square metre a job
+  // over the next few days the gardener digs it, a quarter of a square metre a job
   await page.evaluate(async()=>{for(let i=0;i<6;i++)await window.__sim.send({type:'tick',hours:24})});
   await send(page,{type:'tick',hours:5});
   const done=await bed(page,'bed-3'),spent=await page.evaluate(()=>window.__sim.snapshot().money);

@@ -23,10 +23,12 @@ const SEASON = 365 / 4;
  * seasons, not the 28 days and the season the spec first had), the smallholding and above are proposed as a year, the
  * planet's as a decade. The sample is the level's tick, but the garden and the allotment sample weekly, not daily: a
  * daily ring of a year would be 365 samples of about thirty numbers each (about 75 kB of saved state) where a weekly
- * one is 53; from level 3 up the tick is a day and the ring is 365 (level 6 and 7 a week, level 8 a month).
+ * one is 52 or 53 (the garden's is 52 weeks, since round two of the playable garden, so its year from the first day fits
+ * inside the first year); from level 3 up the tick is a day and the ring is 365 (level 6 and 7 a week, level 8 a month).
  */
 export const RHYTHMS: readonly Rhythm[] = [
-  {windowDays: 365, sampleDays: 7},
+  // the garden's year is 52 weeks from the game's first day, so a garden that does well meets the offer inside it
+  {windowDays: 364, sampleDays: 7},
   {windowDays: 365, sampleDays: 7},
   {windowDays: 365, sampleDays: 1},
   {windowDays: 365, sampleDays: 1},

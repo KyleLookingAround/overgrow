@@ -14,6 +14,7 @@ import {BED_FLOWER_LEVERS, LAWN_LEVERS} from './models/biodiversity';
 import {BED_LEVERS, overwintered} from './models/crops';
 import {householdNode, startCupboard} from './models/household';
 import {newLedger, shopProduct, type Ledger} from './models/kitchen';
+import {startGoal} from './goal';
 import {rng, type Rng} from './random';
 import {BED_PEST_LEVERS, LAWN_PEST_LEVERS, startingSlugs} from './models/pests';
 import {startingSoil} from './models/soil';
@@ -47,6 +48,9 @@ export interface State {
   settings: Record<string, LeverValue>;
   /** Cards, hints and instruments already shown: what has unfolded (src/data/unfold.ts). */
   seen: string[];
+  /** The game hour each of the week's decision cards was last answered (the glut, the catalogue, a frost, a dry spell),
+   *  so each asks once for what it's about (src/sim/commands.ts). */
+  answered: Record<string, number>;
   /** Why the last command was refused, or null. Not saved. */
   rejected: string | null;
   /** Flows a system tried that couldn't move, in the last tick. Not saved; the long run asserts there are none. */
@@ -61,9 +65,9 @@ export const ATMOSPHERE = 'atmosphere';
 /** The first plan: bed 1 follows the rotation once its overwintered salad leaves are done, and radishes are sown in
  *  bed 2 on the first morning. */
 export const DEFAULT_PLAN: Record<string, string> = {'bed-1': 'rotation', 'bed-2': 'radish'};
-/** The head start (the owner's pick, #11): bed 1 has salad leaves sown last September, a few degree days from their first
- *  cut, so the first harvest comes in the first week while the spring sowings grow at the real pace. */
-export const HEAD_START = {bed: 'bed-1', crop: 'salad', sownHoursAgo: 24 * 176, ddToGo: 12} as const;
+/** The head start (the owner's pick, #11): bed 1 has salad leaves sown last September, a day or so of March warmth from
+ *  their first cut, so the first harvest comes on day 2 or 3 while the spring sowings grow at the real pace. */
+export const HEAD_START = {bed: 'bed-1', crop: 'salad', sownHoursAgo: 24 * 176, ddToGo: 5} as const;
 
 /** The back garden on day 1 (src/data/garden.ts), as the level-1 graph. */
 export function gardenGraph(): Graph {
@@ -78,8 +82,9 @@ export function gardenGraph(): Graph {
     if (p.id === 'lawn' || p.dug) Object.assign(spec.stocks!, startingSlugs(spec.land![p.land]!, p.id === 'lawn'));
     if (p.kind === 'bed') spec.levers = {...BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS()};
     if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
-    // the kitchen's ledger, and the level's history for the goal, started on the first Monday (src/sim/goal.ts)
-    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: null, quality: {}};
+    // the kitchen's ledger, and the level's history for the goal (src/sim/goal.ts)
+    // the goal's year counts from the game's first day: the first Monday's sample takes in the days before it
+    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: startGoal() as unknown as LeverValue, quality: {}, glut: 'sell'};
     if (p.id === 'gate') spec.levers = {quality: {}};
     // the garden's kit: what's been bought from the shed (src/sim/kit.ts)
     if (p.id === 'shed') spec.levers = {kit: {...NO_KIT, owned: []} as unknown as LeverValue};
@@ -90,7 +95,7 @@ export function gardenGraph(): Graph {
   // the household beside the garden: the gardener alone, in a full-time job (src/sim/models/household.ts)
   nodes.push(householdNode());
   // the air carries the level's weather (src/sim/models/weather.ts), drawn from the first hour
-  nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null}});
+  nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null, forecast: null}});
   const edges: Edge[] = WAYS.map((w, i) => ({id: `way-${i + 1}`, from: w.from, to: w.to, carries: [...w.carries]}));
   for (const p of PLACES) edges.push({id: `air-${p.id}`, from: p.id, to: ATMOSPHERE, carries: ['kgCO2e']});
   // slugs crawl between the lawn's edge and every bed
@@ -115,7 +120,7 @@ export function newState(seed: number, speed: Speed = 1): State {
     seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], ladder: [],
     // the gardener stands by the shed on the first morning
     activities: [{id: 'g-start', who: GARDENER, kind: 'person', doing: 'rest', from: 'shed', to: 'shed', start: 0, end: 0.5}],
-    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], rejected: null, errors: [], effects: [],
+    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], answered: {}, rejected: null, errors: [], effects: [],
   };
 }
 
@@ -144,6 +149,8 @@ export interface Snapshot {
   seen: string[];
   /** The page's saved settings ('details': show every number early). */
   settings: Record<string, LeverValue>;
+  /** The game hour each decision card was last answered (State's `answered`). */
+  answered: Record<string, number>;
   activities: Activity[];
   /** The kitchen's ledger: the day's ask and what met it, and what's been picked, eaten, wasted, sold and earned. */
   kitchen: Ledger | null;
@@ -183,26 +190,36 @@ function recopy(n: GraphNode, c: GraphNode, moved: Set<string> | undefined): Gra
   const totals = sameTotals(n.totals, c.totals) ? c.totals : {...n.totals, land: {...n.totals.land}};
   let stocks = c.stocks;
   if (moved) {
-    stocks = {};
-    for (const k in n.stocks) {
-      const had = c.stocks[k];
-      stocks[k] = had && !moved.has(k) ? had : copyStock(n.stocks[k]!);
-    }
+    // a flow only moves or makes a stock (one set or removed directly marks the node ALL, copied whole)
+    stocks = {...c.stocks};
+    for (const k of moved) if (n.stocks[k]) stocks[k] = copyStock(n.stocks[k]);
   }
   return stocks === c.stocks && levers === c.levers && totals === c.totals ? c : {...c, stocks, levers, totals};
 }
 
 /** The nodes, copied: again where they changed, the last copy where they didn't. */
 function nodeCopies(s: State): GraphNode[] {
-  const had = copies.get(s), changed = takeTouched(s.graph), now = new Map<NodeId, GraphNode>(), out: GraphNode[] = [];
+  const had = copies.get(s), changed = takeTouched(s.graph), now = had && changed ? had : new Map<NodeId, GraphNode>(), out: GraphNode[] = [];
   for (const id in s.graph.nodes) {
     const n = s.graph.nodes[id]!, c = had?.get(id), moved = changed?.get(id);
     const copy = !c || !changed || moved?.has(ALL) ? copyNode(n) : recopy(n, c, moved);
-    now.set(id, copy);
+    if (copy !== c) now.set(id, copy);
     out.push(copy);
   }
+  // nodes gone from the graph leave the kept copies too
+  if (now.size > out.length) for (const id of now.keys()) if (!(id in s.graph.nodes)) now.delete(id);
   copies.set(s, now);
   return out;
+}
+
+/** The edges' copy, kept while the graph's revision and edge list stay the same (edges change only with the revision). */
+const edgeCopies = new WeakMap<Graph, {rev: number; n: number; copy: Edge[]}>();
+function edgesOf(g: Graph): Edge[] {
+  const had = edgeCopies.get(g);
+  if (had && had.rev === g.rev && had.n === g.edges.length) return had.copy;
+  const copy = g.edges.slice();
+  edgeCopies.set(g, {rev: g.rev, n: g.edges.length, copy});
+  return copy;
 }
 
 export function snapshotOf(s: State): Snapshot {
@@ -211,7 +228,7 @@ export function snapshotOf(s: State): Snapshot {
     seed: s.seed, hours: s.hours, level: s.level, step: levelClock(s.level).stepHours, speed: s.speed,
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
-    rev: s.graph.rev, nodes, edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings,
+    rev: s.graph.rev, nodes, edges: edgesOf(s.graph), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings, answered: s.answered,
     // an activity never changes once started (src/sim/activity.ts): the list is copied, the activities shared
     activities: s.activities.slice(),
     kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,

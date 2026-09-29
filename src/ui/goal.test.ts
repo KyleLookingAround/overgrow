@@ -8,6 +8,10 @@ describe('the goal bar', () => {
     const first = goalLine(sim.snapshot());
     expect(first.text).toMatch(/^First harvest: salad leaves in Bed 1, \d+ % grown$/);
     expect(first.rows).toBeNull();
+    // one verb, and the ring the first crop's growth
+    expect(first.verb).toMatch(/^(Grow the first harvest|Pick the)/);
+    expect(first.ring).toBeGreaterThan(0.5);
+    expect(first.ring).toBeLessThanOrEqual(1);
     let s = sim.snapshot();
     while (s.kitchen?.firstHarvest == null) s = sim.apply({type: 'tick', hours: 24});
     // before the ring's first week: what the window is waiting for, never an empty bar
@@ -18,6 +22,10 @@ describe('the goal bar', () => {
     expect(later.rows!.map((r) => r.key).sort()).toEqual(['health', 'output', 'reliability']);
     expect(later.text).toMatch(/^(Output|Reliability|Health) [\d.]+ of [\d.]+( kg a day)?: .+ \(\d+ of 52 weeks so far\)$/);
     expect(later.window).toBeGreaterThan(0);
+    // the ring: the year's share so far, times how near the three are
+    expect(later.ring).toBeGreaterThan(0);
+    expect(later.ring).toBeLessThanOrEqual(later.window!);
+    expect(later.verb.length).toBeGreaterThan(0);
     expect(later.window).toBeLessThan(1);
     // the one named is the furthest from its target
     expect(later.text.startsWith({output: 'Output', reliability: 'Reliability', health: 'Health'}[later.rows![0]!.key])).toBe(true);

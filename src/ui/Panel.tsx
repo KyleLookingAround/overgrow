@@ -15,7 +15,7 @@ import {borderOf, inFlower} from '../sim/models/biodiversity';
 import {cropOf, HELD, IN_WASTE, quality} from '../sim/models/crops';
 import {aphidsOn, pestsOf} from '../sim/models/pests';
 import {shows, unfolded} from '../data/unfold';
-import {DIG} from '../data/garden';
+import {digCost} from '../data/garden';
 import {TOOLS} from '../data/jobs';
 import {cupboardDays} from '../sim/models/household';
 import {KITCHEN, type Ledger} from '../sim/models/kitchen';
@@ -65,7 +65,7 @@ function DigOffer({n, open, send}: {n: GraphNode; open: boolean; send: (cmd: Com
   const hours = grass * (TOOLS.spade.jobs.dig?.per ?? 1);
   return (
     <div class="dig-offer">
-      <p class="soft">About {num(hours)} h of the gardener’s time, {money(DIG.gbpPerM2 * grass)} for edging, and a little of the soil’s carbon.</p>
+      <p class="soft">About {num(hours)} h of the gardener’s time, {money(digCost(grass))} for edging and compost, and a little of the soil’s carbon.</p>
       <button type="button" class="primary dig" onClick={() => send({type: 'plan', node: n.id, lever: 'dig', value: true})}>Dig this bed</button>
     </div>
   );

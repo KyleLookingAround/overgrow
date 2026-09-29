@@ -9,13 +9,15 @@ import type {Loop} from '../app/clock-loop';
 import type {GraphNode, NodeId} from '../sim/graph';
 import type {Badge} from './badges';
 import {Badges} from './Badges';
+import {JuiceLayer} from './Juice';
+import type {Juice} from './juice';
 import {camera} from './map/draw';
 import {readPalette} from './map/palette';
 import {createRenderer, type MapRenderer} from './map/renderer';
 
-export function MapView({loop, onSelect, onReady, onExplain, nodes, badges, pulse, children}: {
+export function MapView({loop, onSelect, onReady, onExplain, nodes, badges, pulse, juice = [], children}: {
   loop: Loop; onSelect: (id: NodeId) => void; onReady: (r: MapRenderer) => void; onExplain: (cause: string, at: string) => void;
-  nodes: readonly GraphNode[]; badges: readonly Badge[]; pulse: NodeId | null; children?: ComponentChildren;
+  nodes: readonly GraphNode[]; badges: readonly Badge[]; pulse: NodeId | null; juice?: readonly Juice[]; children?: ComponentChildren;
 }) {
   const box = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null), renderer = useRef<MapRenderer | null>(null);
   const [size, setSize] = useState({w: 0, h: 0});
@@ -70,6 +72,7 @@ export function MapView({loop, onSelect, onReady, onExplain, nodes, badges, puls
       <canvas ref={canvas} role="img" aria-label="The garden, from above" onPointerDown={tap} />
       <div class="map-over">
         <Badges badges={badges} nodes={drawn} cam={cam} w={size.w} h={size.h} onExplain={onExplain} />
+        <JuiceLayer list={juice} nodes={drawn} cam={cam} />
         {children}
       </div>
     </div>

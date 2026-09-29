@@ -50,19 +50,20 @@ describe('gardener', () => {
   });
 
   it('works only the hours they have, leaving what doesn’t fit until tomorrow', () => {
-    const sim = createSim(3);
-    // dig two plots out of the lawn: six hours of spade work, more than a four-hour weekday holds after the sowing
+    const sim = createSim(3), save = JSON.parse(sim.save());
+    save.graph.nodes.kitchen.stocks.money.amount = 200;
+    sim.apply({type: 'load', save: JSON.stringify(save)});
+    // dig a plot out of the lawn: 21 hours of spade work, far more than a four-hour weekday holds after the sowing
     sim.apply({type: 'plan', node: 'bed-3', lever: 'dig', value: true});
-    sim.apply({type: 'plan', node: 'bed-4', lever: 'dig', value: true});
-    const dug = () => ['bed-3', 'bed-4'].reduce((s, id) => s + (sim.snapshot().nodes.find((n) => n.id === id)!.stocks['land.crops']?.amount ?? 0), 0);
+    const dug = () => sim.snapshot().nodes.find((n) => n.id === 'bed-3')!.stocks['land.crops']?.amount ?? 0;
     const day1 = play(sim, 24);
     const spent = day1.flows.filter((f) => f.unit === 'h' && f.what === 'work').reduce((s, f) => s + f.amount, 0);
     expect(spent).toBeLessThanOrEqual(hoursOn(START_HOUSEHOLD, calendar(0)) + 1e-9);
     const dug1 = dug();
     expect(dug1).toBeGreaterThan(0);
-    expect(dug1).toBeLessThan(6);
-    play(sim, 48);
-    expect(dug()).toBeCloseTo(6);
+    expect(dug1).toBeLessThan(1);
+    play(sim, 24 * 10);
+    expect(dug()).toBeCloseTo(3);
   });
 
   it('fetches from the tap once the butt is empty', () => {
