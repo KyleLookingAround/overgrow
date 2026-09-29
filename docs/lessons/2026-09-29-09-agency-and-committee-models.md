@@ -1,7 +1,7 @@
 Theme: model
 # The agency and committee models, ahead of parts 8 to 10 (#40) · 29 Sep 2026
 
-- **Numbers:** estimate $10; cost not yet known when the PR opened (read as unknown, not free); read again at each stopping point. New files only, so nothing to merge from `main` and no bot run: nothing is wired, so `PLAY` can't change. Speed measured in Node and noted in `docs/systems/agency.md` and `committee.md`.
+- **Numbers:** estimate $10; cost about $3.50 when the PR opened, well under the estimate. New files only, so nothing to merge from `main` and no bot run: nothing is wired, so `PLAY` can't change. Speed measured in Node and noted in `docs/systems/agency.md` and `committee.md`.
 - **Went well:**
   - Writing every lever as a trade-off that flips with one price (an audit pays when your hours are cheap and loses when they're dear; an honest helper beats doing it alone only when hours are dear) found no lever that won everywhere, and the tests state each both ways.
   - Making the neglected plot fall out of `weekGardenHours` (one household is the only lone full-time worker, so it has the least time) needed no script and no special case for the first zoom back in.
