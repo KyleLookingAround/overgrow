@@ -26,7 +26,7 @@ Option 3.
 ### Adopted
 
 1. **Write the layout check first and watch it fail.** A UI change starts with a check that reads bounding boxes and fails on the current build; the same check, passing, is the proof. (Final Call `lessons/107-phone-topbar.md`: the `topbar` check written first, failing on `main` at 320, 390 and 844×390, "faster than squinting at screenshots".)
-2. **Measure before fixing, then fix everything measured in one pass.** Bounding boxes and computed styles at all six sizes come first. (`lessons/87-overlay-cards.md`, `124-polish-first-minute.md`: five times the estimate from one geometry bug per round.) The `feature` playbook already says this.
+2. **Measure before fixing, then fix everything measured in one pass.** Bounding boxes and computed styles at all six sizes come first. (`lessons/124-polish-first-minute.md`: five times the estimate from one geometry bug per round; `87-overlay-cards.md`.) The `feature` playbook already says this.
 3. **Check a row of controls, not only each control.** A size rule on a row needs a check on the row: how many fit, not just how big each is. (`107`: 42 px buttons grew until the bar wrapped, with no check on the bar.)
 4. **Breakpoints follow the map's and the panel's width, with container queries.** The map and the panel are size containers; the top bar steps down by the map's width and the tabs by the panel's, because in landscape the panel sits beside a narrow map. Screen-width media queries stay only for choosing the sheet or the side panel. (`107`; `SYSTEMS.md` "Views and phone layout"; `shell.html` `.stage` and `.side`.) Measure the container before choosing the steps.
 5. **Measure the tab strip before adding a tab or a control.** Chrome is budgeted at 320×568, and tabs fall back to icons (with an accessible name) below about 380 px of panel width. (`112-polish-where-to-look.md`: a tab added without measuring was 59 px over; `ideas/release-audit.md` row 33.)
@@ -49,9 +49,9 @@ Option 3.
 | Not adopted | Final Call source | Why not |
 | --- | --- | --- |
 | A manual notch band ("Space for the camera") | `game/15-panel.js` (`gapPref`), `--gapsz`, `--topgap`, `--sidegap` | Rule 8 does its job without asking the player. |
-| A dark-only palette | `shell.html` | Light and dark come from tokens (`src/ui/styles/tokens.css`), and the `layout` check tests both. |
+| A dark-only palette | `shell.html` | Light and dark come from tokens (`src/ui/styles/tokens.css`), and the `layout` check runs the dark scheme at one size. |
 | 36 px targets (and 27 px in old builds) | `.lvgo .ic`, `.tabs .fold`, `@media (max-width:272px)` step in `SYSTEMS.md` | The floor is 40 px on touch (rule 10). When the bar does not fit at 40 px, something leaves the bar (rule 4), it does not shrink. |
-| Labels under 11 px | `.tabs button` at 9.5–10 px, board labels at 9 px in `shell.html` | Final Call's audits raised many of them and they were still hard to read. 11 px is the floor; below it, icon plus accessible name. |
+| Labels under 11 px | `.tabs button` at 9.5–10 px in `shell.html` | Final Call's audits raised many of them and they were still hard to read. 11 px is the floor; below it, icon plus accessible name. |
 | Floaters at fixed map spots, and toast-first feedback | `game/35-records.js`, `earn()` | Rule 16. |
 | Heights from JavaScript | `19-bottom-sheet.js`, `36-guided-start.js` | Rule 9. |
 
