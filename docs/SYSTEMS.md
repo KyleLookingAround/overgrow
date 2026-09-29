@@ -14,6 +14,7 @@ Today the game is the back garden on the graph, with the clock, saving and the p
 - [Energy](systems/energy.md) (`src/sim/models/energy.ts`, `src/sim/models/energy.test.ts`, `src/data/energy.ts`, `src/sim/systems.ts`)
 - [The gardener](systems/gardener.md) (`src/sim/gardener.ts`, `src/sim/gardener.test.ts`, `src/data/jobs.ts`, `src/sim/models/crops.ts`, `src/sim/models/kitchen.ts`, `src/sim/models/carbon.ts`, `src/ui/map/renderer.ts`, `src/ui/GardenTab.tsx`)
 - [The graph](systems/graph.md) (`src/sim/graph.ts`, `src/sim/state.ts`, `src/data/garden.ts`, `src/sim/churn.ts`)
+- [The household economy](systems/household.md) (`src/sim/models/household.ts`, `src/sim/models/household.test.ts`, `src/data/household.ts`, `src/sim/systems.ts`, `src/sim/models/labour.ts`)
 - [The kitchen](systems/kitchen.md) (`src/sim/models/kitchen.ts`, `src/sim/models/kitchen.test.ts`, `src/data/kitchen.ts`, `src/data/garden.ts`, `src/ui/KitchenTab.tsx`)
 - [Labour](systems/labour.md) (`src/sim/models/labour.ts`, `src/sim/models/labour.test.ts`, `src/data/labour.ts`, `src/sim/systems.ts`)
 - [The carry-over rule (sealing, events across scales and the step-up test)](systems/ladder.md) (`src/sim/ladder.ts`, `src/sim/ladder.test.ts`, `src/data/ladder-rules.ts`, `src/data/ladder.ts`)
@@ -53,6 +54,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/data/crops.ts` | Crops: the six the back garden grows, with what the crop model (src/sim/models/crops.ts) needs of each. |
 | `src/data/energy.ts` | Energy: what each fuel emits and costs, and the loads a smallholding puts on it. |
 | `src/data/garden.ts` | The back garden's layout: a UK back garden about 12 × 8 m behind the house, with six bed plots (two dug), a tap, a water butt, a compost heap, a shed, the lawn, the kitchen and an honesty box by the side gate, and the paths and pipes between them. |
+| `src/data/household.ts` | The household economy's numbers: who lives in the household, their jobs and hours and wages, the weekly shop and its footprint, and the income deciles the same functions serve one level up. |
 | `src/data/jobs.ts` | The gardener's time: the hours they have, how fast they walk, and how long each job takes with each tool. |
 | `src/data/kitchen.ts` | The kitchen: what the household wants of the garden each day, and the honesty box at the gate. |
 | `src/data/labour.ts` | Labour: the hours a person has, the work a hectare of each crop needs by month, what a person costs, and how skill changes the time a job takes. |
@@ -72,6 +74,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/sim/models/carbon.ts` | Carbon and land: the compost heap, compost going back to the beds, and digging a bed out of the lawn. |
 | `src/sim/models/crops.ts` | Crops: what grows in each dug bed, from sowing to the compost heap. |
 | `src/sim/models/energy.ts` | Energy: what fuel and electricity emit and cost, what a pump, a cold store and a polytunnel heater use, and every use as flows: the fuel in from `bought` (electricity from `grid`) to the place that burns it, its carbon to the air node, and its price out of the purse. |
+| `src/sim/models/household.ts` | The household economy: who lives in the household, their jobs, hours and wages, the weekly shop, what shop food carries in carbon, land and water, the purse, and the same baskets summed over many households (an allotment's neighbours, a box scheme's customers, a town's income deciles). |
 | `src/sim/models/kitchen.ts` | The kitchen: the household's daily ask of the garden, what met it, and the honesty box at the gate. |
 | `src/sim/models/labour.ts` | Labour: the hours a person has by season and day of the week, the work a hectare of each crop needs by month, what a role costs, how skill stretches a job's time, and what doesn't fit waiting. |
 | `src/sim/models/livestock.ts` | Livestock: a herd or flock kept on a node (three hens in a run, a flock of ewes on a field, pigs in a paddock): what it eats, drinks and makes, the manure and methane it gives off, its welfare and the chance it falls ill. |
