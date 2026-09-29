@@ -7,7 +7,7 @@ import type {Speed} from '../data/ladder';
 import type {Activity} from './activity';
 import type {Effect} from './effects';
 import {levelClock} from './clock';
-import {copyNode, makeGraph, qty, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
+import {ALL, copyNode, copyStock, makeGraph, qty, takeTouched, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
 import {GARDENER, GARDENER_LEVERS} from './gardener';
 import {NO_KIT} from './kit';
 import {BED_FLOWER_LEVERS, LAWN_LEVERS} from './models/biodiversity';
@@ -151,14 +151,69 @@ export interface Snapshot {
   errors: string[];
 }
 
+/** Each state's copies of its nodes at the last snapshot. The snapshot copied every stock of every node every hour,
+ *  about a fifth of a garden day's time (6b's and the playable garden's look backs); now a node copies again only the
+ *  stocks flows moved since (src/sim/graph.ts's `takeTouched`), reusing its last copy of the rest, and a node nothing
+ *  touched whose levers are the same values and whose totals are the same numbers is its last copy. Runtime only. */
+const copies = new WeakMap<State, Map<NodeId, GraphNode>>();
+
+/** Whether a node's levers are the same values as its last copy's (levers are replaced, never changed in place). */
+function sameLevers(a: GraphNode['levers'], b: GraphNode['levers']): boolean {
+  let k = 0;
+  for (const key in a) {
+    if (a[key] !== b[key]) return false;
+    k++;
+  }
+  for (const _ in b) k--;
+  return k === 0;
+}
+
+/** Whether a node's totals are the same numbers as its last copy's. */
+function sameTotals(x: GraphNode['totals'], y: GraphNode['totals']): boolean {
+  if (x.health !== y.health || x.output !== y.output || x.quality !== y.quality || x.reliability !== y.reliability || x.upkeep !== y.upkeep ||
+    x.freshness !== y.freshness || x.carbon !== y.carbon) return false;
+  for (const use in x.land) if (x.land[use as keyof typeof x.land] !== y.land[use as keyof typeof y.land]) return false;
+  return true;
+}
+
+/** A node's copy from its last one: the stocks flows moved copied again and the rest reused, its levers and totals
+ *  reused if they're the same; the last copy itself if nothing changed. */
+function recopy(n: GraphNode, c: GraphNode, moved: Set<string> | undefined): GraphNode {
+  const levers = sameLevers(n.levers, c.levers) ? c.levers : {...n.levers};
+  const totals = sameTotals(n.totals, c.totals) ? c.totals : {...n.totals, land: {...n.totals.land}};
+  let stocks = c.stocks;
+  if (moved) {
+    stocks = {};
+    for (const k in n.stocks) {
+      const had = c.stocks[k];
+      stocks[k] = had && !moved.has(k) ? had : copyStock(n.stocks[k]!);
+    }
+  }
+  return stocks === c.stocks && levers === c.levers && totals === c.totals ? c : {...c, stocks, levers, totals};
+}
+
+/** The nodes, copied: again where they changed, the last copy where they didn't. */
+function nodeCopies(s: State): GraphNode[] {
+  const had = copies.get(s), changed = takeTouched(s.graph), now = new Map<NodeId, GraphNode>(), out: GraphNode[] = [];
+  for (const id in s.graph.nodes) {
+    const n = s.graph.nodes[id]!, c = had?.get(id), moved = changed?.get(id);
+    const copy = !c || !changed || moved?.has(ALL) ? copyNode(n) : recopy(n, c, moved);
+    now.set(id, copy);
+    out.push(copy);
+  }
+  copies.set(s, now);
+  return out;
+}
+
 export function snapshotOf(s: State): Snapshot {
-  const nodes = Object.values(s.graph.nodes);
+  const nodes = nodeCopies(s);
   return {
     seed: s.seed, hours: s.hours, level: s.level, step: levelClock(s.level).stepHours, speed: s.speed,
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
-    rev: s.graph.rev, nodes: nodes.map(copyNode), edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings,
-    activities: s.activities.map((a) => ({...a})),
+    rev: s.graph.rev, nodes, edges: s.graph.edges.slice(), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings,
+    // an activity never changes once started (src/sim/activity.ts): the list is copied, the activities shared
+    activities: s.activities.slice(),
     kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,
   };
 }

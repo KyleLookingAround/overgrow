@@ -62,7 +62,8 @@ describe('soil', () => {
     expect(Math.abs(organicMatter(g.nodes['bed-4']!) / grass0 - 1)).toBeLessThan(0.04);
     expect(g.nodes.atmosphere!.stocks.carbon!.amount).toBeGreaterThan(0); // the bare beds' carbon went into the air
     expect(health(bare)).toBeGreaterThan(40);
-  });
+    // ten years of the whole garden hour by hour: about 2.5 s on a developer's machine and twice that on CI's
+  }, 20_000);
 
   it('leaches nitrate after heavy rain', () => {
     const g = gardenGraph(), bed = g.nodes['bed-1']!, before = bed.stocks[SOIL.nitrate]!.amount;

@@ -9,7 +9,7 @@
 import {BEER_TRAP, NEMATODES, SECOND_BUTT, UPGRADES, type UpgradeId} from '../data/shed';
 import type {System, TickContext} from './clock';
 import {note} from './effects';
-import {applyFlow, qty, type Flow, type Graph} from './graph';
+import {applyFlow, qty, touch, type Flow, type Graph} from './graph';
 import {kitOf, owns, setKit} from './kit';
 import {KITCHEN} from './models/kitchen';
 import {pestsOf, SLUG_KEY, slugsOn} from './models/pests';
@@ -46,6 +46,7 @@ function buy(g: Graph, id: UpgradeId) {
   if (id === 'water-butt') {
     const butt = g.nodes.butt?.stocks.water;
     if (butt?.cap !== undefined) butt.cap = qty(butt.cap + SECOND_BUTT, 'L');
+    touch(g, 'butt');
   }
   // the frame goes over the first dug bed with nothing in it, else the first dug bed; the plan can move it
   if (id === 'cold-frame') {

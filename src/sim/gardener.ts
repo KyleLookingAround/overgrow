@@ -77,11 +77,21 @@ const PESTS = Object.keys(POLICIES) as PestId[];
 export const policyOf = (g: Graph, pest: PestId): Policy => (g.nodes[GARDENER]?.levers[pest] as Policy | undefined) ?? START_POLICY[pest];
 const OWN = new Set(['tools', 'day']);
 
-/** The plan the day's jobs come from: the watering line and every bed's plan. */
+/** The plan the day's jobs come from: the watering line and every bed's plan (its winter line and cover too). Written out
+ *  again only when one of them is a different value from the last time (levers are replaced, never changed in place). */
+const planned = new WeakMap<Graph, {parts: LeverValue[]; key: string}>();
 function planKey(g: Graph): string {
-  const me = g.nodes[GARDENER]?.levers, parts: LeverValue[] = [me?.waterBelow ?? null, ...PESTS.map((p) => me?.[p] ?? null)];
-  for (const n of Object.values(g.nodes)) if (n.kind === 'bed') parts.push(n.id, n.levers.sow ?? null, n.levers.sowFrom ?? null, n.levers.dig ?? null, n.levers.edge ?? null);
-  return JSON.stringify(parts);
+  const me = g.nodes[GARDENER]?.levers, parts: LeverValue[] = [me?.waterBelow ?? null];
+  for (const p of PESTS) parts.push(me?.[p] ?? null);
+  for (const id in g.nodes) {
+    const n = g.nodes[id]!;
+    if (n.kind === 'bed') parts.push(n.id, n.levers.sow ?? null, n.levers.sowFrom ?? null, n.levers.dig ?? null, n.levers.edge ?? null, n.levers.winter ?? null, n.levers.cover ?? null);
+  }
+  const had = planned.get(g);
+  if (had && had.parts.length === parts.length && had.parts.every((x, i) => x === parts[i])) return had.key;
+  const key = JSON.stringify(parts);
+  planned.set(g, {parts, key});
+  return key;
 }
 
 /** The hours the gardener has for the garden on a day: the household's garden hours that weekday, to the minute. */

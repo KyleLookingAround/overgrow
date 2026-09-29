@@ -55,4 +55,18 @@ describe('sim', () => {
       expect(perDay).toBeLessThan(2);
     }
   });
+
+  it('copies again only the nodes that changed, and every snapshot matches the graph', () => {
+    const sim = createSim(2);
+    let before = sim.snapshot(), reused = 0;
+    for (let h = 0; h < 24 * 60; h++) {
+      if (h === 24 * 10) sim.apply({type: 'plan', node: 'bed-3', lever: 'dig', value: true});
+      const snap = sim.apply({type: 'tick', hours: 1}), graph = JSON.parse(sim.save()).graph.nodes;
+      for (const n of snap.nodes) expect(JSON.parse(JSON.stringify(n))).toEqual(graph[n.id]);
+      reused += snap.nodes.filter((n, i) => n === before.nodes[i]).length;
+      before = snap;
+    }
+    // most nodes don't change in most hours: the shed, the tap, the path, the gate, the household
+    expect(reused).toBeGreaterThan(24 * 60 * 3);
+  });
 });
