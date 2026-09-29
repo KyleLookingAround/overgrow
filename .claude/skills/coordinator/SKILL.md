@@ -47,6 +47,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 - The coordinator keeps a single `send_later`; parts don't book their own. PR events and that check-in wake it, not polling.
 - Helper agents (`Agent`, the `code-review` skill) review and read only; they never write code or push. Only the coordinator starts sessions, and only from a brief.
+- An audit's reviewers are split by device or concern, run on the cheaper model, and each gets the same one-page primer (how to open a page, fast-forward, switch tabs and open cards, what to skip, the row format). They return their report as their final message, not as a file, with a "checked and fine" list beside the findings.
 
 ## 8. The lessons tidy
 
