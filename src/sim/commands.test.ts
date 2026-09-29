@@ -92,14 +92,15 @@ describe('unfolding and the cards', () => {
     expect(b.apply({type: 'card', id: 'try-faster', answer: 'no'}).rejected).toMatch(/answered/);
   });
 
-  it('unfolds two keys a tick reaches together in one batch', () => {
-    // compost spread on a bed is the first carbon choice and the first feeding at once
+  it('unfolds the keys a tick reaches together in one batch', () => {
+    // compost spread on a bed is the first carbon choice and the first feeding at once, and the shop's footprint comes
+    // beside the dial
     const sim = createSim(1), before = sim.snapshot().seen.length;
     let s = sim.snapshot();
     for (let d = 0; d < 24 * 150 && !s.seen.includes('garden.carbon'); d++) s = sim.apply({type: 'tick', hours: 1});
     const i = s.seen.indexOf('garden.soil');
     expect(before).toBe(0);
     expect(i).toBeGreaterThan(0);
-    expect(s.seen.slice(i)).toEqual(['garden.soil', 'garden.carbon']);
+    expect(s.seen.slice(i)).toEqual(['garden.soil', 'garden.carbon', 'household.footprint']);
   });
 });

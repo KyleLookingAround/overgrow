@@ -285,7 +285,7 @@ Loops: energy, trade. Spec: from 5. The gardener's baskets and the van come earl
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · P | s: baskets carried to the kitchen and the gate (built), and the shop food's miles (**O**). | The gardener with a basket | — | Food miles are a small share of most food's carbon ("The household across the ladder", level 1). | Drawn only (baskets); the basket's miles in Explain on the first shop |
+| 1 · P | s: baskets carried to the kitchen and the gate, the gardener's commute through the gate and the weekly shop's bags (built, part 6b), and the shop food's miles (**O**). | The gardener with a basket, and with the shop's bags on Friday | — | Food miles are a small share of most food's carbon ("The household across the ladder", level 1). | Drawn only (baskets, the commute, the bags); the basket's miles in the footprint's Explain, with the dial |
 | 2 · P | s: swaps carried between sheds. | Barrows on the path | — | Fast: none. Slow: none. Everything moved takes someone's time. | Drawn only |
 | 3 · S | s: the van to market. | The van | Upkeep | Fast: a round's fuel and hours. Slow: none. Delivering is a cost the price has to carry. | The van with the box scheme |
 | 4 · P | N: haulage in Upkeep. | — | — | Haulage is a line in the farm's costs, not a choice yet. | Through Upkeep |
@@ -405,7 +405,7 @@ Loop: diet (culture pushes back or runs ahead). Spec: from 2 (neighbours), 7.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S+O | s: the household's members, 2.4 as built (`docs/systems/kitchen.md`), with the gardener and later the partner and children. | The household at the house | — | A household is people with their own time. | The household at the house, drawn; members in Explain |
+| 1 · S+O | s: the household's members, the gardener alone as built by part 6b (`docs/systems/household.md`; the kitchen's ask was an average household's 2.4 before it), and later the partner and children. | The household at the house | — | A household is people with their own time. | The gardener's job on their card with the kitchen's first ask; members in Explain |
 | 2 · S | s: eleven neighbours with habits (tidy, lazy, generous, competitive). | Neighbours at their plots | — | People differ; the same plot fares differently. | Neighbours' habits as they're met |
 | 3 · P | s: the box customers' tastes (local, organic, cheap). | — | — | Fast: none. Slow: none. Customers buy on values as well as price. | Customers' tastes with the box scheme |
 | 4 · · | Not present: the farm's customers are buyers, not people. | — | — | — | — |
@@ -465,7 +465,7 @@ The spec's farm adds insurance and credit, and the nation must stay solvent, but
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · O | H: the household's purse: the wage in, groceries out, the honesty box's takings. | — | Upkeep | Fast: the week's budget. Slow: savings. | Money in the top bar with the first sale or purchase (part 6a); the purse's lines with the first week's wage and shop |
+| 1 · O | H: the household's purse: the wage in, groceries out, the honesty box's takings (built, part 6b). | — | Upkeep | Fast: the week's budget. Slow: savings. | Money in the top bar with the first payday, sale or purchase (parts 6a and 6b); the purse's lines in the Kitchen tab with it |
 | 2 · P | H: plot rent. | — | Upkeep | Fast: the year's rent. Slow: none. Land always has a price, even a plot's. | Rent with the plot |
 | 3 · P | H: the loan for the second-hand tractor (**O·Q5**). | — | Upkeep | Borrowing brings a machine forward and a repayment with it. | The loan with the tractor's offer |
 | 4 · S | H: insurance and credit. | — | Upkeep | Insurance turns a disaster into a premium. | Insurance with the first loss |

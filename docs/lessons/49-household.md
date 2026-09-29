@@ -1,0 +1,11 @@
+# The household, the first slice's part 6b (#49) · 29 Sep 2026
+
+- **Numbers:** estimate $20. The session's cost read 0 (not reported) when the PR opened. The session started at 10:43 UTC and the PR opened at about 12:00 UTC. The owner's question on the ask's size (#50) is open with a default. CI rounds are counted at the merge.
+- **Went well:**
+  - Running the bot once with the old 1 kg ask and the new wiring otherwise pinned down what moved the pacing. The ask's size moved the first sale, Output and the first compost. The commute and the shop moved nothing. That made #50 a question with numbers rather than a guess.
+  - Probing the first 130 days headless for when each key unfolds showed the commute landing in the same tick as the kitchen's first ask (17:30 home, 18:00 meal). That gave the first minute its batch without a special case.
+  - The 768 px top bar was already exactly full (744 of 744 px). Measuring every part's box at six sizes before styling sent the footprint under the dial's figure, not beside it, in one pass.
+- **Lessons:**
+  - A job the planner builds twice (built, found to cross the hour the gardener leaves, built again after work) must not carry state outside its closure. `sowBed`'s butt tally did, and would have counted twice. When a builder may run twice, reset what it accumulates at its top.
+  - The brief said the first sale and the met share "should hold (the hours don't change)", but the model it wires changes the ask as well as the hours. Before starting, check a brief's "should hold" against every number the wiring swaps, not only the one it names.
+  - Anything added to a node's stocks costs every hour, because the snapshot copies them all. Nine cupboard stocks and one node cost about 0.12 ms a garden day, over this part's 0.05 ms. A future part adding stocks should weigh a lever (copied by reference) against a stock, and the part that first grows the graph should make the snapshot copy only what changed.

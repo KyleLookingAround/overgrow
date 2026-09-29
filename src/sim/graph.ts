@@ -114,7 +114,10 @@ export type Boundary =
   | 'grid' // energy from the grid
   | 'growth' // plants making food and matter from air, water and sun, and the nutrients they take up from the soil
   | 'decay' // matter breaking down: food going off (out as food, back as waste), what a heap loses to the air, and creatures dying
-  | 'wild'; // creatures arriving from and leaving for beyond the level (winged aphids on the wind)
+  | 'wild' // creatures arriving from and leaving for beyond the level (winged aphids on the wind)
+  | 'wages' // pay from a household member's employer
+  | 'shop' // the shop a household buys its food from, and where that food's farm-to-shop footprint came from
+  | 'rest of life'; // everything else a household spends on: housing, bills, travel, savings
 
 export type End = {node: NodeId; stock: string} | {boundary: Boundary};
 

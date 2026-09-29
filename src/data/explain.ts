@@ -7,7 +7,7 @@
 // entry here. A new model adds its causes here in the same PR (the beer trap, nematodes and the advisers in part 6).
 
 /** What sort of effect: the card's heading and the badges group by it. */
-export type Kind = 'weather' | 'water' | 'soil' | 'crop' | 'work' | 'kitchen' | 'carbon' | 'pest' | 'wildlife';
+export type Kind = 'weather' | 'water' | 'soil' | 'crop' | 'work' | 'kitchen' | 'household' | 'carbon' | 'pest' | 'wildlife';
 
 export interface Explanation {
   kind: Kind;
@@ -29,7 +29,7 @@ export interface Explanation {
 }
 
 export const KIND_NAME: Record<Kind, string> = {
-  weather: 'Weather', water: 'Water', soil: 'Soil', crop: 'Crops', work: 'The gardener', kitchen: 'The kitchen', carbon: 'Carbon', pest: 'Pests', wildlife: 'Wildlife',
+  weather: 'Weather', water: 'Water', soil: 'Soil', crop: 'Crops', work: 'The gardener', kitchen: 'The kitchen', household: 'The household', carbon: 'Carbon', pest: 'Pests', wildlife: 'Wildlife',
 };
 
 /** Each entry's kind and the causes it covers: all the sim needs (src/sim/effects.ts), so the words below stay out of its worker. */
@@ -56,6 +56,9 @@ export const CAUSES = {
   eating: {kind: 'kitchen', causes: ['eating', 'ask']},
   goingOff: {kind: 'kitchen', causes: ['going off']},
   box: {kind: 'kitchen', causes: ['to the honesty box', 'honesty box', 'money']},
+  job: {kind: 'household', causes: ['wages', 'the rest of life', 'commute']},
+  shop: {kind: 'household', causes: ['the weekly shop', 'shop food', 'shop food eaten', 'groceries saved']},
+  footprint: {kind: 'carbon', causes: ['shop food carbon', 'shop food land', 'shop food water']},
   heap: {kind: 'carbon', causes: ['to the heap', 'plant carbon', 'plant nitrogen', 'composting', 'methane and nitrous oxide']},
   compost: {kind: 'carbon', causes: ['spreading compost', 'compost']},
   digging: {kind: 'carbon', causes: ['digging']},
@@ -262,10 +265,34 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
   box: {
     title: 'The honesty box',
     says: 'Surplus went to the box at the gate, and passers-by paid for it.',
-    mechanism: 'What the kitchen won’t eat fresh goes to the box; passers-by take a little a day at a flat price.',
-    fast: 'Money in the purse.',
-    slow: 'A glut turned into money for the shed.',
-    source: 'A farm-gate honesty box at a flat price per kg.',
+    mechanism: 'What the kitchen won’t eat fresh goes to the box; passers-by take a little a day at a flat price, the best-looking first.',
+    fast: 'Money in the purse; stressed, poorer produce is left to go off.',
+    slow: 'A glut turned into money for the shed. Buyers choosing by look is where cosmetic standards start.',
+    source: 'A farm-gate honesty box at a flat price per kg; WRAP (2019), food waste in primary production.',
+  },
+  job: {
+    title: 'The job',
+    says: 'The gardener works weekdays: Friday’s pay comes into the purse, and the rest of life takes most of it.',
+    mechanism: 'A full-time job is eight hours and an hour’s commute a weekday; what a waking day leaves gives the garden about four hours, six at weekends.',
+    fast: 'Friday’s pay fills the purse; rent, bills and travel take most of it the same day.',
+    slow: 'Time is the garden’s scarcest input: later, part-time work trades pay for garden hours.',
+    source: 'ONS Annual Survey of Hours and Earnings; DfT National Travel Survey; ONS Family Spending.',
+  },
+  shop: {
+    title: 'The weekly shop',
+    says: 'The household bought what the garden didn’t give it; what the garden gave is groceries saved, at the shop’s prices.',
+    mechanism: 'On Friday the gardener buys the week’s basket less what the garden gave last week and what’s left in the cupboard; meals eat the garden’s first.',
+    fast: 'Every kg the garden feeds the household is a kg not bought: salad and tomatoes save most a kg, potatoes least.',
+    slow: 'Veg is a small part of the bill: meat, dairy and bread are most of it.',
+    source: 'DEFRA Family Food (the basket and its prices); ONS Family Spending.',
+  },
+  footprint: {
+    title: 'The shop’s footprint',
+    says: 'The shop’s food carried the carbon, land and water it took to grow and bring here: shown beside the dial, never added to the garden’s air.',
+    mechanism: 'Most of food’s footprint is on the farm (land, feed, fertiliser, methane); transport is a few per cent, unless it’s flown.',
+    fast: 'A week’s shop for one is about 40 kg CO₂e, three quarters of it meat and dairy.',
+    slow: 'What you eat matters far more than how far it came: food miles are a small share of its footprint.',
+    source: 'Poore & Nemecek (2018), Science 360; DEFRA conversion factors (air freight).',
   },
   heap: {
     title: 'The compost heap',
@@ -293,7 +320,7 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
   },
   carbon: {
     title: 'The carbon dial',
-    says: 'The dial shows the carbon the garden has put into the air, less what it took out.',
+    says: 'The dial shows the carbon the garden has put into the air, less what it took out; the bag under it is the shop food’s, never added.',
     mechanism: 'Decay and composting emit; plants and grass take carbon in.',
     fast: 'It moves as the heap and the soil work.',
     slow: 'At the top levels, carbon warms the climate the garden grows in.',
@@ -453,7 +480,10 @@ export const HELPS: Record<Entry, string> = {
   residue: 'It goes to the heap and comes back as compost.',
   eating: 'Grow a mix: potatoes, salad, tomatoes and green veg.',
   goingOff: 'Sow less at once; the surplus goes to the honesty box.',
-  box: 'Grow more than the household eats, and keep its quality up.',
+  box: 'Grow more than the household eats, and keep its quality up: passers-by take the best first.',
+  job: 'Nothing yet: the job’s hours are fixed until the smallholding.',
+  shop: 'Grow what the shop charges most for: salad and tomatoes save more a kg than potatoes.',
+  footprint: 'Home-grown veg trims it a little; what the household eats moves it most.',
   heap: 'Everything the garden doesn’t eat goes on it; its compost feeds the beds.',
   compost: 'Keep the heap fed with scraps and residue.',
   digging: 'Dig only the beds the gardener has time for.',

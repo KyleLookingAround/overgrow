@@ -58,6 +58,8 @@ export function rows(): Row[] {
     {id: 'reliability', label: 'Reliability, last 28 days', unit: '0–100', digits: 0},
     {id: 'health', label: 'Health, last 28 days', unit: '0–100', digits: 0},
     ...MONEY_DAYS.map((d) => ({id: `money-${d}`, label: `Money on day ${d}`, unit: '£', digits: 2})),
+    {id: 'saved', label: 'Groceries saved', unit: '£', digits: 2},
+    {id: 'earned', label: 'Taken at the honesty box', unit: '£', digits: 2},
     {id: 'wasted', label: 'Food wasted', unit: 'kg', digits: 1},
     {id: 'carbon', label: 'Carbon into the air', unit: 'kg CO₂e', digits: 1},
   ];
@@ -70,7 +72,7 @@ export function valuesOf(run: Run): Record<string, number | undefined> {
     ...run.reached,
     output: run.sealed.output, reliability: run.sealed.reliability, health: run.sealed.health,
     ...Object.fromEntries(MONEY_DAYS.map((d) => [`money-${d}`, money(d)])),
-    wasted: run.wasted, carbon: run.carbon,
+    saved: run.days.at(-1)?.saved, earned: run.days.at(-1)?.earned, wasted: run.wasted, carbon: run.carbon,
   };
 }
 

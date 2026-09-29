@@ -10,6 +10,11 @@ const two = (n: number) => String(n).padStart(2, '0');
 export const dayName = (d: CalendarDate) => `${DAYS[d.weekday]} ${d.day} ${MONTHS[d.month - 1]}`;
 /** "06:00" */
 export const clockTime = (d: CalendarDate) => `${two(d.hour)}:00`;
+/** An hour of the day, to the minute: 8.5 is "08:30". */
+export const hourMinute = (h: number) => {
+  const m = Math.round((((h % 24) + 24) % 24) * 60);
+  return `${two(Math.floor(m / 60) % 24)}:${two(m % 60)}`;
+};
 
 export const money = (gbp: number) => (gbp < 0 ? '−' : '') + '£' + Math.abs(gbp).toFixed(2);
 
@@ -28,6 +33,9 @@ export function amount(s: Stock): string {
   const u = UNIT[s.unit];
   return `${num(s.amount)}${s.cap !== undefined ? ' of ' + num(s.cap) : ''}${u ? ' ' + u : ''}`;
 }
+
+/** Days, to a sensible precision: "1 day", "2.5 days". */
+export const days = (d: number) => `${num(d)} ${num(d) === '1' ? 'day' : 'days'}`;
 
 /** A small mass in kg as grams below a kilogram: "12 g", "1.2 kg". The unit is chosen after rounding (never "1,000 g"),
  *  and nothing reads "−0". */

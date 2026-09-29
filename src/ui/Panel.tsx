@@ -3,7 +3,7 @@
 // Goals, each shown once it has something in it, src/data/unfold.ts): today the Garden tab (the gardener's card, the
 // plan, and the places with what each holds, its pests and what happened there in the last week), the Shed tab and the
 // Kitchen tab. A place's numbers unfold with their systems (moisture with the watering line, N-P-K and organic matter
-// with the first compost, carbon and land with the first carbon choice, money with the first sale), or all at once
+// with the first compost, carbon and land with the first carbon choice, money with the first payday or sale), or all at once
 // with the "Show all details" setting at the foot of the Garden tab. A number with an Explain card is a button that
 // opens it.
 import {useState} from 'preact/hooks';
@@ -15,11 +15,12 @@ import {borderOf, inFlower} from '../sim/models/biodiversity';
 import {cropOf, quality} from '../sim/models/crops';
 import {aphidsOn, pestsOf} from '../sim/models/pests';
 import {shows} from '../data/unfold';
-import type {Ledger} from '../sim/models/kitchen';
+import {cupboardDays} from '../sim/models/household';
+import {KITCHEN, type Ledger} from '../sim/models/kitchen';
 import {hasSoil, health, limitsOf, moisture, organicMatter, SOIL} from '../sim/models/soil';
 import type {EffectsLog, Logged} from './effects-log';
 import {unitShown} from './Explain';
-import {amount, effectAmount, grams, num} from './format';
+import {amount, days as dayCount, effectAmount, grams, num} from './format';
 import {GardenTab} from './GardenTab';
 import {KitchenTab} from './KitchenTab';
 import {ShedTab} from './ShedTab';
@@ -109,10 +110,11 @@ function keyOf(k: string, unit: string): string | null {
   return null;
 }
 
-function Place({n, log, see, onExplain}: {n: GraphNode; log: EffectsLog; see: (key: string) => boolean; onExplain: (cause: string, at: string | null) => void}) {
+function Place({n, days, log, see, onExplain}: {n: GraphNode; days: number; log: EffectsLog; see: (key: string) => boolean; onExplain: (cause: string, at: string | null) => void}) {
   const soil = hasSoil(n);
   const rows = Object.entries(n.stocks).map(([k, s]): Row | null => {
     if (soil && SHOWN.has(k)) return null;
+    if (k.startsWith('food.shop-')) return null;
     const key = keyOf(k, s.unit);
     if (key && !see(key)) return null;
     if (soil && k === SOIL.humus) return ['Carbon in the soil', amount(s), 'decay'];
@@ -123,6 +125,7 @@ function Place({n, log, see, onExplain}: {n: GraphNode; log: EffectsLog; see: (k
     return [name, s.unit === 'pests' ? num(Math.round(s.amount)) : amount(s), causeOf(n, k)];
   }).filter((r): r is Row => !!r);
   if (soil) rows.unshift(...soilRows(n, see));
+  if (n.id === KITCHEN && see('garden.kitchen')) rows.push(['Food from the shop', dayCount(days), 'shop food eaten']);
   rows.push(...pestRows(n, see));
   return (
     <section class="place">
@@ -178,12 +181,12 @@ export function Panel(props: {
       </div>
       <div class="panel-body" id="panel-body">
         {current === 'kitchen' && props.ledger ? (
-          <KitchenTab ledger={props.ledger} nodes={props.nodes} money={see('garden.money')} onExplain={props.onExplain} />
+          <KitchenTab ledger={props.ledger} nodes={props.nodes} see={see} onExplain={props.onExplain} />
         ) : current === 'shed' ? (
           <ShedTab nodes={props.nodes} money={see('garden.money')} />
         ) : (
           <>
-            <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} send={props.send} onExplain={props.onExplain} />
+            <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} job={see('household.commute')} send={props.send} onExplain={props.onExplain} />
             <h3 class="places-title">Places</h3>
             <ul class="places" aria-label="Places in the garden">
               {places.map((n) => (
@@ -194,7 +197,7 @@ export function Panel(props: {
                 </li>
               ))}
             </ul>
-            {chosen ? <Place n={chosen} log={props.log} see={see} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
+            {chosen ? <Place n={chosen} days={cupboardDays(props.nodes)} log={props.log} see={see} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
             <label class="check details">
               <input type="checkbox" checked={props.all} onChange={(e) => props.onDetails((e.target as HTMLInputElement).checked)} />
               Show all details
