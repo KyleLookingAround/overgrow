@@ -23,18 +23,23 @@ export function jobInHand(acts: Activity[], hours: number): Activity | null {
 /** What they're doing, in a few words. */
 export function describe(a: Activity | null, nodes: GraphNode[]): string {
   if (!a) return 'By the shed';
-  const to = name(nodes, a.to), product = a.carry?.product, what = product ? lower(CROPS[product as CropId]?.name ?? product) : 'produce';
-  const crop = (id: string) => {
-    const c = cropOf(nodes.find((n) => n.id === id)!);
-    return c ? lower(CROPS[c.id].name) : 'seed';
+  const place = nodes.find((n) => n.id === a.to), to = place?.name ?? a.to, product = a.carry?.product;
+  const what = product ? lower(CROPS[product as CropId]?.name ?? product) : 'produce';
+  // a bed is named as it is ("Bed 1"), other places as things ("the water butt")
+  const the = (id: string) => (nodes.find((n) => n.id === id)?.kind === 'bed' ? name(nodes, id) : `the ${lower(name(nodes, id))}`);
+  // what's being sown: from the step's own effect while it's under way, else what's now in the bed
+  const crop = () => {
+    const day = nodes.find((n) => n.id === GARDENER)?.levers.day as {steps?: {id: string; effect?: {crop?: string}}[]} | null | undefined;
+    const id = day?.steps?.find((st) => st.id === a.id)?.effect?.crop ?? (place && cropOf(place)?.id);
+    return id ? lower(CROPS[id as CropId].name) : 'seed';
   };
   switch (a.doing) {
     case 'rest':
       return 'Resting';
     case 'fetch':
-      return a.carry?.unit === 'L' ? `Fetching the can from the ${lower(to)}` : a.to === 'shed' ? 'Fetching seed from the shed' : `Going to the ${lower(to)}`;
+      return a.carry?.unit === 'L' ? `Fetching the can from ${the(a.to)}` : a.to === 'shed' ? 'Fetching seed from the shed' : `Going to ${the(a.to)}`;
     case 'fill':
-      return `Filling the can at the ${lower(to)}`;
+      return `Filling the can at ${the(a.to)}`;
     case 'carry':
       if (a.carry?.unit === 'L') return `Carrying water to ${to}`;
       if (a.carry?.unit === 'kgFood') return a.to === 'gate' ? `Taking ${what} to the honesty box` : `Taking ${what} to the kitchen`;
@@ -42,9 +47,9 @@ export function describe(a: Activity | null, nodes: GraphNode[]): string {
     case 'water':
       return `Watering ${to}`;
     case 'sow':
-      return `Sowing ${crop(a.to)} in ${to}`;
+      return `Sowing ${crop()} in ${to}`;
     case 'plant':
-      return `Planting ${crop(a.to)} in ${to}`;
+      return `Planting ${crop()} in ${to}`;
     case 'pick':
       return `Picking ${what}`;
     case 'clear':
@@ -56,7 +61,7 @@ export function describe(a: Activity | null, nodes: GraphNode[]): string {
     case 'dig':
       return `Digging ${to}`;
     default:
-      return `Walking to the ${lower(to)}`;
+      return `Walking to ${the(a.to)}`;
   }
 }
 
@@ -123,6 +128,7 @@ function BedPlan({n, onPlan}: {n: GraphNode; onPlan: (lever: string, value: Leve
           {FROM.map(([label, v]) => (
             <option value={String(v)}>{label}</option>
           ))}
+          {from !== null && !FROM.some(([, v]) => v === from) && <option value={String(from)}>From day {from}</option>}
         </select>
       </div>
     </div>

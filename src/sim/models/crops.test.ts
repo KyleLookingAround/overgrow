@@ -88,6 +88,22 @@ describe('crops', () => {
     expect(cropOf(radish)!.dead).toBeUndefined();
   });
 
+  it('sets potatoes back with a frost on their tops while growing, but makes no second crop once they’re ready', () => {
+    const g = gardenGraph(), bed = g.nodes['bed-1']!, FROSTY = day(290, {tmax: 8, tmin: -2, sun: 8, length: 10.5});
+    sow(bed, 'potatoes', 0);
+    run(g, [water, soil, crops], 30, day(170, {tmax: 22, tmin: 12, sun: 8, length: 16.5, wet: true, rain: 5, rainFrom: 2, rainHours: 3}));
+    const growing = cropOf(bed)!;
+    expect(stageOf(growing)).toBe('growing');
+    run(g, [water, soil, crops], 1, FROSTY);
+    expect(cropOf(bed)!.hurt).toBeCloseTo(0.1);
+    run(g, [water, soil, crops], 60, day(170, {tmax: 22, tmin: 12, sun: 8, length: 16.5, wet: true, rain: 5, rainFrom: 2, rainHours: 3}));
+    const ready = cropOf(bed)!;
+    expect(stageOf(ready)).toBe('ready');
+    const flows = run(g, [water, soil, crops], 10, FROSTY);
+    expect(sum(flows, 'ripening', 'bed-1')).toBe(0);
+    expect(cropOf(bed)!.made).toBe(ready.made);
+  });
+
   it('draws a bed’s nutrients down over a year of cropping, against the same bed left bare', () => {
     const year = (plan: string) => {
       const sim = createSim(2);

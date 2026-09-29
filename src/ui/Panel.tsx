@@ -87,9 +87,9 @@ export function Panel(props: {
     <aside class={props.open ? 'panel' : 'panel folded'} aria-labelledby="panel-title">
       <div class="panel-head">
         <h2 id="panel-title" class="visually-hidden">{shown.find(([t]) => t === current)![1]}</h2>
-        <div class="tabs" role="tablist" aria-label="Panels">
+        <div class="tabs" role="group" aria-label="Panels">
           {shown.map(([t, label]) => (
-            <button type="button" role="tab" id={`tab-${t}`} aria-selected={t === current} aria-controls="panel-body" class="tab" onClick={() => {
+            <button type="button" id={`tab-${t}`} aria-pressed={t === current} aria-controls="panel-body" class="tab" onClick={() => {
               setTab(t);
               if (!props.open) props.onToggle();
             }}>
@@ -101,7 +101,7 @@ export function Panel(props: {
           {props.open ? 'Hide' : 'Show'}
         </button>
       </div>
-      <div class="panel-body" id="panel-body" role="tabpanel" aria-labelledby={`tab-${current}`}>
+      <div class="panel-body" id="panel-body">
         {current === 'kitchen' && props.ledger ? (
           <KitchenTab ledger={props.ledger} nodes={props.nodes} />
         ) : (

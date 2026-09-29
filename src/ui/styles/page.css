@@ -192,11 +192,6 @@ button[aria-pressed='true'] {
   display: flex;
   gap: var(--gap-tiny);
 }
-.tab[aria-selected='true'] {
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-color: var(--accent);
-}
 .card,
 .plan {
   margin: 0 0 var(--gap);

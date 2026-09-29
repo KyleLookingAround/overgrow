@@ -58,6 +58,8 @@ export type Stage = 'sown' | 'growing' | 'ready' | 'over' | 'dead';
 /** The keys the crop model keeps on a bed. */
 export const WASTE = 'waste', GREENS = 'greens';
 export const foodKey = (product: string) => `food.${product}`;
+/** The least worth picking, kg: less is left on the bed. */
+export const PICK_MIN = 0.02;
 
 export const cropOf = (n: GraphNode): CropState | null => (n.levers.crop as unknown as CropState | null | undefined) ?? null;
 export const specOf = (s: CropState): CropSpec => CROPS[s.id];
@@ -228,7 +230,8 @@ function cropDay(c: TickContext, n: GraphNode, s0: CropState) {
   setCrop(n, s);
   const stage = stageOf(s);
   if (stage === 'over') finish(c, n, s, spec.harvest === 'once' ? 'bolting' : 'spent');
-  else if (spec.harvest === 'once' && stage === 'ready' && s.made > 0 && ripe(n) <= 1e-6) finish(c, n, s, 'picked');
+  // picked: a few grams the gardener leaves behind go to waste with the residue
+  else if (spec.harvest === 'once' && stage === 'ready' && s.made > 0 && ripe(n) < PICK_MIN) finish(c, n, s, 'picked');
 }
 
 /** Degrees of frost a bed's cover keeps off (none today; part 6's cold frame adds itself to COVERS). */
@@ -239,7 +242,8 @@ function cropFrost(c: TickContext, n: GraphNode, s: CropState) {
   const spec = specOf(s);
   if (spec.frost === 'none' || s.dead || s.dd < spec.dd.emerge) return;
   if (spec.frost === 'plant') return setCrop(n, {...s, dead: true, frosted: c.hours, ks: 0});
-  if (s.frosted !== undefined && c.hours - s.frosted < 24) return;
+  // once they're ready the tubers are made: a frost on the haulm then costs nothing more
+  if (s.dd >= spec.dd.mature || (s.frosted !== undefined && c.hours - s.frosted < 24)) return;
   setCrop(n, {...s, dd: Math.max(spec.dd.emerge, s.dd - 100), hurt: Math.min(0.9, s.hurt + 0.1), frosted: c.hours});
 }
 

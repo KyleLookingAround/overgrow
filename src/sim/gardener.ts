@@ -3,7 +3,8 @@
 // plan's line, clear, compost, sow and water in what's due, carry the kitchen's surplus to the honesty box and its scraps
 // to the heap, dig), each taking its time with the best tool they have (src/data/jobs.ts), and what doesn't fit waits
 // until tomorrow. Every step is an activity the map draws, a new id each trip, and each job's flows move when the step
-// that does it ends. A change to the plan during the working day re-plans the rest of it. docs/systems/gardener.md.
+// that does it ends. A change to the plan during the working day re-plans the rest of it, finishing the job in hand
+// first. docs/systems/gardener.md.
 import {CROPS, type CropId} from '../data/crops';
 import {FILL_L_PER_MIN, HOURS, START_TOOLS, TOOLS, WALK, WATER_IN, COMPOST_PER_M2, type Job, type JobTime, type Tool} from '../data/jobs';
 import {START} from '../data/ladder';
@@ -11,7 +12,7 @@ import type {Activity} from './activity';
 import {calendar, type CalendarDate, type System, type TickContext} from './clock';
 import {qty, type Graph, type GraphNode, type LeverValue, type NodeId, type Unit} from './graph';
 import {compostOn, dig, spread, toHeap} from './models/carbon';
-import {cropOf, foodKey, plannedCrop, ripe, sow, specOf, wasteOn} from './models/crops';
+import {cropOf, foodKey, PICK_MIN, plannedCrop, ripe, sow, specOf, wasteOn} from './models/crops';
 import {GATE, KITCHEN, recordPick, surplus} from './models/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
 
@@ -39,6 +40,8 @@ export interface Step {
   carry?: {unit: Unit; amount: number; product?: string};
   effect?: Effect;
   shown?: boolean;
+  /** The job it's part of: a re-plan keeps the whole of a job that's under way. */
+  job: number;
 }
 
 /** The day's plan, kept as the gardener's `day` lever and replaced whenever it changes. */
@@ -126,13 +129,15 @@ class JobBuilder {
   pos: NodeId;
   t: number;
   next: number;
+  readonly job: number;
   constructor(readonly p: Planner) {
     this.pos = p.pos;
     this.t = p.t;
     this.next = p.next;
+    this.job = p.next; // the job's first step number: unique within the day
   }
   step(doing: string, to: NodeId, hours: number, carry?: Step['carry'], effect?: Effect) {
-    const s: Step = {id: `g${this.p.dayIndex}-${this.next++}`, doing, from: this.pos, to, start: this.t, end: this.t + hours};
+    const s: Step = {id: `g${this.p.dayIndex}-${this.next++}`, doing, from: this.pos, to, start: this.t, end: this.t + hours, job: this.job};
     if (carry) s.carry = carry;
     if (effect) s.effect = effect;
     this.steps.push(s);
@@ -176,7 +181,7 @@ function harvest(p: Planner, bed: GraphNode) {
   if (!s || !pick || !carry) return;
   const spec = specOf(s);
   let kg = ripe(bed);
-  while (kg >= 0.02) {
+  while (kg >= PICK_MIN) {
     const load = Math.min(kg, carry.trip ?? kg);
     const ok = p.job((j) => {
       j.walk(bed.id);
@@ -204,6 +209,7 @@ function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
   const spec = CROPS[crop], area = areaOf(bed), how = best(p.g, spec.how), bucket = best(p.g, 'spread'), cans = best(p.g, 'water');
   if (!how) return false;
   const kg = bucket ? Math.min(p.compost, COMPOST_PER_M2 * area) : 0;
+  let fromButt = 0;
   return p.job((j) => {
     const waste = wasteOn(bed), clearing = best(p.g, 'clear');
     if (waste >= 0.02) {
@@ -224,15 +230,15 @@ function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
     j.work(spec.how, area * how.per, undefined, {kind: 'sow', bed: bed.id, crop});
     // watered in, a trip a can
     for (let litres = WATER_IN * area; cans && litres > 0.5; ) {
-      const source = j.p.butt >= 1 ? 'butt' : 'tap', trip = Math.min(litres, cans.trip ?? litres, source === 'butt' ? j.p.butt : Infinity);
+      const left = j.p.butt - fromButt, source = left >= 1 ? 'butt' : 'tap', trip = Math.min(litres, cans.trip ?? litres, source === 'butt' ? left : Infinity);
       j.walk(source, 'fetch', can(0));
       j.work('fill', trip / FILL_L_PER_MIN[source]! / 60 + (cans.load ?? 0), can(trip));
       j.walk(bed.id, 'carry', can(trip));
       j.work('water', trip * cans.per + (cans.setup ?? 0), can(trip), {kind: 'water', bed: bed.id, source, litres: trip});
-      if (source === 'butt') j.p.butt -= trip;
+      if (source === 'butt') fromButt += trip;
       litres -= trip;
     }
-  }) && ((p.compost -= kg), true);
+  }) && ((p.compost -= kg), (p.butt -= fromButt), true);
 }
 
 /** The day's jobs, in order, from a place and time with the hours left. */
@@ -241,7 +247,7 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   const beds = Object.values(g.nodes).filter((n) => n.kind === 'bed');
   const dug = beds.filter((n) => (n.stocks['land.crops']?.amount ?? 0) > 0);
   // 1. pick what's ready
-  for (const b of dug) if (ripe(b) >= 0.02) harvest(p, b);
+  for (const b of dug) if (ripe(b) >= PICK_MIN) harvest(p, b);
   // 2. water what's below the line
   for (const b of dug) {
     const s = cropOf(b);
@@ -374,7 +380,8 @@ export const gardener: System = {
         day = {day: start.dayIndex, key, next: made.next, steps: made.steps};
       } else if (working && day && day.key !== key) {
         // the plan changed: keep what's under way, plan the rest from where they'll be
-        const kept = day.steps.filter((s) => s.start < from && s.doing !== 'rest');
+        const started = new Set(day.steps.filter((s) => s.start < from && s.doing !== 'rest').map((s) => s.job));
+        const kept = day.steps.filter((s) => started.has(s.job) && s.doing !== 'rest');
         const last = kept[kept.length - 1], owed = kept.reduce((s, x) => s + (x.end - x.start), 0);
         const made = plan(c.graph, start, last?.to ?? HOME, Math.max(from, last?.end ?? from), Math.max(0, hoursLeft(me) - owed), day.next);
         day = {...day, key, next: made.next, steps: [...kept, ...made.steps]};
