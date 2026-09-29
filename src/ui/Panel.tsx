@@ -14,13 +14,15 @@ import type {GraphNode, NodeId} from '../sim/graph';
 import {borderOf, inFlower} from '../sim/models/biodiversity';
 import {cropOf, HELD, IN_WASTE, quality} from '../sim/models/crops';
 import {aphidsOn, pestsOf} from '../sim/models/pests';
-import {shows} from '../data/unfold';
+import {shows, unfolded} from '../data/unfold';
+import {DIG} from '../data/garden';
+import {TOOLS} from '../data/jobs';
 import {cupboardDays} from '../sim/models/household';
 import {KITCHEN, type Ledger} from '../sim/models/kitchen';
 import {hasSoil, health, limitsOf, moisture, organicMatter, SOIL} from '../sim/models/soil';
 import type {EffectsLog, Logged} from './effects-log';
 import {unitShown} from './Explain';
-import {amount, days as dayCount, effectAmount, grams, num} from './format';
+import {amount, days as dayCount, effectAmount, grams, money, num} from './format';
 import {GardenTab} from './GardenTab';
 import {KitchenTab} from './KitchenTab';
 import {ShedTab} from './ShedTab';
@@ -47,7 +49,26 @@ function about(n: GraphNode): string {
   if (n.kind !== 'bed') return '';
   const c = cropOf(n);
   if (c) return `${CROPS[c.id].name}${c.dead ? ', killed by frost' : `, quality ${quality(c)} / 100`}`;
+  const grass = n.stocks['land.grass']?.amount ?? 0, crops = n.stocks['land.crops']?.amount ?? 0;
+  if (grass > 1e-6 && n.levers.dig === true) return `Being dug: ${num(crops)} of ${num(grass + crops)} m²`;
   return isDug(n) ? 'Dug, ready to sow' : 'Under grass, not dug yet';
+}
+
+/** "Dig this bed" on a plot under grass, once the dug beds are all in use (`garden.dig`): what it costs in the gardener's
+ *  hours, the purse and the soil's carbon, and the button that sends the plan's `dig`. Digging can be stopped. */
+function DigOffer({n, open, send}: {n: GraphNode; open: boolean; send: (cmd: Command) => void}) {
+  const grass = n.stocks['land.grass']?.amount ?? 0;
+  if (n.kind !== 'bed' || grass <= 1e-6) return null;
+  if (n.levers.dig === true)
+    return <button type="button" class="dig" onClick={() => send({type: 'plan', node: n.id, lever: 'dig', value: false})}>Stop digging</button>;
+  if (!open) return null;
+  const hours = grass * (TOOLS.spade.jobs.dig?.per ?? 1);
+  return (
+    <div class="dig-offer">
+      <p class="soft">About {num(hours)} h of the gardener’s time, {money(DIG.gbpPerM2 * grass)} for edging, and a little of the soil’s carbon.</p>
+      <button type="button" class="primary dig" onClick={() => send({type: 'plan', node: n.id, lever: 'dig', value: true})}>Dig this bed</button>
+    </div>
+  );
 }
 
 /** A bed's or the lawn's soil: its water for roots once the watering line has unfolded, and organic matter, nutrients and
@@ -111,7 +132,9 @@ function keyOf(k: string, unit: string): string | null {
   return null;
 }
 
-function Place({n, days, log, see, onExplain}: {n: GraphNode; days: number; log: EffectsLog; see: (key: string) => boolean; onExplain: (cause: string, at: string | null) => void}) {
+function Place({n, days, log, see, dig, send, onExplain}: {
+  n: GraphNode; days: number; log: EffectsLog; see: (key: string) => boolean; dig: boolean; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
+}) {
   const soil = hasSoil(n);
   const rows = Object.entries(n.stocks).map(([k, s]): Row | null => {
     if (soil && SHOWN.has(k)) return null;
@@ -132,6 +155,7 @@ function Place({n, days, log, see, onExplain}: {n: GraphNode; days: number; log:
     <section class="place">
       <h3>{n.name}</h3>
       {about(n) && <p class="soft">{about(n)}</p>}
+      <DigOffer n={n} open={dig} send={send} />
       <dl>
         {rows.map(([k, v, cause]) => (
           <div class="row">
@@ -184,7 +208,7 @@ export function Panel(props: {
         {current === 'kitchen' && props.ledger ? (
           <KitchenTab ledger={props.ledger} nodes={props.nodes} see={see} onExplain={props.onExplain} />
         ) : current === 'shed' ? (
-          <ShedTab nodes={props.nodes} money={see('garden.money')} />
+          <ShedTab nodes={props.nodes} seen={props.seen} purse={props.nodes.find((n) => n.id === KITCHEN)?.stocks.money?.amount ?? 0} see={see} send={props.send} />
         ) : (
           <>
             <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} job={see('household.commute')} send={props.send} onExplain={props.onExplain} />
@@ -198,7 +222,7 @@ export function Panel(props: {
                 </li>
               ))}
             </ul>
-            {chosen ? <Place n={chosen} days={cupboardDays(props.nodes)} log={props.log} see={see} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
+            {chosen ? <Place n={chosen} days={cupboardDays(props.nodes)} log={props.log} see={see} dig={unfolded(props.seen, 'garden.dig')} send={props.send} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
             <label class="check details">
               <input type="checkbox" checked={props.all} onChange={(e) => props.onDetails((e.target as HTMLInputElement).checked)} />
               Show all details

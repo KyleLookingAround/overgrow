@@ -73,7 +73,8 @@ export default async function({ok,open}){
   // the first compost is the first feeding and the first carbon choice at once, and the shop food's footprint comes beside
   // the dial: one sign for the three, never one each
   const soil=await until(page,'garden.carbon',160,24);
-  await page.waitForSelector('.notice.unfold[data-keys*="garden.carbon"]',{timeout:4000}).catch(()=>{});
+  // one sign shows at a time (src/ui/notices.ts): the batch's waits its turn behind any before it
+  await page.waitForSelector('.notice.unfold[data-keys*="garden.carbon"]',{timeout:25000}).catch(()=>{});
   const signs=await page.evaluate(()=>[...document.querySelectorAll('.notice.unfold')].map(n=>n.dataset.keys));
   const both=signs.filter(k=>/garden\.(soil|carbon)|household\.footprint/.test(k));
   const dial=await shows(page,'.dial'),bag=await shows(page,'.topbar .dial-shop');

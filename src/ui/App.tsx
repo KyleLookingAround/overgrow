@@ -19,9 +19,12 @@ import {EffectsLog} from './effects-log';
 import {Explain, type Explaining} from './Explain';
 import {FirstPlan} from './FirstPlan';
 import {GoalBar} from './GoalBar';
+import {statusOf} from './goal';
+import {YearCard} from './YearCard';
 import type {MapRenderer} from './map/renderer';
 import {MapView} from './MapView';
-import {current, NOTICE_CAP, push, unfoldSign, type Notice} from './notices';
+import {current, push, unfoldSign, type Notice} from './notices';
+import {markOf, momentsOf, type SeasonMark} from './moments';
 import {Notices} from './Notices';
 import {Panel} from './Panel';
 import {TopBar} from './TopBar';
@@ -72,17 +75,29 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   });
   const speed = (s: Speed) => send({type: 'speed', speed: s});
   const explainAt = (cause: string, at: string | null) => setExplain({cause, at});
-  // one sign for each batch of instruments that unfold together (win W26); a new game or a load starts afresh
-  const was = useRef<{seed: number; seen: readonly string[]} | null>(null);
+  // one sign for each batch of instruments that unfold together (win W26), and the moments (src/ui/moments.ts): the
+  // first harvest, the first sale (the money flashes once) and each season's line; a new game or a load starts afresh
+  const was = useRef<{seed: number; seen: readonly string[]; snap: Snapshot; mark: SeasonMark} | null>(null);
+  const [flash, setFlash] = useState(false);
   useEffect(() => sim.onSnapshot((s) => {
-    const before = was.current;
-    was.current = {seed: s.seed, seen: s.seen};
-    if (!before || before.seed !== s.seed || s.seen.length < before.seen.length) return;
-    const sign = unfoldSign(before.seen, s.seen, ++noticeId, Date.now());
+    const before = was.current, fresh = !before || before.seed !== s.seed || s.seen.length < before.seen.length || s.hours < before.snap.hours;
+    const m = fresh ? {moments: [], mark: markOf(s)} : momentsOf(before!.snap, s, before!.mark);
+    was.current = {seed: s.seed, seen: s.seen, snap: s, mark: m.mark};
+    if (fresh) return;
+    const sign = unfoldSign(before!.seen, s.seen, ++noticeId, Date.now());
     if (sign) setNotices((l) => push(l, sign));
+    for (const x of m.moments) setNotices((l) => push(l, {id: ++noticeId, text: x.text, moment: x.kind, at: Date.now()}));
+    if (m.moments.some((x) => x.kind === 'sale')) setFlash(true);
   }), [sim]);
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(false), 1600);
+    return () => clearTimeout(t);
+  }, [flash]);
   const snap = shown?.snap, all = snap?.settings.details === true;
   const first = !!snap && firstPlanDue(snap);
+  // the garden's year done: the level's end, once a save
+  const year = !!snap && !first && !snap.seen.includes(CARDS.year) && statusOf(snap).ready;
   // the one "try faster" nudge: after the first harvest, at 1×, once a save, and never in the first minute
   const nudge = !!snap && !first && snap.kitchen?.firstHarvest != null && snap.hours > FIRST_MINUTE && shown!.speed === 1 && snap.seen.includes(CARDS.firstPlan) &&
     !snap.seen.includes(CARDS.tryFaster);
@@ -92,12 +107,12 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   } : null;
   const nodes = snap?.nodes ?? [];
   const badges = snap ? badgesOf(nodes, hourNow(snap, shown!.hour), snap.seen, all) : [];
-  // the nudge is a notice like the rest, inside the cap
-  const shownNotices = first ? [] : faster ? [...notices.slice(-(NOTICE_CAP - 1)), faster] : notices;
+  // the nudge is a notice like the rest, waiting its turn in the queue
+  const shownNotices = first ? [] : faster ? [...notices, faster] : notices;
   return (
     <div class="page" data-sim={shown ? 'ready' : 'waiting'}>
       <h1 class="visually-hidden">Overgrow</h1>
-      {shown ? <TopBar snap={shown.snap} hours={shown.hour} speed={shown.speed} onSpeed={speed} onExplain={explainAt} /> : <header class="topbar"><span class="soft">Starting…</span></header>}
+      {shown ? <TopBar snap={shown.snap} hours={shown.hour} speed={shown.speed} flash={flash} onSpeed={speed} onExplain={explainAt} /> : <header class="topbar"><span class="soft">Starting…</span></header>}
       <main class="main">
         <MapView loop={loop} onSelect={(id) => { setSelected(id); setOpen(true); }} onReady={onRenderer} onExplain={explainAt} nodes={nodes} badges={badges}
           pulse={first ? null : explain?.at ?? null}>
@@ -106,6 +121,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
             else setNotices((l) => l.filter((n) => n.id !== id));
           }} />
           {first ? <FirstPlan onAnswer={(answer) => send({type: 'card', id: 'first-plan', answer})} />
+            : year ? <YearCard snap={snap!} onDone={() => send({type: 'card', id: 'year', answer: 'ok'})} />
             : explain ? <Explain what={explain} nodes={nodes} log={log} onClose={() => setExplain(null)} />
             : snap && !shownNotices.length && <GoalBar snap={snap} />}
         </MapView>

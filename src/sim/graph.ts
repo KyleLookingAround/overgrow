@@ -225,9 +225,33 @@ export function flowProblem(g: Graph, f: Flow): string | null {
 }
 
 /** Moves a flow: out of one end and into the other. Returns why it couldn't, and then moves nothing. */
+/** The stocks flows have moved since the last snapshot, by node and by graph (runtime only, never saved): the snapshot
+ *  copies those again and reuses its copy of the rest (src/sim/state.ts). `ALL` marks a node changed outside a flow. */
+export type Touched = Map<NodeId, Set<string>>;
+export const ALL = '*';
+const touched = new WeakMap<Graph, Touched>();
+/** Starts (or restarts) noting the stocks flows touch on a graph, and returns what was noted since the last start. */
+export function takeTouched(g: Graph): Touched | undefined {
+  const had = touched.get(g);
+  touched.set(g, new Map());
+  return had;
+}
+const mark = (t: Touched, id: NodeId, stock: string) => {
+  const s = t.get(id);
+  if (s) s.add(stock);
+  else t.set(id, new Set([stock]));
+};
+/** Notes a node as changed outside a flow (a stock set directly, a stock's cap), so the next snapshot copies it again. */
+export const touch = (g: Graph, id: NodeId) => void (touched.has(g) && mark(touched.get(g)!, id, ALL));
+
 export function applyFlow(g: Graph, f: Flow): string | null {
   const bad = flowProblem(g, f);
   if (bad) return bad;
+  const t = touched.get(g);
+  if (t) {
+    if (!isBoundary(f.from)) mark(t, f.from.node, f.from.stock);
+    if (!isBoundary(f.to)) mark(t, f.to.node, f.to.stock);
+  }
   if (!isBoundary(f.from)) {
     const s = g.nodes[f.from.node]!.stocks[f.from.stock]!;
     s.amount = sub(s.amount, f.amount);
@@ -282,10 +306,11 @@ export function imbalance(before: Record<string, number>, after: Record<string, 
 
 /** Flows with the same ends, unit and product merged into one, so a snapshot over several steps stays small. */
 export function mergeFlows(flows: readonly Flow[]): Flow[] {
-  const end = (e: End) => (isBoundary(e) ? '|' + e.boundary : e.node + '.' + e.stock);
   const out = new Map<string, Flow>();
   for (const f of flows) {
-    const k = [f.what, f.unit, f.product ?? '', end(f.from), end(f.to)].join(' ');
+    const a = f.from, b = f.to;
+    const k = f.what + ' ' + f.unit + ' ' + (f.product ?? '') + ' ' + ('boundary' in a ? '|' + a.boundary : a.node + '.' + a.stock) + ' ' +
+      ('boundary' in b ? '|' + b.boundary : b.node + '.' + b.stock);
     const had = out.get(k);
     if (had) had.amount = add(had.amount, f.amount);
     else out.set(k, {...f});
@@ -294,8 +319,16 @@ export function mergeFlows(flows: readonly Flow[]): Flow[] {
 }
 
 /** A copy of a node that later ticks can't change. */
+/** A stock's copy. */
+export const copyStock = (s: Stock): Stock => {
+  const c: Stock = {unit: s.unit, amount: s.amount};
+  if (s.cap !== undefined) c.cap = s.cap;
+  if (s.product !== undefined) c.product = s.product;
+  return c;
+};
+
 export function copyNode(n: GraphNode): GraphNode {
   const stocks: Record<string, Stock> = {};
-  for (const k in n.stocks) stocks[k] = {...n.stocks[k]!};
+  for (const k in n.stocks) stocks[k] = copyStock(n.stocks[k]!);
   return {...n, box: n.box && {...n.box}, stocks, levers: {...n.levers}, totals: {...n.totals, land: {...n.totals.land}}};
 }

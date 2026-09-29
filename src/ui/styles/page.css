@@ -311,8 +311,31 @@ button.num {
   border-radius: var(--radius);
   font-size: var(--text-small);
 }
-.notice span {
+.notice-text {
+  flex: 1;
+  min-width: 0;
+  padding: var(--gap-tiny) 0;
+  min-height: var(--touch);
+  background: none;
+  color: inherit;
+  border: 0;
+  font: inherit;
+  text-align: left;
+}
+/* one line until tapped: the text cut with an ellipsis, its Explain hidden */
+.notice-line {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.notice.open .notice-line {
+  white-space: normal;
   overflow-wrap: anywhere;
+}
+.notice-waiting {
+  font-size: var(--text-tiny);
+  opacity: 0.85;
 }
 .notice-close {
   background: none;
@@ -320,11 +343,11 @@ button.num {
   border: 0;
 }
 .notice-more {
-  display: block;
+  display: none;
   opacity: 0.85;
 }
-.notice span {
-  padding: var(--gap-tiny) 0;
+.notice.open .notice-more {
+  display: block;
 }
 .notice-action {
   background: var(--accent);
@@ -646,4 +669,54 @@ select {
   .panel.folded .panel-body {
     display: block;
   }
+}
+
+/* the goal's prize: a second, quieter line under the goal (the playable garden) */
+.goal-bar {
+  flex-wrap: wrap;
+}
+.goal-prize {
+  flex-basis: 100%;
+  order: 3;
+  margin: 0;
+  font-size: var(--text-tiny);
+}
+
+/* the shed's offers, "Dig this bed" on a plot's card, and the year's card */
+.offer {
+  margin: var(--gap-small) 0 var(--gap);
+}
+.offer p {
+  margin: 0 0 var(--gap-tiny);
+}
+.offer .short {
+  font-style: italic;
+}
+.dig-offer p {
+  margin: var(--gap-tiny) 0;
+}
+button.dig {
+  margin: var(--gap-tiny) 0 var(--gap-small);
+}
+.year-card p {
+  margin: 0 0 var(--gap-small);
+}
+.lessons {
+  margin: 0 0 var(--gap-small);
+  padding-left: var(--gap);
+}
+
+/* the first sale: the money flashes once (a still ring under reduced motion); a moment's notice is the accent's */
+.money.flash {
+  box-shadow: 0 0 0 var(--pulse-ring) var(--accent);
+  border-radius: var(--radius);
+  animation: unfold-pulse var(--pulse-ms) ease-out 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .money.flash {
+    animation: none;
+  }
+}
+.notice.moment {
+  box-shadow: 0 0 0 var(--pulse-ring) var(--accent);
 }

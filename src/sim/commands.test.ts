@@ -33,11 +33,15 @@ describe('commands', () => {
     expect(sim.apply({type: 'plan', node: 'nowhere', lever: 'x', value: 1}).rejected).toMatch(/no node/);
   });
 
-  it('refuses an upgrade nobody sells, and records one a system carries out', () => {
-    const shed: System = {name: 'shed', on: {}, command: (cmd) => (cmd.type === 'upgrade' && cmd.id === 'hose' ? null : undefined)};
+  it('refuses a buy before its offer unfolds and one nobody sells, and records one a system carries out', () => {
+    const shed: System = {name: 'shed', on: {}, command: (cmd) => (cmd.type === 'buy' && cmd.id === 'hose' ? null : undefined)};
     const sim = createSim(1, [shed]);
-    expect(sim.apply({type: 'upgrade', id: 'tractor'}).rejected).toMatch(/no upgrade/);
-    expect(sim.apply({type: 'upgrade', id: 'hose'}).rejected).toBeNull();
+    expect(sim.apply({type: 'buy', id: 'hose'}).rejected).toMatch(/isn’t offering/);
+    const save = JSON.parse(sim.save());
+    save.seen = ['shed.hose'];
+    sim.apply({type: 'load', save: JSON.stringify(save)});
+    expect(sim.apply({type: 'buy', id: 'tractor'}).rejected).toMatch(/isn’t offering/);
+    expect(sim.apply({type: 'buy', id: 'hose'}).rejected).toBeNull();
     expect(JSON.parse(sim.save()).upgrades).toEqual(['hose']);
   });
 });
@@ -101,6 +105,6 @@ describe('unfolding and the cards', () => {
     const i = s.seen.indexOf('garden.soil');
     expect(before).toBe(0);
     expect(i).toBeGreaterThan(0);
-    expect(s.seen.slice(i)).toEqual(['garden.soil', 'garden.carbon', 'household.footprint']);
+    expect(s.seen.slice(i)).toEqual(['garden.soil', 'garden.carbon', 'household.footprint', 'shed.compost-bin']);
   });
 });

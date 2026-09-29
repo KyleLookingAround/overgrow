@@ -46,7 +46,18 @@ export interface CalendarDate {
 const SEASONS = ['winter', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'autumn', 'autumn', 'autumn', 'winter', 'winter'] as const;
 
 /** The calendar at a game hour, from the start date in early spring (a UTC calendar: no clock change). */
+/** The last few dates asked for: every system asks for the step's date, so a tick asks for the same few again and again.
+ *  Frozen, since they're shared. */
+const recent: {hours: number; date: CalendarDate}[] = [];
 export function calendar(hours: number): CalendarDate {
+  for (const r of recent) if (r.hours === hours) return r.date;
+  const date = Object.freeze(dateAt(hours));
+  recent.unshift({hours, date});
+  if (recent.length > 4) recent.pop();
+  return date;
+}
+
+function dateAt(hours: number): CalendarDate {
   const ms = START_MS + hours * HOUR_MS, d = new Date(ms);
   const y = d.getUTCFullYear(), m = d.getUTCMonth();
   const dayIndex = Math.floor((ms - START_YEAR_MS) / (24 * HOUR_MS));
@@ -124,8 +135,34 @@ function hash(s: string): number {
 }
 
 /** The dice a system gets on one tick: a stream from the seed, the system, the tick and the hour, never shared. */
+const hashes = new Map<string, number>();
 export function systemRng(seed: number, system: string, tick: Tick, hours: number): Rng {
-  return rng((hash(`${system}:${tick}`) ^ Math.imul(seed | 0, 0x9e3779b1) ^ Math.imul(Math.round(hours) | 0, 0x85ebca6b)) >>> 0);
+  const name = `${system}:${tick}`;
+  let h = hashes.get(name);
+  if (h === undefined) hashes.set(name, (h = hash(name)));
+  return rng((h ^ Math.imul(seed | 0, 0x9e3779b1) ^ Math.imul(Math.round(hours) | 0, 0x85ebca6b)) >>> 0);
+}
+
+/** A system's context for one tick: its dice are made only if it asks for them (most systems draw none), the same
+ *  stream whenever they're made. */
+class Context implements TickContext {
+  private dice: Rng | null = null;
+  readonly dt: number;
+  readonly level: number;
+  readonly graph: TickContext['graph'];
+  readonly flow: TickContext['flow'];
+  readonly activity: TickContext['activity'];
+  constructor(base: Omit<TickContext, 'tick' | 'rng' | 'date' | 'hours'>, readonly tick: Tick, readonly hours: number, readonly date: CalendarDate,
+    private readonly seed: number, private readonly system: string) {
+    this.dt = base.dt;
+    this.level = base.level;
+    this.graph = base.graph;
+    this.flow = base.flow;
+    this.activity = base.activity;
+  }
+  get rng(): Rng {
+    return (this.dice ??= systemRng(this.seed, this.system, this.tick, this.hours));
+  }
 }
 
 /**
@@ -142,7 +179,7 @@ export function runStep(
   for (const tick of ticksCrossed(from, to))
     for (const s of systems) {
       const fn = s.on[tick];
-      if (fn) fn({...base, tick, hours: to, date, rng: systemRng(seed, s.name, tick, to)});
+      if (fn) fn(new Context(base, tick, to, date, seed, s.name));
     }
   return to;
 }

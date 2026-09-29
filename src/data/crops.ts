@@ -16,10 +16,23 @@
 // cut of salad is eaten, half a radish's is in its leaves, and a bean's haulm holds more than its pods. The P and K in a
 // kg of fresh produce going to the heap as scraps are McCance and Widdowson's (The Composition of Foods, 7th ed.,
 // 2014) rough middle for vegetables: about 0.3 g of phosphorus and 3 g of potassium.
+// The winter crops (the playable garden) are the RHS's for an autumn sowing that stands the winter: hardy salad leaves
+// (lamb's lettuce, mizuna, land cress) sown from mid-August, cropping slowly through the winter and faster in spring;
+// broad beans ('Aquadulce') sown in October and November for pods in early June; garlic planted from October for
+// bulbs in July; onion sets for overwintering planted from mid-September for bulbs in late June, garlic and onions
+// keeping for months once dried; and a green manure of grazing rye and winter vetch sown from mid-August and dug in
+// in spring, holding the winter's nitrate from leaching and giving the bed its organic matter back (RHS, "Green
+// manures"; Thorup-Kristensen et al. 2003, "Catch crops and green manures as biological tools in nitrogen management
+// in temperate zones"). Broad beans and vetch grow from about 0 °C (Vicia faba's base temperature; Patrick & Stoddard
+// 2010), garlic and onions from about 1 °C. Their uptake and yields are RB209's and the RHS's rough sizes. Kale (sown in
+// spring) and leeks (planted out in early summer from a windowsill sowing) are the summer plan's crops for the winter:
+// both stand hard frosts and are picked a few leaves or a few leeks at a time from autumn to spring (RHS, "Kale" and
+// "Leeks"). In the rotation, onions, garlic and leeks go with the legumes (RHS, "Crop rotation": a four-bed plan of
+// potatoes, legumes and onions, brassicas, and roots and salads).
 
-export type CropId = 'salad' | 'radish' | 'lettuce' | 'beans' | 'potatoes' | 'tomatoes' | 'marigolds';
+export type CropId = 'salad' | 'radish' | 'lettuce' | 'beans' | 'potatoes' | 'tomatoes' | 'kale' | 'leeks' | 'marigolds' | 'winter-salad' | 'broad-beans' | 'garlic' | 'onions' | 'green-manure';
 /** For rotation: the botanical family (a bed shouldn't grow the same one twice running). */
-export type Family = 'legume' | 'brassica' | 'solanum' | 'daisy';
+export type Family = 'legume' | 'brassica' | 'solanum' | 'daisy' | 'allium' | 'cover';
 /** What the kitchen groups a product under (src/data/kitchen.ts). */
 export type Group = 'salads' | 'potatoes' | 'tomatoes' | 'greens';
 
@@ -33,6 +46,10 @@ export interface CropSpec {
   group?: Group;
   /** Flowers: grown for the bees and ladybirds, never in the rotation. */
   flower?: true;
+  /** Sown in autumn to stand the winter: offered as a bed's winter crop, never in the summer rotation. */
+  winter?: true;
+  /** A green manure: grown for the soil, dug in where it stands (its residue and all it took go back into the bed). */
+  dugIn?: true;
   /** Klein et al. (2007): the share of its yield lost with no pollinators at all (none for a crop harvested for its
    *  leaves or roots, or one the wind or its own flowers pollinate). */
   pollinated?: number;
@@ -109,11 +126,53 @@ export const CROPS: Record<CropId, CropSpec> = {
     kc: {ini: 0.6, mid: 1.15, end: 0.8}, p: 0.4, ky: 1.05, yield: 4.0, residue: 1.5, uptake: {n: 150, p: 25, k: 250}, harvestIndex: 0.6, frost: 'plant', pick: 0.15,
     pests: ['aphids', 'blight'], pollinated: 0.05,
   },
+  kale: {
+    id: 'kale', name: 'Kale', product: 'kale', family: 'brassica', group: 'greens', sow: {from: [4, 1], to: [6, 30]}, how: 'sow',
+    base: 4, dd: {emerge: 80, mature: 900, picking: 1300}, harvest: 'repeat', first: 0.1, keeps: {plant: 30, kitchen: 5},
+    kc: {ini: 0.7, mid: 1.05, end: 0.95}, p: 0.45, ky: 1.0, yield: 2.5, residue: 1.0, uptake: {n: 150, p: 20, k: 150}, harvestIndex: 0.5, frost: 'none', pick: 0.4,
+    pests: ['slugs'],
+  },
+  leeks: {
+    id: 'leeks', name: 'Leeks', product: 'leeks', family: 'allium', group: 'greens', sow: {from: [6, 1], to: [7, 31]}, how: 'plant',
+    base: 3, dd: {emerge: 0, mature: 1100, picking: 1000}, harvest: 'repeat', first: 0.1, keeps: {plant: 40, kitchen: 10},
+    kc: {ini: 0.7, mid: 1.0, end: 0.95}, p: 0.3, ky: 1.1, yield: 3.0, residue: 0.5, uptake: {n: 130, p: 18, k: 140}, harvestIndex: 0.7, frost: 'none', pick: 0.15,
+    pests: ['slugs'],
+  },
   marigolds: {
     id: 'marigolds', name: 'French marigolds', product: 'marigolds', family: 'daisy', flower: true, sow: {from: [5, 20], to: [6, 30]}, how: 'plant',
     base: 8, dd: {emerge: 0, mature: 250, picking: 1100}, harvest: 'repeat', first: 0, keeps: {plant: 0, kitchen: 1},
     kc: {ini: 0.6, mid: 0.9, end: 0.8}, p: 0.5, ky: 1.0, yield: 0, residue: 0.8, uptake: {n: 40, p: 8, k: 50}, harvestIndex: 0, frost: 'plant', pick: 0,
     pests: ['slugs'],
+  },
+  'winter-salad': {
+    id: 'winter-salad', name: 'Winter salad leaves', product: 'winter-salad', family: 'brassica', group: 'salads', winter: true, sow: {from: [8, 15], to: [10, 15]}, how: 'sow',
+    base: 0, dd: {emerge: 70, mature: 420, picking: 1100}, harvest: 'repeat', first: 0.2, keeps: {plant: 12, kitchen: 5},
+    kc: {ini: 0.7, mid: 0.95, end: 0.9}, p: 0.3, ky: 1.0, yield: 1.4, residue: 0.3, uptake: {n: 70, p: 10, k: 80}, harvestIndex: 0.75, frost: 'none', pick: 0.5,
+    pests: ['slugs'],
+  },
+  'broad-beans': {
+    id: 'broad-beans', name: 'Broad beans', product: 'broad-beans', family: 'legume', group: 'greens', winter: true, sow: {from: [10, 15], to: [11, 30]}, how: 'sow',
+    base: 0, dd: {emerge: 150, mature: 1250, picking: 350}, harvest: 'repeat', first: 0, keeps: {plant: 6, kitchen: 5},
+    kc: {ini: 0.5, mid: 1.15, end: 1.1}, p: 0.45, ky: 1.15, yield: 1.6, residue: 1.2, uptake: {n: 20, p: 15, k: 70}, harvestIndex: 0.4, frost: 'none', pick: 0.4,
+    pests: ['slugs', 'aphids'], pollinated: 0.05,
+  },
+  garlic: {
+    id: 'garlic', name: 'Garlic', product: 'garlic', family: 'allium', group: 'greens', winter: true, sow: {from: [10, 1], to: [12, 15]}, how: 'plant',
+    base: 1, dd: {emerge: 160, mature: 1750, picking: 200}, harvest: 'once', keeps: {plant: 0, kitchen: 180},
+    kc: {ini: 0.7, mid: 1.0, end: 0.7}, p: 0.3, ky: 1.1, yield: 1.1, residue: 0.3, uptake: {n: 100, p: 15, k: 90}, harvestIndex: 0.7, frost: 'none', pick: 0.2,
+    pests: ['slugs'],
+  },
+  onions: {
+    id: 'onions', name: 'Overwintering onions', product: 'onions', family: 'allium', group: 'greens', winter: true, sow: {from: [9, 15], to: [10, 31]}, how: 'plant',
+    base: 1, dd: {emerge: 120, mature: 1700, picking: 200}, harvest: 'once', keeps: {plant: 0, kitchen: 150},
+    kc: {ini: 0.7, mid: 1.05, end: 0.75}, p: 0.3, ky: 1.1, yield: 2.2, residue: 0.3, uptake: {n: 110, p: 20, k: 120}, harvestIndex: 0.75, frost: 'none', pick: 0.1,
+    pests: ['slugs'],
+  },
+  'green-manure': {
+    id: 'green-manure', name: 'Green manure (rye and vetch)', product: 'green-manure', family: 'cover', winter: true, dugIn: true, sow: {from: [8, 15], to: [10, 31]}, how: 'sow',
+    base: 1, dd: {emerge: 60, mature: 900, picking: 400}, harvest: 'once', keeps: {plant: 0, kitchen: 1},
+    kc: {ini: 0.6, mid: 1.0, end: 0.9}, p: 0.5, ky: 1.0, yield: 0, residue: 2.5, uptake: {n: 90, p: 10, k: 70}, harvestIndex: 0, frost: 'none', pick: 0,
+    pests: [],
   },
 };
 
@@ -123,10 +182,14 @@ export const PRODUCE = {n: 0.0025, p: 0.0003, k: 0.003} as const;
 export const CROP_IDS = Object.keys(CROPS) as CropId[];
 /** The flowers the plan can put in a bed or along its edge. */
 export const FLOWER_IDS = CROP_IDS.filter((c) => CROPS[c].flower);
+/** The crops a bed's winter line offers: sown in autumn when the summer plan has nothing in season. */
+export const WINTER_IDS = CROP_IDS.filter((c) => CROPS[c].winter);
 
 /** The family rotation the gardener follows when a bed's plan says so: beans, then brassicas, then potatoes and
  *  tomatoes, then lettuce, and round again (RHS, "Crop rotation"). */
 export const ROTATION: readonly Family[] = ['legume', 'brassica', 'solanum', 'daisy'];
+/** The rotation's step a family takes: onions, garlic and leeks go with the legumes; a green manure isn't in it. */
+export const STEP_OF: Partial<Record<Family, Family>> = {legume: 'legume', allium: 'legume', brassica: 'brassica', solanum: 'solanum', daisy: 'daisy'};
 
 /**
  * How fast crops develop against the real degree days: 1, the real pace. The owner chose a head start (#11) over a
@@ -134,5 +197,6 @@ export const ROTATION: readonly Family[] = ['legume', 'brassica', 'solanum', 'da
  */
 export const GROWTH_PACE = 1;
 
-/** Degrees of frost a cover keeps off a bed, by cover (part 6's cold frame adds itself here). */
-export const COVERS: Record<string, number> = {};
+/** What a cover does for a bed, by cover: the degrees of frost it keeps off, and the days it moves a sowing season earlier
+ *  in spring and later in autumn (the cold frame, src/data/shed.ts). */
+export const COVERS: Record<string, {frost: number; days: number}> = {'cold-frame': {frost: 3, days: 21}};

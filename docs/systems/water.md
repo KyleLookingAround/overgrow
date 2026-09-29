@@ -8,3 +8,7 @@ The FAO-56 soil water balance for each bed and the lawn, and the butt filling fr
 - **The butt.** The shed's roof (3.9 m², about 85 % of its rain reaching the gutter) drains into the butt; above its 200 L cap the rest overflows to `runoff`. The gardener's can takes water out of it (`docs/systems/gardener.md`), then the tap once it's empty.
 - **Its speed.** With the soil and the weather, about 0.17 ms a garden game day headless (185 flows a day, most of them the hourly evapotranspiration), inside the part's 0.25 ms. The step-length test runs the weather, water and soil alone: the gardener's watering belongs to the garden's hourly step.
 - **Explain.** Rain, evapotranspiration, drainage, runoff, overflow and watering are effects at each soil and the butt, and a bed's moisture opens its card (`docs/systems/explain.md`).
+
+## The playable garden (#54)
+
+A bed under the cold frame (its `cover` lever) gets no rain; the gardener waters it (`docs/systems/shed.md`).

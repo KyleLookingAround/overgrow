@@ -80,9 +80,12 @@ export interface StepUpRules {
   health: number;
 }
 
-/** Proposed by the spec ("What makes the jump feel earned"); the bot's baselines set the final figures. */
+/** Proposed by the spec ("What makes the jump feel earned"); the bot's baselines set the final figures. The garden's are
+ *  its measured ceiling (the playable garden, #54): six beds, winter crops and the shed's kit give about 0.26 kg a day
+ *  and a Reliability of about 40 over the second year on seeds 1 to 3, where two beds alone give 0.07 and 12; the spec's
+ *  1.5 kg a day is an allotment's. Its Reliability is the share of the household's veg met, week by week (src/sim/goal.ts). */
 export const STEP_UP: Readonly<Record<number, StepUpRules>> = {
-  1: {from: 1, output: 1.5, reliability: 60, health: 50},
+  1: {from: 1, output: 0.25, reliability: 35, health: 50},
 };
 
 /** What to do about each requirement, in a line for the goal bar. */

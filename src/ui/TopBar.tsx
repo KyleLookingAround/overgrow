@@ -5,6 +5,7 @@
 // at once with "Show all details". The speed is a command through the sim like any other change to the game. The money and the dial open
 // their Explain cards. When the bar is narrow (a container query on its own width, the owner's wins W2 and W11) the four
 // speeds fold into one button that shows the speed and cycles it, a tap on a paused game resuming it.
+// The money flashes once at the first sale (src/ui/moments.ts).
 import {LEVELS, SPEEDS, START, type Speed} from '../data/ladder';
 import {shows} from '../data/unfold';
 import {calendar} from '../sim/clock';
@@ -49,7 +50,9 @@ const SPEED_LABEL: Record<Speed, string> = {0: 'Pause', 1: '1×', 2: '2×', 4: '
 export const nextSpeed = (s: Speed): Speed => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length]!;
 
 /** The snapshot the map is showing, its hour, and the speed last set (which can be a step ahead of the map). */
-export function TopBar({snap, hours, speed, onSpeed, onExplain}: {snap: Snapshot; hours: number; speed: Speed; onSpeed: (s: Speed) => void; onExplain: (cause: string, at: string | null) => void}) {
+export function TopBar({snap, hours, speed, flash = false, onSpeed, onExplain}: {
+  snap: Snapshot; hours: number; speed: Speed; flash?: boolean; onSpeed: (s: Speed) => void; onExplain: (cause: string, at: string | null) => void;
+}) {
   const d = calendar(hours), level = LEVELS[snap.level - 1]!;
   const day = snap.nodes.find((n) => n.kind === 'atmosphere')?.levers.weather as unknown as WeatherDay | null | undefined;
   const all = snap.settings.details === true, see = (k: string) => shows(snap.seen, k, all);
@@ -62,7 +65,7 @@ export function TopBar({snap, hours, speed, onSpeed, onExplain}: {snap: Snapshot
         {temp !== null && <span class="temp" title="Air temperature"> {temp < 0 ? '−' : ''}{Math.abs(temp)} °C</span>}
         {d.year > 1 && <span class="year"> · year {d.year}</span>}
       </span>
-      {see('garden.money') && <button type="button" class="money plain" title="Money" aria-label={`Money: ${money(snap.money)}. Explain`} onClick={() => onExplain('money', 'gate')}>{money(snap.money)}</button>}
+      {see('garden.money') && <button type="button" class={flash ? 'money plain flash' : 'money plain'} title="Money" aria-label={`Money: ${money(snap.money)}. Explain`} onClick={() => onExplain('money', 'gate')}>{money(snap.money)}</button>}
       {see('garden.carbon') && (
         <CarbonDial kg={snap.carbon} shop={see('household.footprint') ? snap.nodes.find((n) => n.id === HOUSEHOLD)?.stocks.carbon?.amount ?? 0 : null} onExplain={() => onExplain('carbon', 'heap')} />
       )}
