@@ -14,6 +14,10 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 - [The first slice's second coordinator (#46) · 29 Sep 2026](lessons/46-second-coordinator.md)
 - [The first slice's first coordinator · 28–29 Sep 2026 (#28)](lessons/28-first-coordinator.md)
 
+### Exchange
+
+- [Lessons from Final Call, carried into the playbooks (#57) · 29 Sep 2026](lessons/57-lessons-from-final-call.md)
+
 ### Model
 
 - [The agency and committee models, ahead of parts 8 to 10 (#40) · 29 Sep 2026](lessons/2026-09-29-09-agency-and-committee-models.md)

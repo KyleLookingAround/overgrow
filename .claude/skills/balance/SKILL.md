@@ -40,6 +40,9 @@ Make the change and run the same three seeds into `build/after.log`.
 - The Balance workflow (`balance.yml`) runs the seeds on a PR once when it opens or leaves draft, and again when the `balance` label is added; its table is in the run's summary. Report its tables rather than repeating the runs, unless you're tuning. To run it again after a tuning push (or before merging, on the latest head), remove the label and add it again: only adding it starts a run.
 - Tune a constant only inside the rough size its model's sources give (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`); outside it is a design change for the owner.
 - A part of a split feature reports its numbers and tunes only outside 15% of the baselines; the whole feature is rebalanced once, with every part in.
+- Before tuning a constant, run one seed and check that `PLAY` moves: a constant can be dead, overwritten where it's used (Final Call's `STAND` was set again by each layout, so a cheaper gate changed nothing).
+- A wall the bot hits can be the bot's own policy, not the game's: Final Call's bot raised fares to 240% where the tips stop at 120%, and a slow first morning left it stuck for 1,000 hours. Read the policy's values in the run before calling a stall a pacing problem, and stop the bot where the game's own guidance stops (Final Call, `lessons/171-release-b1-pacing.md`).
+- A run that ends before a milestone's upper bound can't call it `off`: make the run longer than the longest range, or a missing level reads as "not run long enough" and hid level 9 on all three seeds until the audit (Final Call, `lessons/155-audits.md`).
 - A level zoomed out is fed by the level below's numbers (the spec's carry-over rule), so a change to the garden can move the allotment's pacing too: compare every milestone, not only the one you changed.
 
 ## Baselines
