@@ -29,5 +29,10 @@ export function amount(s: Stock): string {
   return `${num(s.amount)}${s.cap !== undefined ? ' of ' + num(s.cap) : ''}${u ? ' ' + u : ''}`;
 }
 
-/** A small mass in kg as grams below a kilogram: "12 g", "1.2 kg". */
-export const grams = (kg: number) => (Math.abs(kg) < 1 ? `${num(kg * 1000)} g` : `${num(kg)} kg`);
+/** A small mass in kg as grams below a kilogram: "12 g", "1.2 kg". The unit is chosen after rounding (never "1,000 g"),
+ *  and nothing reads "−0". */
+export function grams(kg: number): string {
+  const g = Math.round(Math.abs(kg) * 1000) === 0 ? 0 : kg * 1000;
+  if (Math.abs(g) >= 999.5) return `${num(kg)} kg`;
+  return `${num(Math.abs(g) >= 10 ? Math.round(g) : g) || 0} g`;
+}

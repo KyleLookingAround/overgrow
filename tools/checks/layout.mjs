@@ -1,7 +1,8 @@
 // The page's shell at every size (320×568, 568×320, 390×844, 844×390, 768×1024, 1440×900): the top bar, the map and
 // the panel each inside the viewport, the panel below the map as a sheet on portrait phones and beside it otherwise, no
-// overflow, every button at least 40 px on touch, the sheet folding to its heading, the dark scheme, and the top bar
-// and panel working by keyboard alone.
+// overflow, the panel's tab strip fitting its row with the sheet's toggle, every button and menu at least 40 px on
+// touch, the sheet still showing a useful panel under the fixed chrome, the sheet folding to its heading, the dark
+// scheme, and the top bar and panel working by keyboard alone.
 import {join} from 'node:path';
 
 const box=(page,sel)=>page.evaluate(s=>{const e=document.querySelector(s);if(!e)return null;const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}},sel);
@@ -23,7 +24,18 @@ export default async function({ok,open,out}){
       !inside(panel,w,h)&&'the panel isn\'t in view',!inside(head,w,h)&&'the panel\'s heading isn\'t in view',!placed&&(sheet?'the sheet isn\'t below the map':'the panel isn\'t beside the map'),
       map&&top&&map.y<top.b-1&&'the map is under the top bar',flow.sw>flow.cw&&`scroll width ${flow.sw}`,flow.sh>flow.ch&&`scroll height ${flow.sh}`,errs[0]].filter(Boolean);
     ok(`layout: at ${w}×${h} the top bar, map and ${sheet?'sheet below':'panel beside'} are in view, with no overflow or errors`,!bad.length,bad.join('; '));
+    // the tab strip and the sheet's toggle share the panel's head: both inside it, side by side, with nothing overflowing
+    const strip=await page.evaluate(()=>{const h=document.querySelector('.panel-head'),t=document.querySelector('.tabs'),g=document.querySelector('.sheet-toggle');
+      if(!h||!t)return null;const hb=h.getBoundingClientRect(),tb=t.getBoundingClientRect(),gb=g?.offsetParent?g.getBoundingClientRect():null;
+      return {over:h.scrollWidth-h.clientWidth,inside:tb.left>=hb.left-0.5&&tb.right<=hb.right+0.5,clear:!gb||gb.left>=tb.right,w:Math.round(tb.width),head:Math.round(hb.width),tabs:t.children.length}});
+    ok(`layout: at ${w}×${h} the panel's tab strip fits its row`,strip&&strip.tabs>=2&&strip.over<=0&&strip.inside&&strip.clear,JSON.stringify(strip));
+    if(sheet){
+      const body=await box(page,'.panel-body');
+      ok(`layout: at ${w}×${h} the sheet shows at least 150 px of panel under the top bar, the map and its head`,body&&body.h>=150,`body ${body&&Math.round(body.h)} px`);
+    }
     if(touch){
+      const menus=await page.evaluate(()=>[...document.querySelectorAll('select')].filter(s=>s.offsetParent).map(s=>{const r=s.getBoundingClientRect();return [s.id||s.getAttribute('aria-label'),r.width,r.height]}).filter(([,sw,sh])=>sh<40));
+      ok(`layout: at ${w}×${h} every menu is at least 40 px tall`,!menus.length,menus.slice(0,3).map(s=>`${s[0]} ${Math.round(s[1])}×${Math.round(s[2])}`).join(', '));
       const small=await page.evaluate(()=>[...document.querySelectorAll('button')].filter(b=>b.offsetParent).map(b=>{const r=b.getBoundingClientRect();return [b.textContent.trim()||b.getAttribute('aria-label'),r.width,r.height]}).filter(([,bw,bh])=>bw<40||bh<40));
       ok(`layout: at ${w}×${h} every button is at least 40 px`,!small.length,small.slice(0,3).map(s=>`${s[0]} ${Math.round(s[1])}×${Math.round(s[2])}`).join(', '));
     }

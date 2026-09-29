@@ -11,6 +11,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
 ### Runbook
 
+- [Easy wins from Final Call (#14) · 29 Sep 2026](lessons/14-final-call-wins.md)
 - [The runbook, from Final Call, then reworked with the owner (#1) · 28 Sep 2026](lessons/1-runbook.md)
 
 ### Spec
@@ -19,6 +20,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Not sorted yet
 
+- [Crops and the gardener, the first slice’s part 3 (#12) · 29 Sep 2026](lessons/12-crops-and-gardener.md)
 - [Weather, soil and water, the first slice's part 2 (#7) · 29 Sep 2026](lessons/7-weather-soil-water.md)
 - [The graph and the clock, the first slice's part 1 (#5) · 28 Sep 2026](lessons/5-graph-and-clock.md)
 <!-- /joined:lessons -->

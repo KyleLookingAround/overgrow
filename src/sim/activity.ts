@@ -1,7 +1,7 @@
 // Activities: who is doing what, where, from when to when (the gardener watering bed 3 from 08:00 to 08:20; a lorry on
 // a run leaving at 05:00). The snapshot carries them beside the flows, and the map animates from them, so everything
 // that moves is drawn from something the sim has (the founding spec, "The look: a living map"). Part 1 defines the
-// shape and how the map places one; the first real activity is the gardener's, in part 3. docs/systems/map.md.
+// shape and how the map places one; the gardener's are the first real ones (src/sim/gardener.ts). docs/systems/map.md.
 import type {Box, NodeId, Unit} from './graph';
 
 export interface Activity {

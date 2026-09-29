@@ -35,7 +35,8 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
       {shown ? <TopBar snap={shown.snap} hours={shown.hour} speed={shown.speed} onSpeed={speed} /> : <header class="topbar"><span class="soft">Starting…</span></header>}
       <main class="main">
         <MapView loop={loop} onSelect={(id) => { setSelected(id); setOpen(true); }} onReady={onRenderer} />
-        <Panel nodes={shown?.snap.nodes ?? []} selected={selected} onSelect={setSelected} open={open} onToggle={() => setOpen(!open)} />
+        <Panel nodes={shown?.snap.nodes ?? []} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null}
+          selected={selected} onSelect={setSelected} open={open} onToggle={() => setOpen(!open)} send={(cmd) => void sim.send(cmd)} />
       </main>
     </div>
   );

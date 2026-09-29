@@ -1,17 +1,16 @@
-// The save format: versioned JSON, with one migration step per version so every old save keeps loading. The sim only
-// turns a state into text and back; where the text is kept is src/app/storage.ts (localStorage today, IndexedDB once a
-// save passes 1 MB, behind the same two calls). Never rename or remove a saved field: add one with a default and a
-// migration step. docs/systems/saving.md says how it works.
-import {PLACES} from '../data/garden';
+// The save format: versioned JSON, with a migration step per version once the game is released. The sim only turns a
+// state into text and back; where the text is kept is src/app/storage.ts (localStorage today, IndexedDB once a save
+// passes 1 MB, behind the same two calls). Until the first release (part 15) the saved shape changes freely and an older
+// save starts a new game; from then on, never rename or remove a saved field: add one with a default and a migration
+// step (docs/decisions/ADR-2026-09-29-no-save-compatibility-before-release.md). docs/systems/saving.md says how it works.
 import {SPEEDS} from '../data/ladder';
-import {startingSoil} from './models/soil';
 import {rng} from './random';
-import {ATMOSPHERE, type State} from './state';
+import type {State} from './state';
 
 /** The one key the game saves under (the project notes). */
 export const SAVE_KEY = 'overgrow-save-v1';
-/** The version this build writes. Raise it with a migration step whenever the saved shape changes. */
-export const SAVE_VERSION = 2;
+/** The version this build writes. Raise it whenever the saved shape changes (with a migration step once released). */
+export const SAVE_VERSION = 3;
 
 /** What's written: the state less what's runtime only, with the generator's state in place of the generator. */
 export type SaveFile = Omit<State, 'rng' | 'rejected' | 'errors'> & {version: number; rng: number};
@@ -21,37 +20,11 @@ export type Migration = (save: Record<string, unknown>) => Record<string, unknow
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 
 /**
- * One step per version: MIGRATIONS[n] turns a version-n save into a version n+1 one.
- * - 1 → 2 (part 2, weather, soil and water): each bed and the lawn gets its soil's stocks where it has none (moist to
- *   field capacity, its organic matter as carbon, RB209's nutrients), and the air a `weather` lever, drawn at the next
- *   hour. A stock the save already has is kept as it is.
+ * One step per version: MIGRATIONS[n] turns a version-n save into a version n+1 one. Empty until the first release:
+ * before it, saves carry no compatibility promise (docs/decisions/ADR-2026-09-29-no-save-compatibility-before-release.md),
+ * so a change to the saved shape raises the version and an older save starts a new game.
  */
-export const MIGRATIONS: Readonly<Record<number, Migration>> = {
-  1: (save) => {
-    const graph = save.graph;
-    if (!isObj(graph) || !isObj(graph.nodes)) return save;
-    const nodes: Record<string, unknown> = {...graph.nodes};
-    for (const p of PLACES) {
-      const n = nodes[p.id];
-      if (!p.soil || !isObj(n) || !isObj(n.stocks)) continue;
-      const m2 = (k: string) => {
-        const s = (n.stocks as Record<string, unknown>)[k];
-        return isObj(s) && typeof s.amount === 'number' ? s.amount : 0;
-      };
-      const soil = startingSoil(p.soil, m2('land.crops') + m2('land.grass'), m2('land.grass') > 0);
-      const stocks: Record<string, unknown> = {...n.stocks};
-      for (const [k, v] of Object.entries(soil)) {
-        const had = stocks[k];
-        // part 1 gave every place an empty carbon stock: the soil's carbon replaces it
-        if (!had || (k === 'carbon' && isObj(had) && had.amount === 0)) stocks[k] = v;
-      }
-      nodes[p.id] = {...n, stocks};
-    }
-    const air = nodes[ATMOSPHERE];
-    if (isObj(air) && isObj(air.levers) && !('weather' in air.levers)) nodes[ATMOSPHERE] = {...air, levers: {...air.levers, weather: null}};
-    return {...save, graph: {...graph, nodes}};
-  },
-};
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {};
 
 export class SaveError extends Error {}
 
@@ -63,7 +36,7 @@ export function migrate(save: Record<string, unknown>, steps: Readonly<Record<nu
   let s = save;
   while (v < to) {
     const step = steps[v];
-    if (!step) throw new SaveError(`no step to bring version ${v} up to date`);
+    if (!step) throw new SaveError(`it's from an earlier build (version ${v}), before saves were kept across versions`);
     s = {...step(s), version: v + 1};
     v++;
   }

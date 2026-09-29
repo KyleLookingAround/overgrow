@@ -27,7 +27,7 @@ Work through these steps in order. Small fixes (a label, a nit, an obvious bug) 
 - Find the code with `node tools/graph.mjs <name>` (a system, file, function, name or check group), then read only what it lists.
 - A new system is its own file in `src/sim/`; a model is its own file in `src/sim/models/` with its `// Sources:` and `// Simplifies:` header and a plausibility test beside it (`<name>.test.ts`); panels go in `src/ui/`, with every colour and size from `src/ui/styles/tokens.css`. Each file starts with a one-line `//` comment saying what's in it. Notes go in its own `docs/systems/` file.
 - Everything that changes the game is a command through the sim (`src/sim/index.ts`); the UI, managers and the bot all go through it. The sim never names the DOM.
-- New saved state: its field with a default, and a migration step for older saves. Never rename or remove saved fields.
+- New saved state: its field with a default. Until the first release, reshape saved state freely and raise `SAVE_VERSION`, with no migration; from the first release on, a migration step for older saves, and never rename or remove a saved field (`docs/decisions/ADR-2026-09-29-no-save-compatibility-before-release.md`).
 - Randomness that can change the game draws from the game's `Rng`. `Math.random()` only on cosmetic lines ending with `// cosmetic`.
 - `npm run dev` for a live page; `npx vitest` to watch the sim's tests while you work.
 
