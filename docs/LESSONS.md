@@ -11,6 +11,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
 ### Coordinator
 
+- [The first slice's second coordinator (#46) · 29 Sep 2026](lessons/46-second-coordinator.md)
 - [The first slice's first coordinator · 28–29 Sep 2026 (#28)](lessons/28-first-coordinator.md)
 
 ### Model
