@@ -19,4 +19,5 @@ The list is joined from the files here by `node tools/join.mjs` (`npm run build`
 | [ADR-2026-09-28-seeded-randomness](ADR-2026-09-28-seeded-randomness.md) | A seeded random generator and a headless simulation from the first line |
 | [ADR-2026-09-28-static-site-typescript](ADR-2026-09-28-static-site-typescript.md) | A static site built with Vite from TypeScript, with three runtime dependencies |
 | [ADR-2026-09-28-webgl-map](ADR-2026-09-28-webgl-map.md) | The map is drawn with WebGL (PixiJS) from the start |
+| [ADR-2026-09-29-no-save-compatibility-before-release](ADR-2026-09-29-no-save-compatibility-before-release.md) | No save compatibility before the first release |
 <!-- /joined:decisions -->

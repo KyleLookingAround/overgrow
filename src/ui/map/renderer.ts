@@ -1,8 +1,9 @@
 // The map's renderer: PixiJS on WebGL, or Pixi's Canvas 2D renderer where WebGL is missing
 // (docs/decisions/ADR-2026-09-28-webgl-map.md). It draws the level's nodes in the flat, top-down, soft style
 // (src/ui/map/draw.ts), the people and things moving from the snapshot's activities at the view time the clock loop
-// gives it, the weather (a shower crossing the garden while the sim says it rains, a rime while it says there's frost)
-// and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours change; what
+// gives it (one figure for each person, where their latest-started activity puts them, with what they carry), the
+// weather (a shower crossing the garden while the sim says it rains, a rime while it says there's frost), the crops in
+// the beds, and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours change; what
 // moves is a pool of particles placed each frame, so thousands stay cheap. Nothing drawn changes the game.
 // docs/systems/map.md.
 import {Application, Graphics, Particle, ParticleContainer, type Texture} from 'pixi.js';
@@ -11,7 +12,8 @@ import {calendar} from '../../sim/clock';
 import type {Box, GraphNode, NodeId} from '../../sim/graph';
 import type {View} from '../../app/clock-loop';
 import {darkness} from './daylight';
-import {camera, drawLive, drawNode, drawPerson, groundKey, weatherAt, type Camera} from './draw';
+import type {Stage} from '../../sim/models/crops';
+import {camera, drawItem, drawLive, drawNode, drawPerson, groundKey, itemOf, weatherAt, type Camera} from './draw';
 import type {Palette} from './palette';
 
 export interface MapRenderer {
@@ -24,8 +26,9 @@ export interface MapRenderer {
   draw(v: View): void;
   /** The drawn node under a point in CSS pixels, or null. */
   hit(x: number, y: number): NodeId | null;
-  /** For the checks: the last frames' times in ms, and where the first movers are drawn, in CSS pixels. */
-  stats(): {frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats};
+  /** For the checks: the last frames' times in ms, where the first movers are drawn (in CSS pixels), the weather, each
+   *  dug bed's crop stage, and the gardener: what they're doing, where, and what they carry. */
+  stats(): {frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; gardener: GardenerStats | null};
   destroy(): void;
 }
 
@@ -36,6 +39,39 @@ export interface WeatherStats {
   drops: {x: number; y: number}[];
   frost: number;
   soil: Record<string, number>;
+}
+
+export interface GardenerStats {
+  id: string;
+  doing: string;
+  to: string;
+  x: number;
+  y: number;
+  item: string | null;
+}
+
+/** Each person's activities, grouped once per snapshot, in order of starting. */
+const groups = new WeakMap<Activity[], Activity[][]>();
+function byWho(acts: Activity[]): Activity[][] {
+  let out = groups.get(acts);
+  if (!out) {
+    const m = new Map<string, Activity[]>();
+    for (const a of acts) {
+      const l = m.get(a.who);
+      if (l) l.push(a);
+      else m.set(a.who, [a]);
+    }
+    out = [...m.values()];
+    for (const l of out) if (l.length > 1) l.sort((a, b) => a.start - b.start);
+    groups.set(acts, out);
+  }
+  return out;
+}
+/** Where a person is: their latest activity to have started, or the first to come if none has. */
+function current(l: Activity[], hours: number): Activity {
+  let pick = l[0]!;
+  for (let i = 1; i < l.length; i++) if (l[i]!.start <= hours) pick = l[i]!;
+  return pick;
 }
 
 const MIN_PERSON_PX = 6;
@@ -54,14 +90,15 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     canvas, width: w, height: h, resolution: window.devicePixelRatio || 1, autoDensity: true, antialias: true, backgroundAlpha: 0,
     preference: ['webgl', 'canvas'], autoStart: false, sharedTicker: false,
   });
-  const ground = new Graphics(), live = new Graphics(), night = new Graphics();
+  const ground = new Graphics(), live = new Graphics(), night = new Graphics(), carried = new Graphics();
   const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
   const rain = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
-  app.stage.addChild(ground, live, movers, rain, night);
+  app.stage.addChild(ground, live, movers, carried, rain, night);
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null;
   let person: Texture | null = null, drop: Texture | null = null, still = false, garden: Box | null = null;
   const drops: Particle[] = [];
   let weather: WeatherStats = {rain: 0, drops: [], frost: 0, soil: {}};
+  let crops: Record<string, Stage> = {}, gardener: GardenerStats | null = null;
   let boxes = new Map<NodeId, Box>(), drawn: GraphNode[] = [];
   const pool: Particle[] = [], frames: number[] = [];
   let lastMovers: {id: string; x: number; y: number}[] = [];
@@ -179,18 +216,25 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       keyOf = cur.nodes;
       const c = cam!;
       live.clear();
-      const w = weatherAt(v), lived = drawLive(live, v, c, pal, w), fell = shower(v, c, w);
+      const w = weatherAt(v), {crops: grown, ...lived} = drawLive(live, v, c, pal, w), fell = shower(v, c, w);
       weather = {rain: fell.n, drops: fell.out, ...lived};
-      // the people and things moving, from the activities, at the view time
-      const acts = cur.activities, out: {id: string; x: number; y: number}[] = [], shown = movers.particleChildren;
+      crops = grown;
+      // the people and things moving, one figure each, from their activities at the view time
+      const out: {id: string; x: number; y: number}[] = [], shown = movers.particleChildren;
       let used = 0;
-      for (const a of acts) {
+      carried.clear();
+      gardener = null;
+      for (const l of byWho(cur.activities)) {
+        const a = current(l, v.hours);
         if (!place(a, v.hours, c)) continue;
         let p = pool[used];
         if (!p) pool.push((p = new Particle({texture: person!, anchorX: 0.5, anchorY: 0.6})));
         p.x = at.x;
         p.y = at.y;
         if (out.length < 16) out.push({id: a.id, x: at.x, y: at.y});
+        const item = itemOf(a.carry), s = Math.max(MIN_PERSON_PX / 0.5, c.s);
+        if (item) drawItem(carried, item, at.x + 0.2 * s, at.y + 0.02 * s, s, pal);
+        if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item};
         used++;
       }
       if (shown.length !== used) {
@@ -213,7 +257,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       }
       return null;
     },
-    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather}),
+    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather, crops, gardener}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
     },

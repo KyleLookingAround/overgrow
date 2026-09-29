@@ -187,6 +187,98 @@ button[aria-pressed='true'] {
   text-align: right;
 }
 
+/* the panel's tabs, and the cards and plan inside them */
+.tabs {
+  display: flex;
+  gap: var(--gap-tiny);
+}
+.tab[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.card,
+.plan {
+  margin: 0 0 var(--gap);
+  padding: var(--gap-small) 0;
+  border-bottom: 1px solid var(--line);
+}
+.card h3,
+.plan h3,
+.places-title {
+  margin: 0 0 var(--gap-tiny);
+  font-size: var(--text);
+}
+.card h4,
+.place h4 {
+  margin: var(--gap-small) 0 var(--gap-tiny);
+  font-size: var(--text-small);
+  color: var(--soft);
+}
+.job {
+  margin: 0 0 var(--gap-tiny);
+}
+.hours {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+  font-variant-numeric: tabular-nums;
+}
+meter {
+  width: var(--meter-w);
+  height: var(--meter-h);
+}
+.bed-plan {
+  margin: var(--gap-small) 0;
+}
+.bed-plan label {
+  display: block;
+  font-weight: 600;
+}
+.bed-plan p {
+  margin: 0 0 var(--gap-tiny);
+  font-size: var(--text-small);
+}
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-tiny);
+}
+select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-height: var(--touch);
+  padding: 0 var(--gap-small);
+  max-width: 100%;
+}
+.ask dd {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-tiny);
+}
+.held dl {
+  margin: 0;
+}
+.held .row,
+.ask .row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: var(--gap-tiny) 0;
+  border-bottom: 1px solid var(--line);
+}
+.held dd,
+.ask dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.held p {
+  margin: 0;
+}
+
 /* the air's temperature beside the date only where the top bar has room for it: on a phone held upright it would push
    the speeds onto a third row */
 @media (max-width: 479px) {

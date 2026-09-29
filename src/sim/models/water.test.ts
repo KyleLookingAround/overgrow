@@ -7,10 +7,11 @@ import {runStep, type System} from '../clock';
 import {applyFlow, type Flow, type Graph, type LeverValue} from '../graph';
 import {rng} from '../random';
 import {gardenGraph} from '../state';
-import {SYSTEMS} from '../systems';
-import {limitsOf} from './soil';
+import {limitsOf, soil} from './soil';
 import {et0, et0Hargreaves, et0PenmanMonteith, water} from './water';
-import {nextDay, type WeatherDay} from './weather';
+import {nextDay, weather, type WeatherDay} from './weather';
+
+const PHYSICAL = [weather, water, soil];
 
 /** A day's weather held fixed, as the generator would store it. */
 const day = (dayOfYear: number, w: Partial<WeatherDay>): WeatherDay => ({
@@ -100,7 +101,8 @@ describe('water', () => {
         flows.push(f);
         return null;
       }};
-      for (let h = 0; h < 24 * 365 * 10; ) h = runStep(SYSTEMS, ctx, 4, h);
+      // the weather, water and soil alone: the gardener's watering is the garden's, at an hour's step
+      for (let h = 0; h < 24 * 365 * 10; ) h = runStep(PHYSICAL, ctx, 4, h);
       const mm = (what: string) => total(flows, what, 'bed-1') / 3 / 10;
       return {rain: mm('rain'), et: mm('evapotranspiration'), drainage: mm('drainage'), runoff: mm('runoff')};
     };

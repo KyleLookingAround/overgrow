@@ -43,6 +43,19 @@
   --map-frost-max: 0.6; /* how white the hardest frost gets */
   --map-rain: #dbe7f0b3; /* a raindrop's streak */
   --map-night-max: 0.35; /* how dark the map gets at night */
+  --map-drill: #5f4128; /* a sown drill before the shoots are up */
+  --map-leaf: #4f9a3c; /* leaves: salad, beans, potatoes, tomatoes */
+  --map-leaf-light: #8cc36a; /* lettuce and radish tops */
+  --map-leaf-dark: #2f6b2b; /* the outer leaves, and a crop's shadow side */
+  --map-wilt: #b4a55a; /* leaves drooping and yellowing under water stress */
+  --map-blackened: #2b2621; /* killed or blackened by frost */
+  --map-fruit-red: #d6402e; /* ripe tomatoes */
+  --map-fruit-pink: #d9577d; /* radishes showing at the soil */
+  --map-gate: #9c7a4f; /* the honesty box on its post */
+  --map-gate-slot: #4a3824;
+  --map-can: #5f8fa8; /* the watering can */
+  --map-basket: #c99a58; /* the basket of produce */
+  --map-compost: #3a2a19; /* a bucket of compost or waste */
 
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -65,6 +78,8 @@
   --sheet-max: 45vh; /* the sheet's most height on a portrait phone */
   --dial: 40px; /* the carbon dial */
   --focus-ring: 3px;
+  --meter-w: 6rem; /* the gardener's hours and the kitchen's groups */
+  --meter-h: 0.8rem;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -99,5 +114,18 @@
     --map-frost: #c9d6de;
     --map-frost-max: 0.45;
     --map-rain: #b9cad899;
+    --map-drill: #46301c;
+    --map-leaf: #3f7d31;
+    --map-leaf-light: #6c9d52;
+    --map-leaf-dark: #255524;
+    --map-wilt: #8f8446;
+    --map-blackened: #1d1a16;
+    --map-fruit-red: #b8392a;
+    --map-fruit-pink: #b84b6b;
+    --map-gate: #7c613f;
+    --map-gate-slot: #33271a;
+    --map-can: #4c7489;
+    --map-basket: #a07b46;
+    --map-compost: #2a1e12;
   }
 }
