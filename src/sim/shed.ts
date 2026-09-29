@@ -73,7 +73,7 @@ function buy(g: Graph, id: UpgradeId) {
   }
   // the frame goes over the first dug bed with nothing in it, else the first dug bed; the plan can move it
   if (id === 'cold-frame') {
-    const beds = dugBeds(g), bed = beds.find((b) => !b.levers.crop) ?? beds[0];
+    const beds = dugBeds(g).filter((b) => b.levers.cover !== 'greenhouse'), bed = beds.find((b) => !b.levers.crop) ?? beds[0];
     if (bed) bed.levers.cover = 'cold-frame';
   }
 }
@@ -167,12 +167,15 @@ export const shed: System = {
       return r;
     }
     // the cold frame's place: over a dug bed, moved from wherever it was
+    // a raised bed is built, not planned
+    if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && cmd.lever === 'raised' && g.nodes[cmd.node]?.kind === 'bed') return 'a raised bed is bought in the shed';
     if (cmd.type === 'plan' && cmd.lever === 'cover' && g.nodes[cmd.node]?.kind === 'bed') {
+      if (g.nodes[cmd.node]!.levers.cover === 'greenhouse') return 'the greenhouse’s glass stays on';
       if (cmd.value !== null && cmd.value !== 'cold-frame') return 'a cover is the cold frame, or none';
       if (cmd.value === 'cold-frame') {
         if (!owns(g, 'cold-frame')) return 'the garden has no cold frame yet';
         if ((g.nodes[cmd.node]!.stocks['land.crops']?.amount ?? 0) <= 0) return 'the cold frame goes on a dug bed';
-        for (const b of Object.values(g.nodes)) if (b.kind === 'bed' && b.id !== cmd.node && b.levers.cover) b.levers.cover = null;
+        for (const b of Object.values(g.nodes)) if (b.kind === 'bed' && b.id !== cmd.node && b.levers.cover === 'cold-frame') b.levers.cover = null;
       }
       return null;
     }

@@ -158,3 +158,66 @@ describe('digging', () => {
     expect(flows.some((f) => f.what === 'to the heap' && 'node' in f.from && f.from.node === 'bed-2')).toBe(false);
   });
 });
+
+describe('the big buys', () => {
+  it('puts the greenhouse, the hens and the fruit cage on the lawn, its land and soil moved, not made', () => {
+    const sim = game(undefined, 2000), lawn0 = node(sim, 'lawn');
+    for (const id of ['greenhouse', 'hens', 'fruit-cage']) expect(sim.apply({type: 'buy', id}).rejected).toBeNull();
+    const s = sim.snapshot(), lawn = node(sim, 'lawn'), area = (id: string) => Object.entries(node(sim, id).stocks).filter(([k]) => k.startsWith('land.')).reduce((a, [, x]) => a + x.amount, 0);
+    // the three sites' land came out of the lawn's grass
+    expect(lawn0.stocks['land.grass']!.amount - lawn.stocks['land.grass']!.amount).toBeCloseTo(area('greenhouse') + area('hens') + area('fruit'), 6);
+    // the greenhouse's soil is the lawn's that was under it: the two together hold what the lawn held
+    expect(lawn.stocks.water!.amount + node(sim, 'greenhouse').stocks.water!.amount).toBeCloseTo(lawn0.stocks.water!.amount, 6);
+    expect(node(sim, 'greenhouse').levers.cover).toBe('greenhouse');
+    expect(s.rev).toBeGreaterThan(1);
+    expect(sim.apply({type: 'buy', id: 'hens'}).rejected).toMatch(/already/);
+    expect(sim.apply({type: 'plan', node: 'greenhouse', lever: 'cover', value: null}).rejected).toMatch(/greenhouse/);
+  });
+
+  it('keeps the hens: fed from the purse, eggs to the kitchen and eaten, droppings to the heap', () => {
+    const sim = game(undefined, 400);
+    sim.apply({type: 'buy', id: 'hens'});
+    const flows = run(sim, 24 * 30, 1);
+    expect(sum(flows, 'hen feed', 'GBP')).toBeGreaterThan(3);
+    expect(sum(flows, 'hen feed', 'GBP')).toBeLessThan(15);
+    // spring days are long enough for most days' eggs: three hens, about 2.5 a day, 60 g each
+    const eggs = sum(flows, 'collecting eggs', 'kgFood');
+    expect(eggs).toBeGreaterThan(30 * 1.5 * 0.06);
+    expect(eggs).toBeLessThan(30 * 3 * 0.06);
+    expect(flows.some((f) => f.what === 'eating' && f.product === 'eggs')).toBe(true);
+    expect(sum(flows, 'clearing out', 'kgWaste')).toBeGreaterThan(0);
+    expect(sim.snapshot().errors).toEqual([]);
+  });
+
+  it('crops the fruit cage lightly the next summer and fully the one after', () => {
+    const sim = game(undefined, 400);
+    sim.apply({type: 'buy', id: 'fruit-cage'});
+    const years = [0, 1, 2].map(() => sum(run(sim, 24 * 365, 24), 'fruit ripening', 'kgFood'));
+    expect(years[0]).toBe(0);
+    expect(years[1]).toBeGreaterThan(2);
+    expect(years[2]).toBeGreaterThan(years[1]! * 2);
+    expect(years[2]).toBeLessThan(15);
+  });
+
+  it('grows tomatoes under glass faster, with less blight and more frost kept off than in the open', () => {
+    const sim = game(undefined, 400);
+    sim.apply({type: 'buy', id: 'greenhouse'});
+    const gh = node(sim, 'greenhouse');
+    expect(shelter(gh)).toBeGreaterThan(shelter(node(sim, 'bed-1')) + 3);
+    const flows = run(sim, 24 * 180);
+    expect(flows.some((f) => f.what === 'picking' && 'node' in f.from && f.from.node === 'greenhouse')).toBe(true);
+    expect(flows.some((f) => f.what === 'rain' && 'node' in f.to && f.to.node === 'greenhouse')).toBe(false);
+  });
+
+  it('raises one dug bed a buy, drains it faster, and takes the house roof’s rain into the tank', () => {
+    const sim = game(undefined, 400);
+    expect(sim.apply({type: 'buy', id: 'raised-bed'}).rejected).toBeNull();
+    expect(sim.apply({type: 'buy', id: 'raised-bed'}).rejected).toBeNull();
+    expect(sim.apply({type: 'buy', id: 'raised-bed'}).rejected).toMatch(/every dug bed/);
+    expect(node(sim, 'bed-1').levers.raised).toBe(true);
+    const cap = node(sim, 'butt').stocks.water!.cap!;
+    expect(sim.apply({type: 'buy', id: 'water-tank'}).rejected).toBeNull();
+    expect(node(sim, 'butt').stocks.water!.cap).toBeCloseTo(cap + 350);
+    expect(sim.apply({type: 'plan', node: 'bed-1', lever: 'raised', value: false}).rejected).not.toBeNull();
+  });
+});
