@@ -187,6 +187,13 @@ button[aria-pressed='true'] {
   text-align: right;
 }
 
+/* the air's temperature beside the date only where the top bar has room for it: on a phone held upright it would push
+   the speeds onto a third row */
+@media (max-width: 479px) {
+  .temp {
+    display: none;
+  }
+}
 /* a portrait phone: the panel is a sheet below the map, never more than part of the screen */
 @media (max-width: 699px) {
   .panel {

@@ -7,6 +7,7 @@ import type {Activity} from './activity';
 import {levelClock} from './clock';
 import {copyNode, makeGraph, qty, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec} from './graph';
 import {rng, type Rng} from './random';
+import {startingSoil} from './models/soil';
 
 /** A level the player has finished, sealed into one node of the next: its totals and its plan (part 7). */
 export interface SealedNode {
@@ -54,9 +55,11 @@ export function gardenGraph(): Graph {
     const spec: NodeSpec = {id: p.id, kind: p.kind, name: p.name, box: {...p.box}, land: {[p.land]: p.id === 'lawn' ? GARDEN.w * GARDEN.h - built : area(p.box)}};
     if (p.id === 'butt') spec.stocks = {water: {unit: 'L', amount: qty(BUTT_LITRES.start, 'L'), cap: qty(BUTT_LITRES.cap, 'L')}};
     if (p.id === 'kitchen') spec.stocks = {money: {unit: 'GBP', amount: qty(START_MONEY, 'GBP')}};
+    if (p.soil) spec.stocks = startingSoil(p.soil, spec.land![p.land]!, p.land === 'grass');
     return spec;
   });
-  nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null});
+  // the air carries the level's weather (src/sim/models/weather.ts), drawn from the first hour
+  nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null}});
   const edges: Edge[] = WAYS.map((w, i) => ({id: `way-${i + 1}`, from: w.from, to: w.to, carries: [...w.carries]}));
   for (const p of PLACES) edges.push({id: `air-${p.id}`, from: p.id, to: ATMOSPHERE, carries: ['kgCO2e']});
   return makeGraph(nodes, edges);

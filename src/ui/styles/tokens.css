@@ -24,7 +24,8 @@
   --map-shadow: #00000014;
   --map-shadow-deep: #0000001f;
   --map-bed-dug: #7a5533;
-  --map-bed-wet: #5a3c22;
+  --map-bed-wet: #5a3c22; /* soil past field capacity, after rain */
+  --map-bed-dry: #a88262; /* soil near wilting point */
   --map-bed-grass: #79aa5e;
   --map-plot-line: #ffffff59;
   --map-shed: #8c6b4a;
@@ -38,6 +39,9 @@
   --map-skin: #e7c39a;
   --map-hat: #d98a2b;
   --map-night: #141e3c;
+  --map-frost: #eef4f8; /* the rime on the grass and beds on a frosty morning */
+  --map-frost-max: 0.6; /* how white the hardest frost gets */
+  --map-rain: #dbe7f0b3; /* a raindrop's streak */
   --map-night-max: 0.35; /* how dark the map gets at night */
 
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -82,6 +86,7 @@
     --map-path: #a89c7c;
     --map-bed-dug: #5e4127;
     --map-bed-wet: #43301b;
+    --map-bed-dry: #85674c;
     --map-bed-grass: #557d44;
     --map-plot-line: #ffffff40;
     --map-shed: #6f5439;
@@ -91,5 +96,8 @@
     --map-tap: #74828b;
     --map-heap-rim: #2e2013;
     --map-heap: #47331f;
+    --map-frost: #c9d6de;
+    --map-frost-max: 0.45;
+    --map-rain: #b9cad899;
   }
 }

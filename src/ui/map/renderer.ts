@@ -1,8 +1,9 @@
 // The map's renderer: PixiJS on WebGL, or Pixi's Canvas 2D renderer where WebGL is missing
 // (docs/decisions/ADR-2026-09-28-webgl-map.md). It draws the level's nodes in the flat, top-down, soft style
 // (src/ui/map/draw.ts), the people and things moving from the snapshot's activities at the view time the clock loop
-// gives it, and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours
-// change; what moves is a pool of particles placed each frame, so thousands stay cheap. Nothing drawn changes the game.
+// gives it, the weather (a shower crossing the garden while the sim says it rains, a rime while it says there's frost)
+// and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours change; what
+// moves is a pool of particles placed each frame, so thousands stay cheap. Nothing drawn changes the game.
 // docs/systems/map.md.
 import {Application, Graphics, Particle, ParticleContainer, type Texture} from 'pixi.js';
 import {placeAt, type Activity} from '../../sim/activity';
@@ -10,7 +11,7 @@ import {calendar} from '../../sim/clock';
 import type {Box, GraphNode, NodeId} from '../../sim/graph';
 import type {View} from '../../app/clock-loop';
 import {darkness} from './daylight';
-import {camera, drawLive, drawNode, drawPerson, groundKey, type Camera} from './draw';
+import {camera, drawLive, drawNode, drawPerson, groundKey, weatherAt, type Camera} from './draw';
 import type {Palette} from './palette';
 
 export interface MapRenderer {
@@ -18,15 +19,34 @@ export interface MapRenderer {
   readonly kind: string;
   resize(w: number, h: number): void;
   setPalette(p: Palette): void;
+  /** Rain stops falling (it's still shown, still per tick) under prefers-reduced-motion. */
+  setReducedMotion(on: boolean): void;
   draw(v: View): void;
   /** The drawn node under a point in CSS pixels, or null. */
   hit(x: number, y: number): NodeId | null;
   /** For the checks: the last frames' times in ms, and where the first movers are drawn, in CSS pixels. */
-  stats(): {frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null};
+  stats(): {frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats};
   destroy(): void;
 }
 
+/** What the weather drawn last frame came to, for the checks: raindrops shown and the first few's places, the frost's
+ *  opacity, and each dug bed's soil from -1 (dry) to 1 (soaked). */
+export interface WeatherStats {
+  rain: number;
+  drops: {x: number; y: number}[];
+  frost: number;
+  soil: Record<string, number>;
+}
+
 const MIN_PERSON_PX = 6;
+/** Raindrops at the lightest and heaviest rain, and how long the shower's front takes to cross the garden, game hours. */
+const DROPS = {min: 30, perMm: 40, max: 160}, FRONT_HOURS = 0.3;
+// a fixed scatter for the drops, from a hash of their index (cosmetic, and the same every frame): where each crosses,
+// where it starts falling and how fast, worked out once
+const SCATTER = new Float32Array(DROPS.max * 3).map((_, j) => {
+  const x = Math.sin(Math.floor(j / 3) * 12.9898 + ((j % 3) + 1) * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+});
 
 export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette, w: number, h: number): Promise<MapRenderer> {
   const app = new Application();
@@ -36,9 +56,12 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   });
   const ground = new Graphics(), live = new Graphics(), night = new Graphics();
   const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
-  app.stage.addChild(ground, live, movers, night);
+  const rain = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
+  app.stage.addChild(ground, live, movers, rain, night);
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null;
-  let person: Texture | null = null;
+  let person: Texture | null = null, drop: Texture | null = null, still = false, garden: Box | null = null;
+  const drops: Particle[] = [];
+  let weather: WeatherStats = {rain: 0, drops: [], frost: 0, soil: {}};
   let boxes = new Map<NodeId, Box>(), drawn: GraphNode[] = [];
   const pool: Particle[] = [], frames: number[] = [];
   let lastMovers: {id: string; x: number; y: number}[] = [];
@@ -60,6 +83,46 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     movers.texture = person;
     for (const p of pool) p.texture = person;
     movers.update();
+    // a raindrop: a short slanted streak, about 30 cm long at the garden's scale
+    drop?.destroy(true);
+    const d = new Graphics(), len = Math.max(6, 0.3 * cam.s), wide = Math.max(1, 0.025 * cam.s), lean = len * 0.27;
+    d.poly([lean, 0, lean + wide, 0, wide, len, 0, len]).fill({color: pal.rain.color, alpha: 1});
+    drop = app.renderer.generateTexture({target: d, resolution: window.devicePixelRatio || 1, antialias: true});
+    d.destroy();
+    rain.texture = drop;
+    rain.alpha = pal.rain.alpha;
+    for (const p of drops) p.texture = drop;
+    rain.update();
+    garden = drawn.find((n) => n.kind === 'lawn')?.box ?? null;
+  };
+  // the shower: while the sim says it rains, streaks fall across the garden, as many as the rain is heavy, its front
+  // crossing from the west as it starts and leaving to the east as it stops; still, but shown, under reduced motion
+  const shower = (v: View, c: Camera, w: ReturnType<typeof weatherAt>) => {
+    let n = 0;
+    const out: {x: number; y: number}[] = [];
+    if (w && garden && w.day.rainHours > 0) {
+      const {day, t} = w, x0 = c.x + garden.x * c.s, y0 = c.y + garden.y * c.s, gw = garden.w * c.s, gh = garden.h * c.s;
+      const want = Math.min(DROPS.max, Math.round(DROPS.min + DROPS.perMm * (day.rain / day.rainHours)));
+      const time = still ? Math.floor(v.hours) * 0.37 : performance.now() / 1000, lean = 0.27 * (gh / gw);
+      for (let i = 0; i < want; i++) {
+        const across = SCATTER[3 * i]!, since = t - day.rainFrom - FRONT_HOURS * across;
+        if (since < 0 || since >= day.rainHours) continue;
+        const fall = (SCATTER[3 * i + 1]! + time * (1.2 + 0.4 * SCATTER[3 * i + 2]!)) % 1;
+        let p = drops[n];
+        if (!p) drops.push((p = new Particle({texture: drop!})));
+        p.x = x0 + ((((across - fall * lean) % 1) + 1) % 1) * gw; // falling along its slant, down and to the left
+        p.y = y0 + fall * gh;
+        if (out.length < 6) out.push({x: p.x, y: p.y});
+        n++;
+      }
+    }
+    const shown = rain.particleChildren;
+    if (shown.length !== n) {
+      shown.length = 0;
+      for (let i = 0; i < n; i++) shown.push(drops[i]!);
+      rain.update();
+    }
+    return {n, out};
   };
   // where an actor is, in CSS pixels: straight from start to end with its ends looked up once per activity, or along
   // the way through placeAt (people are drawn from above, the same whichever way they face)
@@ -101,6 +164,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       pal = p;
       drawnRev = -1;
     },
+    setReducedMotion(on) {
+      still = on;
+    },
     draw(v) {
       const t0 = performance.now(), cur = v.cur;
       // the ground: redrawn when the graph changes, or a bed plot is dug (checked once a snapshot)
@@ -113,7 +179,8 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       keyOf = cur.nodes;
       const c = cam!;
       live.clear();
-      drawLive(live, v, c, pal);
+      const w = weatherAt(v), lived = drawLive(live, v, c, pal, w), fell = shower(v, c, w);
+      weather = {rain: fell.n, drops: fell.out, ...lived};
       // the people and things moving, from the activities, at the view time
       const acts = cur.activities, out: {id: string; x: number; y: number}[] = [], shown = movers.particleChildren;
       let used = 0;
@@ -146,7 +213,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       }
       return null;
     },
-    stats: () => ({frames: frames.slice(), movers: lastMovers, cam}),
+    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
     },

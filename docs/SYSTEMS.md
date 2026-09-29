@@ -2,7 +2,7 @@
 
 The project notes (`CLAUDE.md`) hold what every change needs. This file holds how the code is laid out, how it's tested, and the rules shared by every system; each system has its own file in `docs/systems/`. Read the file for the system you're changing, not all of them (`node tools/graph.mjs <name>` finds it). Keep it true: a PR that changes how something works updates its system's file in the same PR, and a new system adds its own file there. The lists below between `joined` markers are built by `node tools/join.mjs` (`npm run build` runs it), so never edit them by hand.
 
-Today the game is the empty back garden on the graph, with the clock, saving and the page's shell (the first slice's part 1); nothing grows yet. The founding spec (`docs/specs/overgrow.md`) sets the model: one graph of nodes and flows at every scale, from a bed to the planet (`docs/decisions/ADR-2026-09-28-scale-free-graph.md`), with real mechanisms and rough numbers (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`).
+Today the game is the back garden on the graph, with the clock, saving and the page's shell (the first slice's part 1), and the weather, the soil and the water under it (part 2); nothing grows yet. The founding spec (`docs/specs/overgrow.md`) sets the model: one graph of nodes and flows at every scale, from a bed to the planet (`docs/decisions/ADR-2026-09-28-scale-free-graph.md`), with real mechanisms and rough numbers (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`).
 
 ## Systems
 
@@ -12,6 +12,9 @@ Today the game is the empty back garden on the graph, with the clock, saving and
 - [The graph](systems/graph.md) (`src/sim/graph.ts`, `src/sim/state.ts`, `src/data/garden.ts`, `src/sim/churn.ts`)
 - [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`)
 - [Saving](systems/saving.md) (`src/sim/save.ts`, `src/sim/random.ts`, `src/app/storage.ts`, `src/app/main.tsx`)
+- [Soil](systems/soil.md) (`src/sim/models/soil.ts`, `src/sim/models/soil.test.ts`, `src/data/soils.ts`, `src/data/garden.ts`, `src/sim/state.ts`, `src/sim/save.ts`, `src/ui/Panel.tsx`)
+- [Water](systems/water.md) (`src/sim/models/water.ts`, `src/sim/models/water.test.ts`, `src/sim/models/soil.ts`, `src/data/garden.ts`, `src/ui/Panel.tsx`, `src/ui/map/draw.ts`)
+- [The weather](systems/weather.md) (`src/sim/models/weather.ts`, `src/data/climate-normals.ts`, `src/sim/models/weather.test.ts`, `src/ui/map/draw.ts`, `src/ui/map/renderer.ts`, `src/ui/TopBar.tsx`)
 <!-- /joined:systems -->
 
 ## Layers
@@ -37,14 +40,19 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/app/sim-client.ts` | The page's end of the simulation: commands go to the worker (src/app/sim.worker.ts) and snapshots come back. |
 | `src/app/sim.worker.ts` | The simulation in a Web Worker: the page posts commands, the worker answers with snapshots, so a big graph ticking never stalls the map on a phone. |
 | `src/app/storage.ts` | The save's home on the device: localStorage under the one key (src/sim/save.ts has the format). |
+| `src/data/climate-normals.ts` | The garden's climate: monthly normals for an invented lowland station in southern England, about 60 m up at 51.5° N, with the daily spread the weather generator (src/sim/models/weather.ts) draws around them. |
 | `src/data/garden.ts` | The back garden's layout: a UK back garden about 12 × 8 m behind the house, with six bed plots (two dug), a tap, a water butt, a compost heap, a shed, the lawn and the kitchen, and the paths and pipes between them. |
 | `src/data/ladder.ts` | The ladder's clock: each level's rate (real seconds per game day at 1×) and the length of the sim's fixed step, the speeds, and the date the game starts on. |
+| `src/data/soils.ts` | Soils: the textures the garden's beds and lawn are made of, and what a soil starts with. |
 | `src/sim/activity.ts` | Activities: who is doing what, where, from when to when (the gardener watering bed 3 from 08:00 to 08:20; a lorry on a run leaving at 05:00). |
 | `src/sim/churn.ts` | A test-only system that moves random flows of every kind across the garden each hour and starts an activity each day, so the conservation, save and long-run tests exercise the graph before the real models arrive (parts 2 and 3). |
 | `src/sim/clock.ts` | The one clock: game hours since the start, advanced in fixed steps (an hour at levels 1 and 2, a day at 3 to 5, a week at 6 and 7, a month at 8), with the calendar for the top bar and the ticks systems subscribe to (hour, day, week, season, year). |
 | `src/sim/commands.ts` | Commands: every way of changing the game, from the player, a manager or the bot alike. |
 | `src/sim/graph.ts` | The graph every level is made of (docs/decisions/ADR-2026-09-28-scale-free-graph.md): nodes with stocks, levers and totals whatever their size, edges between them, and flows in SI units that are conserved. |
 | `src/sim/index.ts` | The simulation: pure TypeScript with no DOM, so the same code runs in a Web Worker (the game, src/app/sim.worker.ts), in Node (the checks and the bot) and in a Vitest test. |
+| `src/sim/models/soil.ts` | Soil: what each bed and the lawn is made of, how much water it holds, its organic matter and nutrients, and its health. |
+| `src/sim/models/water.ts` | Water: the FAO-56 soil water balance for each bed and the lawn, every step. |
+| `src/sim/models/weather.ts` | The weather: a daily stochastic weather generator of the Richardson type, drawn from the station's monthly normals (src/data/climate-normals.ts) and bent by the warming index, with each hour shaped from its day for the hour tick. |
 | `src/sim/random.ts` | The seeded random generator. |
 | `src/sim/save.ts` | The save format: versioned JSON, with one migration step per version so every old save keeps loading. |
 | `src/sim/state.ts` | The game's state, what a new game starts from, and the snapshot the UI is shown. |
@@ -52,7 +60,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/ui/App.tsx` | The page: the top bar, the map filling the rest, and the panel beside or below it (the founding spec, "The look: a living map"). |
 | `src/ui/MapView.tsx` | The map: one canvas filling its box, drawn by the renderer (src/ui/map/renderer.ts) every frame the clock loop gives it. |
 | `src/ui/Panel.tsx` | The panel: beside the map on wide screens and tablets, below it as a sheet on portrait phones (which can fold down to its heading), beside it on a phone on its side. |
-| `src/ui/TopBar.tsx` | The top bar: the level, the date and time, the money, the carbon dial, and pause with the three speeds. |
+| `src/ui/TopBar.tsx` | The top bar: the level, the date and time with the air's temperature, the money, the carbon dial, and pause with the three speeds. |
 | `src/ui/format.ts` | Numbers and dates as the panels show them: concise, UK English, units always named. |
 | `src/ui/map/daylight.ts` | How dark the map is at a game hour: the sun's day length at a southern-English latitude from the date, with an hour's twilight either side. |
 | `src/ui/map/draw.ts` | How each kind of node is drawn, in the owner's pick of art style (docs/specs/overgrow/art-styles.html, style A): flat, top-down and soft, rounded shapes with no outlines and soft shadows, in greens, soil browns and cream. |
@@ -80,7 +88,7 @@ One clock for every level, in game hours since the start (`docs/systems/clock.md
 
 ## Speed budget
 
-The founding spec's budget, measured on part 1's build (28 Sep 2026) and shared out between the slice's parts. The `scene` check logs the page figures on every run (the "scene: speed" lines); `src/sim/index.test.ts` holds the garden day. The `perf` check that asserts them comes with part 15; until then each part's brief carries its share, and a part that needs more says so in its PR.
+The founding spec's budget, measured on part 1's build (28 Sep 2026) and shared out between the slice's parts. The `scene` check logs the page figures on every run (the "scene: speed" lines); `src/sim/index.test.ts` holds the garden day. The `perf` check that asserts them comes with part 15; until then each part's brief carries its share, and a part that needs more says so in its PR. Part 2 (the weather, the water and the soil) used, measured the same way against a build of `main` on the same machine: 0.17 ms a garden day headless; 0.1 ms of the garden's 1440 × 900 frame (0.4 → 0.5 ms, and about 0.1 ms more again in heavy rain or frost); nothing measurable of the 5,000-node scenes or of the tick's copy; and 7.5 KB of `dist/` gzipped.
 
 **How it was measured.** The garden day in Node 22 with `vite-node` on the session's 4-core 2.1 GHz Xeon: a year of hourly ticks after a warm-up, per game day. The page in the pinned headless Chromium (Playwright 1.56.1) on the same machine, with WebGL on SwiftShader (software: there is no GPU here), so the figures are the JavaScript each frame costs (the renderer's `draw`, including Pixi's work to submit it), not the GPU's; the frame rates the check logs (5 to 10 a second) are SwiftShader's limit, not the game's. "A phone" is a 390 × 844 touch page with Chromium's 4× CPU throttling, which slows the page's thread and not the worker's. The synthetic scene (`src/app/bench.ts`) runs at the garden's 4× (four ticks a second) with 5,000 nodes, a tenth of them changing each tick, and 5,000 people on trips of two to eight hours (about a thousand starting each tick), or 50 people for the nodes alone.
 
@@ -121,7 +129,7 @@ The founding spec's budget, measured on part 1's build (28 Sep 2026) and shared 
 - `graph`: The map in tools/graph.mjs: every link in the docs resolves, every system in docs/systems/ names its files, and the joined lists (tools/join.mjs) are sound and up to date; a system's file changed without its notes is a warning.
 - `layout`: The page's shell at every size (320×568, 568×320, 390×844, 844×390, 768×1024, 1440×900): the top bar, the map and the panel each inside the viewport, the panel below the map as a sheet on portrait phones and beside it otherwise, no overflow, every button at least 40 px on touch, the sheet folding to its heading, the dark scheme, and the top bar and panel working by keyboard alone.
 - `rules`: The rules every source file keeps (tools/rules.mjs): Math.random() only in the seeded generator or on a `// cosmetic` line, the sim and its data never importing the UI or naming the DOM, and every model in src/sim/models/ naming its sources and what it simplifies. Each rule is also proved to catch a slip, on a small fixture.
-- `scene`: The map (src/ui/map/): it draws the garden in the owner's style on WebGL, and on Canvas 2D where WebGL is missing; it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; a seeded, paused screenshot repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the speed budget's figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
+- `scene`: The map (src/ui/map/): it draws the garden in the owner's style on WebGL, and on Canvas 2D where WebGL is missing; it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; the weather is drawn from the sim's (rain crossing the garden only while it rains, still but shown under reduced motion, frost on a frosty morning, the dug beds paling as they dry and darkening when soaked); a seeded, paused screenshot repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the speed budget's figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
 <!-- /joined:checks -->
 
 ## Rules

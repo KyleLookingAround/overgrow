@@ -17,7 +17,10 @@ export function MapView({loop, onSelect, onReady}: {loop: Loop; onSelect: (id: N
       renderer.current?.resize(w, h);
     });
     const scheme = matchMedia('(prefers-color-scheme: dark)'), repaint = () => renderer.current?.setPalette(readPalette(el));
-    const motion = matchMedia('(prefers-reduced-motion: reduce)'), still = () => loop.setReducedMotion(motion.matches);
+    const motion = matchMedia('(prefers-reduced-motion: reduce)'), still = () => {
+      loop.setReducedMotion(motion.matches);
+      renderer.current?.setReducedMotion(motion.matches);
+    };
     still();
     motion.addEventListener('change', still);
     scheme.addEventListener('change', repaint);
@@ -25,6 +28,7 @@ export function MapView({loop, onSelect, onReady}: {loop: Loop; onSelect: (id: N
     void createRenderer(canvas.current!, readPalette(el), w, h).then((made) => {
       if (gone) return made.destroy();
       renderer.current = made;
+      made.setReducedMotion(motion.matches);
       el.dataset.renderer = made.kind;
       ro.observe(el);
       stop = loop.onFrame((v) => renderer.current?.draw(v));

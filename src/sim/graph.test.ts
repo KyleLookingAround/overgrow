@@ -23,13 +23,13 @@ describe('graph', () => {
   });
 
   it('moves a flow out of one stock and into another, and balances', () => {
-    const g = gardenGraph(), before = stockTotals(Object.values(g.nodes));
+    const g = gardenGraph(), before = stockTotals(Object.values(g.nodes)), bed = g.nodes['bed-1']!.stocks.water!.amount;
     const f: Flow = {what: 'watering', unit: 'L', amount: qty(10, 'L'), from: {node: 'butt', stock: 'water'}, to: {node: 'bed-1', stock: 'water'}};
     const rain: Flow = {what: 'rain', unit: 'L', amount: qty(4, 'L'), from: {boundary: 'rain'}, to: {node: 'butt', stock: 'water'}};
     expect(applyFlow(g, f)).toBeNull();
     expect(applyFlow(g, rain)).toBeNull();
     expect(g.nodes.butt!.stocks.water!.amount).toBe(94);
-    expect(g.nodes['bed-1']!.stocks.water!.amount).toBe(10);
+    expect(g.nodes['bed-1']!.stocks.water!.amount).toBe(bed + 10);
     expect(imbalance(before, stockTotals(Object.values(g.nodes)), [f, rain])).toEqual({});
     expect(imbalance(before, stockTotals(Object.values(g.nodes)), [f])).toEqual({L: 4});
   });

@@ -1,7 +1,9 @@
 // The map (src/ui/map/): it draws the garden in the owner's style on WebGL, and on Canvas 2D where WebGL is missing;
-// it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; a seeded,
-// paused screenshot repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the
-// speed budget's figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
+// it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; the
+// weather is drawn from the sim's (rain crossing the garden only while it rains, still but shown under reduced motion,
+// frost on a frosty morning, the dug beds paling as they dry and darkening when soaked); a seeded, paused screenshot
+// repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the speed budget's
+// figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
 import {join} from 'node:path';
 
 // the share of a screenshot's pixels near each of some CSS colours, measured in the page
@@ -23,6 +25,20 @@ async function midday(page){
   await page.waitForFunction(()=>window.__sim.view().hours>=6,null,{timeout:8000}).catch(()=>{});
   await page.evaluate(()=>window.__sim.send({type:'speed',speed:0}));await page.waitForTimeout(200);
 }
+// the day of weather on the newest snapshot's air node
+const air=page=>page.evaluate(()=>window.__sim.snapshot().nodes.find(n=>n.kind==='atmosphere').levers.weather);
+// a new game, paused, then on to 01:00 on day 2, and day by day until the day passes a test; null if none does in time
+async function findDay(page,test,days){
+  await page.evaluate(async()=>{await window.__sim.send({type:'new-game',seed:1,speed:0});await window.__sim.send({type:'tick',hours:19})});
+  for(let i=0;i<days;i++){const w=await air(page);if(w&&await page.evaluate(test,w))return w;await page.evaluate(()=>window.__sim.send({type:'tick',hours:24}))}
+  return null;
+}
+// on to an hour later the same day, shown paused: the sim runs to the hour after it, more than four steps ahead, so the
+// paused view jumps to one step behind the sim, the hour asked for (src/app/clock-loop.ts)
+const showHour=(page,hour)=>page.evaluate(async h=>{const now=(window.__sim.snapshot().hours+6)%24;await window.__sim.send({type:'tick',hours:h+1-now})},hour);
+// the weather drawn two frames after the view reaches that hour
+const drawn=page=>page.waitForFunction(()=>{const v=window.__sim.view(),s=window.__sim.snapshot();return v.weather&&v.hours===s.hours-1},null,{timeout:8000})
+  .then(()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(window.__sim.view()))))),()=>page.evaluate(()=>window.__sim.view()));
 const median=a=>{const s=[...a].sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:NaN};
 const p95=a=>{const s=[...a].sort((x,y)=>x-y);return s.length?s[Math.floor(s.length*0.95)]:NaN};
 
@@ -54,6 +70,39 @@ export default async function({ok,open,out}){
     const whole=seen.every(x=>Number.isInteger(x.hours)),ticks=new Set(seen.map(x=>x.hours)).size;
     const still=seen.every((x,i)=>!i||x.hours!==seen[i-1].hours||JSON.stringify(x.movers)===JSON.stringify(seen[i-1].movers));
     ok('scene: under reduced motion the map jumps per tick instead of gliding',whole&&ticks>=2&&still&&!errs.length,`whole hours ${whole}, ${ticks} ticks seen, movers still between ticks ${still}`);
+    await ctx.close()}
+
+  // the weather, drawn from the sim's: rain while it rains and not after, moving between frames even while paused; the
+  // dug beds darker in the rain than on a dry afternoon; and frost on a frosty morning
+  {const {ctx,page,errs}=await open({width:1440,height:900});await ready(page);
+    const wet=await findDay(page,w=>w.rainHours>=3&&w.rainFrom>=6&&w.rainFrom+w.rainHours<=19,60);
+    let rain=null,after=null,moved=false,soaked=null;
+    if(wet){await showHour(page,wet.rainFrom+1);rain=await drawn(page);
+      const a=await page.evaluate(()=>window.__sim.view().weather.drops);await page.waitForTimeout(250);const b=await page.evaluate(()=>window.__sim.view().weather.drops);
+      moved=a.length>0&&JSON.stringify(a)!==JSON.stringify(b);
+      soaked=rain.weather.soil['bed-1'];
+      await page.screenshot({path:join(out,'scene-rain-1440x900.png')});
+      await showHour(page,wet.rainFrom+wet.rainHours+4);after=await drawn(page)}
+    ok('scene: rain falls across the garden while the sim says it rains, and stops when it stops',wet&&rain.weather.rain>=40&&after.weather.rain===0&&moved&&!errs.length,
+      wet?`day ${wet.day}: ${rain.weather.rain} drops at ${wet.rainFrom+1}:00 (moving ${moved}), ${after.weather.rain} after ${errs[0]||''}`:'no wet day in 60');
+    const dry=await findDay(page,w=>!w.wet&&w.sun>6,60);let parched=null;
+    if(dry){await showHour(page,15);parched=await drawn(page);await page.screenshot({path:join(out,'scene-dry-1440x900.png')})}
+    const pale=parched?.weather.soil['bed-1'];
+    ok('scene: a dug bed is drawn darker in the rain than on a dry sunny afternoon',soaked!==null&&pale!==undefined&&soaked>pale+0.2,`bed 1 soil ${soaked} in the rain, ${pale} on a dry afternoon (−1 dry, 1 soaked)`);
+    const cold=await findDay(page,w=>w.tmin<-1&&w.sun>2,400);let rime=null;
+    if(cold){const rise=Math.floor(12-cold.length/2);await showHour(page,rise);rime=await drawn(page);await page.screenshot({path:join(out,'scene-frost-1440x900.png')})}
+    ok('scene: frost lies on the garden on a frosty morning',cold&&rime.weather.frost>0&&!errs.length,cold?`day ${cold.day}, minimum ${cold.tmin.toFixed(1)} °C: frost ${rime.weather.frost.toFixed(2)}`:'no frosty day in 400');
+    await ctx.close()}
+
+  // under reduced motion the rain is still shown, but stands still between ticks (at 1×, since a paused view under
+  // reduced motion holds the snapshot before a jump)
+  {const {ctx,page,errs}=await open({width:844,height:390},{touch:true});await page.emulateMedia({reducedMotion:'reduce'});await ready(page);
+    const wet=await findDay(page,w=>w.rainHours>=3&&w.rainFrom>=6&&w.rainFrom+w.rainHours<=19,60);let a=[],b=[],same=false;
+    if(wet){await showHour(page,wet.rainFrom);await page.evaluate(()=>window.__sim.send({type:'speed',speed:1}));
+      await page.waitForFunction(()=>window.__sim.view().weather?.rain>0,null,{timeout:10000}).catch(()=>{});
+      for(let i=0;i<4&&!same;i++){const x=await page.evaluate(()=>window.__sim.view());await page.waitForTimeout(150);const y=await page.evaluate(()=>window.__sim.view());
+        if(x.hours===y.hours){a=x.weather.drops;b=y.weather.drops;same=true}}}
+    ok('scene: under reduced motion the rain is shown but doesn\'t fall',a.length>0&&JSON.stringify(a)===JSON.stringify(b)&&!errs.length,`${a.length} drops, the same 150 ms later in one tick ${JSON.stringify(a)===JSON.stringify(b)} ${errs[0]||''}`);
     await ctx.close()}
 
   // a seeded, paused screenshot repeats exactly

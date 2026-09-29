@@ -1,7 +1,8 @@
-// The top bar: the level, the date and time, the money, the carbon dial, and pause with the three speeds. The speed is a
-// command through the sim like any other change to the game.
-import {LEVELS, SPEEDS, type Speed} from '../data/ladder';
+// The top bar: the level, the date and time with the air's temperature, the money, the carbon dial, and pause with the
+// three speeds. The speed is a command through the sim like any other change to the game.
+import {LEVELS, SPEEDS, START, type Speed} from '../data/ladder';
 import {calendar} from '../sim/clock';
+import {hourOf, type WeatherDay} from '../sim/models/weather';
 import type {Snapshot} from '../sim/state';
 import {clockTime, dayName, money, num} from './format';
 
@@ -27,11 +28,14 @@ const SPEED_LABEL: Record<Speed, string> = {0: 'Pause', 1: '1×', 2: '2×', 4: '
 /** The snapshot the map is showing, its hour, and the speed last set (which can be a step ahead of the map). */
 export function TopBar({snap, hours, speed, onSpeed}: {snap: Snapshot; hours: number; speed: Speed; onSpeed: (s: Speed) => void}) {
   const d = calendar(hours), level = LEVELS[snap.level - 1]!;
+  const day = snap.nodes.find((n) => n.kind === 'atmosphere')?.levers.weather as unknown as WeatherDay | null | undefined;
+  const temp = day && day.day === d.dayIndex ? Math.round(hourOf(day, (hours + START.hour) % 24).temp) : null;
   return (
     <header class="topbar">
       <span class="level">{level.name}</span>
       <span class="date" data-hours={Math.floor(hours)}>
         <time>{dayName(d)}</time> <span class="time">{clockTime(d)}</span>
+        {temp !== null && <span class="temp" title="Air temperature"> {temp < 0 ? '−' : ''}{Math.abs(temp)} °C</span>}
         {d.year > 1 && <span class="year"> · year {d.year}</span>}
       </span>
       <span class="money" title="Money">{money(snap.money)}</span>

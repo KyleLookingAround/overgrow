@@ -6,6 +6,7 @@ What's being worked on, what's next, and ideas not yet agreed. Now, Next, the ru
 
 <!-- joined:now from docs/roadmap.d/ (Section: now) by tools/join.mjs: don't edit between these lines -->
 - **The graph and the clock** (the first slice's part 1, `docs/briefs/graph-and-clock.md`, #4): nodes, stocks and flows in units with a conservation test, the clock and its ticks, commands and snapshots with activities, saving with versions, and the page's shell (the PixiJS map in the owner's style interpolating between snapshots, the top bar, the panel and the phone sheet) at every size, with the `layout` and `scene` checks and the speed budget's shares (`docs/SYSTEMS.md`, "Speed budget").
+- **Weather, soil and water** (the first slice's part 2, `docs/briefs/weather-soil-water.md`, #6): a Richardson-type weather generator from a southern English station's normals with the warming index as its input, the FAO-56 soil water balance for each bed and the lawn with the butt filling from the shed's roof, and each soil's organic matter, nutrients and health; rain and frost drawn on the garden and the beds paling and darkening, a save from part 1 migrating to version 2.
 <!-- /joined:now -->
 
 ## Next

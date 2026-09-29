@@ -2,7 +2,7 @@
 
 Overgrow is an incremental upgrade game about the food system, and an educational simulation of it: every mechanism is a real one, with rough numbers. Every level is a zoom-out: what the player micromanaged in one level becomes a single building block in the next, from a back garden up to the whole planet, with carbon, climate, diet and politics in the loop, and the clock speeds up as they go. It's a static site: TypeScript built by Vite, a Preact UI of a living map (people, vehicles, food and animals moving, every impact on the map first) plus HTML panels, and the simulation in a Web Worker. GitHub Actions publishes `dist/` to GitHub Pages on every push to `main` that can change it.
 
-The founding spec (`docs/specs/overgrow.md`) sets the game and its first roadmap, built one part at a time, each from its own brief. Today the page is the empty back garden on the graph, with the clock, saving and the page's shell (part 1); nothing grows yet.
+The founding spec (`docs/specs/overgrow.md`) sets the game and its first roadmap, built one part at a time, each from its own brief. Today the page is the back garden on the graph, with the clock, saving and the page's shell (part 1), and the weather, soil and water under it (part 2); nothing grows yet.
 
 These notes are the short core every session needs. The details live with their topic, so a change to one system edits that system's notes, not this file:
 

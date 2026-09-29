@@ -2,25 +2,56 @@
 // turns a state into text and back; where the text is kept is src/app/storage.ts (localStorage today, IndexedDB once a
 // save passes 1 MB, behind the same two calls). Never rename or remove a saved field: add one with a default and a
 // migration step. docs/systems/saving.md says how it works.
+import {PLACES} from '../data/garden';
 import {SPEEDS} from '../data/ladder';
+import {startingSoil} from './models/soil';
 import {rng} from './random';
-import type {State} from './state';
+import {ATMOSPHERE, type State} from './state';
 
 /** The one key the game saves under (the project notes). */
 export const SAVE_KEY = 'overgrow-save-v1';
 /** The version this build writes. Raise it with a migration step whenever the saved shape changes. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 /** What's written: the state less what's runtime only, with the generator's state in place of the generator. */
 export type SaveFile = Omit<State, 'rng' | 'rejected' | 'errors'> & {version: number; rng: number};
 
 export type Migration = (save: Record<string, unknown>) => Record<string, unknown>;
 
+const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+
 /**
- * One step per version: MIGRATIONS[n] turns a version-n save into a version n+1 one. Version 1 is the first saved
- * shape, so there are no steps yet; the first change to it adds MIGRATIONS[1] and raises SAVE_VERSION to 2.
+ * One step per version: MIGRATIONS[n] turns a version-n save into a version n+1 one.
+ * - 1 → 2 (part 2, weather, soil and water): each bed and the lawn gets its soil's stocks where it has none (moist to
+ *   field capacity, its organic matter as carbon, RB209's nutrients), and the air a `weather` lever, drawn at the next
+ *   hour. A stock the save already has is kept as it is.
  */
-export const MIGRATIONS: Readonly<Record<number, Migration>> = {};
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  1: (save) => {
+    const graph = save.graph;
+    if (!isObj(graph) || !isObj(graph.nodes)) return save;
+    const nodes: Record<string, unknown> = {...graph.nodes};
+    for (const p of PLACES) {
+      const n = nodes[p.id];
+      if (!p.soil || !isObj(n) || !isObj(n.stocks)) continue;
+      const m2 = (k: string) => {
+        const s = (n.stocks as Record<string, unknown>)[k];
+        return isObj(s) && typeof s.amount === 'number' ? s.amount : 0;
+      };
+      const soil = startingSoil(p.soil, m2('land.crops') + m2('land.grass'), m2('land.grass') > 0);
+      const stocks: Record<string, unknown> = {...n.stocks};
+      for (const [k, v] of Object.entries(soil)) {
+        const had = stocks[k];
+        // part 1 gave every place an empty carbon stock: the soil's carbon replaces it
+        if (!had || (k === 'carbon' && isObj(had) && had.amount === 0)) stocks[k] = v;
+      }
+      nodes[p.id] = {...n, stocks};
+    }
+    const air = nodes[ATMOSPHERE];
+    if (isObj(air) && isObj(air.levers) && !('weather' in air.levers)) nodes[ATMOSPHERE] = {...air, levers: {...air.levers, weather: null}};
+    return {...save, graph: {...graph, nodes}};
+  },
+};
 
 export class SaveError extends Error {}
 
@@ -47,8 +78,6 @@ export function toSave(s: State): string {
   };
   return JSON.stringify(file);
 }
-
-const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 
 /** A state from a save's text, migrated to this version. Throws a SaveError naming what's wrong. */
 export function fromSave(text: string): State {
