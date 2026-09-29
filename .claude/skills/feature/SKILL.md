@@ -11,6 +11,7 @@ Work through these steps in order. Small fixes (a label, a nit, an obvious bug) 
 
 - Find the issue for the work, or write one from `.github/ISSUE_TEMPLATE/` (Feature, Bug or Balance).
 - A session starts from a brief (`docs/briefs/<short-name>.md`, from `docs/briefs/TEMPLATE.md`, checked by `node tools/brief.mjs`). Save the brief you were given there, in your PR.
+- Read the issue's comments and its current state, not only its body, before you build or write the PR: the owner's answer may already be there.
 - Branch from the latest `main`: `git fetch origin main && git checkout -b feature/<short-name> origin/main`.
 
 ## 2. Spec first
@@ -35,6 +36,10 @@ Work through these steps in order. Small fixes (a label, a nit, an obvious bug) 
 - `npx vitest` and `node tools/check.mjs <group>` while iterating; the full `npm run check` before pushing.
 - A model's plausibility test asserts the direction and rough size of its effect. A rule of the game gets a Vitest test; a rule of the page gets a check group in `tools/checks/` with an opening comment saying what it covers. Update any rule you changed on purpose.
 - **Measure before you fix a layout bug.** Screenshot and measure (bounding boxes, computed styles) at every size first, then fix everything the measurement found in one pass. Final Call's #124 ran to five times its estimate fixing one geometry bug per round.
+- A check that taps must tap on a touch page (`page.touchscreen.tap`), not click with a mouse; a control that shows or hides layout on `pointerup` eats the click that follows.
+- A check for "many, not one" needs a case where there really are two, and every new check is shown failing before it is trusted (without the fix, or on `main`). A check that needs an event should cause it, not wait for the dice.
+- To scroll a tall or variable-height target into view on a small screen, scroll to the smallest anchor that proves the section is reachable (its heading), not the whole thing.
+- A new browser check group opens one page per size, not one per case: the CI job has a time limit and a slow group can cancel a publish.
 - Look at UI at 320×568, 568×320, 390×844, 844×390, 768×1024 and 1440×900 with a Playwright script in `build/`.
 - Pacing or economy: follow the `balance` playbook.
 - If a check fails, reproduce it (pages are seeded, so it repeats) and fix the cause. Never weaken or skip a check to get green.

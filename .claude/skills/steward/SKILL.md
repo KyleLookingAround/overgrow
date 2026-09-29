@@ -34,9 +34,9 @@ description: Drive an Overgrow pull request to green and merged - reading CI fai
 
 ## Before every push
 
-- `npm run build` and `npm run check` pass locally.
+- `npm run build` and `npm run check` pass locally. Don't run a build while a background `npm run check` is going (it reads the files the build rewrites); wait with one quiet waiter.
 - The commit message is a plain imperative subject with no attribution lines; the commit hook enforces this.
-- The PR title and description are plain and follow the template, with no tool names or editor-settings paths (the project notes). The Description check enforces this; read the description back once the PR is up.
+- The PR title and description are plain and follow the template, with no tool names or editor-settings paths (the project notes). The Description check enforces this; read the description back once the PR is up. A link whose address contains the attribution pattern (an artifact page on the editor's site, for one) fails the Description check: put it in a PR comment, never in the description.
 
 ## The look back, before the PR merges
 
