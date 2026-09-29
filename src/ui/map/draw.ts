@@ -1,10 +1,16 @@
 // How each kind of node is drawn, in the owner's pick of art style (docs/specs/overgrow/art-styles.html, style A):
 // flat, top-down and soft, rounded shapes with no outlines and soft shadows, in greens, soil browns and cream. Shapes
 // are drawn in CSS pixels through the camera, so they stay crisp at any zoom. Colours come from the tokens (palette.ts).
+// The weather and the soil are drawn from the snapshot's day of weather and each bed's water, never announced.
 import type {Graphics} from 'pixi.js';
+import {START} from '../../data/ladder';
+import {calendar} from '../../sim/clock';
 import type {Box, GraphNode} from '../../sim/graph';
+import {limitsOf} from '../../sim/models/soil';
+import {hourOf, type WeatherDay, type WeatherHour} from '../../sim/models/weather';
+import type {Snapshot} from '../../sim/state';
 import type {View} from '../../app/clock-loop';
-import type {Palette} from './palette';
+import type {Palette, Paint} from './palette';
 
 /** Metres to CSS pixels: x = cam.x + metres × cam.s. */
 export interface Camera {
@@ -114,8 +120,45 @@ export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette) {
   }
 }
 
-/** What changes tick by tick without moving: the water in a butt, between the two snapshots' levels. */
-export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette) {
+/** The day of weather a snapshot carries on its air node, or null. */
+const dayOf = (s: Snapshot) => (s.nodes.find((n) => n.kind === 'atmosphere')?.levers.weather as unknown as WeatherDay | null | undefined) ?? null;
+
+/** The weather at the view time, from whichever of the two snapshots holds that day, and the hour of the day. */
+export function weatherAt(v: View): {day: WeatherDay; hour: WeatherHour; t: number} | null {
+  const d = calendar(v.hours), t = (((v.hours + START.hour) % 24) + 24) % 24, day = [dayOf(v.cur), dayOf(v.prev)].find((w) => w?.day === d.dayIndex);
+  return day ? {day, hour: hourOf(day, t), t} : null;
+}
+
+const mix = (a: Paint, b: Paint, k: number): number => {
+  const ch = (x: number, s: number) => (x >> s) & 255, t = Math.min(1, Math.max(0, k));
+  let out = 0;
+  for (const s of [16, 8, 0]) out |= Math.round(ch(a.color, s) + (ch(b.color, s) - ch(a.color, s)) * t) << s;
+  return out;
+};
+
+/**
+ * A dug bed's soil colour by its water: what you see is the surface, so it pales from the dug colour towards dry as the
+ * surface's evaporable water goes (FAO-56's TEW: bare soil dries at the top long before the roots' water runs out), and
+ * darkens towards wet above field capacity, fully once there's a surface's worth (REW) more than it holds. -1 is a dry
+ * crust, 0 moist, 1 soaked.
+ */
+export function wetness(n: GraphNode): number {
+  const lim = limitsOf(n), w = n.stocks.water?.amount ?? 0;
+  if (w <= lim.fc) return -Math.min(1, Math.max(0, (lim.fc - w) / Math.max(1e-9, lim.tew)));
+  return Math.min(1, (w - lim.fc) / Math.max(1e-9, lim.rew)); // a surface's worth of water standing in it: soaked
+}
+export const soilColour = (wet: number, pal: Palette) => (wet < 0 ? mix(pal['bed-dug'], pal['bed-dry'], -wet) : mix(pal['bed-dug'], pal['bed-wet'], wet));
+
+/** What changes tick by tick without moving: the soil in the dug beds, the water in a butt, and the frost. */
+export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weatherAt(v)): {soil: Record<string, number>; frost: number} {
+  const soil: Record<string, number> = {};
+  for (const n of v.cur.nodes) {
+    if (n.kind !== 'bed' || !n.box || !isDug(n)) continue;
+    const was = v.prev.nodes.find((p) => p.id === n.id), now = wetness(n), wet = was ? wetness(was) + (now - wetness(was)) * v.alpha : now;
+    const r = px(n.box, c);
+    g.roundRect(r.x, r.y, r.w, r.h, 0.175 * c.s).fill(soilColour(wet, pal));
+    soil[n.id] = wet;
+  }
   for (const n of v.cur.nodes) {
     if (n.kind !== 'butt' || !n.box) continue;
     const fill = (node: GraphNode | undefined) => {
@@ -127,6 +170,13 @@ export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette) {
     const r = px(n.box, c);
     g.circle(r.x + r.w / 2, r.y + r.h / 2, (r.w / 2) * 0.67 * Math.sqrt(f)).fill(pal.water);
   }
+  // a pale rime over the garden while the grass is below 0 °C, harder the colder it is
+  const frost = (w?.hour.frost ?? 0) * pal.frostMax, lawn = v.cur.nodes.find((n) => n.kind === 'lawn')?.box;
+  if (frost > 0 && lawn) {
+    const r = px(lawn, c);
+    g.rect(r.x, r.y, r.w, r.h).fill({color: pal.frost.color, alpha: frost});
+  }
+  return {soil, frost};
 }
 
 /** A person from above, about 0.4 m across, drawn at a scale in pixels per metre, centred on (0, 0) at their feet. */

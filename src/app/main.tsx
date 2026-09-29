@@ -69,7 +69,7 @@ if (window.__seed !== undefined)
       const v = loop.view(), st = renderer?.stats();
       return {
         hours: v?.hours ?? null, alpha: v?.alpha ?? null, prev: v?.prev.hours ?? null, cur: v?.cur.hours ?? null, renderer: renderer?.kind ?? null,
-        frames: st?.frames ?? [], movers: st?.movers ?? [], cam: st?.cam ?? null,
+        frames: st?.frames ?? [], movers: st?.movers ?? [], cam: st?.cam ?? null, weather: st?.weather ?? null,
       };
     },
     bench: (n: number, m?: number, speed?: number) => loop.bench(n, m, speed),

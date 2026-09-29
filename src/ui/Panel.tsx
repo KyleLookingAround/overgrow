@@ -2,7 +2,8 @@
 // its heading), beside it on a phone on its side. Until the garden's tabs arrive (Garden, Shed, Kitchen, Goals, each
 // shown once it has something in it) it lists the garden's places and what the selected one holds.
 import type {GraphNode, NodeId} from '../sim/graph';
-import {amount} from './format';
+import {hasSoil, health, limitsOf, moisture, organicMatter, SOIL} from '../sim/models/soil';
+import {amount, grams, num} from './format';
 import {isDug} from './map/draw';
 
 const ORDER = ['bed', 'kitchen', 'shed', 'butt', 'tap', 'heap', 'path', 'lawn'];
@@ -16,13 +17,32 @@ function about(n: GraphNode): string {
   return isDug(n) ? 'Dug, ready to sow' : 'Under grass, not dug yet';
 }
 
+/** A bed's or the lawn's soil: its water for roots, organic matter, nutrients and health. */
+function soilRows(n: GraphNode): (readonly [string, string])[] {
+  const lim = limitsOf(n), m = moisture(n, lim), water = n.stocks[SOIL.water]?.amount ?? 0, s = n.stocks;
+  return [
+    ['Moisture', water > lim.fc + 0.01 * (lim.sat - lim.fc) ? 'Full, draining' : `${Math.max(0, Math.round(100 * m))} %`],
+    ['Organic matter', `${num(organicMatter(n))} %`],
+    ['Nitrogen (nitrate)', grams(s[SOIL.nitrate]?.amount ?? 0)],
+    ['Phosphorus', grams(s[SOIL.phosphorus]?.amount ?? 0)],
+    ['Potassium', grams(s[SOIL.potassium]?.amount ?? 0)],
+    ['Soil health', `${Math.round(health(n, lim))} / 100`],
+  ];
+}
+/** The soil's stocks the soil rows already show. */
+const SHOWN = new Set<string>([SOIL.water, SOIL.fresh, SOIL.organicN, SOIL.nitrate, SOIL.phosphorus, SOIL.potassium]);
+
 function Place({n}: {n: GraphNode}) {
+  const soil = hasSoil(n);
   const rows = Object.entries(n.stocks).map(([k, s]) => {
+    if (soil && SHOWN.has(k)) return null;
+    if (soil && k === SOIL.humus) return ['Carbon in the soil', amount(s)] as const;
     const land = k.startsWith('land.');
     if (land && !s.amount) return null;
     const name = land ? `Land (${LAND[k.slice(5)] ?? k.slice(5)})` : STOCK_NAME[k] ?? (s.product ? s.product[0]!.toUpperCase() + s.product.slice(1) : k);
     return [name, amount(s)] as const;
   }).filter((r): r is readonly [string, string] => !!r);
+  if (soil) rows.unshift(...soilRows(n));
   return (
     <section class="place">
       <h3>{n.name}</h3>

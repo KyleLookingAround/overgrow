@@ -1,7 +1,7 @@
 // The map's colours, read from the design tokens (src/ui/styles/tokens.css) so light and dark follow the device.
 const NAMES = [
-  'edge', 'lawn', 'house', 'house-edge', 'path', 'shadow', 'shadow-deep', 'bed-dug', 'bed-wet', 'bed-grass', 'plot-line', 'shed', 'shed-roof',
-  'butt', 'water', 'tap', 'heap-rim', 'heap', 'person', 'skin', 'hat', 'night',
+  'edge', 'lawn', 'house', 'house-edge', 'path', 'shadow', 'shadow-deep', 'bed-dug', 'bed-wet', 'bed-dry', 'bed-grass', 'plot-line', 'shed', 'shed-roof',
+  'butt', 'water', 'tap', 'heap-rim', 'heap', 'person', 'skin', 'hat', 'night', 'frost', 'rain',
 ] as const;
 export type Swatch = (typeof NAMES)[number];
 
@@ -10,7 +10,7 @@ export interface Paint {
   color: number;
   alpha: number;
 }
-export type Palette = Record<Swatch, Paint> & {nightMax: number};
+export type Palette = Record<Swatch, Paint> & {nightMax: number; frostMax: number};
 
 function parse(css: string): Paint {
   const hex = css.trim().replace('#', '');
@@ -23,5 +23,6 @@ export function readPalette(el: Element): Palette {
   const cs = getComputedStyle(el), out = {} as Palette;
   for (const k of NAMES) out[k] = parse(cs.getPropertyValue('--map-' + k));
   out.nightMax = parseFloat(cs.getPropertyValue('--map-night-max')) || 0;
+  out.frostMax = parseFloat(cs.getPropertyValue('--map-frost-max')) || 0;
   return out;
 }

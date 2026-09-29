@@ -105,6 +105,7 @@ export type Boundary =
   | 'rain' // water falling on the level
   | 'evapotranspiration' // water back to the air from soil and leaves
   | 'drainage' // water below the roots, into the ground
+  | 'runoff' // water off the surface, into the drains
   | 'mains' // tap water from the supply
   | 'bought' // anything bought in from outside the level
   | 'sold' // anything sold out of it

@@ -37,14 +37,19 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/app/sim-client.ts` | The page's end of the simulation: commands go to the worker (src/app/sim.worker.ts) and snapshots come back. |
 | `src/app/sim.worker.ts` | The simulation in a Web Worker: the page posts commands, the worker answers with snapshots, so a big graph ticking never stalls the map on a phone. |
 | `src/app/storage.ts` | The save's home on the device: localStorage under the one key (src/sim/save.ts has the format). |
+| `src/data/climate-normals.ts` | The garden's climate: monthly normals for an invented lowland station in southern England, about 60 m up at 51.5° N, with the daily spread the weather generator (src/sim/models/weather.ts) draws around them. |
 | `src/data/garden.ts` | The back garden's layout: a UK back garden about 12 × 8 m behind the house, with six bed plots (two dug), a tap, a water butt, a compost heap, a shed, the lawn and the kitchen, and the paths and pipes between them. |
 | `src/data/ladder.ts` | The ladder's clock: each level's rate (real seconds per game day at 1×) and the length of the sim's fixed step, the speeds, and the date the game starts on. |
+| `src/data/soils.ts` | Soils: the textures the garden's beds and lawn are made of, and what a soil starts with. |
 | `src/sim/activity.ts` | Activities: who is doing what, where, from when to when (the gardener watering bed 3 from 08:00 to 08:20; a lorry on a run leaving at 05:00). |
 | `src/sim/churn.ts` | A test-only system that moves random flows of every kind across the garden each hour and starts an activity each day, so the conservation, save and long-run tests exercise the graph before the real models arrive (parts 2 and 3). |
 | `src/sim/clock.ts` | The one clock: game hours since the start, advanced in fixed steps (an hour at levels 1 and 2, a day at 3 to 5, a week at 6 and 7, a month at 8), with the calendar for the top bar and the ticks systems subscribe to (hour, day, week, season, year). |
 | `src/sim/commands.ts` | Commands: every way of changing the game, from the player, a manager or the bot alike. |
 | `src/sim/graph.ts` | The graph every level is made of (docs/decisions/ADR-2026-09-28-scale-free-graph.md): nodes with stocks, levers and totals whatever their size, edges between them, and flows in SI units that are conserved. |
 | `src/sim/index.ts` | The simulation: pure TypeScript with no DOM, so the same code runs in a Web Worker (the game, src/app/sim.worker.ts), in Node (the checks and the bot) and in a Vitest test. |
+| `src/sim/models/soil.ts` | Soil: what each bed and the lawn is made of, how much water it holds, its organic matter and nutrients, and its health. |
+| `src/sim/models/water.ts` | Water: the FAO-56 soil water balance for each bed and the lawn, every step. |
+| `src/sim/models/weather.ts` | The weather: a daily stochastic weather generator of the Richardson type, drawn from the station's monthly normals (src/data/climate-normals.ts) and bent by the warming index, with each hour shaped from its day for the hour tick. |
 | `src/sim/random.ts` | The seeded random generator. |
 | `src/sim/save.ts` | The save format: versioned JSON, with one migration step per version so every old save keeps loading. |
 | `src/sim/state.ts` | The game's state, what a new game starts from, and the snapshot the UI is shown. |
@@ -52,7 +57,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/ui/App.tsx` | The page: the top bar, the map filling the rest, and the panel beside or below it (the founding spec, "The look: a living map"). |
 | `src/ui/MapView.tsx` | The map: one canvas filling its box, drawn by the renderer (src/ui/map/renderer.ts) every frame the clock loop gives it. |
 | `src/ui/Panel.tsx` | The panel: beside the map on wide screens and tablets, below it as a sheet on portrait phones (which can fold down to its heading), beside it on a phone on its side. |
-| `src/ui/TopBar.tsx` | The top bar: the level, the date and time, the money, the carbon dial, and pause with the three speeds. |
+| `src/ui/TopBar.tsx` | The top bar: the level, the date and time with the air's temperature, the money, the carbon dial, and pause with the three speeds. |
 | `src/ui/format.ts` | Numbers and dates as the panels show them: concise, UK English, units always named. |
 | `src/ui/map/daylight.ts` | How dark the map is at a game hour: the sun's day length at a southern-English latitude from the date, with an hour's twilight either side. |
 | `src/ui/map/draw.ts` | How each kind of node is drawn, in the owner's pick of art style (docs/specs/overgrow/art-styles.html, style A): flat, top-down and soft, rounded shapes with no outlines and soft shadows, in greens, soil browns and cream. |
