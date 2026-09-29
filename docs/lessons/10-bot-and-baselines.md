@@ -4,7 +4,7 @@
 - **Went well:**
   - Building the frame against `main` before part 3 had pushed anything (the run loop, the table, the workflow, the tests) left only the wiring for after its merge: milestones, measures and players are one line each, so part 3's shape changed three lines, not the design.
   - Wiring against part 3's branch in a `git worktree` (never pushing to it) found the crop milestones in its kitchen ledger before it merged, so the merge-day work was a copy and a re-run. The owner's head start landed in the last hour; one line (first sowing counts only a crop sown in the game) was all it needed.
-  - Running more players and seeds than the brief asked (six seeds, five plans, two paces) showed the spec's rotation test fails for a reason, not by the dice: nothing yet makes a crop family cost anything. Seeds 1–3 alone passed it by luck.
+  - Running more players and seeds than the brief asked (six seeds, five plans, two paces) showed the spec's rotation test fails for a reason, not by the dice: nothing yet makes a crop family cost anything. Before the owner's head start, seeds 1–3 averaged passed it, only because of when the potatoes were lifted.
   - The fresh review found no bug in the day accounting, but it found that an `it.fails` test stays green when the code under it crashes, and that a label only re-runs a workflow when added.
 - **Lessons:**
   - `it.fails` passes on any throw, so it can't mark a known gap: a crash reads as the gap still being there. Assert today's relation in a plain test and say which part turns it round (`src/sim/strategy.test.ts`).
