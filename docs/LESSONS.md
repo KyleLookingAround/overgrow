@@ -15,6 +15,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Model
 
+- [The storage and market models, ahead of part 14 (#34) · 29 Sep 2026](lessons/34-storage-and-market.md)
 - [The carry-over rule's maths, ahead of part 7 (#20) · 29 Sep 2026](lessons/20-sealing-maths.md)
 
 ### Runbook
