@@ -57,11 +57,19 @@ export const ROOF = {place: 'shed', to: 'butt', m2: 2.25 * 1.75, runoff: 0.85};
 /** Money in the household's purse on day 1, £. */
 export const START_MONEY = 20;
 /** Digging a bed out of the lawn: £ a m² for edging boards to hold the lawn back (a 2 × 1.5 m bed's seven metres of
- *  treated board, about £9), and the flush of CO₂ from the soil's organic matter that turning it over exposes, kg CO₂e
- *  a m² (mouldboard tillage releases about 30 g CO₂ a m² in the weeks after; Reicosky & Lindstrom 1993, "Fall tillage
- *  method: effect on short-term carbon dioxide flux from soil"). The slower loss, bare dug ground's organic matter
- *  decaying faster than grass's for years, is the soil model's. */
-export const DIG = {gbpPerM2: 1.5, flushPerM2: 0.03};
+ *  treated board and its pegs, about £27), and bagged compost forked in (RHS, "Digging": 5–10 kg a m² of organic matter
+ *  into new ground; a 50 L bag of peat-free soil improver, about 20 kg, costs about £6.50), with what a kg of it carries
+ *  (WRAP's PAS 100 green compost: about 60 % dry matter, a third of that organic matter, about 1 % N, 0.2 % P and 0.6 %
+ *  K of the fresh weight, rough). Then the flush of CO₂ from the soil's organic matter that turning it over exposes, kg
+ *  CO₂e a m² (mouldboard tillage releases about 30 g CO₂ a m² in the weeks after; Reicosky & Lindstrom 1993, "Fall
+ *  tillage method: effect on short-term carbon dioxide flux from soil"). The slower loss, bare dug ground's organic
+ *  matter decaying faster than grass's for years, is the soil model's. A bed costs about £37 and most of a week's spare
+ *  hours (src/data/jobs.ts). */
+export const DIG = {edgingPerM2: 9, compostKgPerM2: 10, compostGbpPerKg: 0.33, flushPerM2: 0.03};
+/** A kg of bagged compost: kg CO₂e of carbon in it (0.6 × 0.35 organic matter, 58 % carbon), and kg of N, P and K. */
+export const BAGGED = {co2e: 0.6 * 0.35 * 0.58 * (44 / 12), n: 0.01, p: 0.002, k: 0.006};
+/** £ a m² of digging: its edging and its compost. */
+export const digCost = (m2: number) => m2 * (DIG.edgingPerM2 + DIG.compostKgPerM2 * DIG.compostGbpPerKg);
 
 /** The ways between places and what each carries: water by can or hose, food and scraps by hand, and waste to the heap
  *  and compost back to the beds with their carbon, nitrogen, phosphorus and potassium. (Every place's carbon also has a

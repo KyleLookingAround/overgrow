@@ -6,6 +6,7 @@
 // cold frame goes over a bed (its `cover`, which the plan can move) and the second butt adds its store to the first's.
 // The hose (src/sim/gardener.ts), the compost bin (src/sim/models/carbon.ts), the frame's frost, rain and sowing
 // windows (src/sim/models/crops.ts, src/sim/models/water.ts) are read where they act. docs/systems/shed.md says how.
+import {CROPS, type CropId} from '../data/crops';
 import {BEER_TRAP, NEMATODES, SECOND_BUTT, UPGRADES, type UpgradeId} from '../data/shed';
 import type {System, TickContext} from './clock';
 import {note} from './effects';
@@ -53,6 +54,18 @@ function buy(g: Graph, id: UpgradeId) {
     const beds = dugBeds(g), bed = beds.find((b) => !b.levers.crop) ?? beds[0];
     if (bed) bed.levers.cover = 'cold-frame';
   }
+}
+
+/** What a bed's sowing of a crop costs from the purse, £: its seed, plants or sets (src/data/crops.ts). */
+export const seedCost = (g: Graph, crop: CropId) => {
+  void g;
+  return CROPS[crop].seed;
+};
+
+/** Pays for a sowing's seed from the purse, as far as it goes (the gardener checked it had the price that morning). */
+export function paySeed(c: TickContext, gbp: number) {
+  const pay = Math.min(gbp, purse(c.graph));
+  if (pay > 1e-9) c.flow({what: 'seed', unit: 'GBP', amount: qty(pay, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
 }
 
 /** Pays for the beer traps' week from the purse; they go dry for the week if it can't. */

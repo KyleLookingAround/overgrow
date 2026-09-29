@@ -26,7 +26,7 @@
 //   Fast effect: the heap taking in a summer's waste and the dial moving down as it does. Slow effect: compost keeping
 //   the beds' organic matter up, and dug ground losing carbon over decades.
 import {PRODUCE} from '../../data/crops';
-import {DIG} from '../../data/garden';
+import {BAGGED, DIG} from '../../data/garden';
 import {BIN} from '../../data/shed';
 import {owns} from '../kit';
 import type {System, TickContext} from '../clock';
@@ -104,14 +104,24 @@ export function spread(c: TickContext, bed: GraphNode, kg: number) {
   }
 }
 
-/** Digs part of a bed plot out of the lawn: its land from grass to crops, its edging paid for, and the flush of CO₂ from
- *  the organic matter turning it over exposes (src/data/garden.ts's DIG). */
+/** Digs part of a bed plot out of the lawn: its land from grass to crops, its edging and bagged compost paid for, the
+ *  compost's carbon and nutrients into the soil, and the flush of CO₂ from the organic matter turning it over exposes
+ *  (src/data/garden.ts's DIG). */
 export function dig(c: TickContext, bed: GraphNode, m2: number) {
   m2 = Math.min(m2, bed.stocks['land.grass']?.amount ?? 0);
   if (m2 <= 1e-9) return;
   c.flow({what: 'digging', unit: 'm2', amount: qty(m2, 'm2'), from: at(bed.id, 'land.grass'), to: at(bed.id, 'land.crops')});
-  const gbp = Math.min(DIG.gbpPerM2 * m2, Math.max(0, c.graph.nodes.kitchen?.stocks.money?.amount ?? 0));
-  if (gbp > 1e-9) c.flow({what: 'edging', unit: 'GBP', amount: qty(gbp, 'GBP'), from: at('kitchen', 'money'), to: {boundary: 'bought'}});
+  const purse = () => Math.max(0, c.graph.nodes.kitchen?.stocks.money?.amount ?? 0);
+  const edging = Math.min(DIG.edgingPerM2 * m2, purse());
+  if (edging > 1e-9) c.flow({what: 'edging', unit: 'GBP', amount: qty(edging, 'GBP'), from: at('kitchen', 'money'), to: {boundary: 'bought'}});
+  // the compost the purse can pay for, forked in with its carbon and nutrients
+  const kg = Math.min(DIG.compostKgPerM2 * m2, purse() / DIG.compostGbpPerKg);
+  if (kg > 1e-9) {
+    c.flow({what: 'bagged compost', unit: 'GBP', amount: qty(kg * DIG.compostGbpPerKg, 'GBP'), from: at('kitchen', 'money'), to: {boundary: 'bought'}});
+    c.flow({what: 'bagged compost', unit: 'kgCO2e', amount: qty(kg * BAGGED.co2e, 'kgCO2e'), from: {boundary: 'bought'}, to: at(bed.id, SOIL.fresh)});
+    for (const [key, unit, soil] of NUTRIENTS)
+      c.flow({what: 'bagged compost', unit, amount: qty(kg * BAGGED[key], unit), from: {boundary: 'bought'}, to: at(bed.id, key === 'n' ? SOIL.organicN : soil)});
+  }
   const flush = Math.min(DIG.flushPerM2 * m2, Math.max(0, bed.stocks[SOIL.humus]?.amount ?? 0));
   if (flush > 1e-9 && c.graph.nodes[ATMOSPHERE]) c.flow({what: 'digging', unit: 'kgCO2e', amount: qty(flush, 'kgCO2e'), from: at(bed.id, SOIL.humus), to: air()});
 }

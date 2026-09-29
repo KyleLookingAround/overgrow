@@ -13,7 +13,7 @@ import {CROPS, type CropId} from '../data/crops';
 import {BORDER} from '../data/flowers';
 import {CONTROL, POLICIES, SLUGS, START_POLICY, type PestId, type Policy} from '../data/pests';
 import {DIG_IN, FILL_L_PER_MIN, HOURS, LONG_WATERING, START_TOOLS, TOOLS, WALK, WATER_IN, COMPOST_PER_M2, type Job, type JobTime, type Tool} from '../data/jobs';
-import {DIG} from '../data/garden';
+import {digCost} from '../data/garden';
 import {commute, householdGardenHours, membersOf, shopDay, shopEstimate, weeklyShop, type Household} from './models/household';
 import {START} from '../data/ladder';
 import type {Activity} from './activity';
@@ -23,6 +23,7 @@ import {compostOn, dig, digIn, spread, toHeap} from './models/carbon';
 import {borderOf, plantBorder} from './models/biodiversity';
 import {cropOf, foodKey, inSeason, neighbours, PICK_MIN, plannedCrop, quality, ripe, sow, specOf, summerCrop, wasteOn} from './models/crops';
 import {note} from './effects';
+import {paySeed, seedCost} from './shed';
 import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
 import {askOf, GATE, KITCHEN, mixQuality, qualityAt, recordPick, surplus} from './models/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
@@ -34,7 +35,7 @@ const HOME = 'shed';
 /** What a step does when it ends. */
 export type Effect =
   | {kind: 'water'; bed: NodeId; source: 'butt' | 'tap'; litres: number}
-  | {kind: 'sow'; bed: NodeId; crop: CropId}
+  | {kind: 'sow'; bed: NodeId; crop: CropId; seed: number}
   | {kind: 'pick'; bed: NodeId; product: string; kg: number}
   | {kind: 'heap'; from: NodeId; kg: number}
   | {kind: 'spread'; bed: NodeId; kg: number}
@@ -42,7 +43,7 @@ export type Effect =
   | {kind: 'dig in'; bed: NodeId}
   | {kind: 'box'; items: {product: string; kg: number}[]}
   | {kind: 'pest'; bed: NodeId; pest: PestId; how: Policy}
-  | {kind: 'border'; bed: NodeId; flower: CropId}
+  | {kind: 'border'; bed: NodeId; flower: CropId; seed: number}
   | {kind: 'home'; shop: boolean};
 
 /** One step of the day: an activity to show when it starts, and its effect when it ends. */
@@ -308,7 +309,9 @@ function clear(p: Planner, from: GraphNode, bed: boolean): boolean {
 function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
   const spec = CROPS[crop], area = areaOf(bed), how = best(p.g, spec.how), bucket = best(p.g, 'spread'), cans = best(p.g, 'water');
   if (!how) return false;
-  const kg = bucket ? Math.min(p.compost, COMPOST_PER_M2 * area) : 0;
+  const kg = bucket ? Math.min(p.compost, COMPOST_PER_M2 * area) : 0, seed = seedCost(p.g, crop);
+  // the seed comes out of the purse: a sowing waits until it has the price
+  if (p.money < seed) return false;
   let fromButt = 0;
   return p.job((j) => {
     fromButt = 0; // built again if it has to wait until they're home from work
@@ -328,7 +331,7 @@ function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
     }
     j.walk(HOME, 'fetch');
     j.walk(bed.id);
-    j.work(spec.how, area * how.per, undefined, {kind: 'sow', bed: bed.id, crop});
+    j.work(spec.how, area * how.per, undefined, {kind: 'sow', bed: bed.id, crop, seed});
     // watered in: by hose, or a trip a can
     if (cans && byHose(cans)) hose(j, bed.id, WATER_IN * area, cans);
     else for (let litres = WATER_IN * area; cans && litres > 0.5; ) {
@@ -340,7 +343,7 @@ function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
       if (source === 'butt') fromButt += trip;
       litres -= trip;
     }
-  }) && ((p.compost -= kg), (p.butt -= fromButt), true);
+  }) && ((p.compost -= kg), (p.butt -= fromButt), (p.money -= seed), true);
 }
 
 /** A treatment's job: fetch it from the shed, then treat the bed; only if the purse has its price. */
@@ -433,11 +436,13 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   for (const b of dug) {
     const want = b.levers.edge;
     if (typeof want !== 'string' || !(want in CROPS) || borderOf(b) || !inSeason(CROPS[want as CropId], date)) continue;
-    p.job((j) => {
+    const seed = seedCost(g, want as CropId);
+    if (p.money < seed) continue;
+    if (p.job((j) => {
       j.walk(HOME, 'fetch');
       j.walk(b.id);
-      j.work('plant', BORDER.minutes / 60, undefined, {kind: 'border', bed: b.id, flower: want as CropId});
-    });
+      j.work('plant', BORDER.minutes / 60, undefined, {kind: 'border', bed: b.id, flower: want as CropId, seed});
+    })) p.money -= seed;
   }
   // 4. carry: the kitchen's surplus to the honesty box, scraps and waste to the heap
   const kitchen = g.nodes[KITCHEN], carry = best(g, 'carry');
@@ -464,18 +469,18 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
     if (wasteOn(kitchen) >= 1) clear(p, kitchen, false);
   }
   for (const b of dug) if (!sown.has(b.id) && wasteOn(b) >= 0.5) clear(p, b, true);
-  // 5. dig a plot the plan wants dug, a square metre at a time, each with its edging board from the purse
-  for (const b of beds) {
-    let grass = b.levers.dig === true ? b.stocks['land.grass']?.amount ?? 0 : 0;
-    while (spade && grass > 1e-6) {
-      const m2 = Math.min(1, grass);
-      if (p.money < DIG.gbpPerM2 * m2 || !p.job((j) => {
-        j.walk(b.id);
-        j.work('dig', m2 * spade.per, undefined, {kind: 'dig', bed: b.id, m2});
-      })) break;
-      p.money -= DIG.gbpPerM2 * m2;
-      grass -= m2;
-    }
+  // 5. dig a plot the plan wants dug, a quarter of a square metre at a time, each with its edging and compost from the purse: one bed
+  // at a time, the first the plan wants, so a new bed is a project that's finished before the next is begun
+  const digging = beds.find((b) => b.levers.dig === true && (b.stocks['land.grass']?.amount ?? 0) > 1e-6);
+  let grass = digging ? digging.stocks['land.grass']?.amount ?? 0 : 0;
+  while (digging && spade && grass > 1e-6) {
+    const m2 = Math.min(0.25, grass);
+    if (p.money < digCost(m2) || !p.job((j) => {
+      j.walk(digging.id);
+      j.work('dig', m2 * spade.per, undefined, {kind: 'dig', bed: digging.id, m2});
+    })) break;
+    p.money -= digCost(m2);
+    grass -= m2;
   }
   // off to work if they haven't gone yet; home to the shed; out again at dusk with a torch if there's a patrol; then rest
   // until tomorrow's start
@@ -511,7 +516,10 @@ function apply(c: TickContext, e: Effect) {
     }
     case 'sow': {
       const bed = g.nodes[e.bed];
-      if (bed && !cropOf(bed)) sow(bed, e.crop, c.hours);
+      if (bed && !cropOf(bed)) {
+        sow(bed, e.crop, c.hours);
+        paySeed(c, e.seed);
+      }
       return;
     }
     case 'pick': {
@@ -547,7 +555,10 @@ function apply(c: TickContext, e: Effect) {
       return;
     case 'border': {
       const bed = g.nodes[e.bed];
-      if (bed && !borderOf(bed)) plantBorder(bed, e.flower, c.hours);
+      if (bed && !borderOf(bed)) {
+        plantBorder(bed, e.flower, c.hours);
+        paySeed(c, e.seed);
+      }
       return;
     }
     case 'box':

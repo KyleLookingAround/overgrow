@@ -87,6 +87,8 @@ export const CAUSES = {
   flowers: {kind: 'wildlife', causes: ['flowers']},
   cat: {kind: 'wildlife', causes: ['cat']},
   soilborne: {kind: 'pest', causes: ['clubroot', 'potato cyst nematode', 'foot and root rot']},
+  seed: {kind: 'household', causes: ['seed']},
+  baggedCompost: {kind: 'soil', causes: ['bagged compost']},
 } satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
 
 export type Entry = keyof typeof CAUSES;
@@ -517,6 +519,22 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
     slow: 'Nothing.',
     source: 'Every UK garden.',
   },
+  seed: {
+    title: 'Seed',
+    says: 'The garden paid for a sowing: a packet of seed, seed potatoes, sets or a tray of young plants.',
+    mechanism: 'Each sowing needs its seed; a packet costs a few pounds and holds more than a bed needs, and last year’s goes stale.',
+    fast: 'A little out of the purse each time a bed is sown.',
+    slow: 'Ordering next year’s seed from the winter catalogue costs about a third less.',
+    source: 'Suttons and Thompson & Morgan catalogue prices, 2027, rough.',
+  },
+  baggedCompost: {
+    title: 'Bagged compost',
+    says: 'Bagged compost went into a newly dug bed.',
+    mechanism: 'New ground dug out of the lawn needs organic matter forked in; a bag carries carbon, nitrogen, phosphorus and potassium from outside the garden.',
+    fast: 'The new bed starts with more organic matter and nutrients.',
+    slow: 'The heap’s own compost costs nothing once it’s going.',
+    source: 'RHS, “Digging”; WRAP PAS 100 compost analysis.',
+  },
 };
 
 /** The lever that helps, in a line: what the Explain card offers after what happened. */
@@ -574,6 +592,8 @@ export const HELPS: Record<Entry, string> = {
   pollination: 'Flowers along a bed’s edge bring the bees.',
   flowers: 'Plant marigolds along an edge, or a bed of them.',
   cat: 'Nothing to do: it’s the neighbour’s.',
+  seed: 'Order next year’s seed from the catalogue in winter.',
+  baggedCompost: 'Keep the heap going: its compost is free.',
 };
 
 /** The kind of each cause: all the sim needs of the table. */

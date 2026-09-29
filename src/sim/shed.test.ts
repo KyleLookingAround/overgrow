@@ -6,7 +6,8 @@
 // soil, not to the heap.
 import {describe, expect, it} from 'vitest';
 import {BEER_TRAP, NEMATODES, SECOND_BUTT, UPGRADE_IDS} from '../data/shed';
-import {DIG} from '../data/garden';
+import {DIG, digCost} from '../data/garden';
+import {TOOLS} from '../data/jobs';
 import {createSim} from './index';
 import type {Flow} from './graph';
 import {shelter} from './models/crops';
@@ -121,14 +122,22 @@ describe('the shed', () => {
 });
 
 describe('digging', () => {
-  it('costs the gardener’s hours, the edging and a small flush of the soil’s carbon, and moves the land to crops', () => {
+  it('costs most of a week’s hours, the edging and compost, and a small flush of the soil’s carbon, and moves the land to crops', () => {
     const sim = game();
     expect(sim.apply({type: 'plan', node: 'bed-3', lever: 'dig', value: true}).rejected).toBeNull();
-    const flows = run(sim, 24 * 5);
+    const days = run(sim, 24 * 3);
+    // not done in three days: a bed is about 21 hours of spade work, most of a week's 32 spare hours
+    expect(node(sim, 'bed-3').stocks['land.grass']!.amount).toBeGreaterThan(0.2);
+    expect(3 * TOOLS.spade.jobs.dig!.per).toBeGreaterThan(18);
+    const flows = [...days, ...run(sim, 24 * 11)];
     const bed = node(sim, 'bed-3');
     expect(bed.stocks['land.grass']!.amount).toBeCloseTo(0, 6);
     expect(bed.stocks['land.crops']!.amount).toBeCloseTo(3, 6);
-    expect(sum(flows, 'edging', 'GBP')).toBeCloseTo(3 * DIG.gbpPerM2, 6);
+    expect(sum(flows, 'edging', 'GBP')).toBeCloseTo(3 * DIG.edgingPerM2, 6);
+    expect(sum(flows, 'bagged compost', 'GBP')).toBeCloseTo(3 * DIG.compostKgPerM2 * DIG.compostGbpPerKg, 6);
+    // the compost's carbon goes into the soil, tens of pounds in all
+    expect(sum(flows, 'bagged compost', 'kgCO2e')).toBeGreaterThan(3);
+    expect(digCost(3)).toBeGreaterThan(20);
     expect(sum(flows, 'digging', 'kgCO2e')).toBeCloseTo(3 * DIG.flushPerM2, 6);
     expect(sim.apply({type: 'plan', node: 'bed-3', lever: 'dig', value: true}).rejected).toMatch(/dug already/);
   });
