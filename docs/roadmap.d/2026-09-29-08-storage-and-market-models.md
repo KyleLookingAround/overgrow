@@ -1,0 +1,3 @@
+Section: now
+- **Storage, spoilage and the first market's models** (ahead of part 14, `docs/briefs/storage-and-market.md`): shelf life and Q10 spoilage by product and place, losses by stage from field to home in WRAP's order, the cold store's energy and payback, the van's round, the box scheme's households, goodwill and churn, the farm shop's footfall and price, cosmetic grading and seasonal prices. Pure and tested in `src/sim/models/storage.ts` and `market.ts`, with their notes in `docs/systems/storage.md` and `market.md`; part 14 wires them to the smallholding, the road and the map, and level 5 scales them.
+Theme: model
