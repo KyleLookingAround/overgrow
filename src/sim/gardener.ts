@@ -9,7 +9,7 @@
 // first. docs/systems/gardener.md.
 import {CROPS, type CropId} from '../data/crops';
 import {BORDER} from '../data/flowers';
-import {CONTROL, POLICIES, START_POLICY, type PestId, type Policy} from '../data/pests';
+import {CONTROL, POLICIES, SLUGS, START_POLICY, type PestId, type Policy} from '../data/pests';
 import {FILL_L_PER_MIN, HOURS, START_TOOLS, TOOLS, WALK, WATER_IN, COMPOST_PER_M2, type Job, type JobTime, type Tool} from '../data/jobs';
 import {START} from '../data/ladder';
 import type {Activity} from './activity';
@@ -21,7 +21,7 @@ import {cropOf, foodKey, inSeason, PICK_MIN, plannedCrop, ripe, sow, specOf, was
 import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
 import {GATE, KITCHEN, recordPick, surplus} from './models/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
-import {sunOn, weatherOf} from './models/weather';
+import {hourOf, sunOn, weatherOf} from './models/weather';
 
 export const GARDENER = 'gardener';
 const HOME = 'shed';
@@ -295,10 +295,13 @@ function pestJobs(p: Planner, dug: GraphNode[], date: CalendarDate) {
   }
 }
 
-/** The beds worth a torch patrol tonight: the policy picks slugs, and a planted bed has slugs and a damp evening coming. */
+/** The beds worth a torch patrol tonight: the policy picks slugs, and a planted bed has slugs and a damp, mild enough
+ *  evening coming. */
 function patrolBeds(g: Graph, dug: GraphNode[], date: CalendarDate): GraphNode[] {
   if (policyOf(g, 'slugs') !== 'pick') return [];
-  const w = weatherOf(g), wet = !!w && w.day === date.dayIndex && w.wet;
+  const w = weatherOf(g), today = !!w && w.day === date.dayIndex, wet = today && w!.wet;
+  // not on a night too cold for slugs to be out
+  if (today && hourOf(w!, (duskOf(g, date) + START.hour) % 24).temp < SLUGS.minTemp) return [];
   return dug.filter((b) => slugsOn(b) >= 1 && draws(b, 'slugs') && (wet || moisture(b) >= 0.5));
 }
 

@@ -84,6 +84,9 @@ function current(l: Activity[], hours: number): Activity {
 }
 
 const MIN_PERSON_PX = 6;
+/** How near a tap must land to a creature to open its card rather than select the place under it, px: close, so a tap
+ *  on a busy summer bed still selects the bed. */
+const CREATURE_PX = 12;
 /** Raindrops at the lightest and heaviest rain, and how long the shower's front takes to cross the garden, game hours. */
 const DROPS = {min: 30, perMm: 40, max: 160}, FRONT_HOURS = 0.3;
 // a fixed scatter for the drops, from a hash of their index (cosmetic, and the same every frame): where each crosses,
@@ -290,7 +293,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       return null;
     },
     creatureAt(x, y) {
-      let best: Creature | null = null, d = 22 * 22;
+      let best: Creature | null = null, d = CREATURE_PX * CREATURE_PX;
       for (const k of creatures) {
         const e = (k.x - x) ** 2 + (k.y - y) ** 2;
         if (e <= d) {

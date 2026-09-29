@@ -3,7 +3,7 @@
 // overflow, the panel's tab strip fitting its row with the sheet's toggle, every button and menu at least 40 px on
 // touch, the sheet still showing a useful panel under the fixed chrome, the sheet folding to its heading, the dark
 // scheme, and the top bar and panel working by keyboard alone. The top bar as a row (the owner's wins W2 and W11): one
-// row where it's 560 px or wider with the four speeds, and below that at most two rows with the speeds folded into one
+// row where it's 640 px or wider inside its padding, with the four speeds, and below that at most two rows with the speeds folded into one
 // button that cycles them, tapped on a touch page; safe areas kept clear on every side; and a tap on the map landing
 // through the layer over it (W12).
 import {join} from 'node:path';
@@ -29,7 +29,7 @@ export default async function({ok,open,out}){
       !inside(panel,w,h)&&'the panel isn\'t in view',!inside(head,w,h)&&'the panel\'s heading isn\'t in view',!placed&&(sheet?'the sheet isn\'t below the map':'the panel isn\'t beside the map'),
       map&&top&&map.y<top.b-1&&'the map is under the top bar',flow.sw>flow.cw&&`scroll width ${flow.sw}`,flow.sh>flow.ch&&`scroll height ${flow.sh}`,errs[0]].filter(Boolean);
     ok(`layout: at ${w}×${h} the top bar, map and ${sheet?'sheet below':'panel beside'} are in view, with no overflow or errors`,!bad.length,bad.join('; '));
-    // the row, not only each control: the parts' rows counted by where they sit, and the speeds folded below 560 px
+    // the row, not only each control: the parts' rows counted by where they sit, and the speeds folded below 640 px
     const rows=parts.length?[...new Set(parts.map(p=>Math.round((p.y+p.h/2)/12)))].length:0;
     const fold=await page.evaluate(()=>({four:[...document.querySelectorAll('.topbar .speed')].filter(e=>e.getClientRects().length).length,one:!!document.querySelector('.topbar .speed-cycle')?.getClientRects().length}));
     ok(`layout: at ${w}×${h} the top bar (${bar} px) is ${folded?'at most two rows, its speeds folded into one button':'one row with its four speeds'}`,

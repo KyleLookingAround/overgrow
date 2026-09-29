@@ -45,7 +45,7 @@ import {note} from '../effects';
 import {qty, type Graph, type GraphNode, type LeverValue} from '../graph';
 import {knock, wildlifeOf} from './biodiversity';
 import {cropOf, foodKey, GREENS, harm, progress, remaining, ripe, specOf, stageOf, totalDd, WASTE} from './crops';
-import {KITCHEN} from './kitchen';
+import {KITCHEN, recordWaste} from './kitchen';
 import {areaOf, moisture} from './soil';
 import {hourOf, weatherOf, type WeatherDay} from './weather';
 
@@ -265,7 +265,7 @@ function blightDay(c: TickContext, beds: GraphNode[], days: WeatherDay[], smith:
     if (sev <= 0 && smith) {
       sev = (BLIGHT.start + BLIGHT.spores * spores) * protect;
       const took = harm(b, sev * remaining(s));
-      note(c, 'blight', b.id, took, 'share');
+      if (took > 0) note(c, 'blight', b.id, took, 'share');
     } else if (sev > 0) {
       const slow = p.picked > c.hours - 24 ? CONTROL.blight.pick.slows : 1;
       const r = (hot ? BLIGHT.spread.hot : humid ? BLIGHT.spread.humid : BLIGHT.spread.dry) * protect * slow;
@@ -281,6 +281,7 @@ function blightDay(c: TickContext, beds: GraphNode[], days: WeatherDay[], smith:
       c.flow({what: 'blight rot', unit: 'kgFood', product: spec.product, amount: qty(kg, 'kgFood'), from: {node: b.id, stock: foodKey(spec.product)}, to: {boundary: 'decay'}});
       c.flow({what: 'blight rot', unit: 'kgWaste', product: GREENS, amount: qty(kg, 'kgWaste'), from: {boundary: 'decay'}, to: {node: b.id, stock: WASTE}});
       setPests(b, {eaten: pestsOf(b).eaten + kg});
+      recordWaste(c.graph, kg);
     }
   }
   return left;

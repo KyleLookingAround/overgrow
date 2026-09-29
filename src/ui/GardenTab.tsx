@@ -204,7 +204,7 @@ export function GardenTab({nodes, acts, hours, seen, send, onExplain}: {
       <section class="plan pest-plan" aria-labelledby="pests-title">
         <h3 id="pests-title">Pests</h3>
         {pests.map((pest) => (
-          <div class="bed-plan">
+          <div class="bed-plan" key={pest}>
             <label for={`policy-${pest}`}>{PEST_NAME[pest]}</label>
             <select id={`policy-${pest}`} value={String(me?.levers[pest] ?? START_POLICY[pest])}
               onChange={(e) => send({type: 'policy', node: GARDENER, lever: pest, value: (e.target as HTMLSelectElement).value})}>

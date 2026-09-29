@@ -10,7 +10,7 @@ import type {Command} from '../sim/commands';
 import type {GraphNode, NodeId} from '../sim/graph';
 import {borderOf, inFlower} from '../sim/models/biodiversity';
 import {cropOf, quality} from '../sim/models/crops';
-import {pestsOf} from '../sim/models/pests';
+import {aphidsOn, pestsOf} from '../sim/models/pests';
 import {unfolded} from '../data/unfold';
 import type {Ledger} from '../sim/models/kitchen';
 import {hasSoil, health, limitsOf, moisture, organicMatter, SOIL} from '../sim/models/soil';
@@ -62,8 +62,9 @@ function pestRows(n: GraphNode, seen: readonly string[]): Row[] {
   if (n.kind !== 'bed') return [];
   const p = pestsOf(n), c = cropOf(n), b = borderOf(n), rows: Row[] = [], any = ['slugs', 'aphids', 'blight'].some((k) => unfolded(seen, `pests.${k}`));
   if (p.blight > 0 && unfolded(seen, 'pests.blight')) rows.push(['Blight', `${Math.round(100 * p.blight)} % of the tops`, 'blight']);
-  if (any && c && c.lost > 0.005) rows.push(['Lost to pests', `${Math.round(100 * c.lost)} % of the crop`, 'slugs']);
-  if (any && p.eaten > 0.001) rows.push(['Eaten or rotted', grams(p.eaten), 'slugs']);
+  const worst = p.blight > 0 ? 'blight' : aphidsOn(n) > 0 ? 'aphids' : 'slugs';
+  if (any && c && c.lost > 0.005) rows.push(['Lost to pests', `${Math.round(100 * c.lost)} % of the crop`, worst]);
+  if (any && p.eaten > 0.001) rows.push(['Eaten or rotted', grams(p.eaten), worst]);
   if (b) rows.push(['Border', `${CROPS[b.id].name}${inFlower(b) ? ', in flower' : ''}`, 'flowers']);
   return rows;
 }

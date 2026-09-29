@@ -6,7 +6,8 @@ import type {GraphNode} from '../sim/graph';
 import type {Badge} from './badges';
 import {placeBadges} from './map/placement';
 
-/** A badge's size on the map, px: the touch target (its drawn disc is smaller). */
+/** A badge's size on the map, px: the touch target, --touch in tokens.css (its drawn disc is smaller). The placement
+ *  pass needs it as a number. */
 export const BADGE_PX = 40;
 
 function Icon({cause}: {cause: string}) {
