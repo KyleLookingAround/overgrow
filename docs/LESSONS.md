@@ -24,6 +24,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Not sorted yet
 
+- [The systems web, every mechanic across the ladder (#31) · 29 Sep 2026](lessons/31-systems-web.md)
 - [Labour, machinery and energy models, ahead of part 13 (#17) · 29 Sep 2026](lessons/17-labour-machinery-energy.md)
 - [Crops and the gardener, the first slice’s part 3 (#12) · 29 Sep 2026](lessons/12-crops-and-gardener.md)
 - [The bot and the first baselines, the first slice's part 4 (#10) · 29 Sep 2026](lessons/10-bot-and-baselines.md)
