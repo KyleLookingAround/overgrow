@@ -1,6 +1,7 @@
 // The crop model's plausibility test: lettuce ready in about the RHS's weeks from a spring sowing, a dry spell cutting
-// yield in rough proportion to Ky, frost killing beans but not radishes, a cropped bed drawing its nutrients down, and
-// a crop's coefficient raising the bed's evapotranspiration as it covers the ground.
+// yield in rough proportion to Ky, frost killing beans but not radishes, a cropped bed drawing its nutrients down (only
+// the eaten part's phosphorus and potassium leaving, by RB209's offtake), and a crop's coefficient raising the bed's
+// evapotranspiration as it covers the ground.
 import {describe, expect, it} from 'vitest';
 import {CROPS} from '../../data/crops';
 import {calendar, runStep, type System} from '../clock';
@@ -109,7 +110,7 @@ describe('crops', () => {
       const sim = createSim(2);
       sim.apply({type: 'plan', node: 'bed-2', lever: 'sow', value: plan});
       let uptake = 0;
-      for (let d = 0; d < 365; d++) uptake += sim.apply({type: 'tick', hours: 24}).flows.filter((f) => f.what === 'uptake' && f.unit === 'kgN' && 'node' in f.from && f.from.node === 'bed-2').reduce((s, f) => s + f.amount, 0);
+      for (let d = 0; d < 365; d++) uptake += sim.apply({type: 'tick', hours: 24}).flows.filter((f) => f.what === 'uptake' && f.unit === 'kgN' && 'node' in f.from && f.from.node === 'bed-2' && f.from.stock === SOIL.nitrate).reduce((s, f) => s + f.amount, 0);
       const bed = sim.snapshot().nodes.find((n) => n.id === 'bed-2')!;
       return {uptake, p: bed.stocks[SOIL.phosphorus]!.amount, k: bed.stocks[SOIL.potassium]!.amount};
     };
@@ -120,6 +121,29 @@ describe('crops', () => {
     expect(bare.uptake).toBe(0);
     expect(cropped.p).toBeLessThan(bare.p);
     expect(cropped.k).toBeLessThan(bare.k);
+  });
+
+  it('takes only the eaten part’s phosphorus and potassium away as food, and sends the rest to the heap with the residue', () => {
+    const sim = createSim(2);
+    const pk = () => sim.snapshot().nodes.reduce((s, n) => s + Object.values(n.stocks).filter((x) => x.unit === 'kgP').reduce((t, x) => t + x.amount, 0), 0);
+    const start = pk();
+    let food = 0, held = 0, back = 0, spread = 0;
+    for (let d = 0; d < 365; d++) {
+      for (const f of sim.apply({type: 'tick', hours: 24}).flows) {
+        if (f.unit !== 'kgP') continue;
+        if (f.what === 'uptake' && 'boundary' in f.to) food += f.amount;
+        if (f.what === 'residue') held += f.amount;
+        if ('boundary' in f.from) back += f.amount; // the kitchen's scraps, from the produce that left as food
+        if (f.what === 'compost') spread += f.amount;
+      }
+    }
+    // of what the finished crops took, their harvest indexes (a half to four fifths) left as food, the rest with the residue
+    expect(food / (food + held)).toBeGreaterThan(0.45);
+    expect(food / (food + held)).toBeLessThan(0.8);
+    // conserved: the garden's phosphorus falls by what left as food, less what came back as scraps
+    expect(start - pk()).toBeCloseTo(food - back, 9);
+    // and the heap has handed some of it back to the beds
+    expect(spread).toBeGreaterThan(0.1 * held);
   });
 
   it('covers the ground as it grows, raising the bed’s coefficient to mid-season’s and its evapotranspiration with it', () => {

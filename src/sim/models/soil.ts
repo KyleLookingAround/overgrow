@@ -115,7 +115,8 @@ export function moisture(n: GraphNode, lim = limitsOf(n)): number {
   return lim.fc > lim.wp ? ((n.stocks[SOIL.water]?.amount ?? 0) - lim.wp) / (lim.fc - lim.wp) : 0;
 }
 
-/** A soil's stocks as it's laid down: moist to field capacity (a British spring), its organic matter and RB209's index 2. */
+/** A soil's stocks as it's laid down: moist to field capacity (a British spring), its organic matter, and its phosphorus
+ *  and potassium (RB209's index 2 unless its spec says). */
 export function startingSoil(spec: SoilSpec, area: number, grass: boolean): Record<string, Stock> {
   const t = TEXTURES[spec.texture], mass = massOf(area), m3 = area * DEPTH;
   const organicC = (spec.organicMatter / 100 / OM_PER_C) * mass, freshShare = grass ? 0.06 : 0.02;
@@ -126,8 +127,8 @@ export function startingSoil(spec: SoilSpec, area: number, grass: boolean): Reco
     [SOIL.fresh]: kg((organicC * freshShare) / C_PER_CO2, 'kgCO2e'),
     [SOIL.organicN]: kg(organicC / C_TO_N, 'kgN'),
     [SOIL.nitrate]: kg((START_NITRATE_KG_HA * area) / 1e4, 'kgN'),
-    [SOIL.phosphorus]: kg((START_P_MG_L * m3 * 1000) / 1e6, 'kgP'),
-    [SOIL.potassium]: kg((START_K_MG_L * m3 * 1000) / 1e6, 'kgK'),
+    [SOIL.phosphorus]: kg(((spec.p ?? START_P_MG_L) * m3 * 1000) / 1e6, 'kgP'),
+    [SOIL.potassium]: kg(((spec.k ?? START_K_MG_L) * m3 * 1000) / 1e6, 'kgK'),
   };
 }
 

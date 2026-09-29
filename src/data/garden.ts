@@ -5,9 +5,10 @@
 // these edges; part 2's weather falls on these beds.
 // Sizes: a raised bed of 2 × 1.5 m and a 200 L butt are the common garden-centre sizes (RHS, "Raised beds"; "Water
 // butts"). Starting money is a placeholder the shed's prices (part 6) set against. The soils (src/data/soils.ts): the
-// dug beds a loam improved by years of compost, the lawn and the plots under it the clay loam of the ground beneath.
+// dug beds a loam improved by years of compost, the lawn and the plots under it the clay loam of the ground beneath,
+// all of them a long-kept garden's, rich in phosphorus and potassium (RB209's index 4).
 // The shed's roof drains into the butt.
-import type {SoilSpec} from './soils';
+import {GARDEN_K_MG_L, GARDEN_P_MG_L, type SoilSpec} from './soils';
 
 export type GardenLand = 'crops' | 'grass' | 'built' | 'path';
 
@@ -23,7 +24,8 @@ export interface PlaceSpec {
   soil?: SoilSpec;
 }
 
-const DUG: SoilSpec = {texture: 'loam', organicMatter: 4.5}, UNDER_GRASS: SoilSpec = {texture: 'clay loam', organicMatter: 4};
+const FED = {p: GARDEN_P_MG_L, k: GARDEN_K_MG_L};
+const DUG: SoilSpec = {texture: 'loam', organicMatter: 4.5, ...FED}, UNDER_GRASS: SoilSpec = {texture: 'clay loam', organicMatter: 4, ...FED};
 
 export const GARDEN = {w: 12, h: 8};
 
@@ -55,14 +57,15 @@ export const ROOF = {place: 'shed', to: 'butt', m2: 2.25 * 1.75, runoff: 0.85};
 /** Money in the household's purse on day 1, £. */
 export const START_MONEY = 20;
 
-/** The ways between places and what each carries: water by can or hose, food and scraps by hand, and compost from the
- *  heap to the beds with its carbon and nitrogen. (Every place's carbon also has a way to the air, which the sim adds.) */
-export const WAYS: readonly {from: string; to: string; carries: ('L' | 'kgFood' | 'kgWaste' | 'kgCO2e' | 'kgN')[]}[] = [
+/** The ways between places and what each carries: water by can or hose, food and scraps by hand, and waste to the heap
+ *  and compost back to the beds with their carbon, nitrogen, phosphorus and potassium. (Every place's carbon also has a
+ *  way to the air, which the sim adds.) */
+export const WAYS: readonly {from: string; to: string; carries: ('L' | 'kgFood' | 'kgWaste' | 'kgCO2e' | 'kgN' | 'kgP' | 'kgK')[]}[] = [
   ...[1, 2, 3, 4, 5, 6].flatMap((i) => [
     {from: 'tap', to: `bed-${i}`, carries: ['L' as const]},
     {from: 'butt', to: `bed-${i}`, carries: ['L' as const]},
     {from: `bed-${i}`, to: 'kitchen', carries: ['kgFood' as const]},
-    {from: `bed-${i}`, to: 'heap', carries: ['kgWaste' as const, 'kgCO2e' as const, 'kgN' as const]},
+    {from: `bed-${i}`, to: 'heap', carries: ['kgWaste' as const, 'kgCO2e' as const, 'kgN' as const, 'kgP' as const, 'kgK' as const]},
   ]),
   {from: 'kitchen', to: 'heap', carries: ['kgWaste']},
   {from: 'kitchen', to: 'gate', carries: ['kgFood']},

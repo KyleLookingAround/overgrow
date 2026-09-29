@@ -238,7 +238,7 @@ Loops: energy (gas → fertiliser), intensification. Spec: from 1 (compost), 3.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S | H: compost and legumes put N-P-K back, and bare beds leach. The levers are the compost bin and the rotation; the gardener spreads. | Compost carried; beans | Health (soil) | Fast: none. Slow: a winter's leaching. Nitrogen leaves with winter rain. | N-P-K with the first stressed crop; the compost bin with the heap's first finished compost |
+| 1 · S | H: compost and legumes put N-P-K back (crop residues carry what the harvest didn't take to the heap, and compost carries it to the beds; the beds start at a long-kept garden's index 4, so they mine slowly: Bug #47), and bare beds leach. The levers are the compost bin and the rotation; the gardener spreads. | Compost carried; beans | Health (soil) | Fast: none. Slow: a winter's leaching. Nitrogen leaves with winter rain. | N-P-K with the first stressed crop; the compost bin with the heap's first finished compost |
 | 2 · P | H: manure from the stables down the lane, shared out by rota. | A heap of manure by the gate | Health | A shared input needs a rule, like the trough. | With the stables' offer |
 | 3 · S | H: manure against bought fertiliser, by RB209. The lever is the year plan; the smallholder spreads. | The spreader | Upkeep; carbon (N₂O) | Fast: a greener crop. Slow: none. Synthetic nitrogen is made from gas. | Fertiliser with the first year plan |
 | 4 · P | H: precision inputs and the nitrate rules (nitrate vulnerable zones). The lever is the input plan; the farmer and the adviser act. | Variable-rate passes | Upkeep; carbon | Fast: saved fertiliser. Slow: cleaner water. Putting on only what the crop takes pays twice. | Precision with the first input bill worth cutting |
@@ -330,7 +330,7 @@ Loop: waste. Spec: from 1.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S | H: the heap; the kitchen and the box going off. The levers are the plan and the heap; the gardener carries. | Scraps to the heap | carbon | What's wasted still cost water and hours. | The heap from the first scraps; wasted kg in the Kitchen tab with the first thing that goes off |
+| 1 · S | H: the heap, taking residues and scraps and handing their nutrients back to the beds as compost; the kitchen and the box going off. The levers are the plan and the heap; the gardener carries. | Scraps to the heap | carbon | What's wasted still cost water and hours. | The heap from the first scraps; wasted kg in the Kitchen tab with the first thing that goes off |
 | 2 · S+P | H: the swap shed as redistribution. The committee's bonfire ban is the waste system's burning against composting (**O·Q11**), which leads to the stubble-burning ban and burning abroad. | — | — | Surplus given is surplus not wasted. | The swap shelf; the bonfire vote |
 | 3 · S | H: manure, and spoilage on the way. | — | — | Fast: manure spread. Slow: the soil fed. One enterprise's waste is another's input. | Manure with the flock |
 | 4 · S | H: outgrades under cosmetic standards (the waste loop). | Outgrades | — | Standards make waste. | Outgrades with the first rejected load |

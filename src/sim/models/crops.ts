@@ -11,7 +11,8 @@
 //   Paper 56 (Allen et al. 1998) for the crop coefficients by stage (table 12, the four-stage curve of figure 25), the
 //   depletion fraction p (table 22) and the water stress coefficient Ks (eq. 84); FAO Irrigation and Drainage Paper 33
 //   (Doorenbos & Kassam 1979) for the yield response to water, 1 − Ya/Ym = Ky (1 − ETa/ETm); RB209 (AHDB 2023,
-//   section 6) for the nitrogen, phosphorus and potassium a full crop takes up; Liebig's law of the minimum for the
+//   section 6) for the nitrogen, phosphorus and potassium a full crop takes up, and its offtake in the produce for the
+//   share of them that leaves as food (the harvest index); McCance & Widdowson for the nutrients in produce that rots; Liebig's law of the minimum for the
 //   scarcest nutrient limiting growth; RHS guidance on frost-tender crops (beans and tomatoes killed below 0 °C,
 //   potato haulm blackened and regrowing from the tubers). Klein et al. (2007), "Importance of pollinators in changing
 //   landscapes for world crops", for the share of a pollinated crop's yield that depends on visits (src/sim/models/
@@ -19,12 +20,13 @@
 // Simplifies: one crop to a bed, all sown at once and growing as one; development from the day's mean temperature (no
 //   day length, no vernalisation, no heat stress); water stress cuts yield and quality but not the pace; uptake in
 //   proportion to development; beans' own nitrogen fixation stands in as a small uptake, with no nitrogen added to the
-//   soil; roots and stubble go to the heap with the residue, not into the soil; seed, seed potatoes and young tomato
+//   soil; roots and stubble go to the heap with the residue, not into the soil; what a crop takes is held in it until
+//   it's done, and then one harvest index (set for P and K, standing in for N too) splits it between food and residue; seed, seed potatoes and young tomato
 //   plants cost nothing yet (the shed, part 6); a frost reads the grass minimum of the hour; pests' damage (src/sim/models/
 //   pests.ts) is a share of the yield lost, like a frost's.
 //   Fast effect: shoots in a week or two, a first cut of salad in about a month in spring, and frost blackening the
 //   beans on a cold night. Slow effect: a cropped bed drawing its nutrients down year by year unless compost goes back.
-import {COVERS, CROPS, GROWTH_PACE, ROTATION, type CropId, type CropSpec} from '../../data/crops';
+import {COVERS, CROPS, GROWTH_PACE, PRODUCE, ROTATION, type CropId, type CropSpec} from '../../data/crops';
 import {calendar, type CalendarDate, type System, type TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type GraphNode, type LeverValue} from '../graph';
@@ -64,6 +66,13 @@ export type Stage = 'sown' | 'growing' | 'ready' | 'over' | 'dead';
 
 /** The keys the crop model keeps on a bed. */
 export const WASTE = 'waste', GREENS = 'greens';
+/** The nitrogen, phosphorus and potassium a growing crop holds in its leaves, stems and roots (the share it won't take
+ *  away as food), and what its residue carries in the bed's waste to the heap, kg. */
+export const HELD = {n: 'crop.nitrogen', p: 'crop.phosphorus', k: 'crop.potassium'} as const;
+export const IN_WASTE = {n: 'waste.nitrogen', p: 'waste.phosphorus', k: 'waste.potassium'} as const;
+/** The three nutrients by key, with their units and the bed's soil stocks they come from (soil.ts's SOIL keys, spelt
+ *  out: the models import each other, so SOIL may not be there yet when this is read). */
+export const NUTRIENTS = [['n', 'kgN', 'nitrate'], ['p', 'kgP', 'phosphorus'], ['k', 'kgK', 'potassium']] as const;
 export const foodKey = (product: string) => `food.${product}`;
 /** The least worth picking, kg: less is left on the bed. */
 export const PICK_MIN = 0.02;
@@ -189,11 +198,13 @@ const OWN = new Set(['crop', 'history']);
 
 // ---- the day ----
 
-/** Moves produce that has gone off on a bed to waste on it, and counts it as food wasted. */
+/** Moves produce that has gone off on a bed to waste on it, with the nutrients it holds, and counts it as food wasted. */
 function spoil(c: TickContext, n: GraphNode, product: string, kg: number, what: string) {
   if (kg <= 1e-9) return;
   c.flow({what, unit: 'kgFood', product, amount: qty(kg, 'kgFood'), from: {node: n.id, stock: foodKey(product)}, to: {boundary: 'decay'}});
   c.flow({what, unit: 'kgWaste', product: GREENS, amount: qty(kg, 'kgWaste'), from: {boundary: 'decay'}, to: {node: n.id, stock: WASTE}});
+  // its nutrients left with the harvest's share (to growth, as food); rotting on the bed, they come back for the heap
+  for (const [key, unit] of NUTRIENTS) c.flow({what, unit, amount: qty(kg * PRODUCE[key], unit), from: {boundary: 'growth'}, to: {node: n.id, stock: IN_WASTE[key]}});
   recordWaste(c.graph, kg);
 }
 
@@ -203,20 +214,30 @@ function finish(c: TickContext, n: GraphNode, s: CropState, why: string) {
   spoil(c, n, spec.product, ripe(n), why);
   const residue = spec.residue * area * Math.min(1, s.dd / Math.max(1, spec.dd.mature));
   if (residue > 1e-6) c.flow({what: 'residue', unit: 'kgWaste', product: GREENS, amount: qty(residue, 'kgWaste'), from: {boundary: 'growth'}, to: {node: n.id, stock: WASTE}});
+  // what it took: the eaten part's share (its harvest index) has left as food; the rest, in its leaves, stems and roots,
+  // stays with the residue for the heap
+  for (const [key, unit] of NUTRIENTS) {
+    const held = n.stocks[HELD[key]]?.amount ?? 0, food = held * spec.harvestIndex;
+    if (food > 0) c.flow({what: 'uptake', unit, amount: qty(food, unit), from: {node: n.id, stock: HELD[key]}, to: {boundary: 'growth'}});
+    if (held - food > 0) c.flow({what: 'residue', unit, amount: qty(held - food, unit), from: {node: n.id, stock: HELD[key]}, to: {node: n.id, stock: IN_WASTE[key]}});
+  }
   const history = ((n.levers.history as string[] | undefined) ?? []).concat(spec.family).slice(-4);
   n.levers.history = history;
   setCrop(n, null);
 }
 
-/** Takes a share of a full crop's nutrients from the soil, as much as is there; returns the share it got of what it wanted. */
+/**
+ * Takes a share of a full crop's nutrients from the soil into the plant, as much as is there; returns the share it got
+ * of what it wanted. They're held on the bed until the crop is done (finish()).
+ */
 function uptake(c: TickContext, n: GraphNode, spec: CropSpec, share: number): number {
   const ha = areaOf(n) / 1e4;
   let got = 1;
-  for (const [stock, unit, want] of [[SOIL.nitrate, 'kgN', spec.uptake.n], [SOIL.phosphorus, 'kgP', spec.uptake.p], [SOIL.potassium, 'kgK', spec.uptake.k]] as const) {
-    const need = want * ha * share;
+  for (const [key, unit, stock] of NUTRIENTS) {
+    const need = spec.uptake[key] * ha * share;
     if (need <= 0) continue;
     const take = Math.min(need, Math.max(0, n.stocks[stock]?.amount ?? 0));
-    if (take > 0) c.flow({what: 'uptake', unit, amount: qty(take, unit), from: {node: n.id, stock}, to: {boundary: 'growth'}});
+    if (take > 0) c.flow({what: 'uptake', unit, amount: qty(take, unit), from: {node: n.id, stock}, to: {node: n.id, stock: HELD[key]}});
     got = Math.min(got, take / need);
   }
   return got;

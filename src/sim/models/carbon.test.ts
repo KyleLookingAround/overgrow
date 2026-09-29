@@ -1,6 +1,7 @@
 // The carbon model's plausibility test: a heap stores most of its waste's carbon as compost and emits the rest, with a
-// little methane and nitrous oxide of IPCC's size; compost spread on a bed feeds its organic matter; and a plot dug out
-// of the lawn loses soil carbon over twenty years to roughly IPCC's cropland factor against grass.
+// little methane and nitrous oxide of IPCC's size; compost spread on a bed feeds its organic matter and returns the
+// phosphorus and potassium its waste carried in, conserved and about as rich as WRAP's PAS 100 composts; and a plot dug
+// out of the lawn loses soil carbon over twenty years to roughly IPCC's cropland factor against grass.
 import {describe, expect, it} from 'vitest';
 import {runStep, type TickContext} from '../clock';
 import {applyFlow, qty, type Flow, type Graph, type LeverValue} from '../graph';
@@ -57,6 +58,43 @@ describe('carbon', () => {
     expect(compostOn(g)).toBe(0);
     expect(bed.stocks[SOIL.fresh]!.amount - fresh).toBeGreaterThan(5);
     expect(bed.stocks[SOIL.organicN]!.amount - n).toBeGreaterThan(0.1);
+  });
+
+  it('carries a bed’s residue’s phosphorus and potassium onto the heap and back to a bed with the compost, none made or lost', () => {
+    const g = gardenGraph(), {ctx} = context(g), c = ctx as unknown as TickContext, from = g.nodes['bed-2']!, to = g.nodes['bed-1']!;
+    const pk = (unit: string) => Object.values(g.nodes).reduce((s, n) => s + Object.values(n.stocks).filter((x) => x.unit === unit).reduce((t, x) => t + x.amount, 0), 0);
+    // a finished crop of lettuce left 1.8 kg of leaves and roots, holding a fifth of what it took (15 kg P and 150 kg K a hectare over 3 m²)
+    from.stocks.waste = {unit: 'kgWaste', product: 'greens', amount: qty(1.8, 'kgWaste')};
+    from.stocks['waste.phosphorus'] = {unit: 'kgP', amount: qty(0.2 * 0.0045, 'kgP')};
+    from.stocks['waste.potassium'] = {unit: 'kgK', amount: qty(0.2 * 0.045, 'kgK')};
+    const p0 = pk('kgP'), k0 = pk('kgK');
+    toHeap(c, from, 0.9); // half of it now, half later
+    expect(g.nodes[HEAP]!.stocks.phosphorus!.amount).toBeCloseTo(0.5 * 0.2 * 0.0045, 9);
+    toHeap(c, from, 0.9);
+    g.nodes.atmosphere!.levers.weather = MILD as unknown as LeverValue;
+    for (let d = 0, h = 18; d < 365; d++) h = runStep([carbon], ctx, 1, h);
+    const before = to.stocks.phosphorus!.amount, beforeK = to.stocks.potassium!.amount;
+    spread(c, to, compostOn(g));
+    // nearly all of it comes back (a little still in the waste left to break down), and nothing is made or lost
+    expect(to.stocks.phosphorus!.amount - before).toBeGreaterThan(0.9 * 0.2 * 0.0045);
+    expect(to.stocks.potassium!.amount - beforeK).toBeGreaterThan(0.9 * 0.2 * 0.045);
+    expect(pk('kgP')).toBeCloseTo(p0, 12);
+    expect(pk('kgK')).toBeCloseTo(k0, 12);
+    // WRAP's PAS 100 green composts hold about 0.1–0.3 % P and 0.3–0.8 % K fresh; compost of vegetable residue is richer
+    const compost = 1.8 * COMPOST_YIELD, p = (0.2 * 0.0045) / compost, k = (0.2 * 0.045) / compost;
+    expect(p).toBeGreaterThan(0.0005);
+    expect(p).toBeLessThan(0.01);
+    expect(k).toBeGreaterThan(0.003);
+    expect(k).toBeLessThan(0.05);
+  });
+
+  it('carries the fresh produce’s phosphorus and potassium on the kitchen’s scraps', () => {
+    const g = gardenGraph(), {ctx} = context(g);
+    g.nodes.kitchen!.stocks.waste = {unit: 'kgWaste', product: 'greens', amount: qty(2, 'kgWaste')};
+    toHeap(ctx as unknown as TickContext, g.nodes.kitchen!, 2);
+    // McCance and Widdowson: about 0.3 g of phosphorus and 3 g of potassium in a kg of vegetables
+    expect(g.nodes[HEAP]!.stocks.phosphorus!.amount).toBeCloseTo(0.0006, 9);
+    expect(g.nodes[HEAP]!.stocks.potassium!.amount).toBeCloseTo(0.006, 9);
   });
 
   it('lets a plot dug out of the lawn lose soil carbon over twenty years, to roughly IPCC’s cropland factor', () => {
