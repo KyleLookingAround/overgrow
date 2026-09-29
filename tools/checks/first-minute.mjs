@@ -48,12 +48,12 @@ export default async function({ok,open,out}){
     const morning=await hourly(page,6),left1=(await snap(page)).nodes.find(n=>n.id==='gardener').stocks.hours.amount;
     ok('first minute: in the morning the gardener sows bed 2 and waters it in, their hours ticking down',
       morning.some(a=>a.doing==='sow'&&a.to==='bed-2')&&morning.some(a=>a.doing==='water'&&a.to==='bed-2')&&left1>0&&left1<4,`${morning.map(a=>a.doing).join(' ')}; ${left1.toFixed(2)} h of 4 left`);
-    // the card answered, as a player would have
-    await send(page,{type:'card',id:'first-plan',answer:'accept'});await send(page,{type:'speed',speed:0});
     // dusk: the check makes the evening damp itself (W21), so the slugs come out on any draw of the dice
     await send(page,{type:'tick',hours:12-(await snap(page)).hours});
     const save=JSON.parse(await page.evaluate(()=>window.__sim.save()));
     const lawn=save.graph.nodes.lawn;lawn.levers.outbreak={...lawn.levers.outbreak,wet:save.hours};
+    // and the first plan's card answered, as a player would have on the first morning
+    save.seen=[...save.seen,'card.first-plan'];
     await send(page,{type:'load',save:JSON.stringify(save)});
     const [out2,torch]=await page.evaluate(async()=>{let most=0;const t=new Set();for(let i=0;i<11;i++){const s=await window.__sim.send({type:'tick',hours:1});
       most=Math.max(most,...s.nodes.map(n=>n.levers.pests?.out??0));for(const a of s.activities)if(a.doing==='torch')t.add(a.id)}return [most,t.size]});
@@ -74,7 +74,8 @@ export default async function({ok,open,out}){
     await page.evaluate(()=>document.querySelector('.card-close')?.click());
     // day 2, morning: the beer trap in the shed, and the goal bar counting down to the first harvest
     await drawnAt(page,26);
-    const goal=await page.evaluate(()=>document.querySelector('.goal-bar')?.textContent??'');
+    // the goal bar gives way to a notice: wait for the night's signs to go
+    const goal=await page.waitForSelector('.goal-bar',{timeout:9000}).then(e=>e.textContent(),()=>'');
     await page.click('#tab-shed').catch(()=>{});
     const shed=await page.waitForFunction(()=>document.querySelector('.offer')?.textContent,null,{timeout:4000}).then(r=>r.jsonValue(),()=>'');
     ok('first minute: by the second morning the Shed tab shows the beer trap, and the goal bar counts down to the first harvest',

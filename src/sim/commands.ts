@@ -100,7 +100,9 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       if (!(SPEEDS as readonly number[]).includes(cmd.speed)) s.rejected = `no speed ${cmd.speed}`;
       else {
         s.speed = cmd.speed;
-        // any way of reaching a faster speed answers the "try faster" nudge
+        // starting the clock from the first morning keeps the card's plan; any way of reaching a faster speed answers
+        // the "try faster" nudge
+        if (cmd.speed > 0 && s.hours === 0) seeOnce(s, CARDS.firstPlan);
         if (cmd.speed >= 2) seeOnce(s, CARDS.tryFaster);
       }
       return s;
@@ -147,7 +149,8 @@ function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readon
   if (!key) s.rejected = `no card ${String(cmd.id)}`;
   else if (s.seen.includes(key)) s.rejected = 'that’s been answered';
   else if (cmd.id === 'first-plan') {
-    if (cmd.answer !== 'accept' && cmd.answer !== 'choose') s.rejected = 'accept or choose';
+    if (s.hours > 0) s.rejected = 'the first plan’s already under way';
+    else if (cmd.answer !== 'accept' && cmd.answer !== 'choose') s.rejected = 'accept or choose';
     else {
       if (cmd.answer === 'choose') applyCommand(s, {type: 'plan', node: FIRST_PLAN.bed, lever: 'sow', value: FIRST_PLAN.chosen}, systems);
       if (!s.rejected) {

@@ -11,7 +11,7 @@
 //   weeks); an honesty box as a farm-gate sale at a flat price per kg.
 // Simplifies: one meal a day at 18:00 eats the whole day's ask; within a group the shortest-keeping is eaten first, and a
 //   group can stand in for another up to twice its own ask; nothing is bought from the shops (what the garden doesn't
-//   meet simply goes unmet here, and the first evening's meal is taken as what the house had in); produce goes off at a steady rate from the day it's picked; passers-by take up to a
+//   meet simply goes unmet here, and the day's ask is noted from the second evening, the first counted like any other); produce goes off at a steady rate from the day it's picked; passers-by take up to a
 //   fixed amount a day, more at weekends, whatever the produce; nothing is peeled or trimmed.
 //   Fast effect: the day's ask met or not, and a glut going to the box for money. Slow effect: the share of the
 //   household's veg the garden grows, week by week, and the food wasted along the way.

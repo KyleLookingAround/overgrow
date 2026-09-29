@@ -167,7 +167,7 @@ At 1× a game hour is a real second, so the first real minute is two and a half 
 1. 0–10 s (06:00, paused): a card offers the first plan: "Salad leaves in bed 1, radishes in bed 2" (or "let them choose"). Accept it and the clock starts.
 2. 10–16 s (06:00–12:00): the gardener walks to the beds and sows, then fetches the can and waters both, a trip each; the soil darkens. Their card shows the day's hours ticking down.
 3. 24–28 s (20:00–midnight): dusk; slugs creep onto the wet beds. The gardener goes out with a torch and picks them, slowly, and misses some. Tap a slug: the first Explain card (slugs, moisture, night).
-4. 34–40 s (day 2, morning): green shoots, a nibbled leaf. The shed shows the first upgrade: a beer trap, cheap, "catches most slugs, costs no time". The goal bar shows "First harvest: 6 days".
+4. 34–40 s (day 2, morning): green shoots, a nibbled leaf. The shed shows the first upgrade: a beer trap, cheap, "catches most slugs, costs no time". The goal bar shows the first harvest coming ("First harvest: salad leaves in bed 1, 96 % grown").
 5. 40–60 s (day 2 afternoon to day 3): a shower passes and both beds darken by themselves; the gardener stays in. The kitchen's first ask appears.
 - First harvest on day 7, about three minutes at 1×; first sale a minute later; the beer trap and then the hose within ten minutes.
 
@@ -209,7 +209,7 @@ At 1× a game hour is a real second, so the first real minute is two and a half 
 - **The renderer:** WebGL through PixiJS from the start, since the top levels draw thousands of moving things at once and a phone's Canvas 2D can't; Canvas 2D only as the fallback where WebGL is missing. The sim ticks in fixed steps in the worker; the renderer interpolates between snapshots, so movement is smooth at any speed. This is the fourth runtime dependency, with its own decision record (`docs/decisions/ADR-2026-09-28-webgl-map.md`).
 - **The zoom-out** is the signature: on a step up the camera pulls back and the level shrinks into its tile on the next map; a zoom back in is the same move in reverse.
 - **Access:** `prefers-reduced-motion` stops the interpolated movement (things jump per tick) and the zoom animations; every panel works by keyboard; the map's meaning is never colour alone (a badge or a pattern goes with each tint).
-- **Explain:** tap any effect, badge or number for a card: what happened, the mechanism, its fast and slow effects, the source.
+- **Explain:** tap any effect, badge or number for a card: what happened, the lever that helps, and a line each of the mechanism and the source (short, part 6a); the table keeps each effect's fast and slow sides.
 - **Layout:** a top bar (level, date, and pause and speeds from the start; the temperature, money and carbon dial as each unfolds) and the map filling the rest. Tap targets at least 40 px on touch. Works at 320×568 and up, portrait and landscape, no sideways scrolling (the `build` check). Panels for the garden: Garden, Shed, Kitchen, Goals; a tab appears only once it has something in it, and every number, dial, badge and lever unfolds as the player gains influence over its system, from one table (`src/data/unfold.ts`, `docs/decisions/ADR-2026-09-29-unfolding.md`), with a "Show all details" setting for players who want the numbers early.
 
 ## Choices re-examined

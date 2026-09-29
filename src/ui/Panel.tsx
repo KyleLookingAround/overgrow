@@ -180,7 +180,7 @@ export function Panel(props: {
         {current === 'kitchen' && props.ledger ? (
           <KitchenTab ledger={props.ledger} nodes={props.nodes} money={see('garden.money')} onExplain={props.onExplain} />
         ) : current === 'shed' ? (
-          <ShedTab nodes={props.nodes} />
+          <ShedTab nodes={props.nodes} money={see('garden.money')} />
         ) : (
           <>
             <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} send={props.send} onExplain={props.onExplain} />

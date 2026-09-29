@@ -73,6 +73,12 @@ describe('unfolding and the cards', () => {
     expect(a.apply({type: 'card', id: 'first-plan', answer: 'choose'}).rejected).toMatch(/answered/);
     const b = createSim(1);
     expect(b.apply({type: 'card', id: 'first-plan', answer: 'choose'}).nodes.find((n) => n.id === 'bed-2')!.levers.sow).toBe('rotation');
+    // starting the clock another way keeps the card's plan, and once the clock has moved the card can't be answered
+    const c = createSim(1);
+    expect(c.apply({type: 'speed', speed: 1}).seen).toEqual(['card.first-plan']);
+    const d = createSim(1);
+    d.apply({type: 'tick', hours: 1});
+    expect(d.apply({type: 'card', id: 'first-plan', answer: 'choose'}).rejected).toMatch(/under way/);
   });
 
   it('answers the try-faster nudge once, by its buttons or by any faster speed', () => {
@@ -80,6 +86,7 @@ describe('unfolding and the cards', () => {
     expect(a.apply({type: 'card', id: 'try-faster', answer: 'yes'}).speed).toBe(2);
     expect(a.snapshot().seen).toContain('card.try-faster');
     const b = createSim(1);
+    b.apply({type: 'tick', hours: 1});
     b.apply({type: 'speed', speed: 4});
     expect(b.snapshot().seen).toContain('card.try-faster');
     expect(b.apply({type: 'card', id: 'try-faster', answer: 'no'}).rejected).toMatch(/answered/);

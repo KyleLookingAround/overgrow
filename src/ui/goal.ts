@@ -45,7 +45,7 @@ export function goalLine(snap: Pick<Snapshot, 'nodes' | 'kitchen'>): GoalLine {
     return {text, rows: null, window: null};
   }
   const g = (snap.nodes.find((n) => n.id === 'kitchen')?.levers[GOAL] as unknown as Goal | null | undefined) ?? null, w = g ? windowTotals(g.history) : null, st = stepUpStatus(w), weeks = Math.round(st.days / 7), of = Math.round(st.windowDays / 7);
-  if (!w) return {text: 'The allotment: the committee looks at your garden’s whole year, starting on Monday', rows: st.requirements, window: 0};
+  if (!w) return {text: 'The allotment: the committee looks at your garden’s whole year, from its first full week', rows: null, window: 0};
   const held = st.binding ? `${valueText(st.binding)}: ${RAISE[st.binding.key]}` : 'All three met';
   return {text: st.full ? held : `${held} (${weeks} of ${of} weeks so far)`, rows: st.requirements, window: Math.min(1, st.days / st.windowDays)};
 }
