@@ -11,9 +11,12 @@ Today the game is the back garden on the graph, with the clock, saving and the p
 - [The clock](systems/clock.md) (`src/sim/clock.ts`, `src/data/ladder.ts`, `src/sim/systems.ts`, `src/app/clock-loop.ts`)
 - [Commands and snapshots](systems/commands.md) (`src/sim/commands.ts`, `src/sim/index.ts`, `src/sim/state.ts`, `src/sim/activity.ts`, `src/app/sim.worker.ts`, `src/app/sim-client.ts`, `src/app/delta.ts`, `src/app/bench.ts`)
 - [Crops](systems/crops.md) (`src/sim/models/crops.ts`, `src/sim/models/crops.test.ts`, `src/data/crops.ts`, `src/sim/models/water.ts`, `src/ui/map/draw.ts`, `src/ui/GardenTab.tsx`)
+- [Energy](systems/energy.md) (`src/sim/models/energy.ts`, `src/sim/models/energy.test.ts`, `src/data/energy.ts`, `src/sim/systems.ts`)
 - [The gardener](systems/gardener.md) (`src/sim/gardener.ts`, `src/sim/gardener.test.ts`, `src/data/jobs.ts`, `src/sim/models/crops.ts`, `src/sim/models/kitchen.ts`, `src/sim/models/carbon.ts`, `src/ui/map/renderer.ts`, `src/ui/GardenTab.tsx`)
 - [The graph](systems/graph.md) (`src/sim/graph.ts`, `src/sim/state.ts`, `src/data/garden.ts`, `src/sim/churn.ts`)
 - [The kitchen](systems/kitchen.md) (`src/sim/models/kitchen.ts`, `src/sim/models/kitchen.test.ts`, `src/data/kitchen.ts`, `src/data/garden.ts`, `src/ui/KitchenTab.tsx`)
+- [Labour](systems/labour.md) (`src/sim/models/labour.ts`, `src/sim/models/labour.test.ts`, `src/data/labour.ts`, `src/sim/systems.ts`)
+- [Machinery](systems/machinery.md) (`src/sim/models/machinery.ts`, `src/sim/models/machinery.test.ts`, `src/data/machinery.ts`, `src/sim/systems.ts`)
 - [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`, `src/ui/GardenTab.tsx`, `src/ui/KitchenTab.tsx`)
 - [Saving](systems/saving.md) (`src/sim/save.ts`, `src/sim/random.ts`, `src/app/storage.ts`, `src/app/main.tsx`)
 - [Soil](systems/soil.md) (`src/sim/models/soil.ts`, `src/sim/models/soil.test.ts`, `src/data/soils.ts`, `src/data/garden.ts`, `src/sim/state.ts`, `src/ui/Panel.tsx`)
@@ -46,10 +49,13 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/app/storage.ts` | The save's home on the device: localStorage under the one key (src/sim/save.ts has the format). |
 | `src/data/climate-normals.ts` | The garden's climate: monthly normals for an invented lowland station in southern England, about 60 m up at 51.5° N, with the daily spread the weather generator (src/sim/models/weather.ts) draws around them. |
 | `src/data/crops.ts` | Crops: the six the back garden grows, with what the crop model (src/sim/models/crops.ts) needs of each. |
+| `src/data/energy.ts` | Energy: what each fuel emits and costs, and the loads a smallholding puts on it. |
 | `src/data/garden.ts` | The back garden's layout: a UK back garden about 12 × 8 m behind the house, with six bed plots (two dug), a tap, a water butt, a compost heap, a shed, the lawn, the kitchen and an honesty box by the side gate, and the paths and pipes between them. |
 | `src/data/jobs.ts` | The gardener's time: the hours they have, how fast they walk, and how long each job takes with each tool. |
 | `src/data/kitchen.ts` | The kitchen: what the household wants of the garden each day, and the honesty box at the gate. |
+| `src/data/labour.ts` | Labour: the hours a person has, the work a hectare of each crop needs by month, what a person costs, and how skill changes the time a job takes. |
 | `src/data/ladder.ts` | The ladder's clock: each level's rate (real seconds per game day at 1×) and the length of the sim's fixed step, the speeds, and the date the game starts on. |
+| `src/data/machinery.ts` | Machinery: what a small second-hand tractor and its implements use, how fast they work against hand work, when they fail and what fails costs, and how hard their wheels press on wet ground. |
 | `src/data/soils.ts` | Soils: the textures the garden's beds and lawn are made of, and what a soil starts with. |
 | `src/sim/activity.ts` | Activities: who is doing what, where, from when to when (the gardener watering bed 3 from 08:00 to 08:20; a lorry on a run leaving at 05:00). |
 | `src/sim/churn.ts` | A test-only system that moves random flows of every kind across the garden each hour and starts an activity each day, so the conservation, save and long-run tests exercise the graph before the real models arrive (parts 2 and 3). |
@@ -60,7 +66,10 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/sim/index.ts` | The simulation: pure TypeScript with no DOM, so the same code runs in a Web Worker (the game, src/app/sim.worker.ts), in Node (the checks and the bot) and in a Vitest test. |
 | `src/sim/models/carbon.ts` | Carbon and land: the compost heap, compost going back to the beds, and digging a bed out of the lawn. |
 | `src/sim/models/crops.ts` | Crops: what grows in each dug bed, from sowing to the compost heap. |
+| `src/sim/models/energy.ts` | Energy: what fuel and electricity emit and cost, what a pump, a cold store and a polytunnel heater use, and every use as flows: the fuel in from `bought` (electricity from `grid`) to the place that burns it, its carbon to the air node, and its price out of the purse. |
 | `src/sim/models/kitchen.ts` | The kitchen: the household's daily ask of the garden, what met it, and the honesty box at the gate. |
+| `src/sim/models/labour.ts` | Labour: the hours a person has by season and day of the week, the work a hectare of each crop needs by month, what a role costs, how skill stretches a job's time, and what doesn't fit waiting. |
+| `src/sim/models/machinery.ts` | Machinery: a second-hand tractor's fuel and hours by operation against hand work, its breakdowns (a hazard rising with its age and the hours since it was serviced, drawn from a passed Rng), what repairs and services cost, and the soil compaction its wheels leave on wet ground, which takes structure off the soil and so yield. |
 | `src/sim/models/soil.ts` | Soil: what each bed and the lawn is made of, how much water it holds, its organic matter and nutrients, and its health. |
 | `src/sim/models/water.ts` | Water: the FAO-56 soil water balance for each bed and the lawn, every step. |
 | `src/sim/models/weather.ts` | The weather: a daily stochastic weather generator of the Richardson type, drawn from the station's monthly normals (src/data/climate-normals.ts) and bent by the warming index, with each hour shaped from its day for the hour tick. |
