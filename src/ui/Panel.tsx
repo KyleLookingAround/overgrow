@@ -12,7 +12,7 @@ import type {Activity} from '../sim/activity';
 import type {Command} from '../sim/commands';
 import type {GraphNode, NodeId} from '../sim/graph';
 import {borderOf, inFlower} from '../sim/models/biodiversity';
-import {cropOf, quality} from '../sim/models/crops';
+import {cropOf, HELD, IN_WASTE, quality} from '../sim/models/crops';
 import {aphidsOn, pestsOf} from '../sim/models/pests';
 import {shows} from '../data/unfold';
 import {cupboardDays} from '../sim/models/household';
@@ -31,13 +31,13 @@ const ORDER = ['bed', 'kitchen', 'gate', 'shed', 'butt', 'tap', 'heap', 'path', 
 const rank = (n: GraphNode) => (ORDER.indexOf(n.kind) + 1 || ORDER.length + 1);
 
 const STOCK_NAME: Record<string, string> = {
-  carbon: 'Carbon', water: 'Water', money: 'Money', waste: 'Green waste', compost: 'Compost', 'nitrogen.organic': 'Nitrogen', 'pests.slugs': 'Slugs', 'pests.aphids': 'Aphids',
+  carbon: 'Carbon', water: 'Water', money: 'Money', waste: 'Green waste', compost: 'Compost', 'nitrogen.organic': 'Nitrogen', phosphorus: 'Phosphorus', potassium: 'Potassium', 'pests.slugs': 'Slugs', 'pests.aphids': 'Aphids',
 };
 /** The Explain card a place's stock opens. */
 function causeOf(n: GraphNode, key: string): string | undefined {
   if (key.startsWith('food.')) return n.kind === 'bed' ? 'ripening' : n.kind === 'gate' ? 'honesty box' : 'eating';
   if (key.startsWith('land.')) return 'digging';
-  return ({carbon: n.kind === 'heap' ? 'composting' : 'decay', water: 'rain', money: 'money', waste: 'to the heap', compost: 'compost', 'nitrogen.organic': 'composting',
+  return ({carbon: n.kind === 'heap' ? 'composting' : 'decay', water: 'rain', money: 'money', waste: 'to the heap', compost: 'compost', 'nitrogen.organic': 'composting', phosphorus: 'composting', potassium: 'composting',
     'pests.slugs': 'slugs breeding', 'pests.aphids': 'aphids'} as Record<string, string>)[key];
 }
 type Row = readonly [string, string, string?];
@@ -76,8 +76,9 @@ function pestRows(n: GraphNode, see: (key: string) => boolean): Row[] {
   if (b) rows.push(['Border', `${CROPS[b.id].name}${inFlower(b) ? ', in flower' : ''}`, 'flowers']);
   return rows;
 }
-/** The soil's stocks the soil rows already show. */
-const SHOWN = new Set<string>([SOIL.water, SOIL.fresh, SOIL.organicN, SOIL.nitrate, SOIL.phosphorus, SOIL.potassium]);
+/** The soil's stocks the soil rows already show, and the nutrients a crop and its residue hold (shown as the crop and
+ *  its green waste). */
+const SHOWN = new Set<string>([SOIL.water, SOIL.fresh, SOIL.organicN, SOIL.nitrate, SOIL.phosphorus, SOIL.potassium, ...Object.values(HELD), ...Object.values(IN_WASTE)]);
 
 /** What happened at a place in the last week, each opening its Explain card: the most recent ten. */
 function Lately({n, log, onExplain}: {n: GraphNode; log: EffectsLog; onExplain: (cause: string, at: string | null) => void}) {
@@ -105,7 +106,7 @@ function Lately({n, log, onExplain}: {n: GraphNode; log: EffectsLog; onExplain: 
 function keyOf(k: string, unit: string): string | null {
   if (k === 'carbon' || k === SOIL.humus || k.startsWith('land.')) return 'garden.carbon';
   if (k === 'money') return 'garden.money';
-  if (k === 'nitrogen.organic') return 'garden.soil';
+  if (k === 'nitrogen.organic' || k === 'phosphorus' || k === 'potassium') return 'garden.soil';
   if (k === 'water' && unit === 'L') return 'garden.water';
   return null;
 }
@@ -122,7 +123,7 @@ function Place({n, days, log, see, onExplain}: {n: GraphNode; days: number; log:
     if (land && !s.amount) return null;
     if (s.unit === 'pests' && (s.amount < 0.5 || !see(`garden.${s.product}`))) return null;
     const name = land ? `Land (${LAND[k.slice(5)] ?? k.slice(5)})` : STOCK_NAME[k] ?? (s.product ? s.product[0]!.toUpperCase() + s.product.slice(1) : k);
-    return [name, s.unit === 'pests' ? num(Math.round(s.amount)) : amount(s), causeOf(n, k)];
+    return [name, s.unit === 'pests' ? num(Math.round(s.amount)) : s.unit === 'kgP' || s.unit === 'kgK' ? grams(s.amount) : amount(s), causeOf(n, k)];
   }).filter((r): r is Row => !!r);
   if (soil) rows.unshift(...soilRows(n, see));
   if (n.id === KITCHEN && see('garden.kitchen')) rows.push(['Food from the shop', dayCount(days), 'shop food eaten']);
