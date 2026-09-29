@@ -28,6 +28,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Not sorted yet
 
+- [The household economy's model, ahead of part 6b (#30) · 29 Sep 2026](lessons/30-household-model.md)
 - [Labour, machinery and energy models, ahead of part 13 (#17) · 29 Sep 2026](lessons/17-labour-machinery-energy.md)
 - [Crops and the gardener, the first slice’s part 3 (#12) · 29 Sep 2026](lessons/12-crops-and-gardener.md)
 - [The bot and the first baselines, the first slice's part 4 (#10) · 29 Sep 2026](lessons/10-bot-and-baselines.md)
