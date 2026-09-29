@@ -1,6 +1,6 @@
 // The Explain card (the founding spec, "Explain"): tap any effect, badge or number and it says what happened, where and
-// how much in the last week, the mechanism, its fast and slow effects, and the source, from the Explain table
-// (src/data/explain.ts). The map pulses at the place while it's open (src/ui/map/renderer.ts).
+// how much in the last week, the lever that helps, and a line each of the mechanism and the source, from the Explain
+// table (src/data/explain.ts): short, so it reads at a glance (part 5's look back). The map pulses at the place while it's open (src/ui/map/renderer.ts).
 import {explain, KIND_NAME} from '../data/explain';
 import type {GraphNode} from '../sim/graph';
 import {Card} from './Card';
@@ -28,9 +28,8 @@ export function Explain({what, nodes, log, onClose}: {what: Explaining; nodes: r
           </p>
         )}
         <dl class="explain-rows">
+          <div><dt>What helps</dt><dd class="helps">{e.helps}</dd></div>
           <div><dt>How</dt><dd>{e.mechanism}</dd></div>
-          <div><dt>Now</dt><dd>{e.fast}</dd></div>
-          <div><dt>Over time</dt><dd>{e.slow}</dd></div>
         </dl>
       </div>
     </Card>

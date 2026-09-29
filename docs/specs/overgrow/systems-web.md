@@ -70,7 +70,7 @@ The owner (29 Sep 2026): "I don't want to overwhelm the player with too many thi
 
 **Where it overrides the founding spec** (settled by the owner, not a question on #29):
 
-- The garden's carbon dial is "shown on a small dial from day one" in the spec. It now appears with the first carbon choice: the first dig, a bag of peat or the first compost spread. The carbon is counted from the first bed either way.
+- The garden's carbon dial is "shown on a small dial from day one" in the spec. It now appears with the first carbon choice: the first dig, a bag of peat or the first compost spread. The carbon is counted from the first bed either way. Part 6a wrote this into the spec, and money likewise waits for the first sale or purchase (`docs/decisions/ADR-2026-09-29-unfolding.md`).
 - "Carbon, land, water and waste are counted at every level from the first bed." They're still counted. Each is shown when it unfolds.
 - The spec's own rule that a tab appears once it has something in it, and the first minute's cards (the plan card, the first Explain, the beer trap on day 2, the goal bar), already unfold this way, so they stand.
 
@@ -465,7 +465,7 @@ The spec's farm adds insurance and credit, and the nation must stay solvent, but
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · O | H: the household's purse: the wage in, groceries out, the honesty box's takings. | — | Upkeep | Fast: the week's budget. Slow: savings. | Money in the top bar from the start; the purse's lines with the first week's wage and shop |
+| 1 · O | H: the household's purse: the wage in, groceries out, the honesty box's takings. | — | Upkeep | Fast: the week's budget. Slow: savings. | Money in the top bar with the first sale or purchase (part 6a); the purse's lines with the first week's wage and shop |
 | 2 · P | H: plot rent. | — | Upkeep | Fast: the year's rent. Slow: none. Land always has a price, even a plot's. | Rent with the plot |
 | 3 · P | H: the loan for the second-hand tractor (**O·Q5**). | — | Upkeep | Borrowing brings a machine forward and a repayment with it. | The loan with the tractor's offer |
 | 4 · S | H: insurance and credit. | — | Upkeep | Insurance turns a disaster into a premium. | Insurance with the first loss |

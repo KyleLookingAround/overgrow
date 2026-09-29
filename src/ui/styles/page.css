@@ -248,8 +248,11 @@ button.num {
 .explain-rows dd {
   margin: 0;
 }
-/* a narrow map: the card takes its full width */
+/* a narrow map: the card takes its full width, and the goal bar keeps to its line */
 @container map (max-width: 420px) {
+  .goal-rows {
+    display: none;
+  }
   .card-overlay {
     left: var(--gap-tiny);
     right: var(--gap-tiny);
@@ -289,6 +292,82 @@ button.num {
   background: none;
   color: inherit;
   border: 0;
+}
+.notice-more {
+  display: block;
+  opacity: 0.85;
+}
+.notice span {
+  padding: var(--gap-tiny) 0;
+}
+.notice-action {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  white-space: nowrap;
+}
+/* the one sign a batch of unfolded instruments makes (win W26): a single pulse, a still ring under reduced motion */
+.notice.unfold {
+  box-shadow: 0 0 0 var(--pulse-ring) var(--accent);
+  animation: unfold-pulse var(--pulse-ms) ease-out 1;
+}
+@keyframes unfold-pulse {
+  from {
+    box-shadow: 0 0 0 calc(4 * var(--pulse-ring)) transparent;
+  }
+  to {
+    box-shadow: 0 0 0 var(--pulse-ring) var(--accent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice.unfold {
+    animation: none;
+  }
+}
+/* the goal bar (win W18): one slim line at the foot of the map, giving way to any card there */
+.goal-bar {
+  position: absolute;
+  left: var(--gap-small);
+  right: var(--gap-small);
+  bottom: max(var(--gap-small), env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+  max-width: var(--card-w);
+  margin: 0 auto;
+  padding: var(--gap-tiny) var(--gap-small);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  font-size: var(--text-small);
+  pointer-events: auto;
+}
+.goal-text {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+}
+.goal-rows {
+  display: flex;
+  gap: var(--gap-tiny);
+}
+.goal-rows meter {
+  width: var(--goal-meter);
+}
+/* the card's own buttons (the first plan's) */
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-small);
+}
+button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.first-plan p {
+  margin: var(--gap-small) 0;
 }
 .map canvas {
   position: absolute;
@@ -448,6 +527,13 @@ select {
   gap: var(--gap-small);
   min-height: var(--touch);
   font-size: var(--text-small);
+}
+.details {
+  margin-top: var(--gap);
+}
+.tools {
+  margin: 0;
+  padding-left: var(--gap);
 }
 .check input {
   width: calc(var(--touch) / 2);

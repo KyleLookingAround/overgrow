@@ -55,7 +55,8 @@ async function start() {
     if (/newer version/.test(s.rejected)) keep = false;
     console.warn('Overgrow: ' + s.rejected);
   }
-  await sim.send({type: 'new-game', seed: window.__seed ?? freshSeed()});
+  // a new game opens paused on the first plan's card, which starts the clock (the founding spec, "The first minute")
+  await sim.send({type: 'new-game', seed: window.__seed ?? freshSeed(), speed: 0});
 }
 void start().then(save);
 

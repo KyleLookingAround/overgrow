@@ -1,8 +1,10 @@
 // The bot's player: the choices a sensible player makes, as policies that read the snapshot and return commands. Each
 // morning the bot asks every policy in turn and sends what they return through `apply()`, exactly as the page does for
 // the player; a policy never touches a bed or a stock. A player is its policies: the plan (what to sow where, in
-// season, rotating families), the moisture line to water at, and the places later parts fill: the pest policy (part 5)
-// and the shop, which buys the next upgrade once the purse holds three times its price (part 6).
+// season, rotating families), the moisture line to water at, the pest policy, and the shop, which buys the next upgrade
+// once the purse holds three times its price (part 6c). A policy on a lever that unfolds (src/data/unfold.ts) waits until
+// it has, as a player would: the sim refuses it before.
+import {unfolded} from '../../src/data/unfold';
 import type {CalendarDate} from '../../src/sim/clock';
 import type {GraphNode, LeverValue} from '../../src/sim/graph';
 import type {Command, Snapshot} from '../../src/sim/index';
@@ -25,9 +27,9 @@ export interface Player {
   plan: Policy;
   /** The moisture line the gardener waters at. */
   water: Policy;
-  /** Part 5: leave, pick, trap or treat. */
+  /** Leave, pick, trap or treat, for each pest once it has come up. */
   pests: Policy | null;
-  /** Part 6: the next upgrade, bought at three times its price. */
+  /** Part 6c: the next upgrade, bought at three times its price. */
   shop: Policy | null;
 }
 
@@ -37,6 +39,16 @@ export const setLever = (lever: string, value: LeverValue, kind: string): Policy
     snap.nodes
       .filter((n) => n.kind === kind && lever in n.levers && JSON.stringify(n.levers[lever]) !== JSON.stringify(value))
       .map((n) => ({type: 'plan', node: n.id, lever, value}));
+
+/** A policy that waits until a key has unfolded (the sim refuses its lever before). */
+export const once = (key: string, policy: Policy): Policy => (v) => (unfolded(v.snap.seen, key) ? policy(v) : []);
+
+/** Sets a pest's policy on the gardener once the pest has come up in the garden, where it isn't that already. */
+export const pestPolicy = (want: Record<string, string>): Policy => (v) =>
+  Object.entries(want).flatMap(([pest, value]) => {
+    const me = v.snap.nodes.find((n) => n.kind === 'person' && pest in n.levers);
+    return me && unfolded(v.snap.seen, `garden.${pest}`) && me.levers[pest] !== value ? [{type: 'policy' as const, node: me.id, lever: pest, value}] : [];
+  });
 
 /** Each dug bed's plan: `want(bed, i)` for the i-th dug bed, sent only where the plan says something else. */
 const eachBed = (want: (n: GraphNode, i: number) => LeverValue): Policy =>
@@ -56,11 +68,15 @@ export const oneCrop = (crop: string): Policy => eachBed(() => crop);
 /** Water when the soil is below this share of its available water: half, where FAO-56 puts most vegetables' stress. */
 export const WATER_LINE = 0.5;
 
+/** Slugs picked at dusk (the plan's start), aphids squashed and blighted leaves picked off by hand once each comes up:
+ *  the gardener's time rather than the purse's, and nothing that harms the ladybirds. */
+export const SENSIBLE_PESTS = pestPolicy({slugs: 'pick', aphids: 'pick', blight: 'pick'});
+
 /** The players the bot and the strategy tests know, by name. */
 export const PLAYERS: Record<string, Player> = {
   /** Salad leaves and potatoes to start, for early leaves and a big crop by July, then the rotation in both beds. */
-  sensible: {name: 'sensible', plan: rotate(['salad', 'potatoes']), water: setLever('waterBelow', WATER_LINE, 'person'), pests: null, shop: null},
-  'one-crop': {name: 'one-crop', plan: oneCrop('salad'), water: setLever('waterBelow', WATER_LINE, 'person'), pests: null, shop: null},
+  sensible: {name: 'sensible', plan: rotate(['salad', 'potatoes']), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')), pests: SENSIBLE_PESTS, shop: null},
+  'one-crop': {name: 'one-crop', plan: oneCrop('salad'), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')), pests: SENSIBLE_PESTS, shop: null},
 };
 
 /** The policies in the order the bot asks them each morning. */

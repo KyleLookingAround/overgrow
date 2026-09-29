@@ -1,8 +1,11 @@
 // The panel: beside the map on wide screens and tablets, below it as a sheet on portrait phones (which can fold down to
 // its heading), beside it on a phone on its side. Its tabs are the garden's (the founding spec: Garden, Shed, Kitchen,
-// Goals, each shown once it has something in it): today the Garden tab (the gardener's card, the plan, and the places
-// with what each holds, its pests and what happened there in the last week) and the Kitchen tab. A number with an Explain
-// card is a button that opens it.
+// Goals, each shown once it has something in it, src/data/unfold.ts): today the Garden tab (the gardener's card, the
+// plan, and the places with what each holds, its pests and what happened there in the last week), the Shed tab and the
+// Kitchen tab. A place's numbers unfold with their systems (moisture with the watering line, N-P-K and organic matter
+// with the first compost, carbon and land with the first carbon choice, money with the first sale), or all at once
+// with the "Show all details" setting at the foot of the Garden tab. A number with an Explain card is a button that
+// opens it.
 import {useState} from 'preact/hooks';
 import {CROPS} from '../data/crops';
 import type {Activity} from '../sim/activity';
@@ -11,7 +14,7 @@ import type {GraphNode, NodeId} from '../sim/graph';
 import {borderOf, inFlower} from '../sim/models/biodiversity';
 import {cropOf, quality} from '../sim/models/crops';
 import {aphidsOn, pestsOf} from '../sim/models/pests';
-import {unfolded} from '../data/unfold';
+import {shows} from '../data/unfold';
 import type {Ledger} from '../sim/models/kitchen';
 import {hasSoil, health, limitsOf, moisture, organicMatter, SOIL} from '../sim/models/soil';
 import type {EffectsLog, Logged} from './effects-log';
@@ -19,6 +22,7 @@ import {unitShown} from './Explain';
 import {amount, effectAmount, grams, num} from './format';
 import {GardenTab} from './GardenTab';
 import {KitchenTab} from './KitchenTab';
+import {ShedTab} from './ShedTab';
 import {Num} from './Num';
 import {isDug} from './map/draw';
 
@@ -45,11 +49,14 @@ function about(n: GraphNode): string {
   return isDug(n) ? 'Dug, ready to sow' : 'Under grass, not dug yet';
 }
 
-/** A bed's or the lawn's soil: its water for roots, organic matter, nutrients and health. */
-function soilRows(n: GraphNode): Row[] {
+/** A bed's or the lawn's soil: its water for roots once the watering line has unfolded, and organic matter, nutrients and
+ *  health once feeding has. */
+function soilRows(n: GraphNode, see: (key: string) => boolean): Row[] {
   const lim = limitsOf(n), m = moisture(n, lim), water = n.stocks[SOIL.water]?.amount ?? 0, s = n.stocks, full = water > lim.fc + 0.01 * (lim.sat - lim.fc);
+  const wet: Row[] = see('garden.water') ? [['Moisture', full ? 'Full, draining' : `${Math.max(0, Math.round(100 * m))} %`, full ? 'waterlogging' : m < 0.5 ? 'drought' : 'evapotranspiration']] : [];
+  if (!see('garden.soil')) return wet;
   return [
-    ['Moisture', full ? 'Full, draining' : `${Math.max(0, Math.round(100 * m))} %`, full ? 'waterlogging' : m < 0.5 ? 'drought' : 'evapotranspiration'],
+    ...wet,
     ['Organic matter', `${num(organicMatter(n))} %`, 'decay'],
     ['Nitrogen (nitrate)', grams(s[SOIL.nitrate]?.amount ?? 0), 'leaching'],
     ['Phosphorus', grams(s[SOIL.phosphorus]?.amount ?? 0), 'uptake'],
@@ -58,10 +65,10 @@ function soilRows(n: GraphNode): Row[] {
   ];
 }
 /** A bed's pests and flowers beyond its slug and aphid stocks. */
-function pestRows(n: GraphNode, seen: readonly string[]): Row[] {
+function pestRows(n: GraphNode, see: (key: string) => boolean): Row[] {
   if (n.kind !== 'bed') return [];
-  const p = pestsOf(n), c = cropOf(n), b = borderOf(n), rows: Row[] = [], any = ['slugs', 'aphids', 'blight'].some((k) => unfolded(seen, `pests.${k}`));
-  if (p.blight > 0 && unfolded(seen, 'pests.blight')) rows.push(['Blight', `${Math.round(100 * p.blight)} % of the tops`, 'blight']);
+  const p = pestsOf(n), c = cropOf(n), b = borderOf(n), rows: Row[] = [], any = ['slugs', 'aphids', 'blight'].some((k) => see(`garden.${k}`));
+  if (p.blight > 0 && see('garden.blight')) rows.push(['Blight', `${Math.round(100 * p.blight)} % of the tops`, 'blight']);
   const worst = p.blight > 0 ? 'blight' : aphidsOn(n) > 0 ? 'aphids' : 'slugs';
   if (any && c && c.lost > 0.005) rows.push(['Lost to pests', `${Math.round(100 * c.lost)} % of the crop`, worst]);
   if (any && p.eaten > 0.001) rows.push(['Eaten or rotted', grams(p.eaten), worst]);
@@ -93,19 +100,30 @@ function Lately({n, log, onExplain}: {n: GraphNode; log: EffectsLog; onExplain: 
   );
 }
 
-function Place({n, log, seen, onExplain}: {n: GraphNode; log: EffectsLog; seen: readonly string[]; onExplain: (cause: string, at: string | null) => void}) {
+/** The key a place's stock shows with: its system's (src/data/unfold.ts), or none for what's always shown. */
+function keyOf(k: string, unit: string): string | null {
+  if (k === 'carbon' || k === SOIL.humus || k.startsWith('land.')) return 'garden.carbon';
+  if (k === 'money') return 'garden.money';
+  if (k === 'nitrogen.organic') return 'garden.soil';
+  if (k === 'water' && unit === 'L') return 'garden.water';
+  return null;
+}
+
+function Place({n, log, see, onExplain}: {n: GraphNode; log: EffectsLog; see: (key: string) => boolean; onExplain: (cause: string, at: string | null) => void}) {
   const soil = hasSoil(n);
   const rows = Object.entries(n.stocks).map(([k, s]): Row | null => {
     if (soil && SHOWN.has(k)) return null;
+    const key = keyOf(k, s.unit);
+    if (key && !see(key)) return null;
     if (soil && k === SOIL.humus) return ['Carbon in the soil', amount(s), 'decay'];
     const land = k.startsWith('land.');
     if (land && !s.amount) return null;
-    if (s.unit === 'pests' && (s.amount < 0.5 || !unfolded(seen, `pests.${s.product}`))) return null;
+    if (s.unit === 'pests' && (s.amount < 0.5 || !see(`garden.${s.product}`))) return null;
     const name = land ? `Land (${LAND[k.slice(5)] ?? k.slice(5)})` : STOCK_NAME[k] ?? (s.product ? s.product[0]!.toUpperCase() + s.product.slice(1) : k);
     return [name, s.unit === 'pests' ? num(Math.round(s.amount)) : amount(s), causeOf(n, k)];
   }).filter((r): r is Row => !!r);
-  if (soil) rows.unshift(...soilRows(n));
-  rows.push(...pestRows(n, seen));
+  if (soil) rows.unshift(...soilRows(n, see));
+  rows.push(...pestRows(n, see));
   return (
     <section class="place">
       <h3>{n.name}</h3>
@@ -123,18 +141,22 @@ function Place({n, log, seen, onExplain}: {n: GraphNode; log: EffectsLog; seen: 
   );
 }
 
-type Tab = 'garden' | 'kitchen';
-const TABS: [Tab, string][] = [['garden', 'Garden'], ['kitchen', 'Kitchen']];
+type Tab = 'garden' | 'shed' | 'kitchen';
+/** The tabs, and the key each shows with (null: from the start). */
+const TABS: [Tab, string, string | null][] = [['garden', 'Garden', null], ['shed', 'Shed', 'garden.shed'], ['kitchen', 'Kitchen', 'garden.kitchen']];
 
 export function Panel(props: {
   nodes: GraphNode[]; acts: Activity[]; hours: number; ledger: Ledger | null; log: EffectsLog; seen: readonly string[]; selected: NodeId | null; onSelect: (id: NodeId) => void;
   open: boolean; onToggle: () => void; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
+  /** "Show all details": every number shows, whatever has unfolded (the sim's gates on levers stay). */
+  all: boolean; onDetails: (all: boolean) => void;
 }) {
+  const see = (key: string) => shows(props.seen, key, props.all);
   const [tab, setTab] = useState<Tab>('garden');
   const places = props.nodes.filter((n) => n.box).sort((a, b) => rank(a) - rank(b));
   const chosen = places.find((n) => n.id === props.selected);
   // a tab shows once it has something in it
-  const shown = TABS.filter(([t]) => t !== 'kitchen' || props.ledger);
+  const shown = TABS.filter(([t, , key]) => (!key || see(key)) && (t !== 'kitchen' || props.ledger));
   const current = shown.some(([t]) => t === tab) ? tab : 'garden';
   return (
     <aside class={props.open ? 'panel' : 'panel folded'} aria-labelledby="panel-title">
@@ -156,7 +178,9 @@ export function Panel(props: {
       </div>
       <div class="panel-body" id="panel-body">
         {current === 'kitchen' && props.ledger ? (
-          <KitchenTab ledger={props.ledger} nodes={props.nodes} onExplain={props.onExplain} />
+          <KitchenTab ledger={props.ledger} nodes={props.nodes} money={see('garden.money')} onExplain={props.onExplain} />
+        ) : current === 'shed' ? (
+          <ShedTab nodes={props.nodes} />
         ) : (
           <>
             <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} send={props.send} onExplain={props.onExplain} />
@@ -170,7 +194,11 @@ export function Panel(props: {
                 </li>
               ))}
             </ul>
-            {chosen ? <Place n={chosen} log={props.log} seen={props.seen} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
+            {chosen ? <Place n={chosen} log={props.log} see={see} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
+            <label class="check details">
+              <input type="checkbox" checked={props.all} onChange={(e) => props.onDetails((e.target as HTMLInputElement).checked)} />
+              Show all details
+            </label>
           </>
         )}
       </div>

@@ -23,4 +23,5 @@ The list is joined from the files here by `node tools/join.mjs` (`npm run build`
 | [ADR-2026-09-29-no-save-compatibility-before-release](ADR-2026-09-29-no-save-compatibility-before-release.md) | No save compatibility before the first release |
 | [ADR-2026-09-29-strategic-and-long](ADR-2026-09-29-strategic-and-long.md) | The game is strategic and long, and each level lasts long enough for its slowest lever to pay back |
 | [ADR-2026-09-29-ui-from-final-call](ADR-2026-09-29-ui-from-final-call.md) | The UI and multi-device rules Overgrow takes from Final Call |
+| [ADR-2026-09-29-unfolding](ADR-2026-09-29-unfolding.md) | Instruments unfold as the player gains influence, from one table, gated in the sim |
 <!-- /joined:decisions -->

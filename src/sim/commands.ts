@@ -4,7 +4,7 @@
 // them. docs/systems/commands.md says how each is handled.
 import type {Speed} from '../data/ladder';
 import {SPEEDS} from '../data/ladder';
-import {gateOf, UNFOLD, unfolded} from '../data/unfold';
+import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
 import {levelClock, runStep, type System} from './clock';
 import {flowEffects, recordInto, Recorder} from './effects';
 import {applyFlow, mergeFlows, type Flow, type LeverValue, type NodeId} from './graph';
@@ -23,7 +23,18 @@ export type Command =
   /** Set a lever a system has declared on a node: what to grow, when to water, a rule the people follow, a law. */
   | {type: 'plan' | 'policy' | 'law'; node: NodeId; lever: string; value: LeverValue}
   /** Buy an upgrade from the system that offers it. */
-  | {type: 'upgrade'; id: string};
+  | {type: 'upgrade'; id: string}
+  /** Answer a card that's asked once a save: the first plan ('accept' the card's plan, or 'choose' to let the gardener
+   *  follow the rotation), and the one "try faster" nudge ('yes' goes to 2×, 'no' leaves it). */
+  | {type: 'card'; id: 'first-plan'; answer: 'accept' | 'choose'}
+  | {type: 'card'; id: 'try-faster'; answer: 'yes' | 'no'}
+  /** A setting of the page's that's saved with the game ('details': show every number early). It changes no play. */
+  | {type: 'setting'; key: string; value: LeverValue};
+
+/** The settings there are, and the values each takes. */
+export const SETTINGS: Record<string, readonly LeverValue[]> = {details: [true, false]};
+/** The first plan card's bed and what "let them choose" gives it: the gardener follows the rotation there. */
+export const FIRST_PLAN = {bed: 'bed-2', chosen: 'rotation'} as const;
 
 /** Asks each system in turn; the first answer that isn't undefined wins. */
 function ask(systems: readonly System[], s: State, cmd: Command): string | null | undefined {
@@ -60,8 +71,8 @@ function tick(s: State, systems: readonly System[], hours: number) {
   // each flow is an effect of its `what` at its place, and the systems' events besides
   s.effects = flowEffects(s.graph, s.flows).concat(effects.list());
   // an instrument unfolds the first time one of its causes happens (src/data/unfold.ts)
-  for (const [key, u] of Object.entries(UNFOLD))
-    if (!s.seen.includes(key) && s.effects.some((e) => u.causes.includes(e.cause))) s.seen = [...s.seen, key];
+  const fresh = revealed(s.seen, causesOf(s.effects));
+  if (fresh.length) s.seen = [...s.seen, ...fresh];
   s.errors = errors;
 }
 
@@ -72,8 +83,12 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
     case 'tick':
       tick(s, systems, cmd.hours);
       return s;
-    case 'new-game':
-      return newState(cmd.seed, cmd.speed ?? 1);
+    case 'new-game': {
+      // the page's settings carry over to the new game
+      const n = newState(cmd.seed, cmd.speed ?? 1);
+      n.settings = {...s.settings};
+      return n;
+    }
     case 'load':
       try {
         return fromSave(cmd.save);
@@ -83,7 +98,11 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       }
     case 'speed':
       if (!(SPEEDS as readonly number[]).includes(cmd.speed)) s.rejected = `no speed ${cmd.speed}`;
-      else s.speed = cmd.speed;
+      else {
+        s.speed = cmd.speed;
+        // any way of reaching a faster speed answers the "try faster" nudge
+        if (cmd.speed >= 2) seeOnce(s, CARDS.tryFaster);
+      }
       return s;
     case 'plan':
     case 'policy':
@@ -99,6 +118,13 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       }
       return s;
     }
+    case 'card':
+      return answer(s, cmd, systems);
+    case 'setting':
+      if (!(cmd.key in SETTINGS)) s.rejected = `no setting ${cmd.key}`;
+      else if (!SETTINGS[cmd.key]!.includes(cmd.value)) s.rejected = `${cmd.key} is ${SETTINGS[cmd.key]!.join(' or ')}`;
+      else s.settings = {...s.settings, [cmd.key]: cmd.value};
+      return s;
     case 'upgrade': {
       const r = ask(systems, s, cmd);
       s.rejected = r === undefined ? `no upgrade ${cmd.id}` : r;
@@ -106,4 +132,33 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       return s;
     }
   }
+}
+
+/** A tick's causes, without building a list. */
+function* causesOf(effects: readonly {cause: string}[]) {
+  for (const e of effects) yield e.cause;
+}
+
+const seeOnce = (s: State, key: string) => void (s.seen.includes(key) || (s.seen = [...s.seen, key]));
+
+/** A card's answer: each card is answered once a save, and the first plan's clock starts with it. */
+function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readonly System[]): State {
+  const key = cmd.id === 'first-plan' ? CARDS.firstPlan : cmd.id === 'try-faster' ? CARDS.tryFaster : null;
+  if (!key) s.rejected = `no card ${String(cmd.id)}`;
+  else if (s.seen.includes(key)) s.rejected = 'that’s been answered';
+  else if (cmd.id === 'first-plan') {
+    if (cmd.answer !== 'accept' && cmd.answer !== 'choose') s.rejected = 'accept or choose';
+    else {
+      if (cmd.answer === 'choose') applyCommand(s, {type: 'plan', node: FIRST_PLAN.bed, lever: 'sow', value: FIRST_PLAN.chosen}, systems);
+      if (!s.rejected) {
+        s.speed = 1;
+        seeOnce(s, key);
+      }
+    }
+  } else if (cmd.answer !== 'yes' && cmd.answer !== 'no') s.rejected = 'yes or no';
+  else {
+    if (cmd.answer === 'yes') s.speed = 2;
+    seeOnce(s, key);
+  }
+  return s;
 }

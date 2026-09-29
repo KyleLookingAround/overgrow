@@ -11,13 +11,14 @@
 //   weeks); an honesty box as a farm-gate sale at a flat price per kg.
 // Simplifies: one meal a day at 18:00 eats the whole day's ask; within a group the shortest-keeping is eaten first, and a
 //   group can stand in for another up to twice its own ask; nothing is bought from the shops (what the garden doesn't
-//   meet simply goes unmet here); produce goes off at a steady rate from the day it's picked; passers-by take up to a
+//   meet simply goes unmet here, and the first evening's meal is taken as what the house had in); produce goes off at a steady rate from the day it's picked; passers-by take up to a
 //   fixed amount a day, more at weekends, whatever the produce; nothing is peeled or trimmed.
 //   Fast effect: the day's ask met or not, and a glut going to the box for money. Slow effect: the share of the
 //   household's veg the garden grows, week by week, and the food wasted along the way.
 import {CROPS, type Group} from '../../data/crops';
 import {ASK, BOX, KEEP_DAYS, MEAL_HOUR, STRETCH} from '../../data/kitchen';
 import {calendar, type System, type TickContext} from '../clock';
+import {note} from '../effects';
 import {qty, type Graph, type GraphNode, type LeverValue} from '../graph';
 
 /** The kitchen's running account, kept as its `ledger` lever and replaced, never changed in place. */
@@ -99,6 +100,9 @@ function meal(c: TickContext, k: GraphNode, day: number) {
   for (const g of groups) if (eaten < ASK_TOTAL - 1e-9) eaten += eat(g, Math.min(ASK_TOTAL - eaten, ASK[g] * (STRETCH - 1)));
   const met = Math.min(1, eaten / ASK_TOTAL);
   update(c.graph, (l) => ({day, ask: ASK_TOTAL, ate, met, week: [...l.week, met].slice(-7), eaten: l.eaten + eaten}));
+  // the day's ask of the garden, from the second evening: the first evening's meal is what the house already had in (the
+  // founding spec's first minute has the kitchen's first ask on day 2)
+  if (day >= 1) note(c, 'ask', k.id, ASK_TOTAL, 'kgFood');
 }
 
 /** Passers-by buy from the honesty box; the money goes into the household's purse. */

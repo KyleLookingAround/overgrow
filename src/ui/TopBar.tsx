@@ -1,8 +1,10 @@
 // The top bar: the level, the date and time with the air's temperature, the money, the carbon dial, and pause with the
-// three speeds. The speed is a command through the sim like any other change to the game. The money and the dial open
+// three speeds. The temperature, the money and the dial each show once they've unfolded (src/data/unfold.ts: the first
+// frost on a crop, the first sale or purchase, the first carbon choice), or all at once with "Show all details". The speed is a command through the sim like any other change to the game. The money and the dial open
 // their Explain cards. When the bar is narrow (a container query on its own width, the owner's wins W2 and W11) the four
 // speeds fold into one button that shows the speed and cycles it, a tap on a paused game resuming it.
 import {LEVELS, SPEEDS, START, type Speed} from '../data/ladder';
+import {shows} from '../data/unfold';
 import {calendar} from '../sim/clock';
 import {hourOf, type WeatherDay} from '../sim/models/weather';
 import type {Snapshot} from '../sim/state';
@@ -33,7 +35,8 @@ export const nextSpeed = (s: Speed): Speed => SPEEDS[(SPEEDS.indexOf(s) + 1) % S
 export function TopBar({snap, hours, speed, onSpeed, onExplain}: {snap: Snapshot; hours: number; speed: Speed; onSpeed: (s: Speed) => void; onExplain: (cause: string, at: string | null) => void}) {
   const d = calendar(hours), level = LEVELS[snap.level - 1]!;
   const day = snap.nodes.find((n) => n.kind === 'atmosphere')?.levers.weather as unknown as WeatherDay | null | undefined;
-  const temp = day && day.day === d.dayIndex ? Math.round(hourOf(day, (hours + START.hour) % 24).temp) : null;
+  const all = snap.settings.details === true, see = (k: string) => shows(snap.seen, k, all);
+  const temp = see('garden.weather') && day && day.day === d.dayIndex ? Math.round(hourOf(day, (hours + START.hour) % 24).temp) : null;
   return (
     <header class="topbar">
       <span class="level">{level.name}</span>
@@ -42,8 +45,8 @@ export function TopBar({snap, hours, speed, onSpeed, onExplain}: {snap: Snapshot
         {temp !== null && <span class="temp" title="Air temperature"> {temp < 0 ? '−' : ''}{Math.abs(temp)} °C</span>}
         {d.year > 1 && <span class="year"> · year {d.year}</span>}
       </span>
-      <button type="button" class="money plain" title="Money" aria-label={`Money: ${money(snap.money)}. Explain`} onClick={() => onExplain('money', 'gate')}>{money(snap.money)}</button>
-      <CarbonDial kg={snap.carbon} onExplain={() => onExplain('carbon', 'heap')} />
+      {see('garden.money') && <button type="button" class="money plain" title="Money" aria-label={`Money: ${money(snap.money)}. Explain`} onClick={() => onExplain('money', 'gate')}>{money(snap.money)}</button>}
+      {see('garden.carbon') && <CarbonDial kg={snap.carbon} onExplain={() => onExplain('carbon', 'heap')} />}
       <span class="speeds" role="group" aria-label="Speed">
         {SPEEDS.map((s) => (
           <button type="button" class={s === 0 ? 'speed pause' : 'speed'} aria-pressed={speed === s} aria-label={s === 0 ? 'Pause' : `Speed ${s}×`} onClick={() => onSpeed(s)}>

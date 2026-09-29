@@ -41,3 +41,58 @@ describe('commands', () => {
     expect(JSON.parse(sim.save()).upgrades).toEqual(['hose']);
   });
 });
+
+describe('unfolding and the cards', () => {
+  it('refuses a hidden lever’s command until its key unfolds, and opens it after', () => {
+    const sim = createSim(1);
+    expect(sim.snapshot().seen).toEqual([]);
+    expect(sim.apply({type: 'plan', node: 'gardener', lever: 'waterBelow', value: 0.75}).rejected).toMatch(/hasn’t come up/);
+    // the gardener waters the first sowing in on the first morning
+    for (let h = 0; h < 4 && !sim.snapshot().seen.includes('garden.water'); h++) sim.apply({type: 'tick', hours: 1});
+    expect(sim.snapshot().seen).toContain('garden.water');
+    expect(sim.apply({type: 'plan', node: 'gardener', lever: 'waterBelow', value: 0.75}).rejected).toBeNull();
+  });
+
+  it('shows everything with the details setting, but opens no lever: the setting shows numbers, not powers', () => {
+    const sim = createSim(1);
+    expect(sim.apply({type: 'setting', key: 'details', value: true}).rejected).toBeNull();
+    expect(JSON.parse(sim.save()).settings).toEqual({details: true});
+    expect(sim.apply({type: 'plan', node: 'gardener', lever: 'waterBelow', value: 0.75}).rejected).toMatch(/hasn’t come up/);
+    expect(sim.apply({type: 'setting', key: 'cheats', value: true}).rejected).toMatch(/no setting/);
+    expect(sim.apply({type: 'setting', key: 'details', value: 3}).rejected).toMatch(/true or false/);
+    // and it carries over to a new game
+    expect(JSON.parse((sim.apply({type: 'new-game', seed: 2}), sim.save())).settings).toEqual({details: true});
+  });
+
+  it('answers the first plan card once: accept keeps radishes in bed 2, choose lets the gardener rotate; either starts the clock', () => {
+    const a = createSim(1);
+    a.apply({type: 'speed', speed: 0});
+    const s = a.apply({type: 'card', id: 'first-plan', answer: 'accept'});
+    expect([s.rejected, s.speed, s.seen]).toEqual([null, 1, ['card.first-plan']]);
+    expect(s.nodes.find((n) => n.id === 'bed-2')!.levers.sow).toBe('radish');
+    expect(a.apply({type: 'card', id: 'first-plan', answer: 'choose'}).rejected).toMatch(/answered/);
+    const b = createSim(1);
+    expect(b.apply({type: 'card', id: 'first-plan', answer: 'choose'}).nodes.find((n) => n.id === 'bed-2')!.levers.sow).toBe('rotation');
+  });
+
+  it('answers the try-faster nudge once, by its buttons or by any faster speed', () => {
+    const a = createSim(1);
+    expect(a.apply({type: 'card', id: 'try-faster', answer: 'yes'}).speed).toBe(2);
+    expect(a.snapshot().seen).toContain('card.try-faster');
+    const b = createSim(1);
+    b.apply({type: 'speed', speed: 4});
+    expect(b.snapshot().seen).toContain('card.try-faster');
+    expect(b.apply({type: 'card', id: 'try-faster', answer: 'no'}).rejected).toMatch(/answered/);
+  });
+
+  it('unfolds two keys a tick reaches together in one batch', () => {
+    // compost spread on a bed is the first carbon choice and the first feeding at once
+    const sim = createSim(1), before = sim.snapshot().seen.length;
+    let s = sim.snapshot();
+    for (let d = 0; d < 24 * 150 && !s.seen.includes('garden.carbon'); d++) s = sim.apply({type: 'tick', hours: 1});
+    const i = s.seen.indexOf('garden.soil');
+    expect(before).toBe(0);
+    expect(i).toBeGreaterThan(0);
+    expect(s.seen.slice(i)).toEqual(['garden.soil', 'garden.carbon']);
+  });
+});
