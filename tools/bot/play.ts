@@ -8,8 +8,16 @@ import {calendar} from '../../src/sim/clock';
 import {createSim, type Command} from '../../src/sim/index';
 import type {System} from '../../src/sim/clock';
 import {SYSTEMS} from '../../src/sim/systems';
-import {Diary, sealed, type Day, type Sealed} from './measure';
+import {Diary, isDug, Quiet, sealed, type Day, type Sealed} from './measure';
 import {MILESTONES} from './milestones';
+import {gardenStatus, goalOf} from '../../src/sim/goal';
+import type {Snapshot} from '../../src/sim/state';
+
+/** The offer's three numbers from a snapshot's goal. */
+function offerOf(snap: Snapshot): Run['offer'] {
+  const st = gardenStatus(goalOf({nodes: Object.fromEntries(snap.nodes.map((n) => [n.id, n]))} as never)), v = (k: string) => st.requirements.find((r) => r.key === k)?.value ?? 0;
+  return {output: v('output'), reliability: v('reliability'), health: v('health'), weeks: Math.round(st.days / 7)};
+}
 import {PLAYERS, policiesOf, type Player} from './player';
 
 /** The hour of the morning the player looks at the garden and changes the plan. */
@@ -28,6 +36,16 @@ export interface Run {
   wasted: number;
   /** kg CO₂e the garden put into the air over the run, less what it took back out. */
   carbon: number;
+  /** The longest run of whole game days with nothing for the player to do or see (tools/bot/measure.ts's Quiet). */
+  quiet: {days: number; from: number};
+  /** Every quiet stretch of a week or more. */
+  stretches: {days: number; from: number}[];
+  /** The game day each thing was bought, in order. */
+  bought: {id: string; day: number}[];
+  /** The garden's step-up offer at the end (src/sim/goal.ts): Output kg a day, Reliability and Health, over its year. */
+  offer: {output: number; reliability: number; health: number; weeks: number};
+  /** Beds dug at the end, the two dug on day 1 among them. */
+  beds: number;
   play: string;
   err: string[];
 }
@@ -73,25 +91,34 @@ export function fingerprint(s: string): string {
 }
 
 export function play({seed, hours, player = PLAYERS.sensible!, systems = SYSTEMS}: Options): Run {
-  const sim = createSim(seed, systems), diary = new Diary(), reached: Record<string, number> = {}, err: string[] = [];
+  const sim = createSim(seed, systems), diary = new Diary(), quiet = new Quiet(), reached: Record<string, number> = {}, err: string[] = [], bought: Run['bought'] = [];
   const policies = policiesOf(player), watching = MILESTONES.filter((m) => m.reached);
   let snap = sim.snapshot();
   const send = (cmd: Command, day: number) => {
     snap = sim.apply(cmd);
     if (snap.rejected) err.push(`day ${day}: ${cmd.type} ${JSON.stringify(cmd)} refused: ${snap.rejected}`);
+    else {
+      // a decision: the day isn't quiet
+      quiet.mark(day);
+      if (cmd.type === 'buy') bought.push({id: cmd.id, day});
+    }
   };
   while (snap.hours < hours) {
     const date = calendar(snap.hours), day = date.dayIndex + 1;
     if (date.hour === MORNING) for (const policy of policies) for (const cmd of policy({snap, day, date})) send(cmd, day);
+    const before = snap;
     snap = sim.apply({type: 'tick', hours: snap.step});
     for (const e of snap.errors) err.push(`day ${day}: ${e}`);
     diary.add(snap);
+    quiet.watch(before, snap);
     for (const m of watching) if (!(m.id in reached) && m.reached!({snap, diary})) reached[m.id] = diary.current!.day;
   }
   diary.close();
   const days = diary.days;
+  quiet.close(days.at(-1)?.day ?? 0);
   return {
     seed, player: player.name, hours: snap.hours, reached, days, sealed: sealed(days),
-    wasted: days.reduce((a, d) => a + d.wasted, 0), carbon: snap.carbon, play: fingerprint(playState(sim.save())), err,
+    wasted: days.reduce((a, d) => a + d.wasted, 0), carbon: snap.carbon, quiet: quiet.longest, stretches: quiet.stretches, bought, offer: offerOf(snap), beds: snap.nodes.filter(isDug).length,
+    play: fingerprint(playState(sim.save())), err,
   };
 }

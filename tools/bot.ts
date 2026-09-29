@@ -43,7 +43,8 @@ function args(argv: string[]) {
 /** What the bot prints for one seed. */
 export function block(run: Run): string {
   const reached = MILESTONES.filter((m) => m.reached).map((m) => `${m.id}: ${m.id in run.reached ? `day ${run.reached[m.id]}` : '—'}`);
-  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
+  const bought = run.bought.map((b) => `${b.id}: day ${b.day}`).join(', ');
+  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
 }
 
 function main() {

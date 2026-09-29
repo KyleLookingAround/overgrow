@@ -11,3 +11,13 @@ What grows in each dug bed, from sowing to the compost heap (`src/sim/models/cro
 - **The water model's hook** (`cropCover()`): the ground the crop covers (10 % at emergence to all of it 70 % of the way to maturity) and its coefficient on FAO-56's curve (flat at ini, up to mid as it covers the ground, down to end while it's picked), used by `groundCoefficient()` for the covered part with the crop's own p.
 - **The head start** (the owner's pick on #11): a new game opens with bed 1 holding salad leaves sown the September before (hardy overwintering sorts, as the RHS grows them for late-winter picking), set by `overwintered()` at the new game as an ordinary crop state, 12 degree days short of their first cut (`HEAD_START` in `src/sim/state.ts`). From then on it grows, is picked and finishes like any other.
 - **The pace** at the real degree days (`GROWTH_PACE` stays 1), on seeds 1–3: the overwintered salad's first cut picked on day 3–6; radishes sown in bed 2 on day 1 up on about day 7 and ready in about seven weeks; salad sown in March first cut in about a month; lettuce sown on 1 April ready in 8–11 weeks.
+
+## The playable garden (#54)
+
+- **Winter crops** (`winter: true`, `WINTER_IDS`): winter salad leaves, broad beans, garlic, overwintering onions and a green manure of rye and vetch (`dugIn: true`), each with its RHS autumn season. They're a bed's **winter line** (the `winter` plan lever, gated by `garden.winter`): `plannedCrop()` sows the summer plan's crop (`summerCrop()`) and, when that has nothing in season, the winter line's. The `sow` lever takes no winter crop. **Kale** and **leeks** are summer-plan crops picked through the winter.
+- **The rotation across the beds:** `summerCrop()` steps on from the bed's last rotation step (onions, garlic and leeks count as the legume step, `STEP_OF`) and, of the steps with something in season, takes the one the other dug beds grow least (the gardener passes them, and what's going in today), so six beds on the rotation grow a mix, not five beds of tomatoes.
+- **Covers:** the cold frame (`COVERS['cold-frame']`, `docs/systems/shed.md`) keeps 3 °C of frost off (`shelter()`) and widens its bed's seasons by 21 days each end (`coverDays()`, `inSeason(c, d, extend)`).
+- **An idle bed says why:** `nextSowing()` is the next day its plan sows something, which the plan's line shows ("Empty: nothing sows until 1 Mar").
+- **Two notes:** `beds full` (every dug bed in use and a plot still under grass) and `empty autumn bed` (a dug bed empty from August to November), which unfold `garden.dig` and `garden.winter`.
+- **A green manure dug in** (`finish()` is exported for it): `src/sim/models/carbon.ts`'s `digIn()`.
+- The bed's `history` keeps the last eight families.

@@ -24,9 +24,12 @@
 //   it's done, and then one harvest index (set for P and K, standing in for N too) splits it between food and residue; seed, seed potatoes and young tomato
 //   plants cost nothing yet (the shed, part 6); a frost reads the grass minimum of the hour; pests' damage (src/sim/models/
 //   pests.ts) is a share of the yield lost, like a frost's.
+//   A cover (the cold frame) keeps a few degrees of frost off its bed and moves its sowing windows about three weeks
+//   earlier in spring and later in autumn (RHS, "Cold frames"); a bed's winter line sows an autumn crop when the summer
+//   plan has nothing in season, and a green manure is dug in where it stands when the summer plan's next crop is due.
 //   Fast effect: shoots in a week or two, a first cut of salad in about a month in spring, and frost blackening the
 //   beans on a cold night. Slow effect: a cropped bed drawing its nutrients down year by year unless compost goes back.
-import {COVERS, CROPS, GROWTH_PACE, PRODUCE, ROTATION, type CropId, type CropSpec} from '../../data/crops';
+import {COVERS, CROPS, GROWTH_PACE, PRODUCE, ROTATION, STEP_OF, type CropId, type CropSpec, type Family} from '../../data/crops';
 import {calendar, type CalendarDate, type System, type TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type GraphNode, type LeverValue} from '../graph';
@@ -157,24 +160,73 @@ export function quality(s: CropState): number {
 // ---- the plan ----
 
 const md = (d: {month: number; day: number}) => d.month * 100 + d.day;
-/** Whether a crop can be sown or planted outdoors on a date (its RHS season). */
-export const inSeason = (c: CropSpec, d: CalendarDate) => md(d) >= c.sow.from[0] * 100 + c.sow.from[1] && md(d) <= c.sow.to[0] * 100 + c.sow.to[1];
+/** A day of the year from a [month, day] (a year of 365 days: the sowing windows are rough). */
+const dayOfYear = ([m, day]: readonly [number, number]) => [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334][m - 1]! + day;
+/** Whether a crop can be sown or planted outdoors on a date (its RHS season), its season widened `extend` days at each
+ *  end under a cover. */
+export function inSeason(c: CropSpec, d: CalendarDate, extend = 0): boolean {
+  if (!extend) return md(d) >= c.sow.from[0] * 100 + c.sow.from[1] && md(d) <= c.sow.to[0] * 100 + c.sow.to[1];
+  const t = dayOfYear([d.month, d.day]);
+  return t >= dayOfYear(c.sow.from) - extend && t <= dayOfYear(c.sow.to) + extend;
+}
 
-/** What a bed's plan says to sow on a date, or null: a crop in season, from the plan's date on, or the rotation's next. */
-export function plannedCrop(n: GraphNode, d: CalendarDate): CropId | null {
-  const plan = n.levers.sow, from = n.levers.sowFrom;
+/** The days a bed's cover widens its sowing windows by (none uncovered). */
+export const coverDays = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')]?.days ?? 0;
+
+/** The crops growing in the other dug beds of a bed's garden: the rotation plans across the beds. */
+export type Neighbours = readonly CropId[];
+/** The crops growing in every bed but one. */
+export const neighbours = (beds: readonly GraphNode[], n: GraphNode): CropId[] => beds.flatMap((b) => (b === n ? [] : cropOf(b) ? [cropOf(b)!.id] : []));
+
+/** What the summer plan says to sow on a date, or null: a crop in season, from the plan's date on, or the rotation's
+ *  next (the winter crops are never in the rotation: they're the winter line's). The rotation steps on from the bed's
+ *  last family, taking the first step with something in season; across the beds, it takes the step and the crop the
+ *  other beds are growing least, as a gardener planning a mix would (RHS, "Crop rotation"). */
+export function summerCrop(n: GraphNode, d: CalendarDate, others: Neighbours = []): CropId | null {
+  const plan = n.levers.sow, from = n.levers.sowFrom, extend = coverDays(n);
   if (typeof from === 'number' && d.dayOfYear < from) return null;
   if (plan === 'rotation') {
-    const history = (n.levers.history as string[] | undefined) ?? [], last = ROTATION.indexOf(history[history.length - 1] as never);
+    // the last step of the rotation the bed grew (a green manure isn't in it)
+    const history = (n.levers.history as Family[] | undefined) ?? [], steps = history.map((f) => STEP_OF[f]).filter((f): f is Family => !!f);
+    const last = ROTATION.indexOf(steps[steps.length - 1] as never), uses = (id: CropId) => others.filter((o) => o === id).length;
+    const stepUses = (f: Family) => others.filter((o) => STEP_OF[CROPS[o].family] === f).length;
+    let best: {id: CropId; score: number} | null = null;
     for (let i = 1; i <= ROTATION.length; i++) {
-      const family = ROTATION[(last + i + ROTATION.length) % ROTATION.length];
-      const crop = Object.values(CROPS).find((c) => c.family === family && !c.flower && inSeason(c, d));
-      if (crop) return crop.id;
+      const step = ROTATION[(last + i + ROTATION.length) % ROTATION.length]!;
+      const crops = Object.values(CROPS).filter((c) => STEP_OF[c.family] === step && !c.flower && !c.winter && inSeason(c, d, extend));
+      if (!crops.length) continue;
+      const crop = crops.reduce((a, b) => (uses(b.id) < uses(a.id) ? b : a));
+      // fewest in the other beds first, then the rotation's order
+      const score = (stepUses(step) + uses(crop.id)) * 10 + i;
+      if (!best || score < best.score) best = {id: crop.id, score};
     }
-    return null;
+    return best?.id ?? null;
   }
   const c = typeof plan === 'string' ? CROPS[plan as CropId] : undefined;
-  return c && inSeason(c, d) ? c.id : null;
+  return c && inSeason(c, d, extend) ? c.id : null;
+}
+
+/** What a bed's plan says to sow on a date, or null: the summer plan's crop, else the winter line's if it's in season. */
+export function plannedCrop(n: GraphNode, d: CalendarDate, others: Neighbours = []): CropId | null {
+  const summer = summerCrop(n, d, others);
+  if (summer) return summer;
+  const w = n.levers.winter, c = typeof w === 'string' ? CROPS[w as CropId] : undefined;
+  return c?.winter && inSeason(c, d, coverDays(n)) ? c.id : null;
+}
+
+/** The next day of the year (1–365) a bed's plan has something to sow, from a date to a year ahead, or null
+ *  if its plan never sows: what an idle bed says ("Nothing sows until March"). */
+export function nextSowing(n: GraphNode, d: CalendarDate): {day: number; crop: CropId} | null {
+  const start = dayOfYear([d.month, d.day]);
+  for (let i = 0; i < 365; i++) {
+    const t = ((start - 1 + i) % 365) + 1;
+    let m = 1;
+    while (m < 12 && dayOfYear([m + 1, 1]) <= t) m++;
+    const date = {...d, month: m, day: t - dayOfYear([m, 1]) + 1, dayOfYear: t};
+    const crop = plannedCrop(n, date);
+    if (crop) return {day: t, crop};
+  }
+  return null;
 }
 
 /** Sows (or plants) a crop in a bed: the gardener calls it when the job's done. */
@@ -193,7 +245,7 @@ export function overwintered(n: GraphNode, id: CropId, sownHoursAgo: number, ddT
 }
 
 /** The levers the crop model declares on every bed: the plan's (what to sow, from when, and whether to dig it) and its own. */
-export const BED_LEVERS = (sow: string): Record<string, LeverValue> => ({sow, sowFrom: null, dig: false, crop: null, history: []});
+export const BED_LEVERS = (sow: string): Record<string, LeverValue> => ({sow, sowFrom: null, winter: 'none', cover: null, dig: false, crop: null, history: []});
 const OWN = new Set(['crop', 'history']);
 
 // ---- the day ----
@@ -208,8 +260,9 @@ function spoil(c: TickContext, n: GraphNode, product: string, kg: number, what: 
   recordWaste(c.graph, kg);
 }
 
-/** A crop that's done (picked, bolted, spent or killed): its residue left on the bed, the rest of its produce gone off. */
-function finish(c: TickContext, n: GraphNode, s: CropState, why: string) {
+/** A crop that's done (picked, bolted, spent, killed or dug in): its residue left on the bed, the rest of its produce gone
+ *  off. */
+export function finish(c: TickContext, n: GraphNode, s: CropState, why: string) {
   const spec = specOf(s), area = areaOf(n);
   spoil(c, n, spec.product, ripe(n), why);
   const residue = spec.residue * area * Math.min(1, s.dd / Math.max(1, spec.dd.mature));
@@ -221,7 +274,7 @@ function finish(c: TickContext, n: GraphNode, s: CropState, why: string) {
     if (food > 0) c.flow({what: 'uptake', unit, amount: qty(food, unit), from: {node: n.id, stock: HELD[key]}, to: {boundary: 'growth'}});
     if (held - food > 0) c.flow({what: 'residue', unit, amount: qty(held - food, unit), from: {node: n.id, stock: HELD[key]}, to: {node: n.id, stock: IN_WASTE[key]}});
   }
-  const history = ((n.levers.history as string[] | undefined) ?? []).concat(spec.family).slice(-4);
+  const history = ((n.levers.history as string[] | undefined) ?? []).concat(spec.family).slice(-8);
   n.levers.history = history;
   setCrop(n, null);
 }
@@ -294,8 +347,8 @@ function cropDay(c: TickContext, n: GraphNode, s0: CropState) {
   else if (spec.harvest === 'once' && stage === 'ready' && s.made > 0 && ripe(n) < PICK_MIN) finish(c, n, s, 'picked');
 }
 
-/** Degrees of frost a bed's cover keeps off (none today; part 6's cold frame adds itself to COVERS). */
-export const shelter = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')] ?? 0;
+/** Degrees of frost a bed's cover keeps off (the cold frame's, src/data/crops.ts's COVERS). */
+export const shelter = (n: GraphNode) => COVERS[String(n.levers.cover ?? '')]?.frost ?? 0;
 
 /** A frost reaching a crop this hour: kills a tender one, blackens potatoes' tops and sets them back a week or so. */
 function cropFrost(c: TickContext, n: GraphNode, s: CropState) {
@@ -328,10 +381,23 @@ export const crops: System = {
       }
     },
     day(c) {
+      let dug = 0, full = 0, grass = false, idle: GraphNode | null = null;
       for (const n of Object.values(c.graph.nodes)) {
-        const s = n.kind === 'bed' ? cropOf(n) : null;
+        if (n.kind !== 'bed') continue;
+        const s = cropOf(n);
         if (s) cropDay(c, n, s);
+        if ((n.stocks['land.grass']?.amount ?? 0) > 1e-6) grass = true;
+        else if ((n.stocks['land.crops']?.amount ?? 0) > 0) {
+          dug++;
+          if (cropOf(n)) full++;
+          else idle ??= n;
+        }
       }
+      // every dug bed in use, and a plot still under grass: another bed is worth digging
+      if (dug && full === dug && grass) note(c, 'beds full', 'lawn', dug, 'beds');
+      // the first autumn bed standing empty: a winter crop or a green manure is worth sowing
+      const month = calendar(c.hours - 1).month;
+      if (idle && month >= 8 && month <= 11) note(c, 'empty autumn bed', idle.id, 1, 'beds');
     },
   },
   command(cmd, g) {
@@ -339,10 +405,12 @@ export const crops: System = {
     const n = g.nodes[cmd.node];
     if (n?.kind !== 'bed') return undefined;
     if (OWN.has(cmd.lever)) return `the ${cmd.lever} in a bed is the garden's, not the plan's`;
-    if (!['sow', 'sowFrom', 'dig'].includes(cmd.lever)) return undefined;
+    if (!['sow', 'sowFrom', 'dig', 'winter'].includes(cmd.lever)) return undefined;
     if (cmd.type !== 'plan') return `what's sown is the plan's`;
     const v = cmd.value;
-    if (cmd.lever === 'sow') return v === 'rotation' || v === 'none' || (typeof v === 'string' && v in CROPS) ? null : `no crop ${String(v)}`;
+    if (cmd.lever === 'sow') return v === 'rotation' || v === 'none' || (typeof v === 'string' && v in CROPS && !CROPS[v as CropId].winter) ? null : `no summer crop ${String(v)}`;
+    if (cmd.lever === 'winter') return v === 'none' || (typeof v === 'string' && CROPS[v as CropId]?.winter) ? null : `no winter crop ${String(v)}`;
+    if (cmd.lever === 'dig' && v === true && (n.stocks['land.grass']?.amount ?? 0) <= 1e-6) return `${n.name} is dug already`;
     if (cmd.lever === 'sowFrom') return v === null || (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 366) ? null : 'a day of the year from 1 to 366, or null';
     return typeof v === 'boolean' ? null : 'dig is true or false';
   },

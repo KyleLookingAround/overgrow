@@ -8,3 +8,9 @@ The compost heap, compost going back to the beds, and digging a bed out of the l
 - **Digging** (`dig()`): a plot's `land.grass` moves to `land.crops`, a square metre at a time. The land-use change's soil carbon effect is the soil model's: dug, bare ground decays faster and gets none of grass's input, so over twenty years a dug plot keeps about 0.5–0.85 of the grass's soil carbon, about IPCC's 0.69 for long-term cultivation. The plan's `dig` lever on a bed asks for it (part 6's "more beds" shows it).
 - **Peat** (part 6): a bag of peat compost will come in from the `bought` boundary with its carbon, its extraction's emissions from `bought` to the air, spread the same way.
 - **Explain.** The carbon dial in the top bar opens the carbon card, and the heap's flows are effects at the heap (`docs/systems/explain.md`).
+
+## The playable garden (#54)
+
+- **Digging** (`dig()`) also pays the edging from the purse (`edging`) and sends a flush of the soil's carbon to the air, 0.03 kg CO₂e a m² (`DIG` in `src/data/garden.ts`; Reicosky & Lindstrom 1993).
+- **A green manure dug in** (`digIn()`): the crop finished, then its residue's carbon (from the air, as the heap's plant carbon) goes into the bed's fresh organic matter and its nitrogen, phosphorus and potassium into the bed's pools, none of it to the heap.
+- **The compost bin** (`docs/systems/shed.md`): `heapDay()` breaks down 1.5 times as fast, loses 12 % of its nitrogen instead of 20 %, and makes 1.25 times the methane and nitrous oxide while the garden owns one.

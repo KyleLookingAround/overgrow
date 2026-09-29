@@ -35,6 +35,11 @@
   --map-tap: #8d9aa3;
   --map-heap-rim: #3f2c1a;
   --map-heap: #5b4229;
+  --map-frame: #dfeef2; /* the cold frame's glass, drawn see-through */
+  --map-frame-edge: #9fb4ba;
+  --map-bin: #2f4a32; /* the compost bin's lid */
+  --map-trap: #3a2a18; /* a beer trap's pot, sunk to its rim */
+  --map-hose: #3f8f4c; /* the hose on its reel */
   --map-person: #4a6fa5;
   --map-skin: #e7c39a;
   --map-hat: #d98a2b;
@@ -74,6 +79,7 @@
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
   --text: 16px;
   --text-small: 0.85rem;
+  --text-tiny: 0.75rem;
   --line-tight: 1.15; /* two short lines in one control: the dial's figure and the footprint under it */
   --radius: 10px;
   --gap: 12px;
@@ -143,6 +149,11 @@
     --map-tap: #74828b;
     --map-heap-rim: #2e2013;
     --map-heap: #47331f;
+    --map-frame: #b9ccd2;
+    --map-frame-edge: #7d9297;
+    --map-bin: #24382a;
+    --map-trap: #2a1e11;
+    --map-hose: #32733c;
     --map-frost: #c9d6de;
     --map-frost-max: 0.45;
     --map-rain: #b9cad899;

@@ -9,6 +9,9 @@ export const MEAL_HOUR = 18;
 /** The kitchen keeps as many days of each group's ask as it keeps fresh for (half its shelf life), up to three weeks;
  *  what's over goes to the honesty box. */
 export const KEEP_DAYS = 21;
+/** What keeps for two months or more (potatoes, cured onions and garlic) is stored in a cool, dark, airy place, the
+ *  shed, for up to five months of the household's ask, not sold at the gate (RHS, "Storing fruit and vegetables"). */
+export const STORE = {keeps: 60, days: 150};
 
 /** The honesty box: £ per kg, and how much the lane's passers-by take a day (more at weekends). */
 export const BOX = {price: 2.5, perDay: 2, weekend: 3.5};

@@ -11,7 +11,7 @@
 import type {Group} from './crops';
 import type {FoodGroup} from './household';
 
-export type ProductId = 'salad' | 'radish' | 'lettuce' | 'beans' | 'potatoes' | 'tomatoes' | 'eggs' | 'milk' | 'meat';
+export type ProductId = 'salad' | 'radish' | 'lettuce' | 'beans' | 'potatoes' | 'tomatoes' | 'kale' | 'leeks' | 'winter-salad' | 'broad-beans' | 'garlic' | 'onions' | 'eggs' | 'milk' | 'meat';
 export type Place = 'field' | 'shed' | 'cold store' | 'van' | 'shelf' | 'home';
 export type Standard = 'loose' | 'strict';
 
@@ -45,6 +45,14 @@ export const PRODUCTS: Record<ProductId, ProductSpec> = {
   beans: {name: 'French beans', group: 'greens', shelf: 2.8, q10: 2.6, coldMin: 7, dark: 1, density: 100, unharvested: 0.08, eatDays: 3.2, hold: 0.5, shelfDays: 1},
   potatoes: {name: 'Potatoes', group: 'potatoes', shelf: 39, q10: 2, coldMin: 5, dark: 2.5, density: 250, unharvested: 0.05, eatDays: 16, hold: 75, shelfDays: 1},
   tomatoes: {name: 'Tomatoes', group: 'tomatoes', shelf: 4.2, q10: 2.3, coldMin: 10, dark: 1, density: 120, unharvested: 0.04, eatDays: 4.5, hold: 0.5, shelfDays: 1},
+  // the garden's winter crops: hardy leaves keep like salad, broad beans in the pod like French beans, and cured garlic
+  // and onions for months in a cool, dry, dark place (RHS, "Storing fruit and vegetables")
+  kale: {name: 'Kale', group: 'greens', shelf: 3.1, q10: 2.6, coldMin: 1, dark: 1, density: 60, unharvested: 0.06, eatDays: 3.6, hold: 0.5, shelfDays: 1},
+  leeks: {name: 'Leeks', group: 'greens', shelf: 6.5, q10: 2.2, coldMin: 1, dark: 1, density: 150, unharvested: 0.05, eatDays: 7, hold: 2, shelfDays: 1},
+  'winter-salad': {name: 'Winter salad leaves', group: 'salads', shelf: 3.1, q10: 2.6, coldMin: 2, dark: 1, density: 40, unharvested: 0.06, eatDays: 3.6, hold: 0.5, shelfDays: 1},
+  'broad-beans': {name: 'Broad beans', group: 'greens', shelf: 2.9, q10: 2.6, coldMin: 2, dark: 1, density: 120, unharvested: 0.08, eatDays: 3.2, hold: 0.5, shelfDays: 1},
+  garlic: {name: 'Garlic', group: 'greens', shelf: 117, q10: 2, coldMin: 0, dark: 1.5, density: 300, unharvested: 0.03, eatDays: 30, hold: 90, shelfDays: 3},
+  onions: {name: 'Onions', group: 'greens', shelf: 97, q10: 2, coldMin: 0, dark: 1.5, density: 350, unharvested: 0.03, eatDays: 14, hold: 90, shelfDays: 3},
   eggs: {name: 'Eggs', group: 'dairy', shelf: 21, q10: 3, coldMin: 4, dark: 1, density: 150, unharvested: 0.01, eatDays: 30, hold: 3, shelfDays: 3},
   milk: {name: 'Milk', group: 'dairy', shelf: 1.2, q10: 3.5, coldMin: 2, dark: 1, density: 500, unharvested: 0, eatDays: 2.5, hold: 1, shelfDays: 1},
   meat: {name: 'Fresh meat', group: 'meat', shelf: 1, q10: 3, coldMin: 0, dark: 1, density: 300, unharvested: 0, eatDays: 2, hold: 1, shelfDays: 1},

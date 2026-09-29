@@ -7,7 +7,7 @@
 // spade at about an hour a square metre (RHS, "Digging"); picking by the crop (src/data/crops.ts). The four hours are the
 // household model's since part 6b: what a full-time job leaves (src/sim/models/household.ts).
 
-export type Tool = 'can' | 'hands' | 'spade' | 'basket' | 'bucket';
+export type Tool = 'can' | 'hands' | 'spade' | 'basket' | 'bucket' | 'hose';
 export type Job = 'water' | 'sow' | 'plant' | 'pick' | 'clear' | 'dig' | 'carry' | 'spread';
 
 /**
@@ -28,6 +28,8 @@ export const TOOLS: Record<Tool, {name: string; jobs: Partial<Record<Job, JobTim
   spade: {name: 'Spade', jobs: {dig: {per: 1}}},
   basket: {name: 'Basket', jobs: {carry: {per: 0, trip: 5, load: 1 / 60}}},
   bucket: {name: 'Bucket', jobs: {spread: {per: 0.3 / 60, trip: 10, load: 2 / 60}}},
+  // straight from the tap at its 12 L a minute, five minutes to run it out and reel it back (src/data/shed.ts)
+  hose: {name: 'Hose and reel', jobs: {water: {per: 1 / 60 / 12, setup: 5 / 60}}},
 };
 
 /** The tools the gardener starts with. */
@@ -45,3 +47,8 @@ export const WALK = 0.8 * 3600;
 export const WATER_IN = 3;
 /** Compost spread before sowing, kg per m² (about a bucket a square metre; RHS, "Compost"). */
 export const COMPOST_PER_M2 = 5;
+/** Digging a green manure in where it stands, as a share of the time to dig turf over (the stems are soft, the soil
+ *  already dug). */
+export const DIG_IN = 0.3;
+/** A day's watering by can past this many hours is a long one (what a hose saves). */
+export const LONG_WATERING = 0.75;
