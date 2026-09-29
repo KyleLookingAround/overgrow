@@ -20,8 +20,10 @@ Today the game is the back garden on the graph, with the clock, saving and the p
 - [The carry-over rule (sealing, events across scales and the step-up test)](systems/ladder.md) (`src/sim/ladder.ts`, `src/sim/ladder.test.ts`, `src/data/ladder-rules.ts`, `src/data/ladder.ts`)
 - [Machinery](systems/machinery.md) (`src/sim/models/machinery.ts`, `src/sim/models/machinery.test.ts`, `src/data/machinery.ts`, `src/sim/systems.ts`)
 - [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`, `src/ui/GardenTab.tsx`, `src/ui/KitchenTab.tsx`)
+- [The box scheme and the farm shop](systems/market.md) (`src/sim/models/market.ts`, `src/sim/models/market.test.ts`, `src/data/market.ts`, `src/data/storage.ts`, `src/sim/systems.ts`)
 - [Saving](systems/saving.md) (`src/sim/save.ts`, `src/sim/random.ts`, `src/app/storage.ts`, `src/app/main.tsx`)
 - [Soil](systems/soil.md) (`src/sim/models/soil.ts`, `src/sim/models/soil.test.ts`, `src/data/soils.ts`, `src/data/garden.ts`, `src/sim/state.ts`, `src/ui/Panel.tsx`)
+- [Storage and spoilage](systems/storage.md) (`src/sim/models/storage.ts`, `src/sim/models/storage.test.ts`, `src/data/storage.ts`, `src/sim/systems.ts`)
 - [Water](systems/water.md) (`src/sim/models/water.ts`, `src/sim/models/water.test.ts`, `src/sim/models/soil.ts`, `src/sim/models/crops.ts`, `src/data/garden.ts`, `src/ui/Panel.tsx`, `src/ui/map/draw.ts`)
 - [The weather](systems/weather.md) (`src/sim/models/weather.ts`, `src/data/climate-normals.ts`, `src/sim/models/weather.test.ts`, `src/ui/map/draw.ts`, `src/ui/map/renderer.ts`, `src/ui/TopBar.tsx`)
 <!-- /joined:systems -->
@@ -60,7 +62,9 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/data/ladder-rules.ts` | The carry-over rule's numbers: each level's rhythm (the window its headline numbers are taken over), what goes into the Health index, how a sealed node's Health drifts and what it costs, the tolerance of inflating, and the step-up offer's test. |
 | `src/data/ladder.ts` | The ladder's clock: each level's rate (real seconds per game day at 1×) and the length of the sim's fixed step, the speeds, and the date the game starts on. |
 | `src/data/machinery.ts` | Machinery: what a small second-hand tractor and its implements use, how fast they work against hand work, when they fail and what fails costs, and how hard their wheels press on wet ground. |
+| `src/data/market.ts` | The smallholding's first markets: the box scheme (households who take a box a week at a set price) and the farm shop (walk-in customers), with prices, footfall, goodwill and churn. |
 | `src/data/soils.ts` | Soils: the textures the garden's beds and lawn are made of, and what a soil starts with. |
+| `src/data/storage.ts` | Storage and spoilage numbers: each product's shelf life and how fast it speeds up with warmth, where produce is kept and how warm that is, the grading standards' graded-out shares, what a van round costs and how much a cold room holds, and where wasted food goes. |
 | `src/sim/activity.ts` | Activities: who is doing what, where, from when to when (the gardener watering bed 3 from 08:00 to 08:20; a lorry on a run leaving at 05:00). |
 | `src/sim/churn.ts` | A test-only system that moves random flows of every kind across the garden each hour and starts an activity each day, so the conservation, save and long-run tests exercise the graph before the real models arrive (parts 2 and 3). |
 | `src/sim/clock.ts` | The one clock: game hours since the start, advanced in fixed steps (an hour at levels 1 and 2, a day at 3 to 5, a week at 6 and 7, a month at 8), with the calendar for the top bar and the ticks systems subscribe to (hour, day, week, season, year). |
@@ -76,7 +80,9 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/sim/models/kitchen.ts` | The kitchen: the household's daily ask of the garden, what met it, and the honesty box at the gate. |
 | `src/sim/models/labour.ts` | Labour: the hours a person has by season and day of the week, the work a hectare of each crop needs by month, what a role costs, how skill stretches a job's time, and what doesn't fit waiting. |
 | `src/sim/models/machinery.ts` | Machinery: a second-hand tractor's fuel and hours by operation against hand work, its breakdowns (a hazard rising with its age and the hours since it was serviced, drawn from a passed Rng), what repairs and services cost, and the soil compaction its wheels leave on wet ground, which takes structure off the soil and so yield. |
+| `src/sim/models/market.ts` | The smallholding's first market beyond the gate: a box scheme (households who take a box a week at a set price, a promised mix, goodwill that decides who stays and who joins), a farm shop (footfall by season and weekday, drawn from the game's dice, buying by households' baskets and a price elasticity), cosmetic grading, seasonal prices and the imports that fill a short box. |
 | `src/sim/models/soil.ts` | Soil: what each bed and the lawn is made of, how much water it holds, its organic matter and nutrients, and its health. |
+| `src/sim/models/storage.ts` | Storage and spoilage: how long each product keeps at each temperature, the lots that age in the field, a shed, a cold store, a van, on a shelf and at home, what is lost at each stage of the chain, what a cold store costs and saves, and what a van's round burns. |
 | `src/sim/models/water.ts` | Water: the FAO-56 soil water balance for each bed and the lawn, every step. |
 | `src/sim/models/weather.ts` | The weather: a daily stochastic weather generator of the Richardson type, drawn from the station's monthly normals (src/data/climate-normals.ts) and bent by the warming index, with each hour shaped from its day for the hour tick. |
 | `src/sim/random.ts` | The seeded random generator. |
