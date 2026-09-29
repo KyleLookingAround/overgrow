@@ -97,10 +97,13 @@ export function gardenGraph(): Graph {
   return g;
 }
 
-/** The kitchen's cupboard on day 1: last week's shop, a stock of each food group. */
+/** The kitchen's cupboard on day 1: last week's shop, its veg and the rest of the diet. */
 function cupboard(): Record<string, Stock> {
   const out: Record<string, Stock> = {};
-  for (const [g, kg] of Object.entries(startCupboard()) as [FoodGroup, number][]) out[`food.${shopProduct(g)}`] = {unit: 'kgFood', amount: qty(kg, 'kgFood'), product: shopProduct(g)};
+  for (const [g, kg] of Object.entries(startCupboard()) as [FoodGroup, number][]) {
+    const product = shopProduct(g), had = out[`food.${product}`]?.amount ?? 0;
+    out[`food.${product}`] = {unit: 'kgFood', amount: qty(had + kg, 'kgFood'), product};
+  }
   return out;
 }
 

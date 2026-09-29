@@ -286,19 +286,19 @@ export function weekFlows(h: Household, s: Shop, fp: Footprint, node: string = H
   carried('shop food water', 'L', fp.water, 'footprint.water');
   return out;
 }
-/** The shop's food into the kitchen's cupboard, a stock by group. */
+/** The shop's food into the kitchen's cupboard: its veg into one stock and the rest of the diet into the other. */
 export function shopFood(s: Shop, kitchen: string = KITCHEN): Flow[] {
-  const out: Flow[] = [];
-  for (const g of FOOD_GROUPS) {
-    const kg = s.buy[g], product = shopProduct(g);
-    if (kg > 1e-9) out.push({what: 'shop food', unit: 'kgFood', product, amount: qty(kg, 'kgFood'), from: {boundary: 'shop'}, to: {node: kitchen, stock: `food.${product}`}});
-  }
-  return out;
+  const kg: Record<string, number> = {};
+  for (const g of FOOD_GROUPS) kg[shopProduct(g)] = (kg[shopProduct(g)] ?? 0) + s.buy[g];
+  return Object.entries(kg).filter(([, n]) => n > 1e-9)
+    .map(([product, n]) => ({what: 'shop food', unit: 'kgFood', product, amount: qty(n, 'kgFood'), from: {boundary: 'shop'}, to: {node: kitchen, stock: `food.${product}`}}));
 }
-/** What's in a kitchen's cupboard from the shop, kg by group. */
+/** What's in a kitchen's cupboard from the shop, kg by group: each of its two stocks shared out in the basket's
+ *  proportions. */
 export function cupboardIn(k: GraphNode | undefined): Kg {
-  const out: Kg = {};
-  for (const f of FOOD_GROUPS) out[f] = k?.stocks[`food.${shopProduct(f)}`]?.amount ?? 0;
+  const whole: Record<string, number> = {}, out: Kg = {};
+  for (const g of FOOD_GROUPS) whole[shopProduct(g)] = (whole[shopProduct(g)] ?? 0) + BASKET[g];
+  for (const g of FOOD_GROUPS) out[g] = ((k?.stocks[`food.${shopProduct(g)}`]?.amount ?? 0) * BASKET[g]) / whole[shopProduct(g)]!;
   return out;
 }
 export const cupboardOf = (g: Graph) => cupboardIn(g.nodes[KITCHEN]);

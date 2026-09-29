@@ -91,6 +91,6 @@ describe('kitchen', () => {
     // one person's day: the basket's 8.5 kg a week over seven days, near enough all from the shop on the first evening
     expect(kg).toBeGreaterThan(1);
     expect(kg).toBeLessThan(1.4);
-    expect(shop.some((f) => f.product === 'shop-meat')).toBe(true);
+    expect(shop.map((f) => f.product).sort()).toEqual(['shop-food', 'shop-veg']);
   });
 });

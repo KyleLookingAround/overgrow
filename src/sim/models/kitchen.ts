@@ -67,8 +67,11 @@ export function eaters(g: Graph): number {
 export const askOf = (g: Graph) => kitchenAsk(eaters(g));
 const total = (ask: Record<Group, number>) => Object.values(ask).reduce((s, v) => s + v, 0);
 
-/** The shop's food in the cupboard: a `food.shop-<group>` stock by food group, apart from the garden's produce. */
-export const shopProduct = (g: FoodGroup) => `shop-${g}`;
+/** The shop's food in the cupboard, apart from the garden's produce: two stocks, its veg (`food.shop-veg`) and the rest
+ *  of the diet (`food.shop-food`), since the meal needs only those two apart; the household model keeps what's in them
+ *  by food group in the basket's proportions. Two, not one a group: the snapshot copies every stock each hour. */
+export const SHOP_VEG = 'shop-veg', SHOP_FOOD = 'shop-food';
+export const shopProduct = (g: FoodGroup) => ((VEG as readonly string[]).includes(g) ? SHOP_VEG : SHOP_FOOD);
 
 export const newLedger = (): Ledger => ({
   day: -1, ask: total(kitchenAsk(1)), ate: {}, met: 0, week: [], picked: 0, eaten: 0, wasted: 0, sold: 0, earned: 0, firstHarvest: null, firstSale: null,
@@ -140,25 +143,19 @@ function meal(c: TickContext, k: GraphNode, day: number) {
   // a short group made up by more of another, up to its stretch
   for (const g of VEG) if (eaten < want - 1e-9) eaten += eat(g, Math.min(want - eaten, ask[g] * (STRETCH - 1)));
   const met = Math.min(1, eaten / want);
-  // what the garden didn't meet comes from the shop's veg, each group's shortfall in turn; then the rest of the diet
-  const short = (g: Group) => Math.max(0, ask[g] - VEG_ATE(ate, g));
-  let left = Math.max(0, want - eaten);
-  for (const g of VEG) left -= fromShop(c, k, g, Math.min(left, short(g)));
-  for (const g of VEG) left -= fromShop(c, k, g, left);
+  // what the garden didn't meet comes from the shop's veg; then the rest of the diet, a seventh of the week's basket
+  fromShop(c, k, SHOP_VEG, Math.max(0, want - eaten));
   const people = eaters(c.graph);
-  for (const g of FOOD_GROUPS) if (!(VEG as readonly string[]).includes(g)) fromShop(c, k, g, (BASKET[g] * people) / 7);
+  fromShop(c, k, SHOP_FOOD, FOOD_GROUPS.reduce((s, g) => s + ((VEG as readonly string[]).includes(g) ? 0 : (BASKET[g] * people) / 7), 0));
   update(c.graph, (l) => ({day, ask: want, ate, met, week: [...l.week, met].slice(-7), eaten: l.eaten + eaten}));
   // the day's ask of the garden, from the second evening: the first evening's meal is what the house already had in (the
   // founding spec's first minute has the kitchen's first ask on day 2)
   if (day >= 1) note(c, 'ask', k.id, want, 'kgFood');
 }
 
-/** kg of a group the last meal ate of the garden's produce. */
-const VEG_ATE = (ate: Record<string, number>, g: Group) => inGroup(g).reduce((s, crop) => s + (ate[crop.product] ?? 0), 0);
-
-/** Eats up to `kg` of a food group from the shop's food in the cupboard; returns what was eaten. */
-function fromShop(c: TickContext, k: GraphNode, g: FoodGroup, kg: number): number {
-  const product = shopProduct(g), eat = Math.min(kg, stockOf(k, product));
+/** Eats up to `kg` of the shop's food from one of the cupboard's stocks; returns what was eaten. */
+function fromShop(c: TickContext, k: GraphNode, product: string, kg: number): number {
+  const eat = Math.min(kg, stockOf(k, product));
   if (eat <= 1e-9) return 0;
   c.flow({what: 'shop food eaten', unit: 'kgFood', product, amount: qty(eat, 'kgFood'), from: {node: k.id, stock: `food.${product}`}, to: {boundary: 'eaten'}});
   return eat;

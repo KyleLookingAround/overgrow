@@ -556,9 +556,14 @@ export const gardener: System = {
       if (!day) return;
       // show the steps that start in this step, and do the ones that end in it
       let changed = false;
-      const steps: Step[] = [];
-      for (const s of day.steps) {
-        let step = s;
+      const steps: Step[] = [], all = day.steps;
+      for (let i = 0; i < all.length; i++) {
+        let step = all[i]!;
+        // the steps are in order of time: from the first that neither starts nor ends in this step on, none does
+        if (step.start >= c.hours && step.end > c.hours) {
+          for (; i < all.length; i++) steps.push(all[i]!);
+          break;
+        }
         if (!step.shown && step.start < c.hours) {
           const a: Activity = {id: step.id, who: GARDENER, kind: 'person', doing: step.doing, from: step.from, to: step.to, start: step.start, end: step.end};
           if (step.carry) a.carry = step.carry;
