@@ -202,6 +202,9 @@ export function outbreak(node: string, h: Herd, hours: number, days = ILL_DAYS):
   return {id: `outbreak:${node}:${hours}`, kind: 'disease', label: 'outbreak', product: SPECIES[h.species].product, homeLevel: homeLevelOf(h), size: OUTBREAK_SIZE, from: hours, days};
 }
 
+/** An outbreak once the herd is treated at game hour `hours`: it now ends `TREATED_DAYS` from then, so the event's kg match the shorter illness. */
+export const treatedOutbreak = (e: GameEvent, hours: number): GameEvent => ({...e, days: Math.min(e.days, Math.max(0, (hours - e.from) / 24) + TREATED_DAYS)});
+
 /** Rolls the dice: true if the herd falls ill. Draws once from the `Rng` it's given, whatever the chance. */
 export const fallsIll = (risk: number, r: Rng) => r.next() < risk;
 

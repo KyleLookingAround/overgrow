@@ -164,7 +164,7 @@ export const SALE_PRICE: Record<SpeciesId, {product: 'eggs' | 'meat' | 'milk'; p
 };
 /** Milk, £ a litre (data for later levels: nothing milks yet). */
 export const MILK_PRICE = 0.35;
-/** A sick herd needs this many times the keeper's time (treating, isolating, more checks). */
+/** A sick herd needs this many times the keeper's time (treating, isolating, more checks): a rough figure with no published source. */
 export const ILL_HOURS = 1.5;
 /** How much of a day's output an outbreak destroys while it lasts: illness halves what the herd makes (livestock.ts). */
 export const OUTBREAK_SIZE = 0.5;

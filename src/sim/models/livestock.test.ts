@@ -12,7 +12,7 @@ import {gardenGraph} from '../state';
 import {HEAP} from './carbon';
 import {
   aggregate, availableN, clearOut, dayFlows, diseaseRisk, fallsIll, footprint, GWP_CH4, heapGases, herdOf, hoursNeeded, ILL_DAYS, LIVE, livestock,
-  manureGases, newHerd, OUTBREAKS, outbreak, outbreaksOf, perHead, priceOf, sellEggs, setHerd, slaughter, step, stocking, treat, type Conditions, type Herd,
+  manureGases, newHerd, OUTBREAKS, outbreak, outbreaksOf, perHead, priceOf, sellEggs, setHerd, slaughter, step, stocking, treat, treatedOutbreak, type Conditions, type Herd,
 } from './livestock';
 import {eventKgLost, showEvent} from '../ladder';
 import {sunOn, type WeatherDay} from './weather';
@@ -396,6 +396,9 @@ describe('livestock: hooks for the levels above', () => {
     expect(kg).toBeCloseTo(0.5 * well, 9);
     expect(eventKgLost(tile, perDay)).toBeCloseTo(kg, 9);
     expect(eventKgLost(region, 20 * perDay)).toBeCloseTo(kg, 9);
+    // treating it at day 2 ends the event 4 days on, and the shown kg follow
+    expect(treatedOutbreak(e, 240 + 48).days).toBe(6);
+    expect(treatedOutbreak(e, 240 + 20 * 24).days).toBe(21);
     // a treated outbreak is shorter, and loses fewer kg
     expect(eventKgLost(showEvent(outbreak('coop', h, 0, 4), 1)!, perDay)).toBeLessThan(kg / 4);
   });

@@ -101,7 +101,7 @@ export function sampleOf(groups: ByGroup, rest: Omit<Sample, 'output' | 'groups'
 
 /**
  * The ring: the last full cycle of samples, oldest first, capped at the window (a year of weeks for the garden and the allotment, days from level 3, and a year of
- * weeks at level 7), so it's about a dozen numbers a sample and never the level's detail. Saved state (plain JSON).
+ * weeks at level 7), so it's about thirty numbers a sample and never the level's detail. Saved state (plain JSON).
  */
 export interface History {
   level: number;
@@ -140,7 +140,7 @@ export function reliability(series: readonly number[]): number {
   return clamp(100 * (1 - Math.sqrt(ss / n) / mean), 0, 100);
 }
 
-/** The wildlife part of Health: flowers, hedges and margins as one index, their weighted mean over the ones given (0 when none). */
+/** The wildlife part of Health: flowers, hedges and margins as one index, their weighted mean over the ones given (0 when none: a level with no wildlife leaves `health.wildlife` out rather than recording that 0). */
 export function wildlifeIndex(parts: Partial<Record<WildlifePart, number>>): number {
   let sum = 0, w = 0;
   for (const p of WILDLIFE_PARTS) {

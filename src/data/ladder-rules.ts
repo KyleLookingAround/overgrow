@@ -22,7 +22,7 @@ const SEASON = 365 / 4;
  * hedge, can pay back inside the level that teaches it): the garden's and the allotment's are the last full year (four
  * seasons, not the 28 days and the season the spec first had), the smallholding and above are proposed as a year, the
  * planet's as a decade. The sample is the level's tick, but the garden and the allotment sample weekly, not daily: a
- * daily ring of a year would be 365 samples of about thirty numbers each (about 100 kB of saved state) where a weekly
+ * daily ring of a year would be 365 samples of about thirty numbers each (about 75 kB of saved state) where a weekly
  * one is 53; from level 3 up the tick is a day and the ring is 365 (level 6 and 7 a week, level 8 a month).
  */
 export const RHYTHMS: readonly Rhythm[] = [
