@@ -1,0 +1,15 @@
+Theme: exchange
+
+# Lessons from Final Call, carried into the playbooks (#57) · 29 Sep 2026
+
+- **Numbers:** estimate $6. `get_session` read about $0.25 mid-session, which is not yet the real figure (read as unknown, not free). Started 17:42 UTC; Overgrow's PR opened after the Final Call clone, which first needed a second approval because the first `add_repo` call was refused. Docs only: no bot run, no speed budget.
+- **Went well:** Final Call's own coordinator look back for 29 Sep was already in an open PR (#176), so the exchange used it rather than asking for one. Reading both repos' lessons through their "Lessons" sections first (about 60 files each) was enough to sort what to carry; only the audit, the playbooks and two decision records needed a full read.
+- **What Final Call has that is only context here** (not a playbook line):
+  - **The 29 Sep wave in numbers.** One coordinator ran ten sessions for about $73, from two floors merged to release 35 live in six and a half hours. Well-scoped cheaper-model briefs cost 22–37% of their estimates; the default model's came in near theirs.
+  - **Relayed messages.** A scheduled message saying "the owner said" proved the account that created it, not the words; three sessions met one and were right to keep to the committed brief (`lessons/141-relayed-messages.md`). Whether a session may act on one is the owner's decision, so it is in the PR description for the coordinator, not in a playbook.
+  - **The brain-itch audit's finding.** Final Call's first two levels scratched the itch and it stopped at City Airport: a wall of 389 game hours with 30–35 things affordable and no tip naming the lever (`ideas/release-audit.md`). The same shape (a long stretch with nothing to decide) is what Overgrow's "longest quiet stretch" measure exists to catch.
+  - **Refactors in a quiet window.** Final Call changed how weather was read while eight branches were open and each needed its own merge commit; Overgrow's `coordinator` playbook §5 already says this.
+- **Lessons:**
+  - The lessons worth carrying were mostly about the environment and the process (the full check's real time, merge-chasing, the usage limit, briefs that leave a question open), not about the game. Overgrow already had most of the process ones from its runbook copy, so the new lines are mostly about what Overgrow hasn't built yet: tips, managers, the step-up card, notices and the first release. → `feature` step 4, `release`, `balance` and `coordinator` playbooks.
+  - The brief names two Overgrow lessons, the playtest before calling a level done and a check-in about 30 minutes after starting a session, that I couldn't find written anywhere in this repo, so I couldn't cite them into Final Call. → If the coordinator has them, a short lesson in `docs/lessons/` with a source would let a later exchange carry them.
+  - A lesson cites its source as the other repo's own folder path (`lessons/171-…`), never a backticked `docs/` path: the `graph` check reads a `docs/` path as a link into this repo.
