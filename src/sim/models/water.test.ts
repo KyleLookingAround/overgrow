@@ -8,7 +8,7 @@ import {applyFlow, type Flow, type Graph, type LeverValue} from '../graph';
 import {rng} from '../random';
 import {gardenGraph} from '../state';
 import {limitsOf, soil} from './soil';
-import {et0, et0Hargreaves, et0PenmanMonteith, water} from './water';
+import {et0, et0Hargreaves, et0PenmanMonteith, water, BALANCE_HOURS} from './water';
 import {nextDay, weather, type WeatherDay} from './weather';
 
 const PHYSICAL = [weather, water, soil];
@@ -75,7 +75,8 @@ describe('water', () => {
     expect(litres(g, 'bed-2')).toBeLessThan(lim.fc + 0.2 * (lim.sat - lim.fc));
     // a soil at saturation sheds a downpour
     bed.stocks.water!.amount = lim.sat as never;
-    const burst = run(g, [water], 2, day(300, {tmax: 12, tmin: 8, sun: 0, wet: true, rain: 40, rainFrom: 0, rainHours: 1}));
+    // (a whole step of the balance: three hours)
+    const burst = run(g, [water], BALANCE_HOURS, day(300, {tmax: 12, tmin: 8, sun: 0, wet: true, rain: 40, rainFrom: 0, rainHours: 1}));
     expect(total(burst, 'runoff', 'bed-2')).toBeGreaterThan(40 * 3 * 0.5);
   });
 

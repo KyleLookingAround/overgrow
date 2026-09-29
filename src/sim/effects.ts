@@ -20,7 +20,9 @@ export interface Effect {
   unit: string;
 }
 
-export const kindOf = (cause: string): Kind | 'unknown' => KIND_BY_CAUSE[cause] ?? 'unknown';
+/** The table's kinds as a map: a cause is looked up for every effect of every tick. */
+const KINDS = new Map(Object.entries(KIND_BY_CAUSE));
+export const kindOf = (cause: string): Kind | 'unknown' => KINDS.get(cause) ?? 'unknown';
 
 /** Collects a tick command's effects, merged by cause, place and unit. */
 export class Recorder {
