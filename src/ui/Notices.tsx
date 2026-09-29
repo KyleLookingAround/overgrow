@@ -12,7 +12,7 @@ export function Notices({list, onDismiss}: {list: readonly Notice[]; onDismiss: 
   return (
     <div class="notices" role="status" aria-live="polite">
       {shown.map((n) => (
-        <p class={`${n.keys ? 'notice unfold' : 'notice'}${open === n.id ? ' open' : ''}`} key={n.id} data-keys={n.keys?.join(' ')}>
+        <p class={`${n.keys ? 'notice unfold' : n.moment ? 'notice moment' : 'notice'}${open === n.id ? ' open' : ''}`} key={n.id} data-keys={n.keys?.join(' ')} data-moment={n.moment}>
           <button type="button" class="notice-text" aria-expanded={n.more ? open === n.id : undefined} onClick={() => setOpen(open === n.id ? null : n.id)}>
             <span class="notice-line">{n.text}</span>
             {n.more && <small class="notice-more">{n.more}</small>}

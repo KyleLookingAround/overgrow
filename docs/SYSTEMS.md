@@ -142,6 +142,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/ui/map/palette.ts` | The map's colours, read from the design tokens (src/ui/styles/tokens.css) so light and dark follow the device. |
 | `src/ui/map/placement.ts` | The placement pass for the map's badges and labels (the owner's win W15): a pure function of rectangles, so a Vitest test and the `explain` check call the same helper the map draws with. |
 | `src/ui/map/renderer.ts` | The map's renderer: PixiJS on WebGL, or Pixi's Canvas 2D renderer where WebGL is missing (docs/decisions/ADR-2026-09-28-webgl-map.md). |
+| `src/ui/moments.ts` | Moments (the playable garden): the few things worth a word when they first happen, found by comparing two snapshots, so a Vitest test holds them. |
 | `src/ui/notices.ts` | Notices (the owner's win W27): rare in Overgrow, where impacts go on the map, but the ones there are (a command the game refused, and the sign that something new has unfolded) are queued and expire. |
 | `src/ui/styles/page.css` | The page's skeleton: the top bar across the top, the map filling the rest, and the panel beside it on wide screens |
 | `src/ui/styles/tokens.css` | Design tokens: every colour, size and font the UI uses, in one place. |

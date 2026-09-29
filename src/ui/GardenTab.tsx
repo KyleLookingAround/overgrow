@@ -4,9 +4,11 @@
 // waters, and the pest policy for each pest the garden's crops draw: leave, pick, trap or treat). The pest lines and
 // the flowers, and the watering line, appear only once they've come up in the garden (src/data/unfold.ts): they're
 // levers, so "Show all details" doesn't show them before the sim would take them. The plan changes the
-// game only through `plan` and `policy` commands; the gardener picks it up at once.
+// game only through `plan` and `policy` commands; the gardener picks it up at once. Each bed's line says what's true
+// now (why it's empty, how long since sowing); a crop following its own family warns of its soil pests, and the slug
+// policy's line says its time or money and what pests have taken (the playable garden's consequences).
 import {CROP_IDS, CROPS, FLOWER_IDS, WINTER_IDS, type CropId} from '../data/crops';
-import {POLICIES, START_POLICY, type PestId, type Policy} from '../data/pests';
+import {CONTROL, POLICIES, START_POLICY, type PestId, type Policy} from '../data/pests';
 import {unfolded} from '../data/unfold';
 import type {Activity} from '../sim/activity';
 import type {Command} from '../sim/commands';
@@ -178,6 +180,7 @@ function BedPlan({n, onPlan, flowers, winter, frame, date, hours}: {
       <label for={id}>{n.name}{covered ? ', under the cold frame' : ''}</label>
       <p class="soft bed-status">{status(n, date, hours)}</p>
       {sow in CROPS && <p class="soft">{CROPS[sow as CropId].name} {windowOf(sow as CropId)}{covered ? ', three weeks either side under the frame' : ''}</p>}
+      {rotationLine(n) && <p class="soft consequence">{rotationLine(n)}</p>}
       <div class="pair">
         <select id={id} value={sow} onChange={(e) => onPlan('sow', (e.target as HTMLSelectElement).value)}>
           <option value="rotation">Follow the rotation</option>
@@ -212,6 +215,27 @@ function BedPlan({n, onPlan, flowers, winter, frame, date, hours}: {
       </label>}
     </div>
   );
+}
+
+/** What a bed's plan does to its soil, in a line: the same family again builds up its soil pests; the rotation lets them
+ *  die away. */
+export function rotationLine(n: GraphNode): string | null {
+  const sow = n.levers.sow, history = (n.levers.history as string[] | undefined) ?? [], last = history[history.length - 1];
+  if (sow === 'rotation') return 'Rotation: each family comes back every few years, so its soil pests die away';
+  if (typeof sow === 'string' && sow in CROPS && CROPS[sow as CropId].family === last)
+    return `Same family as its last crop: its soil pests build up (clubroot, cyst nematode, root rots)`;
+  return null;
+}
+
+/** What the slug policy costs and what slugs have taken, in a line: its time or money for the dug beds, and the share of
+ *  what's growing lost to pests so far. */
+export function slugLine(policy: Policy, beds: GraphNode[], traps: boolean): string {
+  const growing = beds.map((b) => cropOf(b)).filter((c) => c && !c.dead), n = growing.length;
+  const lost = n ? Math.round((100 * growing.reduce((a, c) => a + c!.lost, 0)) / n) : 0;
+  const cost = policy === 'pick' ? `about ${CONTROL.slugs.pick.minutes * n} min at dusk on a damp evening`
+    : policy === 'trap' ? `about ${CONTROL.slugs.trap.minutes * n} min each morning`
+    : policy === 'treat' ? `about £${(CONTROL.slugs.treat.cost * n).toFixed(2)} in pellets a fortnight` : 'no time or money';
+  return `${cost[0]!.toUpperCase()}${cost.slice(1)}${traps ? ', and the beer traps catch some every night' : ''}; pests have taken ${lost} % of what’s growing`;
 }
 
 const PEST_NAME: Record<PestId, string> = {slugs: 'Slugs', aphids: 'Aphids', blight: 'Blight'};
@@ -271,6 +295,7 @@ export function GardenTab({nodes, acts, hours, seen, job = false, send, onExplai
                 <option value={p}>{POLICY_NAME[pest][p]}</option>
               ))}
             </select>
+            {pest === 'slugs' && <p class="soft consequence">{slugLine((me?.levers.slugs as Policy | undefined) ?? START_POLICY.slugs, beds, kitIn(nodes).owned.includes('beer-trap'))}</p>}
           </div>
         ))}
       </section>

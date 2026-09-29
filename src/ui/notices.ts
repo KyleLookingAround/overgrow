@@ -12,6 +12,8 @@ export interface Notice {
   choice?: boolean;
   /** An unfold sign: the keys that unfolded together, one sign for the batch (src/data/unfold.ts; win W26). */
   keys?: string[];
+  /** A moment worth a word (src/ui/moments.ts): the first harvest, the first sale, a season's line. */
+  moment?: 'harvest' | 'sale' | 'season';
   /** A short line under the text: the sign's short Explain. */
   more?: string;
   /** A choice's buttons. */

@@ -44,11 +44,28 @@ describe('the next action', () => {
 });
 
 describe('what helps with the gardener’s time', () => {
-  const log = (unused: number) => ({at: () => [{cause: 'work', total: 20}, ...(unused ? [{cause: 'unused', total: unused}] : [])] as never});
-  it('reads unused hours as room to grow, and a full week as a reason for a tool', () => {
-    expect(helpsFor('unused', log(14))).toMatch(/2 h a day go unused: room to dig another bed/);
+  const log = (unused: number) => ({at: () => [{cause: 'work', total: 20, last: 1}, ...(unused ? [{cause: 'unused', total: 50, last: unused}] : [])] as never});
+  it('reads unused hours as room to grow, and a full day as a reason for a tool', () => {
+    expect(helpsFor('unused', log(2))).toMatch(/2 h went unused yesterday: room to dig another bed/);
     expect(helpsFor('work', log(0))).toMatch(/A full day/);
-    expect(helpsFor('work', log(3))).toBeNull();
-    expect(helpsFor('slugs', log(14))).toBeNull();
+    expect(helpsFor('work', log(0.5))).toBeNull();
+    expect(helpsFor('slugs', log(2))).toBeNull();
+  });
+});
+
+describe('the plan’s consequences', () => {
+  it('warns when a bed grows its last family again, and says what the slug policy costs and what pests took', async () => {
+    const {rotationLine, slugLine} = await import('./GardenTab');
+    const snap = game((s) => {
+      s.graph.nodes['bed-1'].levers.history = ['brassica'];
+      s.graph.nodes['bed-1'].levers.sow = 'radish';
+      s.graph.nodes['bed-1'].levers.crop.lost = 0.1;
+    });
+    const bed = snap.nodes.find((n) => n.id === 'bed-1')!, beds = snap.nodes.filter((n) => n.id === 'bed-1' || n.id === 'bed-2');
+    expect(rotationLine(bed)).toMatch(/^Same family as its last crop/);
+    expect(rotationLine({...bed, levers: {...bed.levers, sow: 'rotation'}})).toMatch(/^Rotation/);
+    expect(rotationLine({...bed, levers: {...bed.levers, sow: 'potatoes'}})).toBeNull();
+    expect(slugLine('pick', beds, false)).toMatch(/^About 10 min at dusk on a damp evening; pests have taken 10 % of what’s growing$/);
+    expect(slugLine('leave', beds, true)).toMatch(/^No time or money, and the beer traps catch some every night/);
   });
 });

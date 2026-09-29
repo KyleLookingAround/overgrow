@@ -705,3 +705,18 @@ button.dig {
   margin: 0 0 var(--gap-small);
   padding-left: var(--gap);
 }
+
+/* the first sale: the money flashes once (a still ring under reduced motion); a moment's notice is the accent's */
+.money.flash {
+  box-shadow: 0 0 0 var(--pulse-ring) var(--accent);
+  border-radius: var(--radius);
+  animation: unfold-pulse var(--pulse-ms) ease-out 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .money.flash {
+    animation: none;
+  }
+}
+.notice.moment {
+  box-shadow: 0 0 0 var(--pulse-ring) var(--accent);
+}

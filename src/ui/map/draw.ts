@@ -286,6 +286,7 @@ export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weat
     const r = px(n.box!, c);
     g.circle(r.x + r.w / 2, r.y + r.h / 2, (r.w / 2) * 0.67 * Math.sqrt(f)).fill(pal.water);
   }
+  drawKit(g, v.cur.nodes, c, pal);
   // a pale rime over the garden while the grass is below 0 °C, harder the colder it is
   const frost = (w?.hour.frost ?? 0) * pal.frostMax, lawn = cur.lawn?.box;
   if (frost > 0 && lawn) {
@@ -293,6 +294,42 @@ export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weat
     g.rect(r.x, r.y, r.w, r.h).fill({color: pal.frost.color, alpha: frost});
   }
   return {soil, frost, crops};
+}
+
+/** What the shed sold, drawn where it's in use (src/sim/kit.ts): a pot of beer sunk in a corner of each dug bed, the hose
+ *  coiled on its reel by the tap, the bin's lid over the heap, the second butt beside the first, and the cold frame's
+ *  glass over its bed. Nematodes work below ground, unseen. */
+function drawKit(g: Graphics, nodes: readonly GraphNode[], c: Camera, pal: Palette) {
+  const kit = nodes.find((n) => n.id === 'shed')?.levers.kit as {owned?: string[]} | undefined, owned = kit?.owned ?? [];
+  if (!owned.length) return;
+  const at = (id: string) => nodes.find((n) => n.id === id)?.box;
+  if (owned.includes('beer-trap'))
+    for (const n of nodes) if (n.kind === 'bed' && isDug(n)) {
+      const r = px(n.box!, c);
+      g.circle(r.x + r.w - 0.14 * c.s, r.y + 0.14 * c.s, 0.06 * c.s).fill(pal.trap);
+    }
+  const tap = at('tap');
+  if (owned.includes('hose') && tap) {
+    const r = px(tap, c), cx = r.x + r.w + 0.3 * c.s, cy = r.y + r.h / 2, t = Math.max(1.5, 0.04 * c.s);
+    for (const k of [0.18, 0.12]) g.circle(cx, cy, k * c.s).stroke({width: t, color: pal.hose.color});
+  }
+  const heap = at('heap');
+  if (owned.includes('compost-bin') && heap) {
+    const r = px(heap, c), inset = 0.2 * c.s;
+    g.roundRect(r.x + inset, r.y + inset, r.w - 2 * inset, r.h - 2 * inset, 0.25 * c.s).fill(pal.bin);
+  }
+  const butt = at('butt');
+  if (owned.includes('water-butt') && butt) {
+    const r = px(butt, c);
+    g.circle(r.x + r.w / 2 + 0.05 * c.s, r.y + r.h * 1.5 + 0.07 * c.s, r.w / 2).fill(pal.shadow);
+    g.circle(r.x + r.w / 2, r.y + r.h * 1.5, r.w / 2).fill(pal.butt);
+  }
+  const framed = nodes.find((n) => n.kind === 'bed' && n.levers.cover === 'cold-frame');
+  if (framed) {
+    const r = px(framed.box!, c), t = Math.max(1.5, 0.05 * c.s);
+    g.roundRect(r.x, r.y, r.w, r.h, 0.175 * c.s).fill({color: pal.frame.color, alpha: 0.35}).stroke({width: t, color: pal['frame-edge'].color});
+    g.moveTo(r.x + r.w / 2, r.y).lineTo(r.x + r.w / 2, r.y + r.h).stroke({width: t, color: pal['frame-edge'].color});
+  }
 }
 
 /** What a person carries, from above, about 0.25 m across: a watering can, a basket of produce, or a bucket of compost
