@@ -13,6 +13,7 @@ Today the game is the back garden on the graph, with the clock, saving and the p
 - [Crops](systems/crops.md) (`src/sim/models/crops.ts`, `src/sim/models/crops.test.ts`, `src/data/crops.ts`, `src/sim/models/water.ts`, `src/ui/map/draw.ts`, `src/ui/GardenTab.tsx`)
 - [The gardener](systems/gardener.md) (`src/sim/gardener.ts`, `src/sim/gardener.test.ts`, `src/data/jobs.ts`, `src/sim/models/crops.ts`, `src/sim/models/kitchen.ts`, `src/sim/models/carbon.ts`, `src/ui/map/renderer.ts`, `src/ui/GardenTab.tsx`)
 - [The graph](systems/graph.md) (`src/sim/graph.ts`, `src/sim/state.ts`, `src/data/garden.ts`, `src/sim/churn.ts`)
+- [The household economy](systems/household.md) (`src/sim/models/household.ts`, `src/sim/models/household.test.ts`, `src/data/household.ts`, `src/sim/systems.ts`)
 - [The kitchen](systems/kitchen.md) (`src/sim/models/kitchen.ts`, `src/sim/models/kitchen.test.ts`, `src/data/kitchen.ts`, `src/data/garden.ts`, `src/ui/KitchenTab.tsx`)
 - [The carry-over rule (sealing, events across scales and the step-up test)](systems/ladder.md) (`src/sim/ladder.ts`, `src/sim/ladder.test.ts`, `src/data/ladder-rules.ts`, `src/data/ladder.ts`)
 - [The map and the page's shell](systems/map.md) (`src/ui/App.tsx`, `src/ui/TopBar.tsx`, `src/ui/MapView.tsx`, `src/ui/map/renderer.ts`, `src/ui/map/draw.ts`, `src/ui/Panel.tsx`, `src/ui/GardenTab.tsx`, `src/ui/KitchenTab.tsx`)
@@ -48,6 +49,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/data/climate-normals.ts` | The garden's climate: monthly normals for an invented lowland station in southern England, about 60 m up at 51.5° N, with the daily spread the weather generator (src/sim/models/weather.ts) draws around them. |
 | `src/data/crops.ts` | Crops: the six the back garden grows, with what the crop model (src/sim/models/crops.ts) needs of each. |
 | `src/data/garden.ts` | The back garden's layout: a UK back garden about 12 × 8 m behind the house, with six bed plots (two dug), a tap, a water butt, a compost heap, a shed, the lawn, the kitchen and an honesty box by the side gate, and the paths and pipes between them. |
+| `src/data/household.ts` | The household economy's numbers: who lives in the household, their jobs and hours and wages, the weekly shop and its footprint, and the income deciles the same functions serve one level up. |
 | `src/data/jobs.ts` | The gardener's time: the hours they have, how fast they walk, and how long each job takes with each tool. |
 | `src/data/kitchen.ts` | The kitchen: what the household wants of the garden each day, and the honesty box at the gate. |
 | `src/data/ladder-rules.ts` | The carry-over rule's numbers: each level's rhythm (the window its headline numbers are taken over), what goes into the Health index, how a sealed node's Health drifts and what it costs, the tolerance of inflating, and the step-up offer's test. |
@@ -63,6 +65,7 @@ The `rules` check enforces the first two rows: the sim and its data import nothi
 | `src/sim/ladder.ts` | The carry-over rule's maths, pure: a small history a level keeps and the five headline numbers taken from it, a sealed node's tick, an event shown at any level, inflating's target and layout key, and the step-up offer's test. |
 | `src/sim/models/carbon.ts` | Carbon and land: the compost heap, compost going back to the beds, and digging a bed out of the lawn. |
 | `src/sim/models/crops.ts` | Crops: what grows in each dug bed, from sowing to the compost heap. |
+| `src/sim/models/household.ts` | The household economy: who lives in the household, their jobs, hours and wages, the weekly shop, what shop food carries in carbon, land and water, the purse, and the same baskets summed over many households (an allotment's neighbours, a box scheme's customers, a town's income deciles). |
 | `src/sim/models/kitchen.ts` | The kitchen: the household's daily ask of the garden, what met it, and the honesty box at the gate. |
 | `src/sim/models/soil.ts` | Soil: what each bed and the lawn is made of, how much water it holds, its organic matter and nutrients, and its health. |
 | `src/sim/models/water.ts` | Water: the FAO-56 soil water balance for each bed and the lawn, every step. |
