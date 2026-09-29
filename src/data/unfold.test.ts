@@ -14,7 +14,7 @@ describe('unfold', () => {
   it('names every key by level and system, with a cause the Explain table knows and a short line on why', () => {
     const known = new Set(Object.values(CAUSES).flatMap((e) => e.causes));
     for (const [k, u] of Object.entries(UNFOLD)) {
-      expect(k).toMatch(/^garden\.[a-z]+$/);
+      expect(k).toMatch(/^(garden|household)\.[a-z]+$/);
       expect(u.causes.length).toBeGreaterThan(0);
       for (const c of u.causes) expect(known.has(c), `${k}: ${c}`).toBe(true);
       expect(u.why.length).toBeLessThan(90);
@@ -22,8 +22,12 @@ describe('unfold', () => {
     for (const g of GATES) expect(g.key in UNFOLD).toBe(true);
   });
   it('reveals every key a batch of causes reaches, once, in the table’s order', () => {
-    expect(revealed([], ['spreading compost'])).toEqual(['garden.soil', 'garden.carbon']);
-    expect(revealed(['garden.soil'], ['spreading compost', 'watering'])).toEqual(['garden.water', 'garden.carbon']);
+    expect(revealed([], ['spreading compost'])).toEqual(['garden.soil', 'garden.carbon', 'household.footprint']);
+    expect(revealed(['garden.soil'], ['spreading compost', 'watering'])).toEqual(['garden.water', 'garden.carbon', 'household.footprint']);
+    // the gardener home from work on day 2 comes with the kitchen's first ask: one batch, the kitchen first
+    expect(revealed(['garden.water', 'garden.slugs', 'garden.shed'], ['commute', 'ask', 'eating'])).toEqual(['garden.kitchen', 'household.commute']);
+    // payday reveals the money, and the first week the garden fed the household reveals groceries saved beside it
+    expect(revealed([], ['groceries saved', 'wages'])).toEqual(['garden.money', 'household.groceries']);
     expect(revealed([], ['rain', 'growth'])).toEqual([]);
   });
   it('gates the watering line, the pest policy, flowers along an edge and a bed of marigolds, and nothing else', () => {

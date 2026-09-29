@@ -1,7 +1,9 @@
 // The household economy: who lives in the household, their jobs, hours and wages, the weekly shop, what shop food carries
 // in carbon, land and water, the purse, and the same baskets summed over many households (an allotment's neighbours, a
 // box scheme's customers, a town's income deciles). Pure functions over the graph's typed quantities, and a `household`
-// system, not yet listed in src/sim/systems.ts (part 6b adds it). docs/systems/household.md says how it works.
+// system that runs after the kitchen: the gardener does the weekly shop on the way home from work on their last working
+// day, with the week's pay and the rest of life's spending, and the shop's food lands in the kitchen's cupboard.
+// docs/systems/household.md says how it works.
 //
 // Sources: ONS Annual Survey of Hours and Earnings (about 37.5 paid hours and a median take-home of about £590 a week
 //   for full-time work) and DfT's National Travel Survey (about half an hour each way to work); DEFRA Family Food (the
@@ -11,8 +13,9 @@
 //   elasticities of food demand); allotment societies (about six hours a week keeps a ten-rod plot).
 // Simplifies: hours are averages by weekday, not a diary; a job is none, part-time or full-time, the pay by the hour at
 //   work, with no overtime, sick days or holidays; the shop is one weekly basket bought at national average prices (a
-//   decile's price and mix differ by a flat multiple), every group at once, with nothing bought in bulk or on offer and
-//   no waste at home (the kitchen counts that); a group's footprint is a global mean weighted to a UK basket, the same
+//   decile's price and mix differ by a flat multiple), every group at once, what the garden gave last week less what's
+//   still in the cupboard, with nothing bought in bulk or on offer and no waste at home (the kitchen counts that), and
+//   no packaging; pay and the rest of life's spending move on the same day; a group's footprint is a global mean weighted to a UK basket, the same
 //   every week; the household's other spending is one flat outgoing; nothing here is a chance, so it draws no dice.
 //   Fast effect: the week's shop, wages and outgoings in the purse, and the hours the garden gets that day. Slow effect:
 //   the household's diet footprint in carbon, land and water, and the time traded between the job and the garden.
@@ -23,11 +26,13 @@ import {
 import {CROPS} from '../../data/crops';
 import type {Group} from '../../data/crops';
 import type {System, TickContext} from '../clock';
-import {qty, type Boundary, type Flow, type Graph, type LeverValue, type Qty} from '../graph';
-import {KITCHEN, ledgerOf} from './kitchen';
+import {note} from '../effects';
+import {qty, type Boundary, type Flow, type Graph, type GraphNode, type LeverValue, type NodeSpec, type Qty} from '../graph';
+import {HOUSEHOLD, KITCHEN, kitchenAsk, ledgerOf, shopProduct} from './kitchen';
 
-export const HOUSEHOLD = 'household';
-/** Where the household's money is kept: the kitchen's purse, where the honesty box already pays. Part 6b may move it. */
+export {HOUSEHOLD, kitchenAsk};
+/** Where the household's money is kept: the kitchen's purse, where the honesty box pays and the top bar shows. Moving it
+ *  to the household node is this line and the state's `home`. */
 export const PURSE = {node: KITCHEN, stock: 'money'} as const;
 
 // ---- members and their hours ----
@@ -71,6 +76,13 @@ export const dayWage = (m: Member, weekday: number) => (workHours(m, weekday) * 
 export const weekWage = (m: Member) => [0, 1, 2, 3, 4, 5, 6].reduce((s, d) => s + dayWage(m, d), 0);
 export const householdWage = (h: Household) => h.members.reduce((s, m) => s + weekWage(m), 0);
 
+/** The day of the week (0 Monday) a member does the weekly shop on the way home: their last working day, or null if they
+ *  don't work (the week's turn shops for them). */
+export function shopDay(m: Member): number | null {
+  for (let d = 6; d >= 0; d--) if (workHours(m, d) > 0) return d;
+  return null;
+}
+
 /** When a member leaves through the gate and comes home, as hours of the day, or null on a day at home: what the map
  *  draws. They're away for the work and the commute. */
 export function commute(m: Member, weekday: number): {leaves: number; returns: number} | null {
@@ -105,13 +117,6 @@ export function basket(people: number): Record<FoodGroup, number> {
   for (const g of FOOD_GROUPS) out[g] = BASKET[g] * people;
   return out;
 }
-/** The kitchen's daily ask, kg by veg group, for a household of `people`: the basket's veg over seven days. Part 6b swaps
- *  the kitchen's fixed ASK for this, so the ask grows when the household does. */
-export function kitchenAsk(people: number): Record<Group, number> {
-  const out = {} as Record<Group, number>;
-  for (const g of VEG) out[g] = (BASKET[g] * people) / 7;
-  return out;
-}
 /** The number of people in a household. */
 export const people = (h: Household) => h.members.length;
 
@@ -141,6 +146,18 @@ export function shop(need: Record<FoodGroup, number>, supplied: Kg, priceIndex =
     saved += met[g] * PRICE[g] * priceIndex;
   }
   return {need, met, buy, cost, saved, spare};
+}
+
+/** What the shop actually sells the household: the week's shortfall less what's still in the cupboard, kg by group, at
+ *  its cost. Groceries saved and the spare stay the garden's (from `shop`). */
+export function restock(s: Shop, cupboard: Kg, priceIndex = 1): Shop {
+  const buy = {} as Record<FoodGroup, number>;
+  let cost = 0;
+  for (const g of FOOD_GROUPS) {
+    buy[g] = Math.max(0, s.buy[g] - kgOf(cupboard, g));
+    cost += buy[g] * PRICE[g] * priceIndex;
+  }
+  return {...s, buy, cost};
 }
 
 // ---- the shop's footprint ----
@@ -242,9 +259,9 @@ export function townDemand(counts: readonly number[], price: number | Kg = 1): D
 
 // ---- flows and the system ----
 
-/** Boundaries the graph doesn't have yet (part 6b adds them to `Boundary` in src/sim/graph.ts): the employer, the shop
- *  and the rest of the household's life. */
-export type HBoundary = Boundary | 'wages' | 'shop' | 'rest of life';
+/** The boundaries a household's flows cross (`Boundary` in src/sim/graph.ts has them): the employer, the shop and the
+ *  rest of the household's life. */
+export type HBoundary = Boundary;
 type HEnd = {node: string; stock: string} | {boundary: HBoundary};
 export interface HFlow<U extends Flow['unit'] = Flow['unit']> extends Omit<Flow<U>, 'from' | 'to'> {
   from: HEnd;
@@ -252,8 +269,7 @@ export interface HFlow<U extends Flow['unit'] = Flow['unit']> extends Omit<Flow<
 }
 
 /** The flows a week moves: wages in, the shop and the rest of life out of the purse, and the shop food's carbon, land and
- *  water carried in to the household node's footprint stocks. The food itself isn't moved here: where it lands (the
- *  kitchen's stock, eaten at once) is part 6b's wiring of the kitchen buying what the garden doesn't meet. */
+ *  water carried in to the household node's footprint stocks, never to the air. The food itself is `shopFood`'s. */
 export function weekFlows(h: Household, s: Shop, fp: Footprint, node: string = HOUSEHOLD): HFlow[] {
   const out: HFlow[] = [];
   const money = (what: string, amount: number, from: HEnd, to: HEnd) => {
@@ -269,6 +285,27 @@ export function weekFlows(h: Household, s: Shop, fp: Footprint, node: string = H
   carried('shop food land', 'm2', fp.land, 'footprint.land');
   carried('shop food water', 'L', fp.water, 'footprint.water');
   return out;
+}
+/** The shop's food into the kitchen's cupboard: its veg into one stock and the rest of the diet into the other. */
+export function shopFood(s: Shop, kitchen: string = KITCHEN): Flow[] {
+  const kg: Record<string, number> = {};
+  for (const g of FOOD_GROUPS) kg[shopProduct(g)] = (kg[shopProduct(g)] ?? 0) + s.buy[g];
+  return Object.entries(kg).filter(([, n]) => n > 1e-9)
+    .map(([product, n]) => ({what: 'shop food', unit: 'kgFood', product, amount: qty(n, 'kgFood'), from: {boundary: 'shop'}, to: {node: kitchen, stock: `food.${product}`}}));
+}
+/** What's in a kitchen's cupboard from the shop, kg by group: each of its two stocks shared out in the basket's
+ *  proportions. */
+export function cupboardIn(k: GraphNode | undefined): Kg {
+  const whole: Record<string, number> = {}, out: Kg = {};
+  for (const g of FOOD_GROUPS) whole[shopProduct(g)] = (whole[shopProduct(g)] ?? 0) + BASKET[g];
+  for (const g of FOOD_GROUPS) out[g] = ((k?.stocks[`food.${shopProduct(g)}`]?.amount ?? 0) * BASKET[g]) / whole[shopProduct(g)]!;
+  return out;
+}
+export const cupboardOf = (g: Graph) => cupboardIn(g.nodes[KITCHEN]);
+/** Days of food in the cupboard: its kg over what the household eats a day (the basket's rate), from a snapshot's nodes. */
+export function cupboardDays(nodes: readonly GraphNode[]): number {
+  const h = membersIn(nodes.find((n) => n.id === HOUSEHOLD));
+  return sum(cupboardIn(nodes.find((n) => n.id === KITCHEN))) / Math.max(1e-9, sum(basket(people(h))) / 7);
 }
 
 /** The household's running account, kept as its `ledger` lever and replaced, never changed in place. */
@@ -286,15 +323,23 @@ export interface HouseholdLedger {
   carbon: number;
   land: number;
   water: number;
-  /** Game hours of the first wage and the first shop, or null (the bot's milestones). */
+  /** Game hours of the first wage and the first shop, or null (the bot's milestones), and of the last shop. */
   firstWage: number | null;
   firstShop: number | null;
+  lastShop: number | null;
+  /** The last week's shop, for the kitchen's panel: £ spent, groceries saved, kg bought, its carbon and the share of it
+   *  that's transport, and the week's pay and rest of life. */
+  week: {cost: number; saved: number; kg: number; carbon: number; transport: number; wages: number; rest: number} | null;
 }
 export const newHouseholdLedger = (): HouseholdLedger => ({
   day: -1, supplied: {}, wages: 0, shopped: 0, rest: 0, saved: 0, bought: 0, carbon: 0, land: 0, water: 0, firstWage: null, firstShop: null,
+  lastShop: null, week: null,
 });
-export const membersOf = (g: Graph): Household => ({members: ((g.nodes[HOUSEHOLD]?.levers.members as unknown as Member[] | undefined) ?? startHousehold().members)});
-export const householdLedgerOf = (g: Graph): HouseholdLedger => (g.nodes[HOUSEHOLD]?.levers.ledger as unknown as HouseholdLedger | undefined) ?? newHouseholdLedger();
+/** A household node's members (a new game's household without one). */
+export const membersIn = (n: GraphNode | undefined): Household => ({members: ((n?.levers.members as unknown as Member[] | undefined) ?? startHousehold().members)});
+export const membersOf = (g: Graph): Household => membersIn(g.nodes[HOUSEHOLD]);
+export const householdLedgerIn = (n: GraphNode | undefined): HouseholdLedger => (n?.levers.ledger as unknown as HouseholdLedger | undefined) ?? newHouseholdLedger();
+export const householdLedgerOf = (g: Graph): HouseholdLedger => householdLedgerIn(g.nodes[HOUSEHOLD]);
 
 /** Each day: counts what the last meal ate of the garden's produce, by food group. */
 function tally(c: TickContext, node: NonNullable<Graph['nodes'][string]>) {
@@ -308,17 +353,44 @@ function tally(c: TickContext, node: NonNullable<Graph['nodes'][string]>) {
   node.levers.ledger = {...l, day: k.day, supplied} as unknown as LeverValue;
 }
 
-/** Each week: the shop, the wages and the rest of life, and the footprint the shop carried. */
-function weekly(c: TickContext, node: NonNullable<Graph['nodes'][string]>) {
+/** The week's shop, pay and the rest of life, and the footprint the shop carried: the week's basket less what the garden
+ *  gave since the last shop and what's still in the cupboard, its food into the kitchen. The gardener does it on the way
+ *  home on their last working day (src/sim/gardener.ts); the week's turn does it for a household that didn't. */
+export function weeklyShop(c: TickContext) {
+  const node = c.graph.nodes[HOUSEHOLD];
+  if (!node || !('ledger' in node.levers)) return;
   const h = membersOf(c.graph), l = householdLedgerOf(c.graph);
-  const s = shop(basket(people(h)), l.supplied), fp = footprint(s.buy), wages = householdWage(h), rest = restSpend(h);
+  const s = restock(shop(basket(people(h)), l.supplied), cupboardOf(c.graph)), fp = footprint(s.buy), wages = householdWage(h), rest = restSpend(h);
   for (const f of weekFlows(h, s, fp, node.id)) c.flow(f as Flow);
+  for (const f of shopFood(s)) c.flow(f);
+  // the garden's share of the week's veg at the shop's prices: the groceries it saved
+  if (s.saved > 0.005) note(c, 'groceries saved', KITCHEN, s.saved, 'GBP');
   node.levers.ledger = {
     ...l, supplied: {}, wages: l.wages + wages, shopped: l.shopped + s.cost, rest: l.rest + rest, saved: l.saved + s.saved,
     bought: l.bought + sum(s.buy), carbon: l.carbon + fp.carbon, land: l.land + fp.land, water: l.water + fp.water,
-    firstWage: l.firstWage ?? (wages > 0 ? c.hours : null), firstShop: l.firstShop ?? c.hours,
+    firstWage: l.firstWage ?? (wages > 0 ? c.hours : null), firstShop: l.firstShop ?? c.hours, lastShop: c.hours,
+    week: {cost: s.cost, saved: s.saved, kg: sum(s.buy), carbon: fp.carbon, transport: transportShare(fp), wages, rest},
   } as unknown as LeverValue;
 }
+
+/** About what this week's shop will carry home, kg, from what the garden has given and the cupboard holds now: the
+ *  bags the gardener is drawn with. */
+export function shopEstimate(g: Graph): number {
+  const s = restock(shop(basket(people(membersOf(g))), householdLedgerOf(g).supplied), cupboardOf(g));
+  return sum(s.buy);
+}
+
+/** A new game's household node beside the garden: the gardener alone in a full-time job, the ledger, and the shop food's
+ *  footprint stocks beside the carbon every node has. No box: the house is the kitchen's strip on the map. */
+export function householdNode(): NodeSpec {
+  return {
+    id: HOUSEHOLD, kind: 'household', name: 'The household', box: null, land: {built: 0},
+    stocks: {'footprint.land': {unit: 'm2', amount: qty(0, 'm2')}, 'footprint.water': {unit: 'L', amount: qty(0, 'L')}},
+    levers: {members: startHousehold().members as unknown as LeverValue, ledger: newHouseholdLedger() as unknown as LeverValue},
+  };
+}
+/** The cupboard a new game starts with: a week's basket, bought last week, kg by group. */
+export const startCupboard = (h: Household = startHousehold()) => basket(people(h));
 
 export const household: System = {
   name: 'household',
@@ -328,12 +400,16 @@ export const household: System = {
       if (n && 'ledger' in n.levers) tally(c, n);
     },
     week(c) {
-      const n = c.graph.nodes[HOUSEHOLD];
-      if (n && 'ledger' in n.levers) weekly(c, n);
+      // a week gone by with no shop (nobody worked its last day): shop now
+      const n = c.graph.nodes[HOUSEHOLD], last = householdLedgerOf(c.graph).lastShop;
+      if (n && 'ledger' in n.levers && (last === null || c.hours - last > 6 * 24)) weeklyShop(c);
     },
   },
   command(cmd) {
-    if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && cmd.node === HOUSEHOLD && cmd.lever === 'ledger') return 'the household’s ledger is kept, not set';
+    if ((cmd.type !== 'plan' && cmd.type !== 'policy' && cmd.type !== 'law') || cmd.node !== HOUSEHOLD) return undefined;
+    if (cmd.lever === 'ledger') return 'the household’s ledger is kept, not set';
+    // the job's hours are fixed until part-time at the smallholding, and the partner moves in at part 10
+    if (cmd.lever === 'members') return 'the household’s jobs are fixed for now';
     return undefined;
   },
 };

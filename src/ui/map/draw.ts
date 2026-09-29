@@ -294,7 +294,7 @@ export function drawLive(g: Graphics, v: View, c: Camera, pal: Palette, w = weat
 
 /** What a person carries, from above, about 0.25 m across: a watering can, a basket of produce, or a bucket of compost
  *  or waste. */
-export type Item = 'can' | 'basket' | 'compost';
+export type Item = 'can' | 'basket' | 'bags' | 'compost';
 export function drawItem(g: Graphics, item: Item, x: number, y: number, s: number, pal: Palette) {
   if (item === 'can') {
     g.roundRect(x - 0.09 * s, y - 0.07 * s, 0.18 * s, 0.14 * s, 0.03 * s).fill(pal.can);
@@ -302,11 +302,15 @@ export function drawItem(g: Graphics, item: Item, x: number, y: number, s: numbe
   } else if (item === 'basket') {
     g.circle(x, y, 0.11 * s).fill(pal.basket);
     g.circle(x, y, 0.07 * s).fill(pal['leaf-light']);
+  } else if (item === 'bags') {
+    // two shopping bags, one in each hand
+    g.roundRect(x - 0.05 * s, y - 0.09 * s, 0.14 * s, 0.16 * s, 0.03 * s).fill(pal.bags);
+    g.roundRect(x - 0.47 * s, y - 0.09 * s, 0.14 * s, 0.16 * s, 0.03 * s).fill(pal.bags);
   } else g.circle(x, y, 0.1 * s).fill(pal.compost);
 }
 /** The item an activity's carry is drawn as, or null. */
 export const itemOf = (carry: {unit: string; product?: string} | undefined): Item | null =>
-  !carry ? null : carry.unit === 'L' ? 'can' : carry.unit === 'kgFood' ? 'basket' : carry.unit === 'kgWaste' ? 'compost' : null;
+  !carry ? null : carry.unit === 'L' ? 'can' : carry.unit === 'kgFood' ? (carry.product === 'shop' ? 'bags' : 'basket') : carry.unit === 'kgWaste' ? 'compost' : null;
 
 /** A person from above, about 0.4 m across, drawn at a scale in pixels per metre, centred on (0, 0) at their feet. */
 export function drawPerson(g: Graphics, s: number, pal: Palette) {

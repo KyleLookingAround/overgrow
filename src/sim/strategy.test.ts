@@ -11,7 +11,7 @@ import {PLAYERS} from '../../tools/bot/player';
 import baselineText from '../../tools/baseline.json?raw';
 import {createSim} from './index';
 
-const day = (d: number, delivered: number): Day => ({day: d, delivered, eaten: delivered, sold: 0, harvested: delivered, wasted: 0, money: 20, health: 50, carbon: 0});
+const day = (d: number, delivered: number): Day => ({day: d, delivered, eaten: delivered, sold: 0, harvested: delivered, wasted: 0, money: 20, health: 50, carbon: 0, saved: 0, earned: 0});
 
 describe('the bot', () => {
   it('plays the same run from the same seed, and a different one from another', () => {

@@ -81,10 +81,15 @@ export default async function({ok,open,out}){
   await page.screenshot({path:join(out,'garden-kitchen-1440x900.png')});
   await page.click('#tab-garden');
 
-  // the gardener drawn where the job is: digging a plot out of the lawn, an hour's spade work a square metre
-  const vD=await runTo(page,2.2,[{type:'plan',node:'bed-3',lever:'dig',value:true}]),b=(await snap(page)).nodes.find(n=>n.id==='bed-3').box,c=vD.cam,g=vD.gardener;
+  // the gardener drawn where the job is: digging a plot out of the lawn, an hour's spade work a square metre, once home
+  // from work (the day's first hours go on the sowing); ticked there in one jump, as a paused view follows one
+  await send(page,{type:'new-game',seed:1,speed:0});
+  await send(page,{type:'plan',node:'bed-3',lever:'dig',value:true});
+  await send(page,{type:'tick',hours:13});
+  await page.waitForFunction(()=>window.__sim.view().cur>=12,null,{timeout:8000}).catch(()=>{});
+  const vD=await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(window.__sim.view()))))),b=(await snap(page)).nodes.find(n=>n.id==='bed-3').box,c=vD.cam,g=vD.gardener;
   const inside=g&&g.x>=c.x+b.x*c.s&&g.x<=c.x+(b.x+b.w)*c.s&&g.y>=c.y+b.y*c.s&&g.y<=c.y+(b.y+b.h)*c.s;
-  ok('garden: the gardener is drawn at the job in hand (digging bed 3 at 08:00)',g?.doing==='dig'&&inside,JSON.stringify(g));
+  ok('garden: the gardener is drawn at the job in hand (digging bed 3 at 18:00, home from work)',g?.doing==='dig'&&inside,JSON.stringify(g));
 
   // the Garden tab's plan changes what the gardener does next: lettuce in bed 2 instead of radishes
   await send(page,{type:'new-game',seed:1,speed:0});
@@ -94,11 +99,12 @@ export default async function({ok,open,out}){
   const dP=await hourly(page,2),s2=await snap(page);
   ok('garden: the Garden tab’s plan changes what the gardener sows next',s2.nodes.find(n=>n.id==='bed-2').levers.crop?.id==='lettuce'&&dP.acts.some(a=>a.doing==='sow'&&a.to==='bed-2'),
     `bed 2: ${s2.nodes.find(n=>n.id==='bed-2').levers.crop?.id}`);
-  // and a higher watering line sends them out with the can within the hour: after ten days with the line at never,
-  // mid-morning
+  // and a higher watering line sends them out with the can within the hour: after ten days with the line at never, at
+  // 18:00, home from work
   await page.selectOption('#plan-water','0').catch(()=>{});
   await page.waitForFunction(()=>window.__sim.snapshot().nodes.find(n=>n.id==='gardener').levers.waterBelow===0,null,{timeout:5000}).catch(()=>{});
-  await send(page,{type:'tick',hours:24*10+2});
+  const now=(await snap(page)).hours;
+  await send(page,{type:'tick',hours:24*10+(((12-now)%24)+24)%24});
   await page.selectOption('#plan-water','0.75').catch(()=>{});
   await page.waitForFunction(()=>window.__sim.snapshot().nodes.find(n=>n.id==='gardener').levers.waterBelow===0.75,null,{timeout:5000}).catch(()=>{});
   const dW=await hourly(page,2);

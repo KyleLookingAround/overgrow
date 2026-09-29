@@ -32,6 +32,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Not sorted yet
 
 - [The rotation and field-soil model, ahead of part 11 (#43) · 29 Sep 2026](lessons/2026-09-29-10-rotation-and-fields-model.md)
+- [The household, the first slice's part 6b (#49) · 29 Sep 2026](lessons/49-household.md)
 - [The garden's nutrients (Bug #47, #48) · 29 Sep 2026](lessons/48-garden-nutrients.md)
 - [Unfolding and the first minute, the first slice's part 6a (#45) · 29 Sep 2026](lessons/45-unfolding-first-minute.md)
 - [Hooks for the models written ahead (#38, #39) · 29 Sep 2026](lessons/39-model-hooks.md)

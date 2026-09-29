@@ -1,4 +1,5 @@
-// The Garden tab: the gardener's card (the day's hours ticking down and the job in hand) and the plan (what to sow in
+// The Garden tab: the gardener's card (the day's hours ticking down, the job in hand, and their work's days and hours
+// once the commute has unfolded) and the plan (what to sow in
 // each dug bed and from when, or the rotation, a border of flowers along its edge, the moisture below which the gardener
 // waters, and the pest policy for each pest the garden's crops draw: leave, pick, trap or treat). The pest lines and
 // the flowers, and the watering line, appear only once they've come up in the garden (src/data/unfold.ts): they're
@@ -12,8 +13,11 @@ import type {Command} from '../sim/commands';
 import {GARDENER, hoursOn} from '../sim/gardener';
 import type {GraphNode, LeverValue} from '../sim/graph';
 import {cropOf, progress, stageOf} from '../sim/models/crops';
+import {commute, HOUSEHOLD, membersIn} from '../sim/models/household';
 import {calendar} from '../sim/clock';
+import {START} from '../data/ladder';
 import {isDug} from './map/draw';
+import {hourMinute} from './format';
 import {Num} from './Num';
 
 const name = (nodes: GraphNode[], id: string) => nodes.find((n) => n.id === id)?.name ?? id;
@@ -42,6 +46,12 @@ export function describe(a: Activity | null, nodes: GraphNode[]): string {
   switch (a.doing) {
     case 'rest':
       return 'Resting';
+    case 'leave':
+      return 'Off to work';
+    case 'away':
+      return `At work, home at ${hourMinute(a.end + START.hour)}`;
+    case 'home':
+      return a.carry ? 'Home from work with the week’s shop' : 'Home from work';
     case 'fetch':
       return a.carry?.unit === 'L' ? `Fetching the can from ${the(a.to)}` : a.to === 'shed' ? 'Fetching seed from the shed' : `Going to ${the(a.to)}`;
     case 'fill':
@@ -88,10 +98,19 @@ const hm = (h: number) => {
   return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min` : `${m} min`;
 };
 
-function GardenerCard({nodes, acts, hours, onExplain}: {nodes: GraphNode[]; acts: Activity[]; hours: number; onExplain: (cause: string, at: string | null) => void}) {
+/** The gardener's job, once it has unfolded: the days and hours it takes them through the gate. */
+function JobLine({nodes, onExplain}: {nodes: GraphNode[]; onExplain: (cause: string, at: string | null) => void}) {
+  const me = membersIn(nodes.find((n) => n.id === HOUSEHOLD)).members.find((m) => m.role === 'gardener');
+  const days = me ? [0, 1, 2, 3, 4, 5, 6].filter((d) => commute(me, d)) : [], c = me && days.length ? commute(me, days[0]!) : null;
+  if (!c) return null;
+  const v = `${days.length === 5 ? 'weekdays' : `${days.length} days a week`}, ${hourMinute(c.leaves)} to ${hourMinute(c.returns)}`;
+  return <p class="soft job-line">At work <Num v={v} cause="commute" at="gate" onExplain={onExplain} label="At work" /></p>;
+}
+
+function GardenerCard({nodes, acts, hours, job, onExplain}: {nodes: GraphNode[]; acts: Activity[]; hours: number; job: boolean; onExplain: (cause: string, at: string | null) => void}) {
   const me = nodes.find((n) => n.id === GARDENER);
   if (!me) return null;
-  const left = me.stocks.hours?.amount ?? 0, day = hoursOn(calendar(hours));
+  const left = me.stocks.hours?.amount ?? 0, day = hoursOn(membersIn(nodes.find((n) => n.id === HOUSEHOLD)), calendar(hours));
   return (
     <section class="card" aria-label="The gardener">
       <h3>The gardener</h3>
@@ -100,6 +119,7 @@ function GardenerCard({nodes, acts, hours, onExplain}: {nodes: GraphNode[]; acts
         <meter min={0} max={day} value={Math.min(day, left)} aria-label="Hours left today" />
         <span><Num v={hm(left)} cause="work" at={GARDENER} onExplain={onExplain} label="Hours left today" /> left today</span>
       </div>
+      {job && <JobLine nodes={nodes} onExplain={onExplain} />}
     </section>
   );
 }
@@ -178,15 +198,15 @@ function drawn(nodes: GraphNode[]): PestId[] {
   return (Object.keys(POLICIES) as PestId[]).filter((p) => [...crops].some((c) => CROPS[c].pests.includes(p)));
 }
 
-export function GardenTab({nodes, acts, hours, seen, send, onExplain}: {
-  nodes: GraphNode[]; acts: Activity[]; hours: number; seen: readonly string[]; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
+export function GardenTab({nodes, acts, hours, seen, job = false, send, onExplain}: {
+  nodes: GraphNode[]; acts: Activity[]; hours: number; seen: readonly string[]; job?: boolean; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
 }) {
   const pests = drawn(nodes).filter((p) => unfolded(seen, `garden.${p}`));
   const beds = nodes.filter((n) => n.kind === 'bed' && isDug(n)), me = nodes.find((n) => n.id === GARDENER);
   const line = Number(me?.levers.waterBelow ?? 0.5);
   return (
     <>
-      <GardenerCard nodes={nodes} acts={acts} hours={hours} onExplain={onExplain} />
+      <GardenerCard nodes={nodes} acts={acts} hours={hours} job={job} onExplain={onExplain} />
       <section class="plan" aria-labelledby="plan-title">
         <h3 id="plan-title">The plan</h3>
         {beds.map((n) => (

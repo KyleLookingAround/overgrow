@@ -1,6 +1,8 @@
-// What the bot measures as it plays: each game day's food harvested, eaten, sold and wasted, the household's money and
-// the dug beds' soil health, read only from the snapshots (never from the sim's state): the food from the kitchen's
-// ledger (src/sim/models/kitchen.ts), which counts every kg picked, eaten, gone off or left to rot, and sold. The
+// What the bot measures as it plays: each game day's food harvested, eaten, sold and wasted, the household's money, the
+// groceries the garden saved and what the box took, and the dug beds' soil health, read only from the snapshots (never
+// from the sim's state): the food from the kitchen's ledger (src/sim/models/kitchen.ts), which counts every kg picked,
+// eaten, gone off or left to rot, and sold, and the purse's two earnings from it and the household node's ledger
+// (src/sim/models/household.ts). The
 // sealed garden's would-be totals (the founding spec, "The carry-over rule") are worked out here over the last 28 days,
 // the way part 7's sealing will: Output as food delivered a day, Reliability as 100 × (1 − its coefficient of
 // variation), Health as the dug beds' mean soil health.
@@ -30,6 +32,9 @@ export interface Day {
   health: number;
   /** kg CO₂e the level has put into the air since the start, at the end of the day. */
   carbon: number;
+  /** £ since the start: groceries the garden saved (its kg at the shop's prices), and what the honesty box took. */
+  saved: number;
+  earned: number;
 }
 
 /** The game day a step ending at `hours` belongs to: the step from 23:00 to midnight is still the day before. */
@@ -60,13 +65,15 @@ export class Diary {
   add(s: Snapshot): void {
     const day = dayOf(s.hours, s.step);
     if (this.today && this.today.day !== day) this.close();
-    const t = (this.today ??= {day, delivered: 0, eaten: 0, sold: 0, harvested: 0, wasted: 0, money: 0, health: 0, carbon: 0});
+    const t = (this.today ??= {day, delivered: 0, eaten: 0, sold: 0, harvested: 0, wasted: 0, money: 0, health: 0, carbon: 0, saved: 0, earned: 0});
     const now = totalsOf(s);
     for (const k of ['harvested', 'eaten', 'sold', 'wasted'] as const) t[k] = now[k] - this.before[k];
     t.delivered = t.eaten + t.sold;
     t.money = s.money;
     t.health = meanHealth(s);
     t.carbon = s.carbon;
+    t.saved = (s.nodes.find((n) => n.id === 'household')?.levers.ledger as {saved?: number} | undefined)?.saved ?? 0;
+    t.earned = s.kitchen?.earned ?? 0;
     this.last = now;
   }
 

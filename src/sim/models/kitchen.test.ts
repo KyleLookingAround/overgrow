@@ -1,10 +1,13 @@
-// The kitchen's plausibility test: its ask is about 1 kg a day in DEFRA's rough mix; two beds of potatoes and salad
-// leaves meet about half of it or more for a week in summer (most of it on seeds 2 and 3) and hardly any in April; a
-// glut goes to the honesty box and earns money; and what isn't eaten in time goes off.
+// The kitchen's plausibility test: its ask is the weekly basket's veg, about 1 kg a day for an average household of 2.4
+// and 0.42 kg for the gardener alone, in DEFRA's rough mix; two beds of potatoes and salad leaves meet about half of it
+// or more for a week in summer and little in April; a glut goes to the honesty box and earns money, the best first;
+// what isn't eaten in time goes off; and the shop's food makes up the rest of every meal.
 import {describe, expect, it} from 'vitest';
-import {ASK, BOX} from '../../data/kitchen';
+import {BOX} from '../../data/kitchen';
 import {calendar} from '../clock';
 import {createSim} from '../index';
+import {householdLedgerOf} from './household';
+import {kitchenAsk, qualityAt} from './kitchen';
 
 const season = (seed: number) => {
   const sim = createSim(seed);
@@ -22,11 +25,13 @@ const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 const bestWeek = (xs: number[]) => Math.max(...xs.slice(6).map((_, i) => mean(xs.slice(i, i + 7))));
 
 describe('kitchen', () => {
-  it('asks about 1 kg of veg a day, potatoes the biggest share', () => {
-    const total = Object.values(ASK).reduce((s, v) => s + v, 0);
-    expect(total).toBeGreaterThan(0.8);
-    expect(total).toBeLessThan(1.2);
-    expect(Math.max(...Object.values(ASK))).toBe(ASK.potatoes);
+  it('asks about 1 kg of veg a day of an average household, potatoes the biggest share, and less of one person', () => {
+    const sum = (a: Record<string, number>) => Object.values(a).reduce((s, v) => s + v, 0), avg = kitchenAsk(2.4), one = kitchenAsk(1);
+    expect(sum(avg)).toBeGreaterThan(0.8);
+    expect(sum(avg)).toBeLessThan(1.2);
+    expect(Math.max(...Object.values(avg))).toBe(avg.potatoes);
+    expect(sum(one)).toBeCloseTo(sum(avg) / 2.4);
+    expect(createSim(1).snapshot().kitchen!.ask).toBeCloseTo(sum(one));
   });
 
   it('has about half its need or more met by two beds for a week in summer, and hardly any in April', () => {
@@ -47,14 +52,45 @@ describe('kitchen', () => {
     const s = sim.snapshot(), l = s.kitchen!;
     expect(l.sold).toBeGreaterThan(1);
     expect(l.earned).toBeCloseTo(l.sold * BOX.price);
-    expect(s.money).toBeCloseTo(20 + l.earned);
+    // the purse: the start, the box's takings, and the weeks' pay less the shop and the rest of life
+    const sim2 = createSim(2);
+    for (let d = 0; d < 80; d++) sim2.apply({type: 'tick', hours: 24});
+    const h = householdLedgerOf(JSON.parse(sim2.save()).graph);
+    expect(h.wages).toBeGreaterThan(0);
+    expect(s.money).toBeCloseTo(20 + l.earned + h.wages - h.shopped - h.rest);
     expect(l.firstSale).not.toBeNull();
     expect(l.firstSale!).toBeGreaterThan(l.firstHarvest!);
     expect(l.wasted).toBeGreaterThan(0); // salad leaves don't keep
   });
 
-  it('refuses a plan for its ledger', () => {
+  it('refuses a plan for its ledger or its produce’s quality', () => {
     const sim = createSim(1);
     expect(sim.apply({type: 'plan', node: 'kitchen', lever: 'ledger', value: null}).rejected).toMatch(/ledger/);
+    expect(sim.apply({type: 'plan', node: 'gate', lever: 'quality', value: {}}).rejected).toMatch(/quality/);
+  });
+
+  it('lets passers-by take the best first, so the poorer produce is left in the box', () => {
+    const sim = createSim(1), save = JSON.parse(sim.save());
+    const gate = save.graph.nodes.gate;
+    gate.stocks['food.radish'] = {unit: 'kgFood', amount: 5, product: 'radish'};
+    gate.stocks['food.salad'] = {unit: 'kgFood', amount: 5, product: 'salad'};
+    gate.levers.quality = {radish: 40, salad: 90};
+    sim.apply({type: 'load', save: JSON.stringify(save)});
+    sim.apply({type: 'tick', hours: 13}); // to the first evening's sales
+    const after = JSON.parse(sim.save()).graph.nodes.gate;
+    const left = (p: string) => after.stocks[`food.${p}`]?.amount ?? 0;
+    // a weekday's 2 kg all went on the salad; the radishes only went off
+    expect(5 - left('salad')).toBeGreaterThan(1.9);
+    expect(qualityAt(after, 'salad')).toBe(90);
+    expect(left('radish')).toBeGreaterThan(left('salad'));
+  });
+
+  it('eats what the garden doesn’t meet from the shop’s food, and keeps days of it in the cupboard', () => {
+    const sim = createSim(1), s = sim.apply({type: 'tick', hours: 13});
+    const shop = s.flows.filter((f) => f.what === 'shop food eaten'), kg = shop.reduce((a, f) => a + f.amount, 0);
+    // one person's day: the basket's 8.5 kg a week over seven days, near enough all from the shop on the first evening
+    expect(kg).toBeGreaterThan(1);
+    expect(kg).toBeLessThan(1.4);
+    expect(shop.map((f) => f.product).sort()).toEqual(['shop-food', 'shop-veg']);
   });
 });

@@ -1,25 +1,29 @@
-// The gardener: one person with about four hours a day for the garden (six at weekends), who does everything the plan
-// and the garden call for. Each morning they plan the day's jobs in order (pick what's ready, water the beds below the
+// The gardener: one person with about four hours a day for the garden (six at weekends), the household's hours for it
+// around a weekday job (src/sim/models/household.ts), who does everything the plan and the garden call for. Each morning they plan the day's jobs in order (pick what's ready, water the beds below the
 // plan's line, clear, compost, sow and water in what's due, carry the kitchen's surplus to the honesty box and its scraps
 // to the heap, dig), each taking its time with the best tool they have (src/data/jobs.ts), and what doesn't fit waits
 // until tomorrow. The plan's pest policy (src/data/pests.ts) adds its jobs: traps checked, pellets scattered, aphids
 // squashed or sprayed, blighted leaves picked off or the potatoes sprayed, a border of flowers planted, and on a damp
-// evening a patrol with a torch at dusk to pick slugs off the beds, its time kept back from the day's hours first. Every step is an activity the map draws, a new id each trip, and each job's flows move when the step
-// that does it ends. A change to the plan during the working day re-plans the rest of it, finishing the job in hand
+// evening a patrol with a torch at dusk to pick slugs off the beds, its time kept back from the day's hours first. On a
+// working day they leave through the gate for the job before the job that would run past the hour they go, and come
+// home in the evening to finish the day's list, bringing the weekly shop's bags on their last working day. Every step
+// is an activity the map draws, a new id each trip, and each job's flows move when the step that does it ends. A change to the plan during the working day re-plans the rest of it, finishing the job in hand
 // first. docs/systems/gardener.md.
 import {CROPS, type CropId} from '../data/crops';
 import {BORDER} from '../data/flowers';
 import {CONTROL, POLICIES, SLUGS, START_POLICY, type PestId, type Policy} from '../data/pests';
 import {FILL_L_PER_MIN, HOURS, START_TOOLS, TOOLS, WALK, WATER_IN, COMPOST_PER_M2, type Job, type JobTime, type Tool} from '../data/jobs';
+import {commute, householdGardenHours, membersOf, shopDay, shopEstimate, weeklyShop, type Household} from './models/household';
 import {START} from '../data/ladder';
 import type {Activity} from './activity';
 import {calendar, type CalendarDate, type System, type TickContext} from './clock';
 import {qty, type Graph, type GraphNode, type LeverValue, type NodeId, type Unit} from './graph';
 import {compostOn, dig, spread, toHeap} from './models/carbon';
 import {borderOf, plantBorder} from './models/biodiversity';
-import {cropOf, foodKey, inSeason, PICK_MIN, plannedCrop, ripe, sow, specOf, wasteOn} from './models/crops';
+import {cropOf, foodKey, inSeason, PICK_MIN, plannedCrop, quality, ripe, sow, specOf, wasteOn} from './models/crops';
+import {note} from './effects';
 import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
-import {GATE, KITCHEN, recordPick, surplus} from './models/kitchen';
+import {askOf, GATE, KITCHEN, mixQuality, qualityAt, recordPick, surplus} from './models/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
 import {hourOf, sunOn, weatherOf} from './models/weather';
 
@@ -36,7 +40,8 @@ export type Effect =
   | {kind: 'dig'; bed: NodeId; m2: number}
   | {kind: 'box'; items: {product: string; kg: number}[]}
   | {kind: 'pest'; bed: NodeId; pest: PestId; how: Policy}
-  | {kind: 'border'; bed: NodeId; flower: CropId};
+  | {kind: 'border'; bed: NodeId; flower: CropId}
+  | {kind: 'home'; shop: boolean};
 
 /** One step of the day: an activity to show when it starts, and its effect when it ends. */
 export interface Step {
@@ -77,8 +82,25 @@ function planKey(g: Graph): string {
   return JSON.stringify(parts);
 }
 
-/** The hours the gardener has for the garden on a day. */
-export const hoursOn = (d: CalendarDate) => (d.weekday >= 5 ? HOURS.weekend : HOURS.weekday);
+/** The hours the gardener has for the garden on a day: the household's garden hours that weekday, to the minute. */
+export const hoursOn = (h: Household, d: CalendarDate) => Math.round(householdGardenHours(h, d.weekday) * 60) / 60;
+
+/** The steps of going to work and back: they take none of the garden's hours. */
+const COMMUTE = new Set(['leave', 'away', 'home']);
+/** A working day's time away, in game hours: leaving the shed for the gate, and back at the gate, and whether the weekly
+ *  shop comes home with them. */
+interface Away {
+  leaves: number;
+  returns: number;
+  shop: boolean;
+}
+/** The gardener's time away at work on a day, or null on a day at home or once the hour they leave has passed. */
+function awayOn(g: Graph, date: CalendarDate, t: number): Away | null {
+  const me = membersOf(g).members.find((m) => m.role === 'gardener'), c = me && commute(me, date.weekday);
+  if (!me || !c) return null;
+  const midnight = date.dayIndex * 24 - START.hour, leaves = midnight + c.leaves;
+  return leaves <= t ? null : {leaves, returns: midnight + c.returns, shop: shopDay(me) === date.weekday};
+}
 
 /** The fastest way the gardener's tools do a job, or null if none of them can. */
 function best(g: Graph, job: Job): JobTime | null {
@@ -105,7 +127,7 @@ class Planner {
   butt: number;
   compost: number;
   money: number;
-  constructor(readonly g: Graph, public pos: NodeId, public t: number, public left: number, public next: number, readonly dayIndex: number) {
+  constructor(readonly g: Graph, public pos: NodeId, public t: number, public left: number, public next: number, readonly dayIndex: number, public away: Away | null = null) {
     this.butt = g.nodes.butt?.stocks.water?.amount ?? 0;
     this.compost = compostOn(g);
     this.money = g.nodes[KITCHEN]?.stocks.money?.amount ?? 0;
@@ -128,10 +150,16 @@ class Planner {
     }
     return h;
   }
-  /** Tries a job made of steps; keeps it only if all of it fits in the hours left. */
+  /** Tries a job made of steps; keeps it only if all of it fits in the hours left. A job that would run past the hour
+   *  the gardener leaves for work waits until they're home. */
   job(build: (j: JobBuilder) => void): boolean {
-    const j = new JobBuilder(this);
+    let j = new JobBuilder(this);
     build(j);
+    if (this.away && j.steps.length && j.t > this.away.leaves - this.walkTime(j.pos, GATE)) {
+      this.goOut();
+      j = new JobBuilder(this);
+      build(j);
+    }
     const time = j.t - this.t;
     if (!j.steps.length || time > this.left + 1e-9) return false;
     this.steps.push(...j.steps);
@@ -140,6 +168,29 @@ class Planner {
     this.left -= time;
     this.next = j.next;
     return true;
+  }
+  /** Out through the gate to work at the hour, and home through the kitchen door in the evening (with the week's shop on
+   *  its day): none of it the garden's hours. */
+  goOut() {
+    const a = this.away;
+    if (!a) return;
+    this.away = null;
+    // back to the shed to wait if there's time, then out through the gate at the hour
+    const j = new JobBuilder(this), walk = this.walkTime(HOME, GATE), back = this.walkTime(j.pos, HOME);
+    if (a.leaves - walk > j.t + back) {
+      // the walk back is the garden's time, like the walk home at the end of the day
+      j.walk(HOME);
+      this.left -= back;
+      j.step('rest', HOME, a.leaves - walk - j.t);
+    }
+    j.step('leave', GATE, this.walkTime(j.pos, GATE));
+    j.step('away', GATE, Math.max(0, a.returns - j.t));
+    const bags = a.shop ? {unit: 'kgFood' as const, amount: shopEstimate(this.g), product: 'shop'} : undefined;
+    j.walk(KITCHEN, 'home', bags, {kind: 'home', shop: a.shop});
+    this.steps.push(...j.steps);
+    this.t = j.t;
+    this.pos = j.pos;
+    this.next = j.next;
   }
   /** A watering trip's source: the butt while it has water, then the tap. */
   source(): 'butt' | 'tap' {
@@ -234,6 +285,7 @@ function sowBed(p: Planner, bed: GraphNode, crop: CropId): boolean {
   const kg = bucket ? Math.min(p.compost, COMPOST_PER_M2 * area) : 0;
   let fromButt = 0;
   return p.job((j) => {
+    fromButt = 0; // built again if it has to wait until they're home from work
     const waste = wasteOn(bed), clearing = best(p.g, 'clear');
     if (waste >= 0.02) {
       j.walk(bed.id);
@@ -319,7 +371,7 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   const probe = new Planner(g, pos, t, left, next, date.dayIndex), tour = patrolBeds(g, dug, date);
   const patrol = tour.length ? probe.round(tour.map((b) => b.id)) + (tour.length * CONTROL.slugs.pick.minutes) / 60 : 0;
   const night = patrol > 0 && patrol <= left ? tour : [];
-  const p = new Planner(g, pos, t, left - (night.length ? patrol : 0), next, date.dayIndex), line = Number(g.nodes[GARDENER]?.levers.waterBelow ?? 0.5);
+  const p = new Planner(g, pos, t, left - (night.length ? patrol : 0), next, date.dayIndex, awayOn(g, date, t)), line = Number(g.nodes[GARDENER]?.levers.waterBelow ?? 0.5);
   // 1. pick what's ready
   for (const b of dug) if (ripe(b) >= PICK_MIN) harvest(p, b);
   // 2. water what's below the line
@@ -351,7 +403,7 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   // 4. carry: the kitchen's surplus to the honesty box, scraps and waste to the heap
   const kitchen = g.nodes[KITCHEN], carry = best(g, 'carry');
   if (kitchen && g.nodes[GATE] && carry) {
-    let items = surplus(kitchen);
+    let items = surplus(kitchen, askOf(g));
     while (items.length) {
       let room = carry.trip ?? Infinity;
       const load: {product: string; kg: number}[] = [], rest: {product: string; kg: number}[] = [];
@@ -386,7 +438,9 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
       grass -= m2;
     }
   }
-  // home to the shed; out again at dusk with a torch if there's a patrol; then rest until tomorrow's start
+  // off to work if they haven't gone yet; home to the shed; out again at dusk with a torch if there's a patrol; then rest
+  // until tomorrow's start
+  p.goOut();
   const back = new JobBuilder(p);
   back.walk(HOME);
   if (night.length) {
@@ -424,8 +478,9 @@ function apply(c: TickContext, e: Effect) {
     case 'pick': {
       const kg = Math.min(e.kg, g.nodes[e.bed]?.stocks[foodKey(e.product)]?.amount ?? 0);
       if (kg <= 1e-9) return;
+      const s = cropOf(g.nodes[e.bed]!);
+      recordPick(g, c.hours, kg, e.product, s ? quality(s) : undefined);
       c.flow({what: 'picking', unit: 'kgFood', product: e.product, amount: qty(kg, 'kgFood'), from: at(e.bed, foodKey(e.product)), to: at(KITCHEN, foodKey(e.product))});
-      recordPick(g, c.hours, kg);
       return;
     }
     case 'heap': {
@@ -454,8 +509,16 @@ function apply(c: TickContext, e: Effect) {
     case 'box':
       for (const it of e.items) {
         const kg = Math.min(it.kg, g.nodes[KITCHEN]?.stocks[foodKey(it.product)]?.amount ?? 0);
-        if (kg > 1e-9) c.flow({what: 'to the honesty box', unit: 'kgFood', product: it.product, amount: qty(kg, 'kgFood'), from: at(KITCHEN, foodKey(it.product)), to: at(GATE, foodKey(it.product))});
+        if (kg <= 1e-9) continue;
+        mixQuality(g, GATE, it.product, kg, qualityAt(g.nodes[KITCHEN], it.product));
+        c.flow({what: 'to the honesty box', unit: 'kgFood', product: it.product, amount: qty(kg, 'kgFood'), from: at(KITCHEN, foodKey(it.product)), to: at(GATE, foodKey(it.product))});
       }
+      return;
+    case 'home':
+      // home from work: the day's commute (noted from the second day, with the kitchen's first ask, so the first minute
+      // stays the garden's), and the week's shop, pay and the rest of life on its day
+      if (calendar(c.hours).dayIndex >= 1) note(c, 'commute', GATE, 1, 'h');
+      if (e.shop) weeklyShop(c);
   }
 }
 
@@ -474,27 +537,33 @@ export const gardener: System = {
       if (!me) return;
       const from = c.hours - c.dt, start = calendar(from), key = planKey(c.graph);
       let day = dayOf(c.graph);
-      const working = start.hour >= HOURS.start && start.hour < HOURS.stop;
+      // the working day, and after it while there's still work in the day's list (home from work, the list runs later)
+      const working = start.hour >= HOURS.start && start.hour < HOURS.stop, listed = !!day && day.steps.some((s) => s.doing !== 'rest');
       if (working && (!day || day.day !== start.dayIndex)) {
         // a new day: yesterday's unused hours go, today's come
         spend(c, hoursLeft(me), 'unused');
-        c.flow({what: 'a day’s hours', unit: 'h', amount: qty(hoursOn(start), 'h'), from: {boundary: 'time'}, to: at(GARDENER, 'hours')});
+        c.flow({what: 'a day’s hours', unit: 'h', amount: qty(hoursOn(membersOf(c.graph), start), 'h'), from: {boundary: 'time'}, to: at(GARDENER, 'hours')});
         const made = plan(c.graph, start, HOME, from, hoursLeft(me), day?.day === start.dayIndex ? day.next : 0);
         day = {day: start.dayIndex, key, next: made.next, steps: made.steps};
-      } else if (working && day && day.key !== key) {
+      } else if ((working || (listed && start.hour >= HOURS.start)) && day && day.key !== key) {
         // the plan changed: keep what's under way, plan the rest from where they'll be
         const started = new Set(day.steps.filter((s) => s.start < from && s.doing !== 'rest').map((s) => s.job));
         const kept = day.steps.filter((s) => started.has(s.job) && s.doing !== 'rest');
-        const last = kept[kept.length - 1], owed = kept.reduce((s, x) => s + (x.end - x.start), 0);
+        const last = kept[kept.length - 1], owed = kept.reduce((s, x) => s + (COMMUTE.has(x.doing) ? 0 : x.end - x.start), 0);
         const made = plan(c.graph, start, last?.to ?? HOME, Math.max(from, last?.end ?? from), Math.max(0, hoursLeft(me) - owed), day.next);
         day = {...day, key, next: made.next, steps: [...kept, ...made.steps]};
       }
       if (!day) return;
       // show the steps that start in this step, and do the ones that end in it
       let changed = false;
-      const steps: Step[] = [];
-      for (const s of day.steps) {
-        let step = s;
+      const steps: Step[] = [], all = day.steps;
+      for (let i = 0; i < all.length; i++) {
+        let step = all[i]!;
+        // the steps are in order of time: from the first that neither starts nor ends in this step on, none does
+        if (step.start >= c.hours && step.end > c.hours) {
+          for (; i < all.length; i++) steps.push(all[i]!);
+          break;
+        }
         if (!step.shown && step.start < c.hours) {
           const a: Activity = {id: step.id, who: GARDENER, kind: 'person', doing: step.doing, from: step.from, to: step.to, start: step.start, end: step.end};
           if (step.carry) a.carry = step.carry;
@@ -508,7 +577,7 @@ export const gardener: System = {
         }
         if (step.end <= c.hours) {
           if (step.effect) apply(c, step.effect);
-          spend(c, Math.min(step.end - step.start, hoursLeft(me)));
+          if (!COMMUTE.has(step.doing)) spend(c, Math.min(step.end - step.start, hoursLeft(me)));
           changed = true;
           continue;
         }

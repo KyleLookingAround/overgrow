@@ -4,7 +4,8 @@
 // system. Each key here is revealed the first time the game records one of its causes (src/sim/effects.ts), and goes
 // into the state's saved `seen` list; a key not in this table never unfolds (it fails closed). The sim refuses a command
 // on a lever whose key hasn't unfolded, so the bot plays the same game. Keys are named by level and system
-// (`garden.water`), so the allotment's reuse the pattern with their own. The table is in the order a new player meets
+// (`garden.water`), or by the node beside the level for the household's (`household.commute`), so the allotment's reuse
+// the pattern with their own. The table is in the order a new player meets
 // them; what's always shown (the core) is in CORE.
 
 export interface Unfold {
@@ -32,9 +33,13 @@ export const UNFOLD: Record<string, Unfold> = {
     causes: ['hand-picking', 'trapping', 'slug pellets']},
   // the household's first ask of the garden, on its second evening (the first minute's last moment)
   'garden.kitchen': {what: 'the Kitchen tab and the day’s ask', why: 'The household is looking to the garden for its veg.', causes: ['ask', 'eating']},
-  // money matters once something is sold or bought
-  'garden.money': {what: 'money in the top bar', why: 'Your first sale or purchase: the purse now moves.',
-    causes: ['honesty box', 'slug pellets', 'insecticide', 'fungicide']},
+  // the gardener home from work on the second day, noted with the kitchen's first ask so the two share one sign
+  'household.commute': {what: 'the gardener’s job', why: 'They work weekdays: that’s why the garden gets four hours a day.', causes: ['commute']},
+  // money matters from the first payday (Friday of the first week), or the first sale or purchase if that comes sooner
+  'garden.money': {what: 'money in the top bar and the week’s pay and shop', why: 'Payday: what’s left after the shop and the bills is the garden’s to spend.',
+    causes: ['wages', 'honesty box', 'slug pellets', 'insecticide', 'fungicide']},
+  // the first weekly shop the garden fed the household some of
+  'household.groceries': {what: 'groceries saved', why: 'The garden fed the household this week: food it didn’t have to buy.', causes: ['groceries saved']},
   // aphids fly in from late May, and blight starts in a Smith period
   'garden.aphids': {what: 'the aphids’ policy line, their numbers and badges', why: 'Aphids have arrived: choose what the gardener does about them.',
     causes: ['aphids arriving', 'aphids']},
@@ -47,6 +52,9 @@ export const UNFOLD: Record<string, Unfold> = {
   'garden.soil': {what: 'organic matter, N-P-K and soil health', why: 'The first compost went on a bed: what it feeds now shows.',
     causes: ['spreading compost']},
   'garden.carbon': {what: 'the carbon dial and the land', why: 'Compost and digging move carbon: the dial shows where it goes.',
+    causes: ['spreading compost', 'digging']},
+  // the shop food's footprint sits beside the dial, so it comes with it: the same first carbon choice
+  'household.footprint': {what: 'the shop food’s footprint beside the dial', why: 'Beside the garden’s own: the carbon in the food the household buys.',
     causes: ['spreading compost', 'digging']},
   // the temperature matters once a frost reaches a crop it can hurt
   'garden.weather': {what: 'the temperature', why: 'A frost reached a crop: the temperature now shows.', causes: ['frost damage']},
