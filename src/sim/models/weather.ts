@@ -53,6 +53,8 @@ export interface WeatherDay {
   zSun: number;
   /** The warming index the day was drawn with, °C above the 1991–2020 baseline. */
   warming: number;
+  /** At a step longer than a day (a week or a month, from level 6), every day of the step in order, this one last. */
+  step?: WeatherDay[];
 }
 
 // ---- the sun (FAO-56) ----
@@ -224,10 +226,18 @@ export const weather: System = {
     hour(c) {
       const air = c.graph.nodes[ATMOSPHERE];
       if (!air) return;
-      const start = calendar(c.hours - c.dt), was = weatherOf(c.graph);
+      const start = calendar(c.hours - c.dt), was = weatherOf(c.graph), warming = warmingIndex(c.graph);
       if (was && was.day === start.dayIndex) return;
-      // yesterday's persists into today; after a longer step (a week, at the higher levels) the last day drawn does
-      air.levers.weather = nextDay(was, start, warmingIndex(c.graph), c.rng) as unknown as LeverValue;
+      // yesterday's persists into today
+      if (c.dt <= 24) {
+        air.levers.weather = nextDay(was, start, warming, c.rng) as unknown as LeverValue;
+        return;
+      }
+      // a week's or a month's step draws each of its days in turn, so its rain comes in days, not one downpour
+      const days: WeatherDay[] = [], n = Math.max(1, calendar(c.hours).dayIndex - start.dayIndex);
+      let prev = was;
+      for (let k = 0; k < n; k++) days.push((prev = nextDay(prev, calendar(c.hours - c.dt + 24 * k), warming, c.rng)));
+      air.levers.weather = {...prev!, step: days} as unknown as LeverValue;
     },
   },
   command(cmd) {

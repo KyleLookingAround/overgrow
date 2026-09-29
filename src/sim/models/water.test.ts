@@ -7,6 +7,7 @@ import {runStep, type System} from '../clock';
 import {applyFlow, type Flow, type Graph, type LeverValue} from '../graph';
 import {rng} from '../random';
 import {gardenGraph} from '../state';
+import {SYSTEMS} from '../systems';
 import {limitsOf} from './soil';
 import {et0, et0Hargreaves, et0PenmanMonteith, water} from './water';
 import {nextDay, type WeatherDay} from './weather';
@@ -88,6 +89,33 @@ describe('water', () => {
     };
     expect(left('bed-3')).toBeLessThan(left('bed-1') - 0.2); // bare soil seals itself once the top dries (FAO-56's TEW)
     expect(left('bed-3')).toBeGreaterThanOrEqual(-0.01); // and nothing dries past wilting point
+  });
+
+  it('keeps the same balance at a day’s, a week’s and a month’s step as at an hour’s, with no downpour made of a week', () => {
+    const year = (dt: number) => {
+      const g = gardenGraph(), flows: Flow[] = [];
+      const ctx = {dt, level: 1, graph: g, activity: () => {}, flow: (f: Flow) => {
+        const bad = applyFlow(g, f);
+        if (bad) throw new Error(bad);
+        flows.push(f);
+        return null;
+      }};
+      for (let h = 0; h < 24 * 365 * 10; ) h = runStep(SYSTEMS, ctx, 4, h);
+      const mm = (what: string) => total(flows, what, 'bed-1') / 3 / 10;
+      return {rain: mm('rain'), et: mm('evapotranspiration'), drainage: mm('drainage'), runoff: mm('runoff')};
+    };
+    const hourly = year(1);
+    for (const dt of [24, 168, 730]) {
+      const y = year(dt);
+      // each step length draws its own dice, so a decade's rain differs by chance: compare what becomes of it
+      expect(y.rain / hourly.rain).toBeGreaterThan(0.85);
+      expect(y.rain / hourly.rain).toBeLessThan(1.15);
+      expect(y.et / hourly.et).toBeGreaterThan(0.85);
+      expect(y.et / hourly.et).toBeLessThan(1.15);
+      expect(y.drainage / y.rain / (hourly.drainage / hourly.rain)).toBeGreaterThan(0.85);
+      expect(y.drainage / y.rain / (hourly.drainage / hourly.rain)).toBeLessThan(1.15);
+      expect(y.runoff).toBeLessThan(10);
+    }
   });
 
   it('fills the butt from the shed roof and overflows once it’s full', () => {

@@ -22,7 +22,7 @@ export interface PlaceSpec {
   soil?: SoilSpec;
 }
 
-const DUG: SoilSpec = {texture: 'loam', organicMatter: 5}, UNDER_GRASS: SoilSpec = {texture: 'clay loam', organicMatter: 4};
+const DUG: SoilSpec = {texture: 'loam', organicMatter: 4.5}, UNDER_GRASS: SoilSpec = {texture: 'clay loam', organicMatter: 4};
 
 export const GARDEN = {w: 12, h: 8};
 

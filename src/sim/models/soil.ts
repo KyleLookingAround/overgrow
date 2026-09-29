@@ -215,7 +215,7 @@ export const soil: System = {
     day(c) {
       const w = weatherOf(c.graph);
       if (!w || !c.graph.nodes[ATMOSPHERE]) return;
-      const temp = (w.tmax + w.tmin) / 2, days = Math.max(1, c.dt / 24);
+      const step = w.step ?? [w], temp = step.reduce((s, d) => s + (d.tmax + d.tmin) / 2, 0) / step.length, days = Math.max(1, c.dt / 24);
       for (const n of Object.values(c.graph.nodes)) if (hasSoil(n) && areaOf(n) > 0) soilDay(c, n, temp, days);
     },
   },

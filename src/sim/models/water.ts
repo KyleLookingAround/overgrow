@@ -88,7 +88,7 @@ export function groundCoefficient(n: GraphNode, lim: Limits): number {
 /** Excess over field capacity drains with this time constant, hours. */
 const DRAIN_HOURS = 12;
 
-function balance(c: TickContext, n: GraphNode, rainMm: number, et0Mm: number) {
+function balance(c: TickContext, n: GraphNode, rainMm: number, et0Mm: number, hours: number) {
   const area = areaOf(n);
   if (!area) return;
   const at = {node: n.id, stock: SOIL.water}, lim = limitsOf(n), water = () => n.stocks[SOIL.water]?.amount ?? 0;
@@ -101,11 +101,23 @@ function balance(c: TickContext, n: GraphNode, rainMm: number, et0Mm: number) {
   const before = water(), excess = before - lim.fc;
   if (excess > 0) {
     // the last half millimetre goes at once, so a soil at field capacity isn't left dripping for days
-    const drained = excess < 0.5 * area ? excess : Math.min(excess * (1 - Math.exp(-c.dt / DRAIN_HOURS)), lim.ksat * c.dt);
+    const drained = excess < 0.5 * area ? excess : Math.min(excess * (1 - Math.exp(-hours / DRAIN_HOURS)), lim.ksat * hours);
     if (drained > 0) {
       c.flow({what: 'drainage', unit: 'L', amount: qty(drained, 'L'), from: at, to: {boundary: 'drainage'}});
       leach(c, n, drained, before);
     }
+  }
+}
+
+/** One stretch of the balance: every soil, then the butt. */
+function step(c: TickContext, rain: number, et: number, hours: number) {
+  for (const n of Object.values(c.graph.nodes)) if (hasSoil(n)) balance(c, n, rain, et, hours);
+  // the shed's roof into the butt, and over its brim once it's full
+  const butt = c.graph.nodes[ROOF.to]?.stocks.water;
+  if (butt && rain > 0) {
+    const at = {node: ROOF.to, stock: 'water'};
+    c.flow({what: 'rain', unit: 'L', amount: qty(rain * ROOF.m2 * ROOF.runoff, 'L'), from: {boundary: 'rain'}, to: at});
+    if (butt.cap !== undefined && butt.amount > butt.cap) c.flow({what: 'overflow', unit: 'L', amount: qty(butt.amount - butt.cap, 'L'), from: at, to: {boundary: 'runoff'}});
   }
 }
 
@@ -115,24 +127,11 @@ export const water: System = {
     hour(c) {
       const w = weatherOf(c.graph);
       if (!w) return;
-      // the step's rain and share of the day's evapotranspiration: from its first hour, or the whole day's at a day or more
-      let rain: number, et: number;
-      if (c.dt >= 24) {
-        rain = (w.rain * c.dt) / 24;
-        et = (et0(w) * c.dt) / 24;
-      } else {
+      // the step's rain and share of the day's evapotranspiration, from its first hour; at a day or more, each day's whole
+      if (c.dt < 24) {
         const start = calendar(c.hours - c.dt), a = start.hour + start.minute / 60, b = a + c.dt;
-        rain = rainBetween(w, a, b);
-        et = et0(w) * lightBetween(w, a, b);
-      }
-      for (const n of Object.values(c.graph.nodes)) if (hasSoil(n)) balance(c, n, rain, et);
-      // the shed's roof into the butt, and over its brim once it's full
-      const butt = c.graph.nodes[ROOF.to]?.stocks.water;
-      if (butt && rain > 0) {
-        const at = {node: ROOF.to, stock: 'water'};
-        c.flow({what: 'rain', unit: 'L', amount: qty(rain * ROOF.m2 * ROOF.runoff, 'L'), from: {boundary: 'rain'}, to: at});
-        if (butt.cap !== undefined && butt.amount > butt.cap) c.flow({what: 'overflow', unit: 'L', amount: qty(butt.amount - butt.cap, 'L'), from: at, to: {boundary: 'runoff'}});
-      }
+        step(c, rainBetween(w, a, b), et0(w) * lightBetween(w, a, b), c.dt);
+      } else for (const d of w.step ?? [w]) step(c, d.rain, et0(d), 24);
     },
   },
 };

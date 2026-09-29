@@ -35,7 +35,7 @@ export function TopBar({snap, hours, speed, onSpeed}: {snap: Snapshot; hours: nu
       <span class="level">{level.name}</span>
       <span class="date" data-hours={Math.floor(hours)}>
         <time>{dayName(d)}</time> <span class="time">{clockTime(d)}</span>
-        {temp !== null && <span class="temp" title="Air temperature"> {temp < 0 ? '−' : ''}{Math.abs(temp)}°C</span>}
+        {temp !== null && <span class="temp" title="Air temperature"> {temp < 0 ? '−' : ''}{Math.abs(temp)} °C</span>}
         {d.year > 1 && <span class="year"> · year {d.year}</span>}
       </span>
       <span class="money" title="Money">{money(snap.money)}</span>

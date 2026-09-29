@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {churn} from './churn';
 import {createSim} from './index';
 import {fromSave, migrate, SAVE_VERSION, SaveError, toSave} from './save';
-import {organicMatter, SOIL} from './models/soil';
+import {organicMatter, SOIL, specOf} from './models/soil';
 
 /**
  * A save as part 1's build wrote it (version 1): the garden with no soil and no weather. Made from this build by taking
@@ -58,7 +58,7 @@ describe('save', () => {
     expect(s.hours).toBe(30);
     expect(s.speed).toBe(2);
     for (const k of Object.values(SOIL)) expect(bed.stocks[k]!.amount).toBeGreaterThan(0);
-    expect(organicMatter(bed)).toBeCloseTo(5);
+    expect(organicMatter(bed)).toBeCloseTo(specOf('bed-1').organicMatter);
     expect(air.levers).toHaveProperty('weather', null);
     // it plays on: two months of the weather, water and soil with nothing refused
     for (let i = 0; i < 24 * 60; i++) expect(sim.apply({type: 'tick', hours: 1}).errors).toEqual([]);
