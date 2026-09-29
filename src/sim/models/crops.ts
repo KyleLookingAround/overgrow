@@ -152,6 +152,16 @@ export function sow(n: GraphNode, id: CropId, hours: number) {
   setCrop(n, {id, sown: hours, dd: 0, eta: 0, etc: 0, need: 0, got: 0, made: 0, ks: 1, hurt: 0});
 }
 
+/**
+ * A crop that's already growing when the game starts: overwintered salad leaves (hardy mizuna, rocket and lamb's lettuce,
+ * sown in the autumn and cropping from late winter; RHS, "Salad leaves"), sown about six months before, a few degree
+ * days short of their first cut. The same crop as any other from then on, only begun before day 1.
+ */
+export function overwintered(n: GraphNode, id: CropId, sownHoursAgo: number, ddToGo: number) {
+  const c = CROPS[id], dd = Math.max(0, c.dd.mature - ddToGo), grown = Math.max(0, dd - c.dd.emerge) / Math.max(1, c.dd.mature + (c.harvest === 'repeat' ? c.dd.picking : 0) - c.dd.emerge);
+  setCrop(n, {id, sown: -sownHoursAgo, dd, eta: 0, etc: 0, need: grown, got: grown, made: 0, ks: 1, hurt: 0});
+}
+
 /** The levers the crop model declares on every bed: the plan's (what to sow, from when, and whether to dig it) and its own. */
 export const BED_LEVERS = (sow: string): Record<string, LeverValue> => ({sow, sowFrom: null, dig: false, crop: null, history: []});
 const OWN = new Set(['crop', 'history']);

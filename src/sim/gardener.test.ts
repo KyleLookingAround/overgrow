@@ -19,22 +19,22 @@ function play(sim: ReturnType<typeof createSim>, hours: number) {
 }
 
 describe('gardener', () => {
-  it('sows both beds on the first morning and waters each in, a trip a can from the butt', () => {
+  it('sows bed 2 on the first morning and waters it in, a trip a can from the butt, beside bed 1’s overwintered salad', () => {
     const sim = createSim(1), {acts, flows} = play(sim, 12);
     const at = (doing: string, bed: string) => acts.filter((a) => a.doing === doing && a.to === bed);
-    expect(at('sow', 'bed-1')).toHaveLength(1);
     expect(at('sow', 'bed-2')).toHaveLength(1);
-    expect(at('water', 'bed-1').length).toBeGreaterThanOrEqual(1);
+    expect(at('sow', 'bed-1')).toHaveLength(0);
     expect(at('water', 'bed-2').length).toBeGreaterThanOrEqual(1);
     expect(acts.every((a) => a.who === GARDENER)).toBe(true);
     // every trip a new id, and each can carried from the butt to the bed it waters
     expect(new Set(acts.map((a) => a.id)).size).toBe(acts.length);
     const cans = acts.filter((a) => a.doing === 'carry' && a.carry?.unit === 'L');
+    expect(cans.length).toBeGreaterThanOrEqual(1);
     expect(cans.every((a) => a.from === 'butt' && a.carry!.amount > 0 && a.carry!.amount <= 10)).toBe(true);
     const watering = flows.filter((f) => f.what === 'watering');
     expect(watering.every((f) => 'node' in f.from && f.from.node === 'butt')).toBe(true);
     expect(watering.reduce((s, f) => s + f.amount, 0)).toBeCloseTo(cans.reduce((s, a) => s + a.carry!.amount, 0));
-    // what's sown is in the beds, and the work took their hours
+    // what's sown is in the bed, and the work took their hours
     const snap = sim.snapshot(), bed = (id: string) => snap.nodes.find((n) => n.id === id)!.levers.crop as {id: string};
     expect(bed('bed-1').id).toBe('salad');
     expect(bed('bed-2').id).toBe('radish');
@@ -45,22 +45,24 @@ describe('gardener', () => {
 
   it('works only the hours they have, leaving what doesn’t fit until tomorrow', () => {
     const sim = createSim(3);
-    // dig a whole plot out of the lawn: three hours of spade work on a four-hour weekday, after the sowing
+    // dig two plots out of the lawn: six hours of spade work, more than a four-hour weekday holds after the sowing
     sim.apply({type: 'plan', node: 'bed-3', lever: 'dig', value: true});
+    sim.apply({type: 'plan', node: 'bed-4', lever: 'dig', value: true});
+    const dug = () => ['bed-3', 'bed-4'].reduce((s, id) => s + (sim.snapshot().nodes.find((n) => n.id === id)!.stocks['land.crops']?.amount ?? 0), 0);
     const day1 = play(sim, 24);
     const spent = day1.flows.filter((f) => f.unit === 'h' && f.what === 'work').reduce((s, f) => s + f.amount, 0);
     expect(spent).toBeLessThanOrEqual(HOURS.weekday + 1e-9);
-    const dug1 = sim.snapshot().nodes.find((n) => n.id === 'bed-3')!.stocks['land.crops']?.amount ?? 0;
+    const dug1 = dug();
     expect(dug1).toBeGreaterThan(0);
-    expect(dug1).toBeLessThan(3);
-    play(sim, 24);
-    expect(sim.snapshot().nodes.find((n) => n.id === 'bed-3')!.stocks['land.crops']!.amount).toBeCloseTo(3);
+    expect(dug1).toBeLessThan(6);
+    play(sim, 48);
+    expect(dug()).toBeCloseTo(6);
   });
 
   it('fetches from the tap once the butt is empty', () => {
     const sim = createSim(1);
     const save = JSON.parse(sim.save());
-    save.graph.nodes.butt.stocks.water.amount = 12; // enough for one can and a bit
+    save.graph.nodes.butt.stocks.water.amount = 4; // less than a can: bed 2's watering in finishes from the tap
     sim.apply({type: 'load', save: JSON.stringify(save)});
     const {flows, acts} = play(sim, 12);
     const from = flows.filter((f) => f.what === 'watering').map((f) => ('node' in f.from ? f.from.node : f.from.boundary));

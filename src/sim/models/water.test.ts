@@ -57,38 +57,38 @@ describe('water', () => {
   });
 
   it('dries a bare bed faster in a hot dry week than a cool wet one', () => {
-    const hot = gardenGraph(), cool = gardenGraph(), start = litres(hot, 'bed-1');
+    const hot = gardenGraph(), cool = gardenGraph(), start = litres(hot, 'bed-2');
     run(hot, [water], 24 * 7, JULY_HOT);
     run(cool, [water], 24 * 7, NOVEMBER_WET);
-    const lostHot = start - litres(hot, 'bed-1'), lostCool = start - litres(cool, 'bed-1');
+    const lostHot = start - litres(hot, 'bed-2'), lostCool = start - litres(cool, 'bed-2');
     expect(lostHot).toBeGreaterThan(3 * 6); // a few mm a day off its 3 m²
     expect(lostHot).toBeGreaterThan(3 * Math.max(0, lostCool));
-    expect(litres(cool, 'bed-1')).toBeGreaterThan(limitsOf(cool.nodes['bed-1']!).fc - 5); // the wet week keeps it at field capacity
+    expect(litres(cool, 'bed-2')).toBeGreaterThan(limitsOf(cool.nodes['bed-2']!).fc - 5); // the wet week keeps it at field capacity
   });
 
   it('drains what passes field capacity below the roots, and runs off what the soil can’t take', () => {
-    const g = gardenGraph(), bed = g.nodes['bed-1']!, lim = limitsOf(bed);
+    const g = gardenGraph(), bed = g.nodes['bed-2']!, lim = limitsOf(bed);
     const storm = day(300, {tmax: 12, tmin: 8, sun: 0, wet: true, rain: 30, rainFrom: 0, rainHours: 6});
     const flows = run(g, [water], 48, {...storm});
-    expect(total(flows, 'rain', 'bed-1')).toBeCloseTo(30 * 3 * 2); // two days of 30 mm on 3 m²
-    expect(total(flows, 'drainage', 'bed-1')).toBeGreaterThan(100);
-    expect(litres(g, 'bed-1')).toBeLessThan(lim.fc + 0.2 * (lim.sat - lim.fc));
+    expect(total(flows, 'rain', 'bed-2')).toBeCloseTo(30 * 3 * 2); // two days of 30 mm on 3 m²
+    expect(total(flows, 'drainage', 'bed-2')).toBeGreaterThan(100);
+    expect(litres(g, 'bed-2')).toBeLessThan(lim.fc + 0.2 * (lim.sat - lim.fc));
     // a soil at saturation sheds a downpour
     bed.stocks.water!.amount = lim.sat as never;
     const burst = run(g, [water], 2, day(300, {tmax: 12, tmin: 8, sun: 0, wet: true, rain: 40, rainFrom: 0, rainHours: 1}));
-    expect(total(burst, 'runoff', 'bed-1')).toBeGreaterThan(40 * 3 * 0.5);
+    expect(total(burst, 'runoff', 'bed-2')).toBeGreaterThan(40 * 3 * 0.5);
   });
 
   it('lets grass dry deeper than bare soil in a long dry spell', () => {
     const g = gardenGraph();
     // bed 3 is under grass and bed 1 bare: give them the same soil water to start
-    for (const id of ['bed-1', 'bed-3']) g.nodes[id]!.stocks.water!.amount = limitsOf(g.nodes[id]!).fc as never;
+    for (const id of ['bed-2', 'bed-3']) g.nodes[id]!.stocks.water!.amount = limitsOf(g.nodes[id]!).fc as never;
     run(g, [water], 24 * 30, JULY_HOT);
     const left = (id: string) => {
       const lim = limitsOf(g.nodes[id]!);
       return (litres(g, id) - lim.wp) / (lim.fc - lim.wp);
     };
-    expect(left('bed-3')).toBeLessThan(left('bed-1') - 0.2); // bare soil seals itself once the top dries (FAO-56's TEW)
+    expect(left('bed-3')).toBeLessThan(left('bed-2') - 0.2); // bare soil seals itself once the top dries (FAO-56's TEW)
     expect(left('bed-3')).toBeGreaterThanOrEqual(-0.01); // and nothing dries past wilting point
   });
 
@@ -103,7 +103,7 @@ describe('water', () => {
       }};
       // the weather, water and soil alone: the gardener's watering is the garden's, at an hour's step
       for (let h = 0; h < 24 * 365 * 10; ) h = runStep(PHYSICAL, ctx, 4, h);
-      const mm = (what: string) => total(flows, what, 'bed-1') / 3 / 10;
+      const mm = (what: string) => total(flows, what, 'bed-2') / 3 / 10;
       return {rain: mm('rain'), et: mm('evapotranspiration'), drainage: mm('drainage'), runoff: mm('runoff')};
     };
     const hourly = year(1);

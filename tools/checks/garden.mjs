@@ -1,12 +1,14 @@
 // The garden at work (src/sim/gardener.ts, src/sim/models/crops.ts, src/sim/models/kitchen.ts, the map and the Garden
-// and Kitchen tabs): a seeded game with the default plan shows the gardener sow both beds and water them in on day 1, a
-// can a trip from the butt, the soil darkening; the drills drawn, then shoots, then a first harvest carried to the
-// kitchen, each by the day the model gives at the real pace (#11); the gardener drawn where their job is; the Kitchen
-// tab showing the day's ask and what met it; and the Garden tab's plan changing what the gardener does next.
+// and Kitchen tabs): a seeded game with the default plan opens with bed 1's overwintered salad leaves growing (the
+// owner's head start, #11), and shows the gardener sow bed 2 and water it in on day 1, a can a trip from the butt, the
+// soil darkening; the drills drawn, then shoots at the real pace; a first harvest from bed 1 carried to the kitchen in
+// the first week; the gardener drawn where their job is; the Kitchen tab showing the day's ask and what met it; and the
+// Garden tab's plan changing what the gardener does next.
 import {join} from 'node:path';
 
-// the days at the real pace on seed 1 (radish shoots on day 7, the first cut of salad leaves on day 27), with a little room
-const SHOOTS_BY = 12, HARVEST_BY = 30;
+// radish shoots in bed 2 at the real pace on seed 1 (day 7), with a little room; the overwintered salad's first cut in the
+// first week (day 5 on seed 1)
+const SHOOTS_BY = 12, HARVEST_BY = 7;
 
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
 const send=(page,cmd)=>page.evaluate(c=>window.__sim.send(c),cmd);
@@ -45,25 +47,25 @@ export default async function({ok,open,out}){
   const d1=await hourly(page,8),at=(doing,bed)=>d1.acts.filter(a=>a.doing===doing&&a.to===bed).length;
   const cans=d1.acts.filter(a=>a.doing==='carry'&&a.carry?.unit==='L');
   const s1=await snap(page),crop=id=>s1.nodes.find(n=>n.id===id).levers.crop;
-  ok('garden: on day 1 the gardener sows both beds and waters each in, a can a trip from the butt',
-    at('sow','bed-1')===1&&at('sow','bed-2')===1&&at('water','bed-1')>=1&&at('water','bed-2')>=1&&cans.length>=2&&cans.every(a=>a.from==='butt'&&a.carry.amount<=10)&&crop('bed-1')?.id==='salad'&&crop('bed-2')?.id==='radish'&&!errs.length,
+  ok('garden: on day 1 the gardener sows bed 2 and waters it in, a can a trip from the butt, beside bed 1’s overwintered salad',
+    at('sow','bed-1')===0&&at('sow','bed-2')===1&&at('water','bed-2')>=1&&cans.length>=1&&cans.every(a=>a.from==='butt'&&a.carry.amount<=10)&&crop('bed-1')?.id==='salad'&&crop('bed-2')?.id==='radish'&&!errs.length,
     `sown ${at('sow','bed-1')}/${at('sow','bed-2')}, watered ${at('water','bed-1')}/${at('water','bed-2')}, ${cans.length} cans, crops ${crop('bed-1')?.id}/${crop('bed-2')?.id} ${errs[0]||''}`);
   const v1=await runTo(page,1.5);
-  ok('garden: the watered beds are drawn darker, the drills sown, and the gardener back by the shed',
-    v1.weather.soil['bed-1']>(before['bed-1']??0)&&v1.crops['bed-1']==='sown'&&v1.crops['bed-2']==='sown'&&v1.gardener?.to==='shed',
-    `bed 1 soil ${before['bed-1']} → ${v1.weather.soil['bed-1']}, crops ${JSON.stringify(v1.crops)}, gardener ${JSON.stringify(v1.gardener)}`);
+  ok('garden: the watered bed is drawn darker, its drills sown, bed 1’s salad growing, and the gardener back by the shed',
+    v1.weather.soil['bed-2']>(before['bed-2']??0)&&v1.crops['bed-1']==='growing'&&v1.crops['bed-2']==='sown'&&v1.gardener?.to==='shed',
+    `bed 2 soil ${before['bed-2']} → ${v1.weather.soil['bed-2']}, crops ${JSON.stringify(v1.crops)}, gardener ${JSON.stringify(v1.gardener)}`);
   await page.screenshot({path:join(out,'garden-day1-1440x900.png')});
 
   // shoots, then the first harvest, day by day
   await send(page,{type:'new-game',seed:1,speed:0});
   let shoots=null,first=null;
-  for(let d=1;d<=HARVEST_BY+10&&first===null;d++){
+  for(let d=1;d<=SHOOTS_BY+2&&(first===null||shoots===null);d++){
     const s=await send(page,{type:'tick',hours:24});
-    if(shoots===null){const v=await drawnNow(page);if(Object.values(v.crops).includes('growing'))shoots=day(v.hours)}
+    if(shoots===null){const v=await drawnNow(page);if(v.crops['bed-2']==='growing')shoots=day(v.hours)}
     if(s.kitchen?.firstHarvest!=null)first=day(s.kitchen.firstHarvest);
   }
-  ok(`garden: shoots are drawn by day ${SHOOTS_BY}`,shoots!==null&&shoots<=SHOOTS_BY,`shoots on day ${shoots}`);
-  ok(`garden: the first harvest reaches the kitchen by day ${HARVEST_BY}`,first!==null&&first<=HARVEST_BY,`first harvest on day ${first}`);
+  ok(`garden: bed 2's shoots are drawn by day ${SHOOTS_BY}`,shoots!==null&&shoots<=SHOOTS_BY,`shoots on day ${shoots}`);
+  ok(`garden: the first harvest reaches the kitchen in the first week (by day ${HARVEST_BY})`,first!==null&&first<=HARVEST_BY,`first harvest on day ${first}`);
   // that day again, hour by hour: picked on the bed and carried in a basket to the kitchen
   await send(page,{type:'new-game',seed:1,speed:0});
   if(first)await send(page,{type:'tick',hours:24*(first-1)});

@@ -100,8 +100,8 @@ export const CROP_IDS = Object.keys(CROPS) as CropId[];
 export const ROTATION: readonly Family[] = ['legume', 'brassica', 'solanum', 'daisy'];
 
 /**
- * How fast crops develop against the real degree days: 1 is the real pace. The founding spec's pacing (a first harvest
- * on day 7) would need several times this; that's the owner's call, not a tuning inside the sources' range.
+ * How fast crops develop against the real degree days: 1, the real pace. The owner chose a head start (#11) over a
+ * faster pace for the spec's first harvest in the first week: a bed of overwintered salad leaves (src/sim/state.ts).
  */
 export const GROWTH_PACE = 1;
 

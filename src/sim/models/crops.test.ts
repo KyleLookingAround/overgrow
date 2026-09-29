@@ -40,11 +40,11 @@ describe('crops', () => {
   it('brings lettuce sown in a mild spring to harvest in about the RHS’s 8 to 12 weeks', () => {
     for (const seed of [1, 2, 3]) {
       const sim = createSim(seed);
-      sim.apply({type: 'plan', node: 'bed-1', lever: 'sow', value: 'lettuce'});
-      sim.apply({type: 'plan', node: 'bed-1', lever: 'sowFrom', value: 91}); // 1 April
+      sim.apply({type: 'plan', node: 'bed-2', lever: 'sow', value: 'lettuce'});
+      sim.apply({type: 'plan', node: 'bed-2', lever: 'sowFrom', value: 91}); // 1 April
       let sown = -1, ready = -1;
       for (let h = 0; h < 24 * 200 && ready < 0; h += 24) {
-        const s = sim.apply({type: 'tick', hours: 24}), c = s.nodes.find((n) => n.id === 'bed-1')!.levers.crop as unknown as CropState | null;
+        const s = sim.apply({type: 'tick', hours: 24}), c = s.nodes.find((n) => n.id === 'bed-2')!.levers.crop as unknown as CropState | null;
         if (c && sown < 0) sown = c.sown;
         if (c && stageOf(c) === 'ready') ready = s.hours;
       }
@@ -107,10 +107,10 @@ describe('crops', () => {
   it('draws a bed’s nutrients down over a year of cropping, against the same bed left bare', () => {
     const year = (plan: string) => {
       const sim = createSim(2);
-      sim.apply({type: 'plan', node: 'bed-1', lever: 'sow', value: plan});
+      sim.apply({type: 'plan', node: 'bed-2', lever: 'sow', value: plan});
       let uptake = 0;
-      for (let d = 0; d < 365; d++) uptake += sim.apply({type: 'tick', hours: 24}).flows.filter((f) => f.what === 'uptake' && f.unit === 'kgN' && 'node' in f.from && f.from.node === 'bed-1').reduce((s, f) => s + f.amount, 0);
-      const bed = sim.snapshot().nodes.find((n) => n.id === 'bed-1')!;
+      for (let d = 0; d < 365; d++) uptake += sim.apply({type: 'tick', hours: 24}).flows.filter((f) => f.what === 'uptake' && f.unit === 'kgN' && 'node' in f.from && f.from.node === 'bed-2').reduce((s, f) => s + f.amount, 0);
+      const bed = sim.snapshot().nodes.find((n) => n.id === 'bed-2')!;
       return {uptake, p: bed.stocks[SOIL.phosphorus]!.amount, k: bed.stocks[SOIL.potassium]!.amount};
     };
     const cropped = year('rotation'), bare = year('none');
@@ -131,6 +131,19 @@ describe('crops', () => {
     expect(c.cover).toBe(1);
     expect(c.kc).toBeGreaterThan(1);
     expect(progress(cropOf(bed)!)).toBe(1);
+  });
+
+  it('opens the game with overwintered salad leaves in bed 1, cut in the first week, and bed 2 bare for the first sowing', () => {
+    for (const seed of [1, 2, 3]) {
+      const sim = createSim(seed), start = sim.snapshot(), c = start.nodes.find((n) => n.id === 'bed-1')!.levers.crop as unknown as CropState;
+      expect(c.id).toBe('salad');
+      expect(c.sown).toBeLessThan(-24 * 150); // sown last autumn
+      expect(stageOf(c)).toBe('growing');
+      expect(start.nodes.find((n) => n.id === 'bed-2')!.levers.crop).toBeNull();
+      for (let d = 0; d < 7; d++) sim.apply({type: 'tick', hours: 24});
+      expect(sim.snapshot().kitchen!.firstHarvest).not.toBeNull();
+      expect(sim.snapshot().kitchen!.firstHarvest!).toBeLessThan(24 * 7);
+    }
   });
 
   it('follows the rotation to the next family in season', () => {

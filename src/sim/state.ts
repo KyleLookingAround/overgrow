@@ -7,7 +7,7 @@ import type {Activity} from './activity';
 import {levelClock} from './clock';
 import {copyNode, makeGraph, qty, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec} from './graph';
 import {GARDENER, GARDENER_LEVERS} from './gardener';
-import {BED_LEVERS} from './models/crops';
+import {BED_LEVERS, overwintered} from './models/crops';
 import {newLedger, type Ledger} from './models/kitchen';
 import {rng, type Rng} from './random';
 import {startingSoil} from './models/soil';
@@ -50,8 +50,12 @@ export interface State {
 /** The air above the level: emissions go to its carbon stock and sinks draw from it, so carbon balances in the graph. */
 export const ATMOSPHERE = 'atmosphere';
 
-/** The first plan (the founding spec's first card): salad leaves in bed 1, radishes in bed 2. */
-export const DEFAULT_PLAN: Record<string, string> = {'bed-1': 'salad', 'bed-2': 'radish'};
+/** The first plan: bed 1 follows the rotation once its overwintered salad leaves are done, and radishes are sown in
+ *  bed 2 on the first morning. */
+export const DEFAULT_PLAN: Record<string, string> = {'bed-1': 'rotation', 'bed-2': 'radish'};
+/** The head start (the owner's pick, #11): bed 1 has salad leaves sown last September, a few degree days from their first
+ *  cut, so the first harvest comes in the first week while the spring sowings grow at the real pace. */
+export const HEAD_START = {bed: 'bed-1', crop: 'salad', sownHoursAgo: 24 * 176, ddToGo: 12} as const;
 
 /** The back garden on day 1 (src/data/garden.ts), as the level-1 graph. */
 export function gardenGraph(): Graph {
@@ -72,7 +76,9 @@ export function gardenGraph(): Graph {
   nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null}});
   const edges: Edge[] = WAYS.map((w, i) => ({id: `way-${i + 1}`, from: w.from, to: w.to, carries: [...w.carries]}));
   for (const p of PLACES) edges.push({id: `air-${p.id}`, from: p.id, to: ATMOSPHERE, carries: ['kgCO2e']});
-  return makeGraph(nodes, edges);
+  const g = makeGraph(nodes, edges);
+  overwintered(g.nodes[HEAD_START.bed]!, HEAD_START.crop, HEAD_START.sownHoursAgo, HEAD_START.ddToGo);
+  return g;
 }
 
 export function newState(seed: number, speed: Speed = 1): State {
