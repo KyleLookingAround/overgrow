@@ -49,13 +49,14 @@ export default async function({ok,open,out}){
     ok('first minute: in the morning the gardener sows bed 2 and waters it in, their hours ticking down',
       morning.some(a=>a.doing==='sow'&&a.to==='bed-2')&&morning.some(a=>a.doing==='water'&&a.to==='bed-2')&&left1>0&&left1<4,`${morning.map(a=>a.doing).join(' ')}; ${left1.toFixed(2)} h of 4 left`);
     // dusk: the check makes the evening damp itself (W21), so the slugs come out on any draw of the dice
-    await send(page,{type:'tick',hours:12-(await snap(page)).hours});
+    // (the save from the morning's end, so the dusk is more than four steps on: a paused view follows a jump that long)
+    await send(page,{type:'tick',hours:Math.max(0,6-(await snap(page)).hours)});
     const save=JSON.parse(await page.evaluate(()=>window.__sim.save()));
     const lawn=save.graph.nodes.lawn;lawn.levers.outbreak={...lawn.levers.outbreak,wet:save.hours};
     // and the first plan's card answered, as a player would have on the first morning
     save.seen=[...save.seen,'card.first-plan'];
     await send(page,{type:'load',save:JSON.stringify(save)});
-    const [out2,torch]=await page.evaluate(async()=>{let most=0;const t=new Set();for(let i=0;i<11;i++){const s=await window.__sim.send({type:'tick',hours:1});
+    const [out2,torch]=await page.evaluate(async()=>{let most=0;const t=new Set();for(let i=0;i<12;i++){const s=await window.__sim.send({type:'tick',hours:1});
       most=Math.max(most,...s.nodes.map(n=>n.levers.pests?.out??0));for(const a of s.activities)if(a.doing==='torch')t.add(a.id)}return [most,t.size]});
     const s2=await snap(page);
     ok('first minute: at dusk slugs come out on the damp beds and the gardener goes out with a torch',out2>=0.5&&torch>0&&s2.seen.includes('garden.slugs'),`slugs out ${out2.toFixed(1)}, torch ${torch}`);
@@ -63,10 +64,13 @@ export default async function({ok,open,out}){
     await send(page,{type:'new-game',seed:1,speed:0});
     await send(page,{type:'card',id:'first-plan',answer:'accept'});await send(page,{type:'speed',speed:0});
     await send(page,{type:'load',save:JSON.stringify(save)});
-    // on an hour at a time until a slug's badge is drawn (a paused view shows the step behind the newest)
-    let badge=false;
-    for(let i=0;i<12&&!badge;i++){await send(page,{type:'tick',hours:1});
-      badge=await page.waitForSelector('.badge[data-cause="slugs"]',{timeout:600}).then(()=>true,()=>false)}
+    // find the first hour slugs are out, then load the morning again and tick there in one jump: a paused view lands on
+    // the step behind the newest, the hour found, however slowly the page draws
+    const at=await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:1});if(s.nodes.some(n=>(n.levers.pests?.out??0)>=1))return s.hours}return null});
+    await send(page,{type:'load',save:JSON.stringify(save)});
+    if(at!==null)await send(page,{type:'tick',hours:at-save.hours+1});
+    await page.waitForFunction(h=>window.__sim.view().cur>=h,at??0,{timeout:10000}).catch(()=>{});
+    const badge=await page.waitForSelector('.badge[data-cause="slugs"]',{timeout:8000}).then(()=>true,()=>false);
     if(badge)await page.click('.badge[data-cause="slugs"]');
     const first=await page.waitForFunction(()=>document.querySelector('.card-overlay .explain')?.dataset.cause,null,{timeout:4000}).then(r=>r.jsonValue(),()=>null);
     ok('first minute: a tap on a slug’s badge opens the first Explain card, on slugs',first==='slugs',`badge ${badge}, card ${first}`);

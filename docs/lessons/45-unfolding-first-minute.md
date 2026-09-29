@@ -10,3 +10,4 @@
   - A page that now opens paused silently breaks every measurement that relied on its clock running. The `scene` check's garden copy read "over 0 ticks" and still passed. When a change alters what a new page does at load, read the logged figures of every check group, not just PASS and FAIL.
   - `pkill -f` with a pattern that also matches your own shell command kills the shell. Stop background runs by their task id instead.
   - Two background measurement loops running at once made each other's figures useless. Stop the old loop before starting the next A/B.
+  - A browser check that ticks an hour at a time and waits a fixed time for the page passed here and failed on CI's slower software renderer: the slugs had gone before the view caught up. Tick to the moment in one jump of more than four steps, then wait for the element, and try a new browser check once with the CPU throttled (6× reproduced CI's failure here) before trusting it.
