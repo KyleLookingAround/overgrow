@@ -3,6 +3,7 @@
 // in a bed, and the kitchen's ledger (src/sim/models/kitchen.ts), which keeps the first harvest, the first sale and the
 // share of the ask met at each meal. A milestone a later part brings has its line here already, without a `reached`:
 // that part fills it in, and until then the bot leaves it out of what it prints.
+import {gardenStatus, goalOf} from '../../src/sim/goal';
 import type {Snapshot} from '../../src/sim/state';
 import type {Diary} from './measure';
 
@@ -36,8 +37,12 @@ export const MILESTONES: readonly Milestone[] = [
   {id: 'first-sale', label: 'First sale', part: 3, reached: ({snap}) => snap.kitchen?.firstSale != null},
   {id: 'half-kitchen', label: "Half the kitchen's need met (a week)", part: 3, reached: ({snap}) => metWeek(snap) >= 0.5},
   // each upgrade in the shed, by its id, and the first of them
-  {id: 'first-upgrade', label: 'First upgrade', part: 6},
-  {id: 'allotment-offer', label: 'The allotment offer', part: 7},
+  {id: 'first-upgrade', label: 'First upgrade', part: 6, reached: ({snap}) => {
+    const kit = snap.nodes.find((n) => n.id === 'shed')?.levers.kit as {owned?: unknown[]; nematodes?: number} | undefined;
+    return !!kit && ((kit.owned?.length ?? 0) > 0 || (kit.nematodes ?? 0) > 0);
+  }},
+  // the offer's three requirements met over the garden's year (src/sim/goal.ts): the level's-end card
+  {id: 'allotment-offer', label: 'The allotment offer', part: 7, reached: ({snap}) => gardenStatus(goalOf({nodes: Object.fromEntries(snap.nodes.map((n) => [n.id, n]))} as never)).ready},
   {id: 'first-swap', label: 'First swap', part: 8},
   {id: 'second-plot', label: 'The second plot', part: 8},
 ];

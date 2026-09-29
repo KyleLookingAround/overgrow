@@ -5,7 +5,8 @@
 // scheme, and the top bar and panel working by keyboard alone. The top bar as a row (the owner's wins W2 and W11): one
 // row where it's 640 px or wider inside its padding, with the four speeds, and below that at most two rows with the speeds folded into one
 // button that cycles them, tapped on a touch page; safe areas kept clear on every side; and a tap on the map landing
-// through the layer over it (W12). Each page answers the first plan's card and shows every detail, the fullest the
+// through the layer over it (W12). Notices (the playable garden) never bury a phone's map: three at once show one, in a
+// line, over less than a quarter of the map at 390×844 and 320×568. Each page answers the first plan's card and shows every detail, the fullest the
 // chrome gets (src/data/unfold.ts).
 import {join} from 'node:path';
 
@@ -99,7 +100,7 @@ export default async function({ok,open:bare,out}){
   // the keyboard alone: tab to the pause button and press it, then to a place and open it
   {const {ctx,page,errs}=await open({width:1440,height:900});
     await page.waitForSelector('[data-sim="ready"]',{timeout:8000}).catch(()=>{});
-    const reach=async(test)=>{for(let i=0;i<30;i++){await page.keyboard.press('Tab');if(await page.evaluate(test))return true}return false};
+    const reach=async(test)=>{for(let i=0;i<40;i++){await page.keyboard.press('Tab');if(await page.evaluate(test))return true}return false};
     const toPause=await reach(()=>document.activeElement?.getAttribute('aria-label')==='Pause');
     if(toPause)await page.keyboard.press('Enter');
     // the top bar follows the map's frames, which software WebGL on CI draws a few times a second: wait for it
@@ -110,5 +111,14 @@ export default async function({ok,open:bare,out}){
     const shown=await page.evaluate(()=>document.querySelector('.place h3')?.textContent);
     const ring=await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle);
     ok('layout: by keyboard alone, pause the clock and open a place, with the focus shown',toPause&&paused&&toBed&&shown==='Bed 1'&&ring!=='none'&&!errs.length,`pause ${toPause}/${paused}, bed ${toBed}, shown ${shown}, outline ${ring} ${errs[0]||''}`);
+    await ctx.close()}
+  // notices on a phone: one at a time, one line, never most of the map
+  for(const [w,h] of [[390,844],[320,568]]){const {ctx,page,errs}=await open({width:w,height:h},{touch:true});
+    // the page makes a notice from a refusal the panel sent: three through the plan's select
+    await page.evaluate(()=>{for(const v of ['x1','x2','x3']){const sel=document.querySelector('#plan-bed-1');if(!sel)return;const o=document.createElement('option');o.value=v;sel.appendChild(o);sel.value=v;sel.dispatchEvent(new Event('change',{bubbles:true}))}});
+    await page.waitForSelector('.notice',{timeout:4000}).catch(()=>{});
+    const m=await box(page,'.map'),n=await box(page,'.notices'),count=await page.evaluate(()=>document.querySelectorAll('.notice').length),waiting=await page.evaluate(()=>document.querySelector('.notice-waiting')?.textContent??'');
+    const share=m&&n?(n.w*n.h)/(m.w*m.h):1;
+    ok(`layout: at ${w}×${h} three notices show one at a time, in a line, over less than a quarter of the map`,count===1&&share<0.25&&/\+[2-9]/.test(waiting)&&!errs.length,JSON.stringify({count,share:+share.toFixed(3),waiting,errs}));
     await ctx.close()}
 }

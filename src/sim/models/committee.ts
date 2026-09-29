@@ -24,7 +24,7 @@ import {
 } from '../../data/committee';
 import {WANTS} from '../../data/agency';
 import type {System} from '../clock';
-import type {Graph, GraphNode, LeverValue} from '../graph';
+import {touch, type Graph, type GraphNode, type LeverValue} from '../graph';
 import type {Rng} from '../random';
 import {agentOf, newRelation, nudged, RELATION, relationOf, siteGoodwill, type Agent, type Relation} from './agency';
 
@@ -221,6 +221,8 @@ export function writeCommittee(g: Graph, c: Committee) {
     setLever(n, RULES, c.rules);
     if (n.stocks[CAPITAL_STOCK]) n.stocks[CAPITAL_STOCK].amount = c.capital as never;
     if (n.stocks[GOODWILL_STOCK]) n.stocks[GOODWILL_STOCK].amount = siteGoodwill(Object.values(c.relations)) as never;
+    // set outside a flow, so the snapshot copies the node again (src/sim/graph.ts)
+    touch(g, n.id);
   }
   for (const [id, r] of Object.entries(c.relations)) {
     const node = Object.values(g.nodes).find((x) => agentOf(x)?.id === id);

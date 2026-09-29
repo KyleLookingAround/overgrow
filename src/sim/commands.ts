@@ -1,10 +1,14 @@
 // Commands: every way of changing the game, from the player, a manager or the bot alike. The UI never reaches into the
 // sim's state; it sends one of these and gets a snapshot back. Later commands follow the same shape: a `type`, and what
-// it acts on. Plans, policies and laws are levers a system declares on a node; upgrades belong to the system that sells
-// them. docs/systems/commands.md says how each is handled.
+// it acts on. Plans, policies and laws are levers a system declares on a node; what's bought belongs to the system that
+// sells it (the shed, src/sim/shed.ts). docs/systems/commands.md says how each is handled.
 import type {Speed} from '../data/ladder';
 import {SPEEDS} from '../data/ladder';
 import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
+import {kindOf} from './effects';
+import {gardenStatus, goalOf} from './goal';
+import {buyFlow} from './shed';
+import type {UpgradeId} from '../data/shed';
 import {levelClock, runStep, type System} from './clock';
 import {flowEffects, recordInto, Recorder} from './effects';
 import {applyFlow, mergeFlows, type Flow, type LeverValue, type NodeId} from './graph';
@@ -22,12 +26,14 @@ export type Command =
   | {type: 'speed'; speed: Speed}
   /** Set a lever a system has declared on a node: what to grow, when to water, a rule the people follow, a law. */
   | {type: 'plan' | 'policy' | 'law'; node: NodeId; lever: string; value: LeverValue}
-  /** Buy an upgrade from the system that offers it. */
-  | {type: 'upgrade'; id: string}
+  /** Buy something from the system that sells it (the shed's upgrades), once it has unfolded. */
+  | {type: 'buy'; id: string}
   /** Answer a card that's asked once a save: the first plan ('accept' the card's plan, or 'choose' to let the gardener
    *  follow the rotation), and the one "try faster" nudge ('yes' goes to 2×, 'no' leaves it). */
   | {type: 'card'; id: 'first-plan'; answer: 'accept' | 'choose'}
   | {type: 'card'; id: 'try-faster'; answer: 'yes' | 'no'}
+  /** The garden's year done: the allotment offer's requirements met (src/sim/goal.ts); 'ok' carries on playing. */
+  | {type: 'card'; id: 'year'; answer: 'ok'}
   /** A setting of the page's that's saved with the game ('details': show every number early). It changes no play. */
   | {type: 'setting'; key: string; value: LeverValue};
 
@@ -127,10 +133,22 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       else if (!SETTINGS[cmd.key]!.includes(cmd.value)) s.rejected = `${cmd.key} is ${SETTINGS[cmd.key]!.join(' or ')}`;
       else s.settings = {...s.settings, [cmd.key]: cmd.value};
       return s;
-    case 'upgrade': {
+    case 'buy': {
+      // an offer shows once it's worth having (src/data/unfold.ts): before, the shed doesn't sell it
+      if (!unfolded(s.seen, `shed.${cmd.id}`)) {
+        s.rejected = `the shed isn’t offering ${cmd.id} yet`;
+        return s;
+      }
       const r = ask(systems, s, cmd);
       s.rejected = r === undefined ? `no upgrade ${cmd.id}` : r;
-      if (r === null) s.upgrades.push(cmd.id);
+      if (r === null) {
+        s.upgrades = [...s.upgrades, cmd.id];
+        // the purchase is this command's flow and effect: the map shows the thing in use, and money unfolds if it hadn't
+        s.flows = [buyFlow(cmd.id as UpgradeId)];
+        s.effects = [{kind: kindOf('buying'), cause: 'buying', at: 'shed', amount: 1, unit: cmd.id}];
+        const fresh = revealed(s.seen, ['buying']);
+        if (fresh.length) s.seen = [...s.seen, ...fresh];
+      }
       return s;
     }
   }
@@ -145,9 +163,14 @@ const seeOnce = (s: State, key: string) => void (s.seen.includes(key) || (s.seen
 
 /** A card's answer: each card is answered once a save, and the first plan's clock starts with it. */
 function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readonly System[]): State {
-  const key = cmd.id === 'first-plan' ? CARDS.firstPlan : cmd.id === 'try-faster' ? CARDS.tryFaster : null;
+  const key = cmd.id === 'first-plan' ? CARDS.firstPlan : cmd.id === 'try-faster' ? CARDS.tryFaster : cmd.id === 'year' ? CARDS.year : null;
   if (!key) s.rejected = `no card ${String(cmd.id)}`;
   else if (s.seen.includes(key)) s.rejected = 'that’s been answered';
+  else if (cmd.id === 'year') {
+    if (!gardenStatus(goalOf(s.graph)).ready) s.rejected = 'the garden’s year isn’t done yet';
+    else if (cmd.answer !== 'ok') s.rejected = 'ok';
+    else seeOnce(s, key);
+  }
   else if (cmd.id === 'first-plan') {
     if (s.hours > 0) s.rejected = 'the first plan’s already under way';
     else if (cmd.answer !== 'accept' && cmd.answer !== 'choose') s.rejected = 'accept or choose';

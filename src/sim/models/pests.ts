@@ -199,6 +199,8 @@ function slugDay(c: TickContext, days: WeatherDay[], mean: number) {
     const died = Math.min(P, P * (SLUGS.die + (m < 0.3 ? SLUGS.dry : 0) + (frost ? SLUGS.frost : 0)) * n);
     if (born > 1e-9) c.flow({what: 'slugs breeding', unit: 'pests', product: 'slugs', amount: qty(born, 'pests'), from: {boundary: 'growth'}, to: {node: x.id, stock: SLUG_KEY}});
     if (died > 1e-9) c.flow({what: 'slugs dying', unit: 'pests', product: 'slugs', amount: qty(died, 'pests'), from: {node: x.id, stock: SLUG_KEY}, to: {boundary: 'decay'}});
+    // a bed carrying many more slugs than it started with: they're getting the upper hand (nematodes are worth having)
+    if (!isLawn && slugsOn(x) > SLUGS.thriving * areaOf(x)) note(c, 'slugs thriving', x.id, slugsOn(x), 'slugs');
   }
   // on a wet night slugs leave the lawn's edge for the planted beds, and a bed with nothing in it for the lawn
   if (!lawn || !(wet || moisture(lawn) >= 0.85)) return;

@@ -3,13 +3,14 @@
 // player back named and what raises it (src/ui/goal.ts). It gives way to any card or notice over the map (win W5), and
 // on a narrow map drops its three small meters.
 import type {Snapshot} from '../sim/state';
-import {goalLine, valueText} from './goal';
+import {goalLine, PRIZE, valueText} from './goal';
 
 export function GoalBar({snap}: {snap: Snapshot}) {
   const g = goalLine(snap);
   return (
     <section class="goal-bar" aria-label="The goal">
       <p class="goal-text">{g.text}</p>
+      {g.rows && <p class="goal-prize soft">{PRIZE}</p>}
       {g.rows && (
         <div class="goal-rows">
           {g.rows.map((r) => (

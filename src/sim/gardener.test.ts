@@ -89,7 +89,7 @@ describe('gardener', () => {
     const {acts} = play(sim, 2);
     expect(acts.some((a) => a.doing === 'water')).toBe(true);
     expect(sim.apply({type: 'plan', node: GARDENER, lever: 'waterBelow', value: 2}).rejected).toMatch(/moisture/);
-    expect(sim.apply({type: 'plan', node: 'bed-1', lever: 'sow', value: 'turnips'}).rejected).toMatch(/no crop/);
+    expect(sim.apply({type: 'plan', node: 'bed-1', lever: 'sow', value: 'turnips'}).rejected).toMatch(/no summer crop/);
     expect(sim.apply({type: 'plan', node: 'bed-1', lever: 'crop', value: null}).rejected).toMatch(/garden's/);
     expect(sim.apply({type: 'plan', node: GARDENER, lever: 'day', value: null}).rejected).toMatch(/aren’t the plan’s/);
   });

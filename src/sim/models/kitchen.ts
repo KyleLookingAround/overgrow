@@ -21,7 +21,7 @@
 //   household's veg the garden grows, week by week, and the food wasted along the way.
 import {CROPS, type Group} from '../../data/crops';
 import {BASKET, FOOD_GROUPS, VEG, type FoodGroup} from '../../data/household';
-import {BOX, KEEP_DAYS, MEAL_HOUR, STRETCH} from '../../data/kitchen';
+import {BOX, KEEP_DAYS, MEAL_HOUR, STORE, STRETCH} from '../../data/kitchen';
 import {calendar, type System, type TickContext} from '../clock';
 import {note} from '../effects';
 import {qty, type Graph, type GraphNode, type LeverValue} from '../graph';
@@ -109,14 +109,16 @@ const inGroup = (group: Group) => PRODUCTS.filter((c) => c.group === group).sort
 const stockOf = (n: GraphNode, product: string) => n.stocks[`food.${product}`]?.amount ?? 0;
 
 /** What's in the kitchen beyond what the household will eat while it's fresh, by product: the gardener carries it to the
- *  honesty box. The kitchen keeps a group's stretched ask for half each product's shelf life, up to three weeks. */
+ *  honesty box. The kitchen keeps a group's stretched ask for half each product's shelf life, up to three weeks, and what
+ *  stores (STORE) for up to five months. */
 export function surplus(k: GraphNode, ask: Record<Group, number>): {product: string; kg: number}[] {
   const out: {product: string; kg: number}[] = [];
   for (const group of VEG) {
-    let room = ask[group] * STRETCH * KEEP_DAYS;
+    let room = ask[group] * STRETCH * STORE.days;
     // the longest-keeping first, each for as long as it keeps
     for (const c of inGroup(group).reverse()) {
-      const have = stockOf(k, c.product), keep = Math.min(have, room, ask[group] * STRETCH * Math.min(KEEP_DAYS, c.keeps.kitchen / 2));
+      const cap = c.keeps.kitchen >= STORE.keeps ? STORE.days : KEEP_DAYS;
+      const have = stockOf(k, c.product), keep = Math.min(have, room, ask[group] * STRETCH * Math.min(cap, c.keeps.kitchen / 2));
       room -= keep;
       if (have - keep > 0.05) out.push({product: c.product, kg: have - keep});
     }

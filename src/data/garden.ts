@@ -56,6 +56,12 @@ export const BUTT_LITRES = {cap: 200, start: 100};
 export const ROOF = {place: 'shed', to: 'butt', m2: 2.25 * 1.75, runoff: 0.85};
 /** Money in the household's purse on day 1, £. */
 export const START_MONEY = 20;
+/** Digging a bed out of the lawn: £ a m² for edging boards to hold the lawn back (a 2 × 1.5 m bed's seven metres of
+ *  treated board, about £9), and the flush of CO₂ from the soil's organic matter that turning it over exposes, kg CO₂e
+ *  a m² (mouldboard tillage releases about 30 g CO₂ a m² in the weeks after; Reicosky & Lindstrom 1993, "Fall tillage
+ *  method: effect on short-term carbon dioxide flux from soil"). The slower loss, bare dug ground's organic matter
+ *  decaying faster than grass's for years, is the soil model's. */
+export const DIG = {gbpPerM2: 1.5, flushPerM2: 0.03};
 
 /** The ways between places and what each carries: water by can or hose, food and scraps by hand, and waste to the heap
  *  and compost back to the beds with their carbon, nitrogen, phosphorus and potassium. (Every place's carbon also has a

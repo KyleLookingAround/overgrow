@@ -295,22 +295,24 @@ describe('the step-up offer', () => {
   const cycle = (o: number, r: number, hp: number, full = true) => ({totals: totals({output: o, reliability: r, health: hp}), days: full ? 371 : 100, full});
 
   it('is the spec\'s proposal as data', () => {
-    expect(STEP_UP[1]).toEqual({from: 1, output: 1.5, reliability: 60, health: 50});
+    expect(STEP_UP[1]).toEqual({from: 1, output: 0.25, reliability: 35, health: 50});
   });
 
+  // the rules' own shape, apart from the garden's figures (src/data/ladder-rules.ts): the spec's first proposal
+  const RULES = {from: 1, output: 1.5, reliability: 60, health: 50};
   it('is ready when all three are met over a full cycle, at the edges too', () => {
-    expect(stepUpStatus(cycle(1.5, 60, 50)).ready).toBe(true);
-    expect(stepUpStatus(cycle(1.49, 60, 50)).ready).toBe(false);
-    expect(stepUpStatus(cycle(1.5, 59.9, 50)).ready).toBe(false);
-    expect(stepUpStatus(cycle(1.5, 60, 49.9)).ready).toBe(false);
-    expect(stepUpStatus(cycle(3, 90, 80)).binding).toBeNull();
+    expect(stepUpStatus(cycle(1.5, 60, 50), RULES).ready).toBe(true);
+    expect(stepUpStatus(cycle(1.49, 60, 50), RULES).ready).toBe(false);
+    expect(stepUpStatus(cycle(1.5, 59.9, 50), RULES).ready).toBe(false);
+    expect(stepUpStatus(cycle(1.5, 60, 49.9), RULES).ready).toBe(false);
+    expect(stepUpStatus(cycle(3, 90, 80), RULES).binding).toBeNull();
   });
 
   it('names the requirement furthest from its target, first', () => {
-    expect(stepUpStatus(cycle(0.5, 70, 60)).binding?.key).toBe('output');
-    expect(stepUpStatus(cycle(2, 30, 60)).binding?.key).toBe('reliability');
-    expect(stepUpStatus(cycle(2, 70, 20)).binding?.key).toBe('health');
-    const s = stepUpStatus(cycle(1.2, 45, 45)); // shortfalls 20 %, 25 %, 10 %
+    expect(stepUpStatus(cycle(0.5, 70, 60), RULES).binding?.key).toBe('output');
+    expect(stepUpStatus(cycle(2, 30, 60), RULES).binding?.key).toBe('reliability');
+    expect(stepUpStatus(cycle(2, 70, 20), RULES).binding?.key).toBe('health');
+    const s = stepUpStatus(cycle(1.2, 45, 45), RULES); // shortfalls 20 %, 25 %, 10 %
     expect(s.requirements.map((r) => r.key)).toEqual(['reliability', 'output', 'health']);
     expect(s.binding).toMatchObject({key: 'reliability', met: false});
     expect(s.binding!.shortfall).toBeCloseTo(0.25, 9);

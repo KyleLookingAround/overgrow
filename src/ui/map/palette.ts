@@ -4,6 +4,7 @@ const NAMES = [
   'butt', 'water', 'tap', 'heap-rim', 'heap', 'person', 'skin', 'hat', 'night', 'frost', 'rain',
   'drill', 'leaf', 'leaf-light', 'leaf-dark', 'wilt', 'blackened', 'fruit-red', 'fruit-pink', 'gate', 'gate-slot', 'can', 'basket', 'bags', 'compost',
   'slug', 'slime', 'aphid', 'blight', 'bee', 'bee-stripe', 'ladybird', 'ladybird-spot', 'cat', 'torch', 'marigold', 'pulse',
+  'frame', 'frame-edge', 'bin', 'trap', 'hose',
 ] as const;
 export type Swatch = (typeof NAMES)[number];
 

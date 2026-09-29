@@ -13,6 +13,8 @@
 export const SLUGS = {
   /** Slugs to a m² of dug bed, and in the whole lawn's edge, on day 1. */
   start: {perM2: 4, edge: 100},
+  /** Slugs a m² of bed past which they're thriving: three times the start. */
+  thriving: 12,
   /** The most a bed holds a m², and the lawn's edge in all. */
   cap: {perM2: 30, edge: 400},
   /** Eggs hatching: a share of the population a day in mild (5–20 °C), moist weather, most in spring and autumn and a

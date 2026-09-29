@@ -51,6 +51,8 @@ export function diff(prev: Snapshot | null, next: Snapshot): SnapshotDelta {
   for (let i = 0; i < nodes.length; i++) {
     const a = prev.nodes[i]!, b = nodes[i]!;
     if (a.id !== b.id) return whole();
+    // the sim hands back the same copy of a node that hasn't changed (src/sim/state.ts)
+    if (a === b) continue;
     const s = stockChanges(a.stocks, b.stocks), l = !sameLevers(a.levers, b.levers), t = !sameTotals(a.totals, b.totals);
     if (s || l || t) changed.push({id: b.id, ...s, ...(l && {levers: b.levers}), ...(t && {totals: b.totals})});
   }

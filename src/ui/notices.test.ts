@@ -1,22 +1,31 @@
 import {describe, expect, it} from 'vitest';
-import {current, NOTICE_CAP, NOTICE_MS, push, type Notice, unfoldSign} from './notices';
+import {current, NOTICE_MS, NOTICE_QUEUE, push, shownOf, type Notice, unfoldSign} from './notices';
 
 describe('notices', () => {
-  it('shows at most the cap, newest kept, and lets informational ones expire', () => {
+  it('shows one at a time, queues the rest, and times each from when it shows', () => {
     let list: Notice[] = [];
-    for (let i = 0; i < 5; i++) list = push(list, {id: i, text: `n${i}`, at: i * 100});
-    expect(list).toHaveLength(NOTICE_CAP);
-    expect(list.map((n) => n.text)).toEqual(['n3', 'n4']);
-    expect(current(list, 400 + NOTICE_MS)).toEqual([]);
+    for (let i = 0; i < 3; i++) list = push(list, {id: i, text: `n${i}`, at: i * 100});
+    expect(shownOf(list).map((n) => n.text)).toEqual(['n0']);
+    expect(list.map((n) => n.text)).toEqual(['n0', 'n1', 'n2']);
+    // the head goes after its time, and the next starts its own then
+    list = current(list, NOTICE_MS);
+    expect(shownOf(list).map((n) => n.text)).toEqual(['n1']);
+    expect(list[0]!.at).toBe(NOTICE_MS);
+    expect(current(list, NOTICE_MS + 10)[0]!.at).toBe(NOTICE_MS);
+    expect(current(list, NOTICE_MS + NOTICE_MS - 1).map((n) => n.text)).toEqual(['n1', 'n2']);
+    expect(current(list, 3 * NOTICE_MS)).toEqual([]);
   });
-  it('keeps a choice until it is answered, and never stacks the same text', () => {
+  it('keeps a choice until it is answered, never stacks the same text, and drops the oldest waiting past the queue', () => {
     let list: Notice[] = push([], {id: 1, text: 'Pick one', choice: true, at: 0});
     list = push(list, {id: 2, text: 'a', at: 10});
     list = push(list, {id: 3, text: 'b', at: 20});
-    expect(list.map((n) => n.text)).toEqual(['Pick one', 'b']);
     list = push(list, {id: 4, text: 'b', at: 30});
-    expect(list.map((n) => n.id)).toEqual([1, 4]);
-    expect(current(list, 1e9).map((n) => n.id)).toEqual([1]);
+    expect(list.map((n) => n.id)).toEqual([1, 2, 4]);
+    expect(current(list, 1e9).map((n) => n.id)).toEqual([1, 2, 4]);
+    for (let i = 5; i < 10; i++) list = push(list, {id: i, text: `n${i}`, at: 40 + i});
+    expect(list).toHaveLength(NOTICE_QUEUE);
+    expect(list[0]!.id).toBe(1);
+    expect(list.at(-1)!.id).toBe(9);
   });
 });
 

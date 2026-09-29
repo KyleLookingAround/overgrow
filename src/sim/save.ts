@@ -10,7 +10,7 @@ import type {State} from './state';
 /** The one key the game saves under (the project notes). */
 export const SAVE_KEY = 'overgrow-save-v1';
 /** The version this build writes. Raise it whenever the saved shape changes (with a migration step once released). */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /** What's written: the state less what's runtime only, with the generator's state in place of the generator. */
 export type SaveFile = Omit<State, 'rng' | 'rejected' | 'errors' | 'effects'> & {version: number; rng: number};
