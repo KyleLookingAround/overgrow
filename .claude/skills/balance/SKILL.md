@@ -5,22 +5,21 @@ description: Measure and tune Overgrow's pacing and economy with the bot on seed
 
 # Balance
 
-The bot doesn't exist yet: the first slice builds it with the back garden (the founding spec, "The bot"). Until then this playbook is the contract that slice builds to. When it lands, it fills in the commands and the baselines below and deletes this paragraph.
-
 ## What the bot is
 
-- `tools/bot.ts` plays the game headless in Node through `createSim()` and the same commands the player uses, making the choices a sensible player would; `npm run bot -- <game time> --seed <n>` drives it.
-- It prints, at the end: `SEED`, `REACHED {milestone: game time}` (each level's step up, and the spec's milestones inside a level), `PLAY` (a fingerprint of the saved state that affects play), `ERR [...]`, and a table against `tools/baseline.json`.
+- `tools/bot.ts` plays the game headless in Node through `createSim()` and the same commands the player uses, making the choices a sensible player would; `npm run bot -- <game time> --seed <n>` drives it (`120d`, `2w`, `1y` or `36h`; `--seed` again for more seeds; `--player <name>`; `--markdown <file>` and `--json <file>` keep the table and the runs). `docs/SYSTEMS.md` ("The bot") says how it's built.
+- It prints, per seed: `SEED`, `REACHED {milestone: game day}` (each level's step up, and the spec's milestones inside a level), `PLAY` (a fingerprint of the saved state that affects play: the save less the speed and what's been seen), `ERR [...]`; then one table of every seed and their mean against `tools/baseline.json`. It exits 1 only on an `ERR`.
+- A milestone is one line in `tools/bot/milestones.ts`, a player's choice one policy in `tools/bot/player.ts`: a part that brings a milestone or a choice (the pest policy, the shop, the allotment offer) fills in its line.
 - The same seed and code always give the same run. Any change to the code can shift the dice, so judge a change on several seeds, before and after.
 - It must also play a long headless game (the spec says how long) without errors: `src/sim/index.test.ts` plays two game years on every check.
 
 ## 1. Before
 
-On the branch's starting point (usually `main`), run seeds 1, 2 and 3 side by side in the background (`nohup … > build/before-$s.log 2>&1 &`) and keep each log's last lines.
+On the branch's starting point (usually `main`, built in a `git worktree` so the build doesn't disturb yours), run seeds 1, 2 and 3: `npm run bot -- 120d --seed 1 --seed 2 --seed 3 > build/before.log`. The garden's 120 days take about a second a seed, so there's no need to run them in the background yet.
 
 ## 2. Change, then after
 
-Make the change, rebuild, and run the same three seeds into `build/after-$s.log`.
+Make the change and run the same three seeds into `build/after.log`.
 
 ## 3. Compare
 
@@ -37,7 +36,7 @@ Make the change, rebuild, and run the same three seeds into `build/after-$s.log`
 
 ## Tips
 
-- Once the Balance workflow exists (it comes with the bot), it runs the seeds on a PR once when it opens or leaves draft, and again when the `balance` label is added. Report its tables rather than repeating the runs, unless you're tuning.
+- The Balance workflow (`balance.yml`) runs the seeds on a PR once when it opens or leaves draft, and again when the `balance` label is added; its table is in the run's summary. Report its tables rather than repeating the runs, unless you're tuning. Add the label again after a tuning push to re-run it.
 - Tune a constant only inside the rough size its model's sources give (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`); outside it is a design change for the owner.
 - A part of a split feature reports its numbers and tunes only outside 15% of the baselines; the whole feature is rebalanced once, with every part in.
 - A level zoomed out is fed by the level below's numbers (the spec's carry-over rule), so a change to the garden can move the allotment's pacing too: compare every milestone, not only the one you changed.
