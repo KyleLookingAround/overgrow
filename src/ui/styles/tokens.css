@@ -56,6 +56,18 @@
   --map-can: #5f8fa8; /* the watering can */
   --map-basket: #c99a58; /* the basket of produce */
   --map-compost: #3a2a19; /* a bucket of compost or waste */
+  --map-slug: #4b3a26; /* a slug on the move */
+  --map-slime: #e6ecf0b3; /* the silvery trail it leaves */
+  --map-aphid: #1f2a1c; /* black bean aphids clustered on the tips */
+  --map-blight: #6b4a26; /* leaves browned by blight */
+  --map-bee: #e2b43a;
+  --map-bee-stripe: #2a2218;
+  --map-ladybird: #d2352a;
+  --map-ladybird-spot: #1b1512;
+  --map-cat: #6b6560; /* the neighbour's cat */
+  --map-torch: #ffe9a8; /* the gardener's torch after dark */
+  --map-marigold: #f08a1c; /* French marigolds in bloom */
+  --map-pulse: #ffffff; /* the ring at the place an Explain card is about */
 
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -80,6 +92,15 @@
   --focus-ring: 3px;
   --meter-w: 6rem; /* the gardener's hours and the kitchen's groups */
   --meter-h: 0.8rem;
+  --card-w: 26rem; /* the overlay card (Explain) over the map */
+  --card-max-h: 80%;
+  --card-shadow: 0 6px 24px #00000033;
+  --badge: 26px; /* a map badge's drawn disc; its touch target is --touch */
+  --badge-bg: #fffdf7;
+  --badge-ink: #1e2a22;
+  --badge-line: 1.8; /* a badge icon's stroke, in its 24-unit drawing */
+  --notice-bg: #1e2a22;
+  --notice-ink: #fffdf7;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -93,6 +114,10 @@
     --focus: #8ab8ff;
     --sink: #5db06f;
     --source: #e0874f;
+    --badge-bg: #1c2620;
+    --badge-ink: #eee8d8;
+    --notice-bg: #eee8d8;
+    --notice-ink: #131a15;
 
     --map-edge: #3f5f33;
     --map-lawn: #5f8a4c;
@@ -127,5 +152,15 @@
     --map-can: #4c7489;
     --map-basket: #a07b46;
     --map-compost: #2a1e12;
+    --map-slug: #6a5238;
+    --map-slime: #c7d0d699;
+    --map-aphid: #10160f;
+    --map-blight: #5a3e20;
+    --map-bee: #c79d2e;
+    --map-ladybird: #b52d24;
+    --map-cat: #8a837c;
+    --map-torch: #ffe39a;
+    --map-marigold: #d57818;
+    --map-pulse: #f4efe3;
   }
 }

@@ -1,6 +1,9 @@
 /* The page's skeleton: the top bar across the top, the map filling the rest, and the panel beside it on wide screens
    and tablets, below it as a sheet on portrait phones, and beside a narrower map on a phone on its side. No page
-   scroll and no sideways overflow at any size; the panel scrolls inside itself. Every size and colour is a token. */
+   scroll and no sideways overflow at any size; the panel scrolls inside itself. Every size and colour is a token.
+   Screen-width media queries choose only the sheet or the side panel; everything inside steps by its own container's
+   width (the top bar, the map, the panel: the owner's win W2), and the safe areas are kept clear on every side. The
+   steps' widths are written in the queries, since a custom property can't be used in a query's condition. */
 * {
   box-sizing: border-box;
 }
@@ -20,6 +23,7 @@ body {
 .page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .visually-hidden {
   position: absolute;
@@ -59,10 +63,24 @@ button[aria-pressed='true'] {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--gap-small) var(--gap);
-  padding: var(--gap-small) var(--gap);
+  padding: max(var(--gap-small), env(safe-area-inset-top)) var(--gap) var(--gap-small);
   background: var(--panel);
   border-bottom: 1px solid var(--line);
   min-height: calc(var(--touch) + 2 * var(--gap-small));
+  container: topbar / inline-size;
+}
+/* a button that reads as the value it shows: the money, the dial, a panel's number */
+button.plain,
+button.num {
+  background: none;
+  border-color: transparent;
+  padding: 0 var(--gap-tiny);
+}
+button.num {
+  font-variant-numeric: tabular-nums;
+  text-decoration: underline dotted var(--soft);
+  text-underline-offset: 3px;
+  min-width: 0;
 }
 .level {
   font-weight: 700;
@@ -103,8 +121,13 @@ button[aria-pressed='true'] {
   gap: var(--gap-tiny);
   margin-left: auto;
 }
-.speed {
+.speed,
+.speed-cycle {
   font-variant-numeric: tabular-nums;
+}
+.speed-cycle {
+  display: none;
+  margin-left: auto;
 }
 .pause {
   font-size: var(--text-small);
@@ -123,6 +146,149 @@ button[aria-pressed='true'] {
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  container: map / inline-size;
+}
+/* what sits over the map lets taps through to it (the owner's win W12): only its buttons and cards take them */
+.map-over,
+.badges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.badge,
+.card-overlay,
+.notice {
+  pointer-events: auto;
+}
+.badge {
+  position: absolute;
+  width: var(--touch);
+  height: var(--touch);
+  min-width: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+}
+.badge svg {
+  width: var(--badge);
+  height: var(--badge);
+  padding: var(--gap-tiny);
+  border-radius: 50%;
+  background: var(--badge-bg);
+  box-shadow: var(--card-shadow);
+  fill: none;
+  stroke: var(--badge-ink);
+  stroke-width: var(--badge-line);
+  stroke-linecap: round;
+}
+.badge-aphids svg,
+.badge-flowers svg {
+  fill: var(--badge-ink);
+}
+/* the one overlay card (the owner's win W13): over the foot of the map, clear of the safe areas */
+.card-overlay {
+  position: absolute;
+  left: var(--gap);
+  right: var(--gap);
+  bottom: var(--gap);
+  max-width: var(--card-w);
+  max-height: var(--card-max-h);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+}
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--gap-small);
+  padding: var(--gap-small) var(--gap-small) 0 var(--gap);
+}
+.card-kicker {
+  margin: var(--gap-tiny) 0 0;
+  font-size: var(--text-small);
+  color: var(--soft);
+}
+.card-title {
+  margin: 0;
+  font-size: var(--text-heading);
+}
+.card-body {
+  overflow: auto;
+  padding: 0 var(--gap);
+  min-height: 0;
+}
+.card-foot {
+  padding: var(--gap-small) var(--gap) max(var(--gap-small), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+}
+.card-foot p,
+.explain p {
+  margin: var(--gap-tiny) 0;
+}
+.explain-rows {
+  margin: var(--gap-small) 0;
+}
+.explain-rows div {
+  display: grid;
+  grid-template-columns: 5.5em 1fr;
+  gap: var(--gap-small);
+  padding: var(--gap-tiny) 0;
+  border-top: 1px solid var(--line);
+}
+.explain-rows dt {
+  color: var(--soft);
+}
+.explain-rows dd {
+  margin: 0;
+}
+/* a narrow map: the card takes its full width */
+@container map (max-width: 420px) {
+  .card-overlay {
+    left: var(--gap-tiny);
+    right: var(--gap-tiny);
+    bottom: var(--gap-tiny);
+  }
+  .explain-rows div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+.notices {
+  position: absolute;
+  top: var(--gap-small);
+  left: var(--gap-small);
+  right: var(--gap-small);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap-tiny);
+}
+.notice {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+  margin: 0;
+  padding: 0 0 0 var(--gap);
+  max-width: var(--card-w);
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  border-radius: var(--radius);
+  font-size: var(--text-small);
+}
+.notice span {
+  overflow-wrap: anywhere;
+}
+.notice-close {
+  background: none;
+  color: inherit;
+  border: 0;
 }
 .map canvas {
   position: absolute;
@@ -136,6 +302,7 @@ button[aria-pressed='true'] {
   min-height: 0;
   background: var(--panel);
   border-top: 1px solid var(--line);
+  container: panel / inline-size;
 }
 .panel-head {
   display: flex;
@@ -273,12 +440,58 @@ select {
 .held p {
   margin: 0;
 }
+.bed-plan label.check,
+.check {
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+  min-height: var(--touch);
+  font-size: var(--text-small);
+}
+.check input {
+  width: calc(var(--touch) / 2);
+  height: calc(var(--touch) / 2);
+  margin: 0;
+}
+.lately {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-tiny);
+}
+.effect {
+  font-size: var(--text-small);
+  text-align: left;
+}
+.place dd {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+/* a narrow panel: a place's rows stack their label over the value */
+@container panel (max-width: 260px) {
+  .place .row {
+    flex-wrap: wrap;
+  }
+}
 
 /* the air's temperature beside the date only where the top bar has room for it: on a phone held upright it would push
-   the speeds onto a third row */
-@media (max-width: 479px) {
+   the speeds onto a third row, and on one on its side onto a second */
+@container topbar (max-width: 599px) {
   .temp {
     display: none;
+  }
+}
+/* a narrow top bar: the four speeds fold into one button that cycles them (the owner's win W11) */
+@container topbar (max-width: 639px) {
+  .speeds {
+    display: none;
+  }
+  .speed-cycle {
+    display: inline-block;
   }
 }
 /* a portrait phone: the panel is a sheet below the map, never more than part of the screen */

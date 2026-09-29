@@ -4,7 +4,9 @@
 // them. docs/systems/commands.md says how each is handled.
 import type {Speed} from '../data/ladder';
 import {SPEEDS} from '../data/ladder';
+import {gateOf, UNFOLD, unfolded} from '../data/unfold';
 import {levelClock, runStep, type System} from './clock';
+import {flowEffects, recordInto, Recorder} from './effects';
 import {applyFlow, mergeFlows, type Flow, type LeverValue, type NodeId} from './graph';
 import {fromSave} from './save';
 import {newState, type State} from './state';
@@ -32,10 +34,12 @@ function ask(systems: readonly System[], s: State, cmd: Command): string | null 
   return undefined;
 }
 
-/** Runs whole steps of the clock, collecting the flows they moved and any that couldn't. */
+/** Runs whole steps of the clock, collecting the flows they moved, any that couldn't, and every effect with its cause and
+ *  place (src/sim/effects.ts). */
 function tick(s: State, systems: readonly System[], hours: number) {
   const step = levelClock(s.level).stepHours, steps = Math.floor(hours / step + 1e-9);
-  const flows: Flow[] = [], errors: string[] = [];
+  const flows: Flow[] = [], errors: string[] = [], effects = new Recorder();
+  recordInto(s.graph, effects);
   const ctx = {
     dt: step, level: s.level, graph: s.graph,
     flow: (f: Flow) => {
@@ -51,7 +55,13 @@ function tick(s: State, systems: readonly System[], hours: number) {
     s.rng.next(); // the main stream moves once a step, so adding a system never changes its draws
     s.activities = s.activities.filter((a) => a.end >= s.hours - step);
   }
+  recordInto(s.graph, null);
   s.flows = mergeFlows(flows);
+  // each flow is an effect of its `what` at its place, and the systems' events besides
+  s.effects = flowEffects(s.graph, s.flows).concat(effects.list());
+  // an instrument unfolds the first time one of its causes happens (src/data/unfold.ts)
+  for (const [key, u] of Object.entries(UNFOLD))
+    if (!s.seen.includes(key) && s.effects.some((e) => u.causes.includes(e.cause))) s.seen = [...s.seen, key];
   s.errors = errors;
 }
 
@@ -81,6 +91,7 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       const n = s.graph.nodes[cmd.node];
       if (!n) s.rejected = `no node ${cmd.node}`;
       else if (!(cmd.lever in n.levers)) s.rejected = `${n.name} has no ${cmd.type} lever ${cmd.lever}`;
+      else if (gateOf(cmd.lever, cmd.value) && !unfolded(s.seen, gateOf(cmd.lever, cmd.value)!)) s.rejected = `that hasn’t come up in the garden yet`;
       else {
         const r = ask(systems, s, cmd);
         if (r) s.rejected = r;
