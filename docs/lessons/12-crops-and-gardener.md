@@ -1,6 +1,6 @@
-# Crops and the gardener, the first slice's part 3 (#8) · 29 Sep 2026
+# Crops and the gardener, the first slice’s part 3 (#12) · 29 Sep 2026
 
-- **Numbers:** estimate $25; no cost figure had reached the session when the PR opened (read as unknown, not free). Session started 02:28 UTC, PR opened about 03:30 UTC. One `needs-owner` question (#11, the crop pace), asked while building, with the real pace as the default. Two commits before opening, the second acting on the fresh review; CI rounds and merges from `main` are counted at the merge.
+- **Numbers:** estimate $25; no cost figure had reached the session when the PR opened (read as unknown, not free). Session started 02:28 UTC, PR opened about 03:40 UTC. One `needs-owner` question (#11, the crop pace), asked while building, with the real pace as the default. Three commits before opening, the last acting on the fresh review (three real bugs: a frost re-making a ripe potato crop, butt water spent by a job that didn’t fit, and a re-plan dropping half a job); CI rounds and merges from `main` are counted at the merge.
 - **Went well:**
   - Probing the whole garden headless on seeds 1–3 before writing a test put the pacing question in front of the owner early: at real degree days a mid-March sowing gives a first harvest on day 27–34, not the spec's day 7. The ADR on rough numbers made the call clear (outside the sources' range is the owner's), so the session asked (#11), took the safer default and kept building, with the pace as one constant.
   - Keeping every piece of system state as a lever that's replaced, never changed in place (the crop, the gardener's day, the kitchen's ledger), let the worker's deltas, the save and the conservation test carry it with no new machinery.
