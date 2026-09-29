@@ -9,6 +9,10 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ## The lessons
 
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
+### Coordinator
+
+- [The first slice's first coordinator · 28–29 Sep 2026 (#28)](lessons/28-first-coordinator.md)
+
 ### Model
 
 - [The carry-over rule's maths, ahead of part 7 (#20) · 29 Sep 2026](lessons/20-sealing-maths.md)
