@@ -20,7 +20,13 @@ export interface Notice {
   actions?: {label: string; run: () => void}[];
   /** When it was queued, ms, and once it's at the head of the queue, when it was first shown. */
   at: number;
+  /** The game day it's about: an informational notice not shown by the end of its day is dropped, never shown on a
+   *  later day (a choice waits until it's answered). */
+  day?: number;
 }
+
+/** The queue as it stands on a game day: informational notices from earlier days gone, unshown. */
+export const today = (list: readonly Notice[], day: number) => list.filter((n) => n.choice || n.day === undefined || n.day >= day);
 
 /** One shown at a time; the most waiting behind it; how long an informational one shows, ms. */
 export const NOTICE_CAP = 1, NOTICE_QUEUE = 4, NOTICE_MS = 6000;

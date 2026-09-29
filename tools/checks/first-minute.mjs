@@ -103,17 +103,19 @@ export default async function({ok,open,out}){
     await page.click('#tab-garden').catch(()=>{});
     // no nudge in the first minute
     const early=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)));
-    // after the first harvest, at 1×: the nudge once, gone when answered, never back
-    await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null)break}});
+    // once the first minute is over and the first cut is in, before the wait for the spring sowings: the nudge once at 1×,
+    // gone when answered, never back (other choices, a frost's or a bed's, may wait in the queue beside it)
+    await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null&&s.hours>60)break}});
     await send(page,{type:'speed',speed:1});
     // the nudge waits its turn in the queue behind the fortnight's signs
-    const nudge=await page.waitForSelector('.notice-action',{timeout:30000}).then(()=>true,()=>false);
-    if(nudge)await page.click('.notice-action');
+    const nudgeSel='button.notice-action:text-is("Try 2×")';
+    const nudge=await page.waitForSelector(nudgeSel,{timeout:30000}).then(()=>true,()=>false);
+    if(nudge)await page.click(nudgeSel);
     const s3=await snap(page);
     await send(page,{type:'speed',speed:1});
     await page.waitForTimeout(600);
-    const back=await page.evaluate(()=>!!document.querySelector('.notice-action'));
-    ok('first minute: no “try faster” nudge in the first minute; after the first harvest it shows once at 1× and goes when answered',
+    const back=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)));
+    ok('first minute: no “try faster” nudge in the first minute; once it’s over it shows once at 1× and goes when answered',
       !early&&nudge&&s3.speed===2&&s3.seen.includes('card.try-faster')&&!back&&!errs.length,JSON.stringify({early,nudge,speed:s3.speed,back,err:errs[0]}));
     await ctx.close()}
 

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {current, NOTICE_MS, NOTICE_QUEUE, push, shownOf, type Notice, unfoldSign} from './notices';
+import {current, NOTICE_MS, NOTICE_QUEUE, push, shownOf, type Notice, unfoldSign, today} from './notices';
 
 describe('notices', () => {
   it('shows one at a time, queues the rest, and times each from when it shows', () => {
@@ -38,5 +38,13 @@ describe('the unfold sign', () => {
     const long = unfoldSign([], ['garden.water', 'garden.slugs', 'garden.shed', 'garden.kitchen'], 3, 0)!;
     expect(long.text).toBe('New: soil moisture and the watering line; the slugs’ policy line, their numbers and badges and 2 more');
     expect(long.keys).toHaveLength(4);
+  });
+});
+
+describe('a notice’s day', () => {
+  it('drops an informational notice from an earlier game day, unshown, and keeps a choice', () => {
+    const list = [{id: 1, text: 'New: a hose in the shed', at: 0, day: 3}, {id: 2, text: 'A choice', at: 0, day: 3, choice: true}, {id: 3, text: 'Today', at: 0, day: 4}];
+    expect(today(list, 4).map((n) => n.id)).toEqual([2, 3]);
+    expect(today(list, 3).map((n) => n.id)).toEqual([1, 2, 3]);
   });
 });

@@ -15,6 +15,7 @@ import type {GraphNode, LeverValue} from '../../src/sim/graph';
 import type {Command, Snapshot} from '../../src/sim/index';
 import {isDug} from './measure';
 import {bedCardOf} from '../../src/ui/bed-card';
+import {goalLine} from '../../src/ui/goal';
 import {decisionsOf} from '../../src/ui/decisions';
 import {PRESERVE} from '../../src/data/kitchen';
 import {cataloguePrice} from '../../src/sim/shed';
@@ -177,6 +178,9 @@ export const PLAYERS: Record<string, Player> = {
     shop: buyNext, dig: digNext, winter: answerBeds, decide: decideAll,
   },
   /** The sensible plan with no shopping, digging or winter crops: the garden as it was before the shed opened. */
+  /** Does exactly what the goal bar says, and nothing else (the `feature` playbook's tips, proved by a player who follows
+   *  them): each morning, the bar's one next action's commands, if it names one. */
+  tips: {name: 'tips', plan: (v) => goalLine(v.snap).step?.cmds ?? [], water: () => [], pests: null, shop: null, dig: null, winter: null},
   'two-beds': {name: 'two-beds', plan: rotate(['salad', 'potatoes']), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')), pests: SENSIBLE_PESTS, shop: null, dig: null, winter: null},
   'one-crop': {name: 'one-crop', plan: oneCrop('salad'), water: once('garden.water', setLever('waterBelow', WATER_LINE, 'person')), pests: SENSIBLE_PESTS, shop: null, dig: null, winter: null},
 };

@@ -48,6 +48,9 @@
   --map-comb: #d13b2a;
   --map-net: #2c3a2c59; /* the fruit cage's net */
   --map-berry: #c2255c; /* ripe raspberries */
+  --juice-coin: #e0b43a;
+  --juice-leaf: #5aa83f;
+  --juice-seed: #6b4a2b;
   --map-person: #4a6fa5;
   --map-skin: #e7c39a;
   --map-hat: #d98a2b;
@@ -103,6 +106,10 @@
   --pulse-ms: 1600ms; /* the one first-time pulse of an unfold sign (static under reduced motion) */
   --pulse-ring: 3px; /* its ring */
   --goal-meter: 36px; /* each of the goal bar's three small meters */
+  --goal-ring: 1.6rem; /* the goal bar's progress ring */
+  --goal-icon: 1.1rem; /* the prize's icon */
+  --juice-dot: 8px; /* a coin, a leaf or a seed in the map's small rewards */
+  --juice-ms: 1.6s; /* how long each shows (src/ui/juice.ts's JUICE_MS) */
   --panel-w: 360px; /* the panel's width beside the map on wide screens */
   --panel-w-landscape: 40%; /* beside the map on a phone on its side */
   --panel-min-landscape: 220px;
@@ -170,6 +177,9 @@
     --map-comb: #a82e20;
     --map-net: #1a241a73;
     --map-berry: #9c1d4a;
+    --juice-coin: #c99a2a;
+    --juice-leaf: #4b8f35;
+    --juice-seed: #8a6440;
     --map-frost: #c9d6de;
     --map-frost-max: 0.45;
     --map-rain: #b9cad899;

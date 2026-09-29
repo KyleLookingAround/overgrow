@@ -1,7 +1,7 @@
 // The goal: the level's history for the step-up offer (the founding spec, "What makes the jump feel earned"; win W18).
 // Each week it records a sample of what the garden delivered (eaten and sold, from the kitchen's ledger), the carbon it
 // put into the air and the dug beds' soil health into the level's ring (src/sim/ladder.ts, a year of weeks for the
-// garden, from the first Monday), kept as the household's `goal` lever, which no command can set. Beside the ring it keeps
+// garden, from the game's first day), kept as the household's `goal` lever, which no command can set. Beside the ring it keeps
 // each week's share of the household's veg the garden met at its meals (the kitchen's ledger), and the garden's offer
 // takes its Reliability from those: how steadily the garden fed the household, week in, week out, over the year
 // (gardenStatus(); docs/decisions/ADR-2026-09-29-garden-reliability.md says why it isn't the ring's spread). The goal
@@ -30,6 +30,10 @@ export function gardenStatus(g: Goal | null): StepUpStatus {
   return stepUpStatus({...w, totals: {...w.totals, reliability}});
 }
 
+/** A new game's goal: an empty ring from the first day, so its first sample (the first Monday's) takes in the days
+ *  before it, and a garden that does well can meet the offer inside its first year. */
+export const startGoal = (): Goal => ({history: emptyHistory(1), mark: {delivered: 0, carbon: 0}, fed: []});
+
 export const GOAL = 'goal';
 export const goalOf = (g: Graph): Goal | null => (g.nodes[KITCHEN]?.levers[GOAL] as unknown as Goal | null | undefined) ?? null;
 
@@ -46,7 +50,7 @@ export const goal: System = {
       const k = c.graph.nodes[KITCHEN];
       if (!k || !(GOAL in k.levers)) return;
       const had = goalOf(c.graph), l = ledgerOf(c.graph), delivered = l.eaten + l.sold, carbon = c.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0;
-      // the first Monday starts the ring: the days before it are less than a week
+      // a graph with no goal yet (a test's own) starts its ring at the first Monday
       if (!had) return void (k.levers[GOAL] = {history: emptyHistory(c.level), mark: {delivered, carbon}, fed: []} as unknown as LeverValue);
       const met = l.week.length ? l.week.reduce((a, x) => a + Math.min(1, x), 0) / l.week.length : 0;
       const history = record(had.history, {

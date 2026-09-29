@@ -17,10 +17,17 @@ describe('the next action', () => {
   it('digs the next plot once every dug bed is in use, naming a crop in season for it', () => {
     const snap = game((s) => {
       s.seen = ['garden.dig'];
+      s.graph.nodes.kitchen.stocks.money.amount = 100;
       s.graph.nodes['bed-2'].levers.crop = {id: 'radish', sown: 0, dd: 10, eta: 0, etc: 0, need: 0, got: 0, made: 0, ks: 1, hurt: 0, lost: 0};
     });
     expect(nextAction(snap, 'output')).toMatch(/^Dig bed 3 and sow [a-z ]+$/);
     expect(nextAction({...snap, seen: []}, 'output')).toBeNull();
+    // and not before the purse can pay for the bed's edging and compost
+    const poor = game((s) => {
+      s.seen = ['garden.dig'];
+      s.graph.nodes['bed-2'].levers.crop = {id: 'radish', sown: 0, dd: 10, eta: 0, etc: 0, need: 0, got: 0, made: 0, ks: 1, hurt: 0, lost: 0};
+    });
+    expect(nextAction(poor, 'output')).toBeNull();
   });
 
   it('asks for the beer traps when slugs have taken a good share of a crop', () => {

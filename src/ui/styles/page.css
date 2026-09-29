@@ -276,7 +276,7 @@ button.num {
 }
 /* a narrow map: the card takes its full width, and the goal bar keeps to its line */
 @container map (max-width: 420px) {
-  .goal-rows {
+  .goal-prize-text {
     display: none;
   }
   .card-overlay {
@@ -348,6 +348,9 @@ button.num {
 }
 .notice.open .notice-more {
   display: block;
+  margin-top: var(--gap-tiny);
+  padding-top: var(--gap-tiny);
+  border-top: 1px solid var(--line);
 }
 .notice-action {
   background: var(--accent);
@@ -392,17 +395,81 @@ button.num {
   font-size: var(--text-small);
   pointer-events: auto;
 }
+.goal-bar.open {
+  flex-direction: column;
+  align-items: stretch;
+}
+.goal-open {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.goal-ring {
+  flex: none;
+  width: var(--goal-ring);
+  height: var(--goal-ring);
+}
+.goal-ring-track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 3;
+}
+.goal-ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
 .goal-text {
   flex: 1;
   margin: 0;
   min-width: 0;
+  font-weight: 600;
+}
+.goal-prize {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-tiny);
+  color: var(--soft);
+  font-size: var(--text-tiny);
+}
+.goal-prize-icon {
+  width: var(--goal-icon);
+  height: var(--goal-icon);
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
 }
 .goal-rows {
   display: flex;
+  flex-direction: column;
   gap: var(--gap-tiny);
+  margin-top: var(--gap-tiny);
 }
-.goal-rows meter {
-  width: var(--goal-meter);
+.goal-why {
+  margin: 0;
+}
+.goal-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--gap-small);
+  align-items: center;
+}
+.goal-row meter {
+  width: var(--meter-w);
+}
+.goal-row-value {
+  grid-column: 1 / -1;
+  font-size: var(--text-tiny);
 }
 /* the card's own buttons (the first plan's) */
 .card-actions {
@@ -675,17 +742,6 @@ select {
   }
 }
 
-/* the goal's prize: a second, quieter line under the goal (the playable garden) */
-.goal-bar {
-  flex-wrap: wrap;
-}
-.goal-prize {
-  flex-basis: 100%;
-  order: 3;
-  margin: 0;
-  font-size: var(--text-tiny);
-}
-
 /* the shed's offers, "Dig this bed" on a plot's card, and the year's card */
 .offer {
   margin: var(--gap-small) 0 var(--gap);
@@ -723,4 +779,75 @@ button.dig {
 }
 .notice.moment {
   box-shadow: 0 0 0 var(--pulse-ring) var(--accent);
+}
+
+/* the map's small rewards (src/ui/Juice.tsx): a pulse where a purchase stands, a coin rising from the honesty box
+   towards the purse, a burst of leaves over the first harvest, seed dropping on a bed; stills under reduced motion */
+.juice {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.juice > span {
+  position: absolute;
+}
+.juice-pulse {
+  border: 3px solid var(--accent);
+  border-radius: var(--radius);
+  animation: juice-pulse var(--juice-ms) ease-out forwards;
+}
+.juice-coin {
+  width: var(--juice-dot);
+  height: var(--juice-dot);
+  margin: calc(var(--juice-dot) / -2);
+  border-radius: 50%;
+  background: var(--juice-coin);
+  animation: juice-coin var(--juice-ms) ease-in forwards;
+}
+.juice-burst i,
+.juice-seed i {
+  position: absolute;
+  width: var(--juice-dot);
+  height: var(--juice-dot);
+  margin: calc(var(--juice-dot) / -2);
+  border-radius: 50% 0;
+  background: var(--juice-leaf);
+  transform: rotate(var(--a)) translateY(0);
+  animation: juice-burst var(--juice-ms) ease-out forwards;
+}
+.juice-seed i {
+  border-radius: 50%;
+  background: var(--juice-seed);
+  width: calc(var(--juice-dot) / 2);
+  height: calc(var(--juice-dot) / 2);
+  left: calc((var(--i) - 1) * var(--juice-dot));
+  animation: juice-seed var(--juice-ms) ease-in forwards;
+}
+@keyframes juice-pulse {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.35); opacity: 0; }
+}
+@keyframes juice-coin {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-60vh); opacity: 0; }
+}
+@keyframes juice-burst {
+  from { transform: rotate(var(--a)) translateY(0); opacity: 1; }
+  to { transform: rotate(var(--a)) translateY(-3em); opacity: 0; }
+}
+@keyframes juice-seed {
+  from { transform: translateY(-2em); opacity: 0; }
+  30% { opacity: 1; }
+  to { transform: translateY(0); opacity: 0.8; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .juice-pulse,
+  .juice-coin,
+  .juice-burst i,
+  .juice-seed i {
+    animation: none;
+  }
+  .juice-burst i {
+    transform: rotate(var(--a)) translateY(-1.5em);
+  }
 }

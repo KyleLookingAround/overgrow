@@ -43,6 +43,33 @@ export function refuseBuy(g: Graph, id: string): string | null {
   return null;
 }
 
+/** Where a bought thing stands on the map, for its effect (the map pulses there): its own place for the big buys, the
+ *  tap's hose, the butt's store, the heap's bin, the bed under the frame or the last bed raised, the first bed's trap. */
+export function placeOf(g: Graph, id: UpgradeId): string {
+  switch (id) {
+    case 'greenhouse':
+    case 'hens':
+      return id;
+    case 'fruit-cage':
+      return 'fruit';
+    case 'hose':
+      return 'tap';
+    case 'water-butt':
+    case 'water-tank':
+      return 'butt';
+    case 'compost-bin':
+      return 'heap';
+    case 'cold-frame':
+      return Object.values(g.nodes).find((n) => n.levers.cover === 'cold-frame')?.id ?? 'shed';
+    case 'raised-bed':
+      return dugBeds(g).filter((b) => b.levers.raised === true).at(-1)?.id ?? 'shed';
+    case 'beer-trap':
+      return dugBeds(g)[0]?.id ?? 'shed';
+    default:
+      return 'shed';
+  }
+}
+
 /** A buy's payment: its price from the purse to the `bought` boundary (the command's flow, src/sim/commands.ts). */
 export const buyFlow = (id: UpgradeId): Flow => ({what: 'buying', unit: 'GBP', amount: qty(UPGRADES[id].price, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
 

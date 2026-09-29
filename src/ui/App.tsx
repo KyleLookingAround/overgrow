@@ -21,11 +21,12 @@ import {EffectsLog} from './effects-log';
 import {Explain, type Explaining} from './Explain';
 import {FirstPlan} from './FirstPlan';
 import {GoalBar} from './GoalBar';
+import {juiceOf, JUICE_MS, type Juice} from './juice';
 import {statusOf} from './goal';
 import {YearCard} from './YearCard';
 import type {MapRenderer} from './map/renderer';
 import {MapView} from './MapView';
-import {current, push, unfoldSign, type Notice} from './notices';
+import {current, push, today, unfoldSign, type Notice} from './notices';
 import {markOf, momentsOf, type SeasonMark} from './moments';
 import {Notices} from './Notices';
 import {Panel} from './Panel';
@@ -81,14 +82,25 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   // first harvest, the first sale (the money flashes once) and each season's line; a new game or a load starts afresh
   const was = useRef<{seed: number; seen: readonly string[]; snap: Snapshot; mark: SeasonMark} | null>(null);
   const [flash, setFlash] = useState(false);
+  // the map's small rewards (src/ui/juice.ts), each gone after its moment
+  const [juice, setJuice] = useState<Juice[]>([]);
+  useEffect(() => {
+    if (!juice.length) return;
+    const t = setTimeout(() => setJuice([]), JUICE_MS);
+    return () => clearTimeout(t);
+  }, [juice]);
   useEffect(() => sim.onSnapshot((s) => {
     const before = was.current, fresh = !before || before.seed !== s.seed || s.seen.length < before.seen.length || s.hours < before.snap.hours;
     const m = fresh ? {moments: [], mark: markOf(s)} : momentsOf(before!.snap, s, before!.mark);
     was.current = {seed: s.seed, seen: s.seen, snap: s, mark: m.mark};
     if (fresh) return;
-    const sign = unfoldSign(before!.seen, s.seen, ++noticeId, Date.now());
-    if (sign) setNotices((l) => push(l, sign));
-    for (const x of m.moments) setNotices((l) => push(l, {id: ++noticeId, text: x.text, moment: x.kind, at: Date.now()}));
+    const got = juiceOf(before!.snap, s, () => ++noticeId);
+    if (got.length) setJuice((l) => [...l, ...got].slice(-8));
+    // each notice is about its game day: one not shown by the day's end is dropped, never shown on a later day
+    const day = calendar(s.hours).dayIndex, sign = unfoldSign(before!.seen, s.seen, ++noticeId, Date.now());
+    if (sign) setNotices((l) => push(today(l, day), {...sign, day}));
+    for (const x of m.moments) setNotices((l) => push(today(l, day), {id: ++noticeId, text: x.text, moment: x.kind, at: Date.now(), day}));
+    setNotices((l) => (today(l, day).length === l.length ? l : today(l, day)));
     if (m.moments.some((x) => x.kind === 'sale')) setFlash(true);
   }), [sim]);
   useEffect(() => {
@@ -100,11 +112,12 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const first = !!snap && firstPlanDue(snap);
   // the garden's year done: the level's end, once a save
   const year = !!snap && !first && !snap.seen.includes(CARDS.year) && statusOf(snap).ready;
-  // the one "try faster" nudge: after the first harvest, at 1×, once a save, and never in the first minute
-  const nudge = !!snap && !first && snap.kitchen?.firstHarvest != null && snap.hours > FIRST_MINUTE && shown!.speed === 1 && snap.seen.includes(CARDS.firstPlan) &&
+  // the one "try faster" nudge: once the first minute is over (the first cut is in by then), before the wait for the
+  // spring sowings, at 1×, once a save
+  const nudge = !!snap && !first && snap.hours > FIRST_MINUTE && shown!.speed === 1 && snap.seen.includes(CARDS.firstPlan) &&
     !snap.seen.includes(CARDS.tryFaster);
   const faster: Notice | null = nudge ? {
-    id: -1, at: 0, choice: true, text: 'The first harvest is in. Try 2× to watch the season go by faster.',
+    id: -1, at: 0, choice: true, text: 'The spring sowings take weeks to grow. Try 2× to watch the season go by faster.',
     actions: [{label: 'Try 2×', run: () => send({type: 'card', id: 'try-faster', answer: 'yes'})}],
   } : null;
   // the bed card: an empty bed without the player's say asks what's next, in the queue like the rest
@@ -126,7 +139,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
       {shown ? <TopBar snap={shown.snap} hours={shown.hour} speed={shown.speed} flash={flash} onSpeed={speed} onExplain={explainAt} /> : <header class="topbar"><span class="soft">Starting…</span></header>}
       <main class="main">
         <MapView loop={loop} onSelect={(id) => { setSelected(id); setOpen(true); }} onReady={onRenderer} onExplain={explainAt} nodes={nodes} badges={badges}
-          pulse={first ? null : explain?.at ?? null}>
+          pulse={first ? null : explain?.at ?? null} juice={first ? [] : juice}>
           <Notices list={shownNotices} onDismiss={(id) => {
             if (id === -1) send({type: 'card', id: 'try-faster', answer: 'no'});
             else if (id === -2) bed?.dismiss.forEach(send);

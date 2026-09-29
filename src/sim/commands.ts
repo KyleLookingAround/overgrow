@@ -7,7 +7,7 @@ import {SPEEDS} from '../data/ladder';
 import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
 import {kindOf} from './effects';
 import {gardenStatus, goalOf} from './goal';
-import {buyFlow, chit, fleece, orderSeeds, warmSoil} from './shed';
+import {buyFlow, chit, fleece, orderSeeds, placeOf, warmSoil} from './shed';
 import {GLUT_POLICIES, type GlutPolicy} from '../data/kitchen';
 import type {Variety} from '../data/shed';
 import {askMulch, GARDENER} from './gardener';
@@ -163,7 +163,8 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
         s.upgrades = [...s.upgrades, cmd.id];
         // the purchase is this command's flow and effect: the map shows the thing in use, and money unfolds if it hadn't
         s.flows = [buyFlow(cmd.id as UpgradeId)];
-        s.effects = [{kind: kindOf('buying'), cause: 'buying', at: 'shed', amount: 1, unit: cmd.id}];
+        // at the thing's place, so the map pulses where it now stands
+        s.effects = [{kind: kindOf('buying'), cause: 'buying', at: placeOf(s.graph, cmd.id as UpgradeId), amount: 1, unit: cmd.id}];
         const fresh = revealed(s.seen, ['buying']);
         if (fresh.length) s.seen = [...s.seen, ...fresh];
       }

@@ -14,6 +14,7 @@ import {BED_FLOWER_LEVERS, LAWN_LEVERS} from './models/biodiversity';
 import {BED_LEVERS, overwintered} from './models/crops';
 import {householdNode, startCupboard} from './models/household';
 import {newLedger, shopProduct, type Ledger} from './models/kitchen';
+import {startGoal} from './goal';
 import {rng, type Rng} from './random';
 import {BED_PEST_LEVERS, LAWN_PEST_LEVERS, startingSlugs} from './models/pests';
 import {startingSoil} from './models/soil';
@@ -64,9 +65,9 @@ export const ATMOSPHERE = 'atmosphere';
 /** The first plan: bed 1 follows the rotation once its overwintered salad leaves are done, and radishes are sown in
  *  bed 2 on the first morning. */
 export const DEFAULT_PLAN: Record<string, string> = {'bed-1': 'rotation', 'bed-2': 'radish'};
-/** The head start (the owner's pick, #11): bed 1 has salad leaves sown last September, a few degree days from their first
- *  cut, so the first harvest comes in the first week while the spring sowings grow at the real pace. */
-export const HEAD_START = {bed: 'bed-1', crop: 'salad', sownHoursAgo: 24 * 176, ddToGo: 12} as const;
+/** The head start (the owner's pick, #11): bed 1 has salad leaves sown last September, a day or so of March warmth from
+ *  their first cut, so the first harvest comes on day 2 or 3 while the spring sowings grow at the real pace. */
+export const HEAD_START = {bed: 'bed-1', crop: 'salad', sownHoursAgo: 24 * 176, ddToGo: 5} as const;
 
 /** The back garden on day 1 (src/data/garden.ts), as the level-1 graph. */
 export function gardenGraph(): Graph {
@@ -82,7 +83,8 @@ export function gardenGraph(): Graph {
     if (p.kind === 'bed') spec.levers = {...BED_LEVERS(DEFAULT_PLAN[p.id] ?? 'none'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS()};
     if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
     // the kitchen's ledger, and the level's history for the goal, started on the first Monday (src/sim/goal.ts)
-    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: null, quality: {}, glut: 'sell'};
+    // the goal's year counts from the game's first day: the first Monday's sample takes in the days before it
+    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: startGoal() as unknown as LeverValue, quality: {}, glut: 'sell'};
     if (p.id === 'gate') spec.levers = {quality: {}};
     // the garden's kit: what's been bought from the shed (src/sim/kit.ts)
     if (p.id === 'shed') spec.levers = {kit: {...NO_KIT, owned: []} as unknown as LeverValue};
