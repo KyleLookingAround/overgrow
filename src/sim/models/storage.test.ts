@@ -43,6 +43,7 @@ describe('shelf life and Q10', () => {
 
   it('has the home stage fall out of the kitchen’s own days within 20 %, and its keep-days follow', () => {
     for (const crop of Object.values(CROPS)) {
+      if (crop.flower) continue; // grown for the bees, never kept or eaten
       const home = shelfLife(crop.product as ProductId, TEMPS.home);
       expect(Math.abs(home / crop.keeps.kitchen - 1)).toBeLessThan(0.2);
       const kitchen = Math.min(KEEP_DAYS, crop.keeps.kitchen / 2), ours = Math.min(KEEP_DAYS, home / 2);
