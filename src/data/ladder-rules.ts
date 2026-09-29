@@ -1,12 +1,15 @@
 // The carry-over rule's numbers: each level's rhythm (the window its headline numbers are taken over), what goes into
 // the Health index, how a sealed node's Health drifts and what it costs, the tolerance of inflating, and the step-up
 // offer's test. From the founding spec ("The carry-over rule", "What makes the jump feel earned",
-// docs/specs/overgrow.md); the step-up figures are the spec's proposals, for part 4's bot baselines to set.
+// docs/specs/overgrow.md); the step-up figures are the spec's proposals, for part 4's bot baselines to set. The
+// product groups, the wildlife part of Health and the longer windows are the owner's answers on #29 (Q3, Q6 and Q15),
+// also proposals: the wildlife weights are rough shares (a hedge and a flower strip feed and shelter the most; a
+// margin less), not measured figures.
 // Licence: original to this project (figures from the founding spec; no outside dataset), so it carries the project's.
 
 /** How a level's history is kept: the window its headline numbers cover, and how many game days each sample spans. */
 export interface Rhythm {
-  /** The last full cycle of the level's rhythm, in game days (the garden's last 28 days). */
+  /** The last full cycle of the level's rhythm, in game days (the garden's last full year). */
   windowDays: number;
   /** Game days one sample of the history spans (a level's tick, but never finer than a day). */
   sampleDays: number;
@@ -15,13 +18,16 @@ export interface Rhythm {
 const SEASON = 365 / 4;
 
 /**
- * By level, 1 to 8. The garden's window is 28 days and the allotment's a season (the spec); the smallholding and above
- * are proposed as a year, the planet's as a decade, and the sample is the level's tick: a day to level 5, a week at 6
- * and 7, a month at 8 (src/data/ladder.ts).
+ * By level, 1 to 8. Each level's window is the last full cycle of its rhythm (#29 Q15, so the slowest lever, soil or a
+ * hedge, can pay back inside the level that teaches it): the garden's and the allotment's are the last full year (four
+ * seasons, not the 28 days and the season the spec first had), the smallholding and above are proposed as a year, the
+ * planet's as a decade. The sample is the level's tick, but the garden and the allotment sample weekly, not daily: a
+ * daily ring of a year would be 365 samples of about thirty numbers each (about 75 kB of saved state) where a weekly
+ * one is 53; from level 3 up the tick is a day and the ring is 365 (level 6 and 7 a week, level 8 a month).
  */
 export const RHYTHMS: readonly Rhythm[] = [
-  {windowDays: 28, sampleDays: 1},
-  {windowDays: SEASON, sampleDays: 1},
+  {windowDays: 365, sampleDays: 7},
+  {windowDays: 365, sampleDays: 7},
   {windowDays: 365, sampleDays: 1},
   {windowDays: 365, sampleDays: 1},
   {windowDays: 365, sampleDays: 1},
@@ -30,12 +36,21 @@ export const RHYTHMS: readonly Rhythm[] = [
   {windowDays: 3652.5, sampleDays: 365 / 12},
 ];
 
-/** The slow stocks behind a node's Health: soil, water, kit, goodwill and herd. A level keeps the ones it has. */
-export const HEALTH_PARTS = ['soil', 'water', 'kit', 'goodwill', 'herd'] as const;
+/** The slow stocks behind a node's Health: soil, water, kit, goodwill, herd and wildlife. A level keeps the ones it has. */
+export const HEALTH_PARTS = ['soil', 'water', 'kit', 'goodwill', 'herd', 'wildlife'] as const;
 export type HealthPart = (typeof HEALTH_PARTS)[number];
 
 /** Each part's share of the Health index (rough; a level without a part shares its weight among the rest). */
-export const HEALTH_WEIGHTS: Record<HealthPart, number> = {soil: 0.35, water: 0.2, kit: 0.15, goodwill: 0.15, herd: 0.15};
+export const HEALTH_WEIGHTS: Record<HealthPart, number> = {soil: 0.35, water: 0.2, kit: 0.15, goodwill: 0.15, herd: 0.15, wildlife: 0.1};
+
+/** What wildlife is made of: flowers, hedges and margins, each 0–100 as an index, and each one's share of it. */
+export const WILDLIFE_PARTS = ['flowers', 'hedges', 'margins'] as const;
+export type WildlifePart = (typeof WILDLIFE_PARTS)[number];
+export const WILDLIFE_WEIGHTS: Record<WildlifePart, number> = {flowers: 0.4, hedges: 0.4, margins: 0.2};
+
+/** The product groups a level's output and demand are carried in: the kitchen's four (src/data/kitchen.ts), and room for the rest of a diet. */
+export const PRODUCT_GROUPS = ['potatoes', 'salads', 'tomatoes', 'greens', 'eggs', 'meat', 'milk', 'grain'] as const;
+export type ProductGroup = (typeof PRODUCT_GROUPS)[number];
 
 /** Below this Health a sealed node loses output; above it, none. */
 export const HEALTH_FLOOR = 50;

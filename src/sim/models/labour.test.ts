@@ -6,7 +6,9 @@ import {CROP_WORK, WAGES} from '../../data/labour';
 import {calendar, runStep} from '../clock';
 import {applyFlow, makeNode, type Flow, type Graph} from '../graph';
 import {gardenGraph} from '../state';
-import {dayHours, fit, hireBenefit, hoursOver, labour, peakMonth, timeFactor, wageCost, workNeeded, type Worker, WORKER} from './labour';
+import {commuteHours, dayWage, newMember, workHours} from './household';
+import {dayHours, earnOffFarm, fit, hireBenefit, hoursOver, labour, offFarmDay, payWages, peakMonth, timeFactor, wageCost, withMinimumWage, workNeeded, type Worker, WORKER} from './labour';
+import {imbalance, qty, stockTotals} from '../graph';
 
 const owner: Worker = {id: 'owner', role: 'owner', skills: {general: 1, harvest: 1, sowing: 1}, goals: {}};
 const hand = (skill: number): Worker => ({id: 'hand', role: 'hired hand', skills: {general: skill, harvest: skill, sowing: skill}, goals: {}});
@@ -104,5 +106,99 @@ describe('labour', () => {
     h = runStep([labour], ctx, 1, h + 23); // Wednesday: the hand’s hours are fresh and Tuesday’s are handed back
     expect(flows.some((f) => f.what === 'unused' && 'boundary' in f.to && f.to.boundary === 'time')).toBe(true);
     expect(person.stocks.hours!.amount).toBe(dayHours('hired hand', calendar(h)));
+  });
+});
+
+describe('labour: hooks for the levels above', () => {
+  const ctxOf = (g: Graph) => {
+    const flows: Flow[] = [];
+    const c = {dt: 24, level: 3, graph: g, activity: () => {}, flow: (f: Flow) => {
+      const bad = applyFlow(g, f);
+      if (bad) throw new Error(bad);
+      flows.push(f);
+      return null;
+    }};
+    return {c: c as never, flows};
+  };
+  /** The garden with a hand on the payroll: the kitchen's purse pays, and the hand is a person with (or without) a purse of their own. */
+  const payroll = (purse: boolean) => {
+    const g: Graph = gardenGraph();
+    const person = makeNode({id: 'hand', kind: 'person', name: 'Hand', stocks: purse ? {money: {unit: 'GBP', amount: qty(0, 'GBP')}} : {}});
+    person.levers[WORKER] = hand(1) as never;
+    g.nodes.hand = person;
+    g.nodes.kitchen!.stocks.money!.amount = qty(1000, 'GBP');
+    g.edges.push({id: 'kitchen-hand', from: 'kitchen', to: 'hand', carries: ['GBP']});
+    return {g, person};
+  };
+
+  it('takes wages as a parameter: a higher wage raises the cost, and the default is what it was', () => {
+    expect(wageCost('hired hand', 10)).toBe(wageCost('hired hand', 10, WAGES));
+    const higher = {...WAGES, 'hired hand': {...WAGES['hired hand'], hourly: 2 * WAGES['hired hand'].hourly}};
+    expect(wageCost('hired hand', 10, higher)).toBeCloseTo(2 * wageCost('hired hand', 10), 9);
+    // a dearer hand pays back less on the same work
+    const own = hoursOver('owner', sept, 30), h = hoursOver('hired hand', sept, 30), o = {crop: 'potatoes', demand: workNeeded('potatoes', 9, 20), ownHours: own, handHours: h};
+    expect(hireBenefit({...o, wages: higher}).wages).toBeCloseTo(2 * hireBenefit(o).wages, 9);
+    expect(hireBenefit({...o, wages: higher}).net).toBeLessThan(hireBenefit(o).net);
+  });
+
+  it('raises the paid roles to a minimum wage and leaves the owner unpaid and the table it was given alone', () => {
+    const before = JSON.stringify(WAGES), mw = withMinimumWage(15);
+    expect(mw['hired hand'].hourly).toBe(15);
+    expect(mw['seasonal picker'].hourly).toBe(15);
+    expect(mw.owner.hourly).toBe(0);
+    expect(mw['hired hand'].onCost).toBe(WAGES['hired hand'].onCost);
+    expect(withMinimumWage(10)['hired hand'].hourly).toBe(WAGES['hired hand'].hourly); // a floor under it does nothing
+    expect(wageCost('seasonal picker', 8, mw)).toBeGreaterThan(wageCost('seasonal picker', 8));
+    expect(JSON.stringify(WAGES)).toBe(before);
+  });
+
+  it('pays wages as flows: the wage to the worker, the on-cost out, the purse down by the total, and the graph balances', () => {
+    for (const purse of [true, false]) {
+      const {g, person} = payroll(purse), {c, flows} = ctxOf(g), before = stockTotals(Object.values(g.nodes));
+      const paid = payWages(c, person, 8, 'kitchen');
+      expect(paid.wage).toBeCloseTo(8 * WAGES['hired hand'].hourly, 9);
+      expect(paid.onCost).toBeCloseTo(paid.wage * WAGES['hired hand'].onCost, 9);
+      expect(paid.total).toBeCloseTo(wageCost('hired hand', 8), 9);
+      expect(g.nodes.kitchen!.stocks.money!.amount).toBeCloseTo(1000 - paid.total, 9);
+      expect(person.stocks.money?.amount ?? 0).toBeCloseTo(purse ? paid.wage : 0, 9);
+      expect(imbalance(before, stockTotals(Object.values(g.nodes)), flows)).toEqual({});
+    }
+    // a higher wage parameter raises what's paid; no hours, no purse and no worker pay nothing
+    const {g, person} = payroll(true), {c} = ctxOf(g), higher = withMinimumWage(20);
+    expect(payWages(c, person, 8, 'kitchen', higher).total).toBeGreaterThan(payWages(c, person, 8, 'kitchen').total);
+    expect(payWages(c, person, 0, 'kitchen').total).toBe(0);
+    expect(payWages(c, person, 8, 'nowhere').total).toBe(0);
+    expect(payWages(c, g.nodes.kitchen!, 8, 'kitchen').total).toBe(0);
+  });
+
+  it('sends an owner off the farm to the household model’s job: it takes their weekdays and brings the pay into the purse', () => {
+    const away: Worker = {...owner, goals: {offFarm: 'full'}}, part: Worker = {...owner, goals: {offFarm: 'part'}};
+    const at = (w: Worker, weekday: number) => dayHours(w.role, {season: 'summer', weekday}, w.goals);
+    expect(at(owner, 0)).toBe(10);
+    expect(at(away, 0)).toBe(1); // ten hours, less eight at work and an hour's commute each way (the model's commute is the round trip)
+    expect(at(away, 5)).toBe(6); // the weekend is the farm's
+    expect(at(part, 0)).toBe(1);
+    expect(at(part, 3)).toBe(10); // a part-time job is three days
+    expect(hoursOver('owner', {season: 'summer', weekday: 0}, 7, away.goals)).toBeLessThan(hoursOver('owner', {season: 'summer', weekday: 0}, 7));
+    // the same hours, commute and pay as the household model's member with that job
+    const m = newMember('kyle', 'Kyle', 'gardener', 'full');
+    for (let d = 0; d < 7; d++) {
+      const day = offFarmDay('full', d);
+      expect(day.hours).toBe(workHours(m, d));
+      expect(day.commute).toBe(commuteHours(m, d));
+      expect(day.pay).toBeCloseTo(dayWage(m, d), 9);
+    }
+    expect(offFarmDay('full', 0).pay).toBeGreaterThan(100); // about £118 a day take-home
+    expect(offFarmDay('full', 0).pay).toBeLessThan(140);
+    expect(offFarmDay('full', 6)).toEqual({hours: 0, commute: 0, pay: 0});
+    expect(offFarmDay('part', 0, 0.5).pay).toBeCloseTo(offFarmDay('part', 0).pay / 2, 9);
+    // the pay is income: from outside into the purse, and the graph balances
+    const g: Graph = gardenGraph(), {c, flows} = ctxOf(g), before = stockTotals(Object.values(g.nodes)), purse = g.nodes.kitchen!.stocks.money!.amount;
+    const pay = earnOffFarm(c, 'kitchen', 'full', 0);
+    expect(pay).toBeCloseTo(offFarmDay('full', 0).pay, 9);
+    expect(g.nodes.kitchen!.stocks.money!.amount).toBeCloseTo(purse + pay, 9);
+    expect(imbalance(before, stockTotals(Object.values(g.nodes)), flows)).toEqual({});
+    expect(earnOffFarm(c, 'kitchen', 'full', 6)).toBe(0);
+    expect(earnOffFarm(c, 'nowhere', 'full', 0)).toBe(0); // no purse to take it
   });
 });

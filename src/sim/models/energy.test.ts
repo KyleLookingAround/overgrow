@@ -6,7 +6,7 @@ import {FUELS} from '../../data/energy';
 import {runStep} from '../clock';
 import {applyFlow, stockTotals, type Flow, type Graph, type LeverValue} from '../graph';
 import {gardenGraph} from '../state';
-import {burn, co2e, coldStoreKWh, costOf, energy, kWhOf, LOADS, pump, pumpKWh, pumpKWhPerM3, tunnelHeatKWh} from './energy';
+import {burn, co2e, coldStoreKWh, costOf, ENERGY_INDEX, energy, indexOf, kWhOf, LOADS, pump, pumpKWh, pumpKWhPerM3, tunnelHeatKWh, type EnergyIndex} from './energy';
 import type {WeatherDay} from './weather';
 
 const COLD: WeatherDay = {day: 0, dayOfYear: 20, wet: false, rain: 0, rainFrom: 0, rainHours: 0, tmax: 2, tmin: -4, sun: 1, length: 8, zMax: 0, zMin: 0, zSun: 0, warming: 0};
@@ -97,5 +97,73 @@ describe('energy', () => {
     expect(flows.some((f) => f.what === 'polytunnel heater')).toBe(true);
     expect(g.nodes.kitchen!.stocks.money!.amount).toBeLessThan(money);
     expect(g.nodes.atmosphere!.stocks.carbon!.amount).toBeGreaterThan(5);
+  });
+});
+
+describe('energy: the index the level above sets', () => {
+  const lever = (i: EnergyIndex) => i as unknown as LeverValue;
+
+  it('changes nothing without one', () => {
+    expect(co2e('electricity', 10)).toBe(co2e('electricity', 10, undefined));
+    expect(costOf('diesel', 10)).toBeCloseTo(10 * FUELS.diesel.price, 9);
+    expect(co2e('electricity', 10, {})).toBeCloseTo(10 * FUELS.electricity.co2e, 9);
+    expect(costOf('diesel', 10, {price: {}})).toBeCloseTo(costOf('diesel', 10), 9);
+  });
+
+  it('lets the grid’s carbon factor fall and rise, for electricity only', () => {
+    const cleaner = {gridCo2e: 0.05};
+    expect(co2e('electricity', 100, cleaner)).toBeCloseTo(5, 9);
+    expect(co2e('electricity', 100, cleaner)).toBeLessThan(co2e('electricity', 100));
+    expect(co2e('electricity', 100, {gridCo2e: 0.5})).toBeGreaterThan(co2e('electricity', 100));
+    expect(co2e('diesel', 10, cleaner)).toBeCloseTo(co2e('diesel', 10), 9); // a litre of diesel is the same whatever the grid is
+    expect(co2e('gas', 10, cleaner)).toBeCloseTo(co2e('gas', 10), 9);
+  });
+
+  it('multiplies a fuel’s price by the index, that fuel alone', () => {
+    const shock = {price: {diesel: 2, electricity: 1.5}};
+    expect(costOf('diesel', 10, shock)).toBeCloseTo(2 * costOf('diesel', 10), 9);
+    expect(costOf('electricity', 10, shock)).toBeCloseTo(1.5 * costOf('electricity', 10), 9);
+    expect(costOf('gas', 10, shock)).toBeCloseTo(costOf('gas', 10), 9);
+  });
+
+  it('is read from the node that burns, or from whoever pays, and every use’s flows follow it', () => {
+    const run = (place?: 'shed' | 'kitchen', index: EnergyIndex = {gridCo2e: 0.05, price: {electricity: 2}}) => {
+      const g = gardenGraph(), {ctx, flows} = context(g);
+      if (place) g.nodes[place]!.levers[ENERGY_INDEX] = lever(index);
+      const money = g.nodes.kitchen!.stocks.money!.amount, air = g.nodes.atmosphere!.stocks.carbon!.amount;
+      const use = burn(ctx as never, 'shed', 'electricity', 10, 'lights', 'kitchen');
+      return {use, spent: money - g.nodes.kitchen!.stocks.money!.amount, emitted: g.nodes.atmosphere!.stocks.carbon!.amount - air, flows, ctx, g};
+    };
+    const base = run(), onNode = run('shed'), onPayer = run('kitchen');
+    for (const r of [onNode, onPayer]) {
+      expect(r.use.co2e).toBeCloseTo(0.5, 9);
+      expect(r.use.cost).toBeCloseTo(2 * base.use.cost, 9);
+      expect(r.spent).toBeCloseTo(r.use.cost, 9); // the purse pays the indexed price
+      expect(r.emitted).toBeCloseTo(0.5, 9); // and the air is told the indexed carbon: the account stays whole
+      expect(r.flows.find((f) => f.unit === 'kgCO2e')!.amount).toBeCloseTo(0.5, 9);
+    }
+    expect(base.emitted).toBeCloseTo(2, 9);
+    // an explicit index beats the lever, and a pump reads the lever too
+    const g = gardenGraph(), {ctx} = context(g);
+    g.nodes.shed!.levers[ENERGY_INDEX] = lever({gridCo2e: 0.05});
+    expect(indexOf(ctx as never, 'shed')).toEqual({gridCo2e: 0.05});
+    expect(indexOf(ctx as never, 'kitchen')).toBeUndefined();
+    expect(burn(ctx as never, 'shed', 'electricity', 10, 'lights', undefined, {gridCo2e: 0.4}).co2e).toBeCloseTo(4, 9);
+    expect(pump(ctx as never, 'shed', 10000, 20).co2e).toBeCloseTo(0.05 * pumpKWh(10000, 20), 9);
+  });
+
+  it('runs the standing loads at the index’s price and carbon', () => {
+    const day = (index?: EnergyIndex) => {
+      const g = gardenGraph(), {ctx} = context(g, 24);
+      g.nodes.atmosphere!.levers.weather = COLD as unknown as LeverValue;
+      g.nodes.shed!.levers[LOADS] = [{kind: 'cold store', m3: 20}] as unknown as LeverValue;
+      if (index) g.nodes.shed!.levers[ENERGY_INDEX] = lever(index);
+      const money = g.nodes.kitchen!.stocks.money!.amount, air = g.nodes.atmosphere!.stocks.carbon!.amount;
+      runStep([energy], ctx as never, 1, 6);
+      return {spent: money - g.nodes.kitchen!.stocks.money!.amount, emitted: g.nodes.atmosphere!.stocks.carbon!.amount - air};
+    };
+    const now = day(), dearer = day({price: {electricity: 2}, gridCo2e: 0.1});
+    expect(dearer.spent).toBeCloseTo(2 * now.spent, 9);
+    expect(dearer.emitted).toBeCloseTo(now.emitted / 2, 9);
   });
 });

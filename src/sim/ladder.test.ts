@@ -8,8 +8,9 @@ import {applyFlow, emptyTotals, qty, type Flow, type Totals} from './graph';
 import {rng} from './random';
 import {gardenGraph} from './state';
 import {
-  carryCheck, emptyHistory, eventFactor, eventKgLost, healthFactor, healthIndex, inflateTarget, layoutKey, record, reliability, sealedSystem,
-  sealedTick, sealNode, showEvent, stepUpStatus, tickDays, windowTotals, type GameEvent, type Sample, type SealedNode,
+  carryCheck, emptyHistory, eventFactor, eventKgLost, eventValueLost, healthFactor, healthIndex, inflateTarget, layoutKey, record, reliability,
+  sampleOf, sealedSystem, sealedTick, sealNode, showEvent, stepUpStatus, sumTotals, tickDays, wildlifeIndex, windowTotals,
+  type GameEvent, type LadderTotals, type Sample, type SealedNode,
 } from './ladder';
 
 const sample = (output: number, extra: Partial<Sample> = {}): Sample => ({
@@ -51,21 +52,24 @@ describe('reliability', () => {
 });
 
 describe('the totals over a cycle', () => {
-  it('takes the last 28 days of a garden: means, output-weighted quality, reliability, and health at the end', () => {
+  it('takes the last full year of a garden, sampled weekly: means, output-weighted quality, reliability, and health at the end', () => {
     let h = emptyHistory(1);
-    expect(h.cap).toBe(28);
-    for (let d = 0; d < 40; d++) h = record(h, sample(d < 12 ? 100 : 2, {quality: d < 12 ? 10 : 70, health: {soil: d, water: 50}}), {crops: 12, grass: 57});
-    expect(h.samples).toHaveLength(28); // the first twelve, and their odd figures, have dropped out
+    expect(h).toMatchObject({sampleDays: 7, cap: 53});
+    const week = {upkeep: qty(3.5, 'GBP'), carbon: qty(-1.4, 'kgCO2e')};
+    for (let d = 0; d < 65; d++) h = record(h, sample(d < 12 ? 700 : 14, {...week, quality: d < 12 ? 10 : 70, health: {soil: d, water: 50}}), {crops: 12, grass: 57});
+    expect(h.samples).toHaveLength(53); // the first twelve weeks, and their odd figures, have dropped out
     const w = windowTotals(h)!;
     expect(w.full).toBe(true);
-    expect(w.days).toBe(28);
+    expect(w.days).toBe(371);
     expect(w.totals.output).toBeCloseTo(2, 6);
     expect(w.totals.quality).toBeCloseTo(70, 6);
     expect(w.totals.reliability).toBe(100);
     expect(w.totals.upkeep).toBeCloseTo(0.5, 6);
     expect(w.totals.carbon).toBeCloseTo(-0.2, 6);
-    expect(w.totals.health).toBeCloseTo(healthIndex({soil: 39, water: 50}), 6);
+    expect(w.totals.health).toBeCloseTo(healthIndex({soil: 64, water: 50}), 6);
     expect(w.totals.land).toEqual({crops: 12, grass: 57});
+    // a ring of a year is small: a garden's fifty-three weeks of about thirty numbers, in JSON (see docs/systems/ladder.md)
+    expect(JSON.stringify(h).length).toBeLessThan(30_000);
   });
 
   it('weights quality by output, is not full until the cycle is, and is null when empty', () => {
@@ -271,10 +275,10 @@ describe('inflating', () => {
 
   it('targets the sealed totals over the level\'s cycle, and a sealed then unsealed node passes its own test', () => {
     const t = inflateTarget(totals(), 1, [EVENT]);
-    expect(t).toMatchObject({tolerance: 0.05, windowDays: 28, events: [EVENT]});
-    expect(inflateTarget(totals(), 2).windowDays).toBeCloseTo(91.25, 6);
+    expect(t).toMatchObject({tolerance: 0.05, windowDays: 365, events: [EVENT]});
+    expect(inflateTarget(totals(), 2).windowDays).toBe(365);
     let h = emptyHistory(1);
-    for (let d = 0; d < 28; d++) h = record(h, sample(2, {health: {soil: 60}}), {crops: 9, grass: 60});
+    for (let d = 0; d < 53; d++) h = record(h, sample(14, {health: {soil: 60}}), {crops: 9, grass: 60});
     const sealed = windowTotals(h)!.totals;
     expect(carryCheck(inflateTarget(sealed, 1).totals, windowTotals(h)!.totals).ok).toBe(true);
   });
@@ -288,7 +292,7 @@ describe('inflating', () => {
 });
 
 describe('the step-up offer', () => {
-  const cycle = (o: number, r: number, hp: number, full = true) => ({totals: totals({output: o, reliability: r, health: hp}), days: full ? 28 : 10, full});
+  const cycle = (o: number, r: number, hp: number, full = true) => ({totals: totals({output: o, reliability: r, health: hp}), days: full ? 371 : 100, full});
 
   it('is the spec\'s proposal as data', () => {
     expect(STEP_UP[1]).toEqual({from: 1, output: 1.5, reliability: 60, health: 50});
@@ -318,10 +322,146 @@ describe('the step-up offer', () => {
     const early = stepUpStatus(cycle(3, 90, 80, false));
     expect(early.ready).toBe(false);
     expect(early.binding).toBeNull();
-    expect(early.days).toBe(10);
-    expect(early.windowDays).toBe(28);
+    expect(early.days).toBe(100);
+    expect(early.windowDays).toBe(365);
     const none = stepUpStatus(null);
     expect(none.ready).toBe(false);
     expect(none.binding).not.toBeNull();
+  });
+});
+
+describe('what a level carries beside the five numbers (#29 Q2, Q3, Q6)', () => {
+  const MIX = {potatoes: 1, salads: 0.5, tomatoes: 0.3, greens: 0.2};
+  const daily = (over: Partial<Sample> = {}) => sampleOf(MIX, {quality: 70, upkeep: qty(0.5, 'GBP'), carbon: qty(-0.2, 'kgCO2e'), health: {soil: 60}, ...over});
+
+  it('records demand and hours in the ring beside the five numbers, and takes them per day', () => {
+    let h = emptyHistory(3);
+    for (let d = 0; d < 10; d++) h = record(h, daily({demand: {kg: {potatoes: 2, salads: 1}, spend: 8}, hours: {had: 12, used: 9}}));
+    const t = windowTotals(h)!.totals;
+    expect(t.demand).toEqual({kg: {potatoes: 2, salads: 1}, spend: 8});
+    expect(t.hours).toEqual({had: 12, used: 9});
+    // a level that records none carries none
+    expect(windowTotals(record(emptyHistory(3), daily()))!.totals.demand).toBeUndefined();
+    // and a week's sample spreads over its seven days
+    const w = record(emptyHistory(1), daily({demand: {kg: {potatoes: 14}, spend: 35}, hours: {had: 28, used: 14}}));
+    expect(windowTotals(w)!.totals).toMatchObject({demand: {kg: {potatoes: 2}, spend: 5}, hours: {had: 4, used: 2}});
+  });
+
+  it('carries Output by product group, the headline Output their sum', () => {
+    let h = emptyHistory(3);
+    for (let d = 0; d < 20; d++) h = record(h, daily());
+    const t = windowTotals(h)!.totals;
+    for (const [g, kg] of Object.entries(MIX)) expect(t.outputByGroup![g as keyof typeof MIX]).toBeCloseTo(kg, 9);
+    expect(Object.values(t.outputByGroup!).reduce((a, b) => a + b, 0)).toBeCloseTo(t.output, 9);
+  });
+
+  it('keeps the mix through a sealed tick: the groups add up to the delivered kg and the lost kg, and the loss has a price', () => {
+    const t = windowTotals(record(emptyHistory(3), daily()))!.totals;
+    const node = {...sealNode(t, 0), events: [{...EVENT, homeLevel: 3, size: 0.5, from: 0, days: 10}]};
+    const r = sealedTick({...node, totals: {...node.totals, reliability: 100}}, 240, rng(1), {potatoes: 1, salads: 3, tomatoes: 3.5, greens: 2.6});
+    const sum = (g: Record<string, number | undefined>) => Object.values(g).reduce<number>((a, b) => a + (b ?? 0), 0);
+    expect(sum(r.byGroup)).toBeCloseTo(r.output, 9);
+    expect(sum(r.lostByGroup)).toBeCloseTo(r.lost, 9);
+    expect(r.byGroup.potatoes! / r.output).toBeCloseTo(0.5, 9); // potatoes are half of the 2 kg a day
+    expect(r.lost).toBeCloseTo(0.5 * 2 * 10, 6);
+    // £: half of the loss is potatoes at £1, a quarter salads at £3, and so on
+    expect(r.lostGBP).toBeCloseTo(r.lostByGroup.potatoes! * 1 + r.lostByGroup.salads! * 3 + r.lostByGroup.tomatoes! * 3.5 + r.lostByGroup.greens! * 2.6, 9);
+    expect(sealedTick(node, 240, rng(1), 2).lostGBP).toBeCloseTo(2 * sealedTick(node, 240, rng(1)).lost, 9);
+    expect(sealedTick(node, 240, rng(1)).lostGBP).toBe(0);
+    // a node sealed without a mix has none to keep
+    expect(sealedTick(sealNode(totals(), 0), 24, rng(1)).byGroup).toEqual({});
+  });
+
+  it('puts a money loss beside an event’s kg lost, the same at every level', () => {
+    const at = (level: number, o: number) => {
+      const shown = showEvent(EVENT, level, {node: 2, region: 200 * o})!;
+      return {kg: eventKgLost(shown, level >= 3 ? 200 * o : 2), gbp: eventValueLost(shown, level >= 3 ? 200 * o : 2, 2.5)};
+    };
+    const home = at(1, 1), tile = at(2, 1), region = at(3, 1);
+    expect(home.kg).toBeCloseTo(0.2 * 2 * 10, 9);
+    expect(tile.kg).toBeCloseTo(home.kg, 9);
+    expect(region.gbp).toBeCloseTo(region.kg * 2.5, 9);
+    expect(home.gbp).toBeCloseTo(0.2 * 2 * 10 * 2.5, 9);
+  });
+
+  it('counts wildlife in Health, from flowers, hedges and margins, and leaves a level without it alone', () => {
+    expect(wildlifeIndex({flowers: 100, hedges: 100, margins: 100})).toBe(100);
+    expect(wildlifeIndex({})).toBe(0);
+    expect(wildlifeIndex({hedges: 80})).toBe(80); // the parts a level has share the weight
+    expect(wildlifeIndex({flowers: 100, hedges: 0, margins: 0})).toBeCloseTo(40, 9);
+    const base = {soil: 60, water: 60};
+    expect(healthIndex(base)).toBeCloseTo(60, 9); // no wildlife part, no change
+    expect(healthIndex({...base, wildlife: 100})).toBeGreaterThan(healthIndex(base));
+    expect(healthIndex({...base, wildlife: 20})).toBeLessThan(healthIndex(base));
+    const h = record(emptyHistory(1), daily({health: {soil: 60, wildlife: wildlifeIndex({flowers: 90, hedges: 70, margins: 50})}}));
+    expect(windowTotals(h)!.totals.health).toBeCloseTo(healthIndex({soil: 60, wildlife: 74}), 9);
+  });
+
+  it('must be rebuilt with its mix, group by group', () => {
+    const sealed: LadderTotals = {...totals(), outputByGroup: {potatoes: 1, salads: 1}};
+    expect(carryCheck(sealed, {...sealed}).ok).toBe(true);
+    const off = carryCheck(sealed, {...sealed, outputByGroup: {potatoes: 1.5, salads: 0.5}});
+    expect(off.ok).toBe(false);
+    expect(off.off.map((o) => o.key)).toEqual(['group.potatoes', 'group.salads']);
+  });
+});
+
+describe('summing sealed children into a parent', () => {
+  // twelve plots, each a little different
+  const plot = (i: number): LadderTotals => ({
+    ...totals({output: 1 + i / 10, quality: 60 + i, reliability: 70 + i, upkeep: 0.4 + i / 100, health: 40 + 2 * i, freshness: 3 + i, carbon: -0.1 * i, land: {crops: 10 + i, grass: 5}}),
+    outputByGroup: {potatoes: 0.5 + i / 20, salads: 0.5 + i / 20},
+    demand: {kg: {potatoes: 0.4, greens: 0.1}, spend: 1.5},
+    hours: {had: 2, used: 1 + i / 12},
+  });
+  const plots = Array.from({length: 12}, (_, i) => plot(i));
+  const sumOfKey = (k: 'output' | 'upkeep' | 'carbon') => plots.reduce((s, p) => s + p[k], 0);
+
+  it('adds Output, demand and hours by group, and upkeep, carbon and land', () => {
+    const p = sumTotals(plots.map((totals) => ({totals})));
+    expect(p.output).toBeCloseTo(sumOfKey('output'), 9);
+    expect(p.upkeep).toBeCloseTo(sumOfKey('upkeep'), 9);
+    expect(p.carbon).toBeCloseTo(sumOfKey('carbon'), 9);
+    expect(p.land).toEqual({crops: plots.reduce((s, x) => s + x.land.crops!, 0), grass: 60});
+    expect(p.outputByGroup!.potatoes).toBeCloseTo(plots.reduce((s, x) => s + x.outputByGroup!.potatoes!, 0), 9);
+    expect(p.outputByGroup!.potatoes! + p.outputByGroup!.salads!).toBeCloseTo(p.output, 9); // the groups still sum to the headline
+    expect(p.demand).toMatchObject({kg: {potatoes: 4.8, greens: 1.2}, spend: 18});
+    expect(p.hours!.had).toBe(24);
+    expect(p.hours!.used).toBeCloseTo(plots.reduce((s, x) => s + x.hours!.used, 0), 9);
+  });
+
+  it('weights Quality, Freshness and Health by output', () => {
+    const p = sumTotals(plots.map((totals) => ({totals})));
+    const w = (k: 'quality' | 'freshness' | 'health') => plots.reduce((s, x) => s + x[k] * x.output, 0) / sumOfKey('output');
+    expect(p.quality).toBeCloseTo(w('quality'), 9);
+    expect(p.freshness).toBeCloseTo(w('freshness'), 9);
+    expect(p.health).toBeCloseTo(w('health'), 9);
+    // a big plot in poor health drags the parent's Health toward its own
+    const big = sumTotals([{totals: totals({output: 9, health: 20})}, {totals: totals({output: 1, health: 100})}]);
+    expect(big.health).toBeCloseTo(28, 9);
+  });
+
+  it('takes Reliability from the summed series when the children bring theirs, and from their spreads when not', () => {
+    // two children swinging against each other cancel out: the parent is steady where each is lumpy
+    const up = [3, 1, 3, 1, 3, 1, 3, 1], down = [1, 3, 1, 3, 1, 3, 1, 3];
+    const c = (series: number[]) => ({totals: totals({output: 2, reliability: reliability(series)}), series});
+    const lumpy = reliability(up), together = sumTotals([c(up), c(down)]).reliability;
+    expect(lumpy).toBeLessThan(60);
+    expect(together).toBe(100);
+    expect(together).toBeCloseTo(reliability(up.map((x, i) => x + down[i]!)), 9);
+    // without series, many independent children are steadier together (a spread of 1/√n of each one's)
+    const cvOne = (100 - 60) / 100, n = 100;
+    const parent = sumTotals(Array.from({length: n}, () => ({totals: totals({output: 2, reliability: 60})})));
+    expect(parent.reliability).toBeCloseTo(100 * (1 - cvOne / Math.sqrt(n)), 6);
+    expect(parent.reliability).toBeGreaterThan(60);
+    expect(sumTotals([{totals: totals({output: 2, reliability: 60})}]).reliability).toBeCloseTo(60, 9); // one child is itself
+  });
+
+  it('is empty for no children, and a sealed parent of them delivers the sum, kg for kg', () => {
+    expect(sumTotals([])).toEqual(emptyTotals());
+    const parent = sumTotals(plots.map((totals) => ({totals: {...totals, reliability: 100}})));
+    const day = sealedTick(sealNode({...parent, reliability: 100}, 0), 24, rng(1));
+    expect(day.output).toBeCloseTo(parent.output * healthFactor(parent.health), 6);
+    expect(Object.values(day.byGroup).reduce<number>((a, b) => a + (b ?? 0), 0)).toBeCloseTo(day.output, 9);
   });
 });

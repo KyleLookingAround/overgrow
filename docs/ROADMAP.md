@@ -16,6 +16,8 @@ What's being worked on, what's next, and ideas not yet agreed. Now, Next, the ru
 Theme: model
 - **Storage, spoilage and the first market's models** (ahead of part 14, `docs/briefs/storage-and-market.md`): shelf life and Q10 spoilage by product and place, losses by stage from field to home in WRAP's order, the cold store's energy and payback, the van's round, the box scheme's households, goodwill and churn, the farm shop's footfall and price, cosmetic grading and seasonal prices. Pure and tested in `src/sim/models/storage.ts` and `market.ts`, with their notes in `docs/systems/storage.md` and `market.md`; part 14 wires them to the smallholding, the road and the map, and level 5 scales them.
 Theme: model
+- **Hooks for the models written ahead** (`docs/briefs/model-hooks.md`, #38, from #29's answers Q2, Q3, Q6 and Q15): the sealing maths carry demand, hours and Output by product group, a wildlife part in Health, a function summing sealed children, an event's money loss and a year-long step-up window; livestock gains hours a head, sales with a price, illness as an outbreak event and a per-head aggregate; labour, machinery and energy gain wages as a parameter, a wage flow, an owner's off-farm job and the energy index the level above sets. Pure and tested, none wired: parts 6c, 7, 12 and 13 wire them.
+Theme: model
 <!-- /joined:now -->
 
 ## Next

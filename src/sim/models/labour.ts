@@ -6,6 +6,10 @@
 //   Management Pocketbook and Nix labour tables for hours a hectare by crop and their monthly spread; the National
 //   Living Wage and the Agricultural Wages orders' grades for rough 2026 pay; the learning-curve literature on picking
 //   and field work (a new hand takes about twice the time of an experienced one, and reaches their pace in weeks).
+// The hooks for the levels above (the owner's answers on #29): wages are a table the caller can pass (`Wages`, so a
+//   minimum wage can raise them: `withMinimumWage`), wages are paid as flows (`payWages`), and an owner can work off
+//   the farm (`offFarmDay`, `earnOffFarm`) at the household model's job: its hours, its commute and its pay
+//   (`JOBS`, `WAGE` in src/data/household.ts), which take the owner's day and bring cash into the farm's purse.
 // Simplifies: hours are per role, season and weekday, with no bank holidays, sickness, weather days or overtime rules;
 //   a crop's work is one figure a hectare spread by month, not by operation and machine (machinery.ts gives hand against
 //   tractor hours); skill is one number 0–1 for each of three kinds of work, and time falls smoothly with it; work is
@@ -14,8 +18,9 @@
 //   hours cap in `goals`.
 //   Fast effect: a day's hours spent and a job left waiting, a harvest week that doesn't fit. Slow effect: a hired hand's
 //   skill and wages over the seasons, and a farm that grows past what one person can work.
-import {CROP_WORK, DAY_HOURS, SKILL_FLOOR, WAGES, WAIT_LOSS_PER_WEEK, type Role, type Season, type SkillName} from '../../data/labour';
-import type {CalendarDate, System} from '../clock';
+import {JOBS, WAGE, type JobKind} from '../../data/household';
+import {CROP_WORK, DAY_HOURS, SKILL_FLOOR, WAGES, WAIT_LOSS_PER_WEEK, type Role, type Season, type SkillName, type Wages} from '../../data/labour';
+import type {CalendarDate, System, TickContext} from '../clock';
 import {qty, type GraphNode} from '../graph';
 
 /** The lever a person keeps their worker record in, and the stock their hours left today are in. */
@@ -28,15 +33,17 @@ export interface Worker {
   role: Role;
   /** 0 (never done it) to 1 (experienced), by kind of work; a missing skill is the beginner's 0. */
   skills: Partial<Record<SkillName, number>>;
-  /** What they want: `hoursCap` is the most they'll work in a day, when it's less than the role's hours. */
-  goals: {hoursCap?: number};
+  /** What they want: `hoursCap` is the most they'll work in a day, when it's less than the role's hours; `offFarm` is a job they go out to, which takes its hours and commute out of their weekdays. */
+  goals: {hoursCap?: number; offFarm?: JobKind};
 }
 
 // ---- hours ----
 
 /** Hours a role has on a day, by season and weekday (0 Monday to 6 Sunday), less any cap the worker's goals set. */
 export function dayHours(role: Role, d: Pick<CalendarDate, 'season' | 'weekday'>, goals: Worker['goals'] = {}) {
-  const h = DAY_HOURS[role][d.season as Season], base = d.weekday >= 5 ? h.weekend : h.weekday;
+  const h = DAY_HOURS[role][d.season as Season], own = d.weekday >= 5 ? h.weekend : h.weekday;
+  const away = goals.offFarm ? offFarmDay(goals.offFarm, d.weekday) : null;
+  const base = away ? Math.max(0, own - away.hours - away.commute) : own;
   return goals.hoursCap === undefined ? base : Math.min(base, Math.max(0, goals.hoursCap));
 }
 
@@ -69,8 +76,32 @@ export const factorOf = (w: Worker, kind: SkillName) => timeFactor(w.skills[kind
 
 // ---- pay ----
 
-/** What some hours of a role cost in cash, £: the wage and the employer's on-cost. */
-export const wageCost = (role: Role, hours: number) => hours * WAGES[role].hourly * (1 + WAGES[role].onCost);
+/** What some hours of a role cost in cash, £: the wage and the employer's on-cost, at the wages given (`WAGES` by default). */
+export const wageCost = (role: Role, hours: number, wages: Wages = WAGES) => hours * wages[role].hourly * (1 + wages[role].onCost);
+
+/** The wages with a minimum wage set: every paid role's hourly wage is at least `minimum` (the owner stays unpaid). A new table. */
+export function withMinimumWage(minimum: number, wages: Wages = WAGES): Wages {
+  const out = {} as Wages;
+  for (const role of Object.keys(wages) as Role[]) {
+    const w = wages[role];
+    out[role] = w.hourly > 0 ? {...w, hourly: Math.max(w.hourly, minimum)} : {...w};
+  }
+  return out;
+}
+
+/** A job away from the farm on a weekday (0 Monday to 6 Sunday): the hours at work, the commute and the take-home pay, as the household model's job gives them. */
+export function offFarmDay(job: JobKind, weekday: number, share = 1) {
+  const j = JOBS[job], hours = (j.hours[weekday] ?? 0) * share;
+  return {hours, commute: hours > 0 ? j.commute : 0, pay: (hours * WAGE.fullWeek) / WAGE.fullHours};
+}
+
+/** The pay of a job's day is income to the farm: £ from outside into a node's `money` stock, as a flow. Returns the £ that moved (0 for a day off or a node with no purse). */
+export function earnOffFarm(c: TickContext, node: string, job: JobKind, weekday: number, share = 1): number {
+  const {pay} = offFarmDay(job, weekday, share);
+  if (!(pay > 1e-9) || !c.graph.nodes[node]?.stocks.money) return 0;
+  c.flow({what: 'off-farm pay', unit: 'GBP', amount: qty(pay, 'GBP'), from: {boundary: 'sold'}, to: {node, stock: 'money'}});
+  return pay;
+}
 
 /** What an hour of work is worth when it would otherwise wait `weeks` weeks: the crop's margin an hour of its work, less a quarter for each week it waits. */
 export function waitValue(crop: string, weeks = 2) {
@@ -93,11 +124,35 @@ export interface Hire {
  * hours and `handSkill` their skill. The hand only earns their wage on work that would otherwise wait; when everything
  * fits without them their wages are all cost.
  */
-export function hireBenefit(o: {crop: string; demand: number; ownHours: number; handHours: number; handSkill?: number; ownSkill?: number; weeks?: number; role?: Role}): Hire {
+export function hireBenefit(o: {crop: string; demand: number; ownHours: number; handHours: number; handSkill?: number; ownSkill?: number; weeks?: number; role?: Role; wages?: Wages}): Hire {
   const role = o.role ?? 'hired hand', done = o.handHours / timeFactor(o.handSkill ?? 0.5), own = o.ownHours / timeFactor(o.ownSkill ?? 1);
   const waitsWithout = Math.max(0, o.demand - own), waitsWith = Math.max(0, o.demand - own - done);
-  const saved = waitsWithout - waitsWith, value = saved * waitValue(o.crop, o.weeks), wages = wageCost(role, o.handHours);
+  const saved = waitsWithout - waitsWith, value = saved * waitValue(o.crop, o.weeks), wages = wageCost(role, o.handHours, o.wages);
   return {saved, value, wages, net: value - wages};
+}
+
+/** What paying wages came to: the wage itself, the employer's on-cost, and the two together, £. */
+export interface Paid {
+  wage: number;
+  onCost: number;
+  total: number;
+}
+
+/**
+ * Pays a worker for some hours: the wage goes from the payer's `money` to the worker's (their own `money` stock if their
+ * node has one, else out of the model to `bought`), and the employer's on-cost (holiday pay, pension, National Insurance)
+ * to `bought`. The wages come from the table given, so a higher wage parameter raises the flow. Nothing is paid without
+ * a payer with a purse; the owner has no wage.
+ */
+export function payWages(c: TickContext, worker: GraphNode, hours: number, payer: string, wages: Wages = WAGES): Paid {
+  const w = workerOf(worker), none = {wage: 0, onCost: 0, total: 0};
+  if (!w || !(hours > 1e-9) || !c.graph.nodes[payer]?.stocks.money) return none;
+  const wage = hours * wages[w.role].hourly, onCost = wage * wages[w.role].onCost;
+  const move = (what: string, gbp: number, to: {node: string; stock: string} | {boundary: 'bought'}) =>
+    gbp > 1e-9 && c.flow({what, unit: 'GBP', amount: qty(gbp, 'GBP'), from: {node: payer, stock: 'money'}, to});
+  move('wages', wage, worker.stocks.money ? {node: worker.id, stock: 'money'} : {boundary: 'bought'});
+  move('on-costs', onCost, {boundary: 'bought'});
+  return {wage, onCost, total: wage + onCost};
 }
 
 // ---- fitting the work in ----

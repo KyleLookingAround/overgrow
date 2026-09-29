@@ -13,6 +13,8 @@
 //   the wheel load is the tractor's whole weight over a 3 tonne reference, not a true axle load; compaction is one number for the whole plough layer, kept as points of structure lost and recovering by one
 //   half-life, with no subsoil, no deep loosening and no crop-root repair; a broken job finishes a random share of its
 //   hectares before it stops.
+//   Its diesel is burnt through the energy model, so the index a level above sets for fuel prices (#29) moves what a job costs and
+//   changes nothing else: the litres, the hours and the wear are the same.
 //   Fast effect: a lost day (or three) at harvest when it breaks down, and the litres and hours a job takes. Slow effect:
 //   a field compacted by wheelings on wet ground, losing structure and yield for years.
 import {COMPACTION, HAZARD, OPERATIONS, REPAIR, USED_TRACTOR, type Operation} from '../../data/machinery';
