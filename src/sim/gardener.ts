@@ -18,7 +18,7 @@ import {commute, householdGardenHours, membersOf, shopDay, shopEstimate, weeklyS
 import {START} from '../data/ladder';
 import type {Activity} from './activity';
 import {calendar, type CalendarDate, type System, type TickContext} from './clock';
-import {qty, type Graph, type GraphNode, type LeverValue, type NodeId, type Unit} from './graph';
+import {nodeList, qty, type Graph, type GraphNode, type LeverValue, type NodeId, type Unit} from './graph';
 import {compostOn, dig, digIn, spread, toHeap} from './models/carbon';
 import {borderOf, plantBorder} from './models/biodiversity';
 import {cropOf, foodKey, inSeason, neighbours, PICK_MIN, plannedCrop, quality, ripe, sow, specOf, summerCrop, wasteOn} from './models/crops';
@@ -97,8 +97,7 @@ const planned = new WeakMap<Graph, {parts: LeverValue[]; key: string}>();
 function planKey(g: Graph): string {
   const me = g.nodes[GARDENER]?.levers, parts: LeverValue[] = [me?.waterBelow ?? null, me?.mulch ?? null];
   for (const p of PESTS) parts.push(me?.[p] ?? null);
-  for (const id in g.nodes) {
-    const n = g.nodes[id]!;
+  for (const n of nodeList(g)) {
     if (n.kind === 'bed') parts.push(n.id, n.levers.sow ?? null, n.levers.sowFrom ?? null, n.levers.dig ?? null, n.levers.edge ?? null, n.levers.winter ?? null, n.levers.cover ?? null);
   }
   const had = planned.get(g);

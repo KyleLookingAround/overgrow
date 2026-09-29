@@ -111,10 +111,13 @@ export default async function({ok,open,out}){
     const nudgeSel='button.notice-action:text-is("Try 2×")';
     const nudge=await page.waitForSelector(nudgeSel,{timeout:30000}).then(()=>true,()=>false);
     if(nudge)await page.click(nudgeSel);
+    // the answer reaches the worker and the page redraws: wait for the nudge to go, then back at 1× it must stay gone
+    const hasNudge=()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent));
+    await page.waitForFunction(()=>![...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)),null,{timeout:5000}).catch(()=>{});
     const s3=await snap(page);
     await send(page,{type:'speed',speed:1});
     await page.waitForTimeout(600);
-    const back=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)));
+    const back=await page.evaluate(hasNudge);
     ok('first minute: no “try faster” nudge in the first minute; once it’s over it shows once at 1× and goes when answered',
       !early&&nudge&&s3.speed===2&&s3.seen.includes('card.try-faster')&&!back&&!errs.length,JSON.stringify({early,nudge,speed:s3.speed,back,err:errs[0]}));
     await ctx.close()}

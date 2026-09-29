@@ -7,7 +7,7 @@ import type {Speed} from '../data/ladder';
 import type {Activity} from './activity';
 import type {Effect} from './effects';
 import {levelClock} from './clock';
-import {ALL, copyNode, copyStock, makeGraph, qty, takeTouched, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
+import {ALL, nodeList, copyNode, copyStock, makeGraph, qty, takeTouched, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
 import {GARDENER, GARDENER_LEVERS} from './gardener';
 import {NO_KIT} from './kit';
 import {BED_FLOWER_LEVERS, LAWN_LEVERS} from './models/biodiversity';
@@ -201,8 +201,8 @@ function recopy(n: GraphNode, c: GraphNode, moved: Set<string> | undefined): Gra
 /** The nodes, copied: again where they changed, the last copy where they didn't. */
 function nodeCopies(s: State): GraphNode[] {
   const had = copies.get(s), changed = takeTouched(s.graph), now = had && changed ? had : new Map<NodeId, GraphNode>(), out: GraphNode[] = [];
-  for (const id in s.graph.nodes) {
-    const n = s.graph.nodes[id]!, c = had?.get(id), moved = changed?.get(id);
+  for (const n of nodeList(s.graph)) {
+    const id = n.id, c = had?.get(id), moved = changed?.get(id);
     const copy = !c || !changed || moved?.has(ALL) ? copyNode(n) : recopy(n, c, moved);
     if (copy !== c) now.set(id, copy);
     out.push(copy);

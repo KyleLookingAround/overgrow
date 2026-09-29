@@ -22,9 +22,10 @@
 import {ROOF} from '../../data/garden';
 import {STATION} from '../../data/climate-normals';
 import {calendar, type System, type TickContext} from '../clock';
+import {START} from '../../data/ladder';
 import {RAISED, TANK} from '../../data/shed';
 import {owns} from '../kit';
-import {qty, type GraphNode} from '../graph';
+import {nodeList, qty, type GraphNode} from '../graph';
 import {cropCover} from './crops';
 import {areaOf, grassShare, hasSoil, leach, limitsOf, SOIL, type Limits} from './soil';
 import {lightBetween, rainBetween, sunOn, weatherOf, type WeatherDay} from './weather';
@@ -88,6 +89,9 @@ export function groundCoefficient(n: GraphNode, lim: Limits): number {
 
 // ---- the balance ----
 
+/** The water balance's step at the garden's hourly steps, hours: a divisor of 24. */
+export const BALANCE_HOURS = 3;
+
 /** Excess over field capacity drains with this time constant, hours. */
 const DRAIN_HOURS = 12;
 
@@ -117,7 +121,7 @@ function balance(c: TickContext, n: GraphNode, rainMm: number, et0Mm: number, ho
 
 /** One stretch of the balance: every soil, then the butt. */
 function step(c: TickContext, rain: number, et: number, hours: number) {
-  for (const n of Object.values(c.graph.nodes)) if (hasSoil(n)) balance(c, n, rain, et, hours);
+  for (const n of nodeList(c.graph)) if (hasSoil(n)) balance(c, n, rain, et, hours);
   // the shed's roof into the butt, and over its brim once it's full
   const butt = c.graph.nodes[ROOF.to]?.stocks.water;
   if (butt && rain > 0) {
@@ -135,10 +139,15 @@ export const water: System = {
     hour(c) {
       const w = weatherOf(c.graph);
       if (!w) return;
-      // the step's rain and share of the day's evapotranspiration, from its first hour; at a day or more, each day's whole
+      // the balance's own step: three hours at the garden's hourly steps (FAO-56's is a day; three hours keeps a shower's
+      // wetting and the afternoon's drying apart), the last three hours' rain and share of the day's evapotranspiration,
+      // at the steps ending on 00:00, 03:00 and every third hour on (a window never crosses midnight, where the weather
+      // turns to the next day); at a day or more, each day's whole
       if (c.dt < 24) {
-        const start = calendar(c.hours - c.dt), a = start.hour + start.minute / 60, b = a + c.dt;
-        step(c, rainBetween(w, a, b), et0(w) * lightBetween(w, a, b), c.dt);
+        const span = Math.max(c.dt, BALANCE_HOURS);
+        if (c.dt < BALANCE_HOURS && Math.round(c.hours + START.hour) % BALANCE_HOURS !== 0) return;
+        const start = calendar(c.hours - span), a = start.hour + start.minute / 60, b = a + span;
+        step(c, rainBetween(w, a, b), et0(w) * lightBetween(w, a, b), span);
       } else for (const d of w.step ?? [w]) step(c, d.rain, et0(d), 24);
     },
   },

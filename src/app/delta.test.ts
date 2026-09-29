@@ -32,9 +32,11 @@ describe('delta', () => {
   it('sends only the nodes that changed', () => {
     const still = createSim(4, []), a = still.apply({type: 'tick', hours: 1}), b = still.apply({type: 'tick', hours: 1});
     expect(diff(a, b).changed).toEqual([]);
-    // the first hour wets or dries the beds and the lawn, draws the day on the air, and the gardener sows and waters from
-    // the butt: those, and no others
-    const sim = createSim(4), c = sim.apply({type: 'tick', hours: 1}), d = sim.apply({type: 'tick', hours: 1});
+    // the third hour's step of the water balance wets or dries the beds and the lawn, the air keeps its day, and the
+    // gardener sows and waters from the butt: those, and no others
+    const sim = createSim(4);
+    sim.apply({type: 'tick', hours: 1});
+    const c = sim.apply({type: 'tick', hours: 1}), d = sim.apply({type: 'tick', hours: 1});
     const kinds = new Set(diff(c, d).changed!.map((p) => d.nodes.find((n) => n.id === p.id)!.kind));
     expect(kinds.size).toBeGreaterThan(0);
     expect([...kinds].every((k) => ['bed', 'lawn', 'atmosphere', 'person', 'butt'].includes(k))).toBe(true);

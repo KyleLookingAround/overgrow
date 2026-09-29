@@ -129,10 +129,18 @@ const BY_CAUSE = new Map<string, string[]>();
 for (const [k, u] of Object.entries(UNFOLD)) for (const c of u.causes) BY_CAUSE.set(c, [...(BY_CAUSE.get(c) ?? []), k]);
 
 /** The keys a tick's causes reveal, in the table's order, that haven't unfolded yet. */
+/** The causes whose every key a seen list already holds, by the list (a tick's check skips them in one lookup). */
+const spent = new WeakMap<readonly string[], Set<string>>();
 export function revealed(seen: readonly string[], causes: Iterable<string>): string[] {
-  let out: string[] | null = null;
+  let out: string[] | null = null, done = spent.get(seen);
+  if (!done) spent.set(seen, (done = new Set()));
   for (const c of causes) {
+    if (done.has(c)) continue;
     const keys = BY_CAUSE.get(c);
+    if (!keys || keys.every((k) => seen.includes(k))) {
+      done.add(c);
+      continue;
+    }
     if (keys) for (const k of keys) if (!seen.includes(k) && !out?.includes(k)) (out ??= []).push(k);
   }
   return out ? out.sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)) : [];

@@ -185,6 +185,17 @@ export function makeGraph(nodes: NodeSpec[], edges: Edge[]): Graph {
   return g;
 }
 
+/** A graph's nodes as a list, kept while its revision holds (nodes are added and removed only with a new revision): the
+ *  hourly loops walk it rather than building a new array each hour. */
+const lists = new WeakMap<Graph, {rev: number; nodes: GraphNode[]}>();
+export function nodeList(g: Graph): GraphNode[] {
+  const had = lists.get(g);
+  if (had && had.rev === g.rev) return had.nodes;
+  const nodes = Object.values(g.nodes);
+  lists.set(g, {rev: g.rev, nodes});
+  return nodes;
+}
+
 /** A node's land by use, m². */
 export function landOf(n: GraphNode): Partial<Record<LandUse, number>> {
   const out: Partial<Record<LandUse, number>> = {};
