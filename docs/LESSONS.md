@@ -19,5 +19,6 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Not sorted yet
 
+- [Weather, soil and water, the first slice's part 2 (#7) · 29 Sep 2026](lessons/7-weather-soil-water.md)
 - [The graph and the clock, the first slice's part 1 (#5) · 28 Sep 2026](lessons/5-graph-and-clock.md)
 <!-- /joined:lessons -->
