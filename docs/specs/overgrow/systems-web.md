@@ -1,6 +1,6 @@
 # The systems web: every mechanic across the ladder
 
-Issue: #27 · The owner's questions: #29 · Brief: `docs/briefs/systems-web.md` · Status: a companion to the founding spec (`docs/specs/overgrow.md`). Rows the spec settles are marked **S**, the owner's approved additions **O**, and this web's own proposals **P**. A proposal that would change the spec's model, ladder or carry-over rule carries a question number (**Q1**…) and waits for the owner's answer on the `needs-owner` issue, #29. Nothing is built on a **Q** until the owner answers. An unnumbered **P** is design inside the spec's rules, for the part or level spec that builds it to take or refuse.
+Issue: #27 · The owner's answers: #29 · Brief: `docs/briefs/systems-web.md`, then `docs/briefs/spec-answers.md` · Status: a companion to the founding spec (`docs/specs/overgrow.md`). Rows the spec settles are marked **S**, the owner's approved additions **O**, and this web's own proposals **P**. The owner answered the questions this web put on #29 on 29 Sep 2026 and took every recommendation: each answered question is now **O**, written **O·Q1** and so on beside the question that made it, and is written into the founding spec. Two came back as later notes (the basket's diet lever, and a demand-side zoom back in) and three parts of a seed question wait for part 6's groceries (packaging, days of food, prices moving with the world's); each says where it comes back. An unnumbered **P** is design inside the spec's rules, for the part or level spec that builds it to take or refuse.
 
 The founding spec gives the ladder, the carry-over rule, the systems map and the loops, and says where each system is first hands-on. This web follows each mechanic up the ladder, level by level. It doesn't restate the spec or the owner's design page (`docs/specs/overgrow/game.html`). Every later brief answers "How it fits and grows" (`docs/briefs/TEMPLATE.md`) and points at its row here. A part that changes a row edits that row in its own PR; rows are separate lines, so parallel parts rarely conflict.
 
@@ -51,8 +51,8 @@ What each system is at each level. A dot means it isn't there, and **s** means a
 | Agency and trust | s | H | H | H | H | H | H | H |
 | Politics and policy | s | H | H | H | H | H | R | H |
 | Technology and upgrades | H | H | H | H | H | H | H | H |
-| Money, credit and insurance (**Q5**) | H | H | H | H | H | H | H | H |
-| The household (**O**, **Q1**) | H | H | H | H | A | A | R | A |
+| Money, credit and insurance (**O·Q5**) | H | H | H | H | H | H | H | H |
+| The household (**O·Q1**) | H | H | H | H | A | A | R | A |
 | The ladder and sealing | H | H | H | H | H | H | H | H |
 | Zooming back in | · | H | H | H | H | H | H | H |
 | Advisers, recommendations and Explain | H | H | H | H | H | H | R | H |
@@ -93,13 +93,13 @@ Each level's steady supply of small decisions:
 
 ## Strategy: every choice has a price, over different horizons
 
-The owner (29 Sep 2026): the game should be strategic and long. Choices have trade-offs that pay off over different horizons (this week, this season, the years ahead), the player can compare plans, and no single option dominates. Settled by the owner. Each mechanic below has, as the spec or this web stands, one obviously best choice. The fix is a trade-off, marked **P** where it's design inside the spec's rules. **Q14** and **Q15** would change the founding spec and wait on #29.
+The owner (29 Sep 2026): the game should be strategic and long. Choices have trade-offs that pay off over different horizons (this week, this season, the years ahead), the player can compare plans, and no single option dominates. Settled by the owner. Each mechanic below has, as the spec or this web stands, one obviously best choice. The fix is a trade-off, marked **P** where it's design inside the spec's rules. The owner's answers to **O·Q14** and **O·Q15** are in the founding spec and `docs/decisions/ADR-2026-09-29-strategic-and-long.md`.
 
 | Mechanic (level) | The dominant choice today | The trade-off that fixes it | Horizons |
 | --- | --- | --- | --- |
-| Carbon choices at 1–6: peat, digging the lawn, the basket | Ignore carbon: the dial costs nothing until the nation | **Q14:** carbon has a price at every level, through the people there. Box customers and the committee care (goodwill), the scheme pays for sinks at 4, and the council and chain carry a reputation for it at 5 and 6 | Week: peat's fast start. Years: goodwill and payments. |
+| Carbon choices at 1–6: peat, digging the lawn, the basket | Ignore carbon: the dial costs nothing until the nation | **O·Q14:** carbon has a price at every level, through the people there. Box customers and the committee care (goodwill), the scheme pays for sinks at 4, and the council and chain carry a reputation for it at 5 and 6 | Week: peat's fast start. Years: goodwill and payments. |
 | Time-saving tools at 1 (hose, drip lines) | Buy each as soon as it's affordable | **P:** each has a running cost or a limit. The hose draws mains water (a bill, and banned in a hosepipe ban); drip lines fix a bed's layout (moving them costs hours at each rotation) and clog without upkeep | Week: hours saved. Season: the water bill. Years: the rotation. |
-| Rotation at 1–3 | Nothing yet makes it pay inside the garden's short level: #24 finds one crop does as well | **P:** the soil and pest effects of repeating a family show within a season or two (clubroot and potato cyst nematode build up; blight carries over), and **Q15** gives the garden long enough for them to show | Season: the crop you want most. Years: the soil. |
+| Rotation at 1–3 | Nothing yet makes it pay inside the garden's short level: #24 finds one crop does as well | **P:** the soil and pest effects of repeating a family show within a season or two (clubroot and potato cyst nematode build up; blight carries over), and **O·Q15** gives the garden long enough for them to show | Season: the crop you want most. Years: the soil. |
 | The honesty box at 1 | The fixed £2.50 a kg: no decision | **P:** a price lever. Higher sells fewer kg and more goes off; the shop's price for the same veg is the ceiling | Week: takings. Season: regulars won or lost. |
 | Selling or eating at 1 | Eat it: every kg eaten saves more than it earns at the gate | Keep it: that's the lesson (the garden's value is the shop price it replaces). Only surplus is a real choice, and swaps at 2 give it another use | — |
 | The watering line at 1 | As high as the hours allow | Already a trade-off once the butt runs dry and the tap costs money, and over-watering leaches nitrate (the water and soil models). The web keeps it | Day: wilt avoided. Season: nitrate lost. |
@@ -107,7 +107,7 @@ The owner (29 Sep 2026): the game should be strategic and long. Choices have tra
 | Treating pests at 1–4 | Treat: the loss is now and the cost is invisible | Already a trade-off: predators lost and, at the farm, resistance. It needs showing on the map (part 5) | Night: the pests. Seasons: predators and resistance. |
 | The step-up at every level | Take the offer at once | **P:** a level stays open to finish a slow investment (a hedge, a rotation) that will carry up in its Health; the offer waits | Now: the next level. Years: a better sealed node. |
 
-**Q15, the time scales.** The garden's offer comes between days 55 and 75, and the smallholding's first year takes about ten minutes. So the slow effects the levels are built round (soil organic matter, rotation, hedges) can't pay off inside the level that teaches them. The proposal: each level lasts long enough for its slowest lever to pay back once. The garden runs at least a full year, with the offer after a year's steady supply and not a lucky summer. The allotment and smallholding run two or three years each. The clock keeps its rates (seconds per game day), so the game gets longer, not slower. The longest quiet stretch (above) is the guard against boredom.
+**The time scales (O·Q15).** The garden's offer used to come between days 55 and 75, and the smallholding's first year takes about ten minutes, so the slow effects the levels are built round (soil organic matter, rotation, hedges) couldn't pay off inside the level that teaches them. Each level now lasts long enough for its slowest lever to pay back once. The garden runs at least a full year, with the offer after a year's steady supply and not a lucky summer. The allotment and smallholding run two or three years each. The clock keeps its rates (seconds per game day), so the game gets longer, not slower. The longest quiet stretch (above) is the guard against boredom.
 
 ## The physical world
 
@@ -147,7 +147,7 @@ Loops: intensification, energy (pumping), climate. The spec settles the lever's 
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S | H: the FAO-56 balance, the butt and the tap. The lever is the watering line; the gardener waters with a can, then a hose, then drip lines. A hosepipe ban in a dry summer is **Q8**. | The gardener with the can; the butt's level; soil colour | Health (water part); Upkeep (mains water) | Fast: a watered bed recovers today. Slow: a dry summer empties the butt. Plants drink by the weather, not by the calendar. | The watering line appears with the first dry bed the gardener must choose to water; the butt's level from the first rain |
+| 1 · S | H: the FAO-56 balance, the butt and the tap. The lever is the watering line; the gardener waters with a can, then a hose, then drip lines. A hosepipe ban in a dry summer is **O·Q8b** (part 10). | The gardener with the can; the butt's level; soil colour | Health (water part); Upkeep (mains water) | Fast: a watered bed recovers today. Slow: a dry summer empties the butt. Plants drink by the weather, not by the calendar. | The watering line appears with the first dry bed the gardener must choose to water; the butt's level from the first rain |
 | 2 · S | H: the shared trough with a daily limit; the rota is voted by the committee. | A queue at the trough | Health (water part) | Fast: an empty trough. Slow: the rota's fairness. A shared resource needs rules (Ostrom's commons). | The trough's limit with the first queue; the rota with the vote |
 | 3 · S+P | H: irrigate or not; the pump's energy (PR #26, `pumpKWh()`). The levers are the plan and (**P**) a borehole or reservoir; the smallholder acts. | The pump running; the irrigated field greener | Upkeep; Reliability | Fast: a field saved in a drought. Slow: the energy bill. Water costs energy. | Irrigate-or-not with the first dry field |
 | 4 · S | H: abstraction licences, the farm reservoir, and floods. The levers are the licence application and the reservoir; the farmer and the agency act. | Reservoir level; a dry river | Reliability | Fast: a licence cut in a dry year. Slow: none. A licence caps what you can take when everyone needs it. | The licence with the first application or cut |
@@ -177,10 +177,10 @@ Loops: intensification (pesticides and monoculture against natural enemies). Spe
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S | H: flowers bring ladybirds (aphids) and bees (beans, tomatoes). The levers are flowers in the plan and the pest policy's "treat", which kills them too. The gardener acts. | Bees and ladybirds over flowers | Health has no wildlife part (**Q6**) | Fast: aphids eaten. Slow: a population that builds. Natural enemies are pest control you don't pay for. | Bees and ladybirds are drawn from the start; their count shows with the first flowers sown or the first treat |
+| 1 · S | H: flowers bring ladybirds (aphids) and bees (beans, tomatoes). The levers are flowers in the plan and the pest policy's "treat", which kills them too. The gardener acts. | Bees and ladybirds over flowers | Health's wildlife part (**O·Q6**) | Fast: aphids eaten. Slow: a population that builds. Natural enemies are pest control you don't pay for. | Bees and ladybirds are drawn from the start; their count shows with the first flowers sown or the first treat |
 | 2 · S+P | H: neighbours' spraying reaches your bees (**P**); the vote on the bee plot. | Bees crossing plots | — | Wildlife crosses fences. | Drift with the first neighbour's spraying; the bee plot with its vote |
-| 3 · S | H: hedgerows and margins for pollinators. The lever is the year plan; the smallholder plants. | Hedges; margins flowering | **Q6** | Fast: none. Slow: pollinated yields up over years (Klein et al., 2007). | Margins with the first hedge or margin offered |
-| 4 · S | H: agri-environment payments (the subsidy scheme). The lever is the scheme's options; the farmer acts. | Margins, beetle banks | **Q6** | Paid nature is still nature. | Scheme options with the scheme |
+| 3 · S | H: hedgerows and margins for pollinators. The lever is the year plan; the smallholder plants. | Hedges; margins flowering | **O·Q6** | Fast: none. Slow: pollinated yields up over years (Klein et al., 2007). | Margins with the first hedge or margin offered |
+| 4 · S | H: agri-environment payments (the subsidy scheme). The lever is the scheme's options; the farmer acts. | Margins, beetle banks | **O·Q6** | Paid nature is still nature. | Scheme options with the scheme |
 | 5–6 · P | N, then T: suppliers' wildlife standards. At 6 the buyer can set one. | — | — | A chain's standard reaches thousands of farms. | A standard's lever at 6 with the first buying round |
 | 7 · P | H: the land budget's nature share and pesticide rules. The lever is law. | The farmland bird index as a map layer | — | England's farmland bird index has fallen by about three fifths since 1970 (DEFRA). | Nature law with the first nature bill |
 | 8 · P | H: a treaty (30 % protected by 2030, Kunming-Montreal). | Protected land by country | — | Nature targets are shared or not met. | The treaty with the first round |
@@ -194,7 +194,7 @@ Loops: diet, intensification, trade. Spec: from 1.
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
 | 1 · S | H: six crops grown by degree days, water and nutrients. The lever is the plan (what to sow where and from when, or the rotation); the gardener sows, waters and picks. | Drills, shoots, ripe fruit, wilting, frost-blackened tops | Output, Quality, Reliability | Fast: a harvest. Slow: the rotation's effect on the soil. What grows when, and why. | The plan's first card (salad and radishes) from the first minute; more lines as each bed is dug |
-| 2 · S | H: your plot and the neglected second one; neighbours' plots as their totals. The lever is the plot's plan; your gardener and the helping neighbour act. | Neighbours' crops drawn from their totals | Output by product (the spec's "by product mix"; **Q3**) | Fast: a glut of courgettes. Slow: none. Surplus is only useful if it's what others lack. | Swaps with the swap shed |
+| 2 · S | H: your plot and the neglected second one; neighbours' plots as their totals. The lever is the plot's plan; your gardener and the helping neighbour act. | Neighbours' crops drawn from their totals | Output by product (the spec's "by product mix"; **O·Q3**) | Fast: a glut of courgettes. Slow: none. Surplus is only useful if it's what others lack. | Swaps with the swap shed |
 | 3 · S | H: fields, with rotation over years (legumes, cover crops, fallow). The lever is the year plan; the smallholder and the hand act. | Fields by crop; the drill and harvest | Output, Health | Fast: a crop in the barn. Slow: a rotation paying back over years. Rotation is a plan over years, not a season. | The year plan with the smallholding |
 | 4 · S | H: the enterprise's crops, varieties and contracts. The lever is the cropping plan against the contract; the farmer and the manager act. | Harvesters in the row | Output against the contract; Quality | Fast: a contract met or missed. Slow: a variety's disease resistance. Food is grown to a buyer's spec. | Contracts with the first buyer's offer |
 | 5 · S | N: each farm's Output by product. The lever is which farms the market buys from. | Farm tiles with their numbers | — | Fast: a farm's short week. Slow: none. The town sees fields only as supply. | Tiles from the start |
@@ -253,8 +253,8 @@ Loops: agency (delegating costs trust). Spec: from 3; labour hours are a flow fr
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S+O | H: the gardener's four hours on a weekday and six at the weekend, what's left after their job (**O**). Tools buy time. | The gardener's card; the day's hours ticking down | Hours (**Q2**) | Fast: a job that doesn't fit waits. Slow: none. Time is the first constraint. | The gardener's card and hours from the first minute; the job's hours with the first week's wage |
-| 2 · S+O | H: a neighbour helps for a share, and takes more. The partner can work more or help on the plot (**O**, part 10). | The neighbour at your plot; the partner with a barrow | Hours (**Q2**) | Fast: the plot kept. Slow: trust lost. Help has a price even when it's free. | The partner's work-or-help lever with the second plot |
+| 1 · S+O | H: the gardener's four hours on a weekday and six at the weekend, what's left after their job (**O**). Tools buy time. | The gardener's card; the day's hours ticking down | Hours (**O·Q2**) | Fast: a job that doesn't fit waits. Slow: none. Time is the first constraint. | The gardener's card and hours from the first minute; the job's hours with the first week's wage |
+| 2 · S+O | H: a neighbour helps for a share, and takes more. The partner can work more or help on the plot (**O**, part 10). | The neighbour at your plot; the partner with a barrow | Hours (**O·Q2**) | Fast: the plot kept. Slow: trust lost. Help has a price even when it's free. | The partner's work-or-help lever with the second plot |
 | 3 · S | H: the first hire, with goals of their own. The hand works about 39 hours a week (PR #26); the lever is hiring and pay. | The hand in the field | Upkeep (wages) | Fast: the harvest in. Slow: a good hand stays. You're the employer now (the spine). | Hiring with the first harvest that won't fit |
 | 4 · S | H: seasonal labour and the union. The lever is hiring pickers and dealing with the union. | Pickers at harvest | Upkeep | Fast: fruit picked or rotting. Slow: none. The harvest needs three or four times a quiet month's hours (AHDB and Nix labour tables, in PR #26). | Pickers with the first crop needing them |
 | 5 · P | H: shop and market staff. The lever is the market's hours and staffing. | Stallholders | Upkeep | Most food jobs are after the farm gate. | Staffing with the first market day |
@@ -266,7 +266,7 @@ Loops: agency (delegating costs trust). Spec: from 3; labour hours are a flow fr
 
 ### Storage and spoilage
 
-Loops: waste, energy (the cold chain). Spec: from 3. It's already hands-on at 1 in the kitchen's keeping, so the "From" column is **Q10**.
+Loops: waste, energy (the cold chain). Spec: from 3. It's already hands-on at 1 in the kitchen's keeping, so the "From" column is now 1 (**O·Q10**).
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
@@ -276,12 +276,12 @@ Loops: waste, energy (the cold chain). Spec: from 3. It's already hands-on at 1 
 | 4 · P | H: the farm store. The lever is building one. | The store | Freshness; Upkeep | Store to sell when prices are better. | The store with the first price worth waiting for |
 | 5 · S | H: storage by product and temperature (Q₁₀ kinetics). The lever is the stores; the shopkeepers act. | Stores | Freshness | Temperature, not distance, sets shelf life. | Stores from the start of the level |
 | 6 · S | H: the cold chain at scale and its energy. The lever is depot and fleet; the chain's staff act. | Chilled lorries | Freshness; carbon | Fast: a failed chiller. Slow: none. Cold is a cost the shelf price hides. | The cold chain with the first chilled route |
-| 7 · P | A: food security as days of stock (**Q8** seeds it at the garden). The lever is law. | — | — | Fast: a shortage. Slow: none. Resilience is stock and diversity. | Days of stock with the first shortage |
+| 7 · P | A: food security as days of stock (seeded at the garden by days of food in the kitchen, a later note: Q8d). The lever is law. | — | — | Fast: a shortage. Slow: none. Resilience is stock and diversity. | Days of stock with the first shortage |
 | 8 · P | H: strategic grain reserves. The lever is a treaty or a national store. | — | — | Reserves calm a panic. | Reserves with the first price panic |
 
 ### Transport and logistics
 
-Loops: energy, trade. Spec: from 5. The gardener's baskets and the van come earlier (**Q10**).
+Loops: energy, trade. Spec: from 5. The gardener's baskets and the van come earlier (**O·Q10**).
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
@@ -300,18 +300,18 @@ Loops: diet, trade, waste. Spec: from 1 (the kitchen), 5.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S+O | H: the kitchen's ask, the honesty box at £2.50 a kg, and the weekly shop at shop prices (**O**). The levers are the plan (grow what you'd buy) and the box's price. | Baskets to the gate; the shopping | Output; Upkeep; demand (**Q2**) | Fast: a sale. Slow: none. Your veg against the shop's price. | The Kitchen tab with the first harvest; the honesty box with the first surplus; the shop's basket with the first week's shop |
+| 1 · S+O | H: the kitchen's ask, the honesty box at £2.50 a kg, and the weekly shop at shop prices (**O**). The levers are the plan (grow what you'd buy) and the box's price. | Baskets to the gate; the shopping | Output; Upkeep; demand (**O·Q2**) | Fast: a sale. Slow: none. Your veg against the shop's price. | The Kitchen tab with the first harvest; the honesty box with the first surplus; the shop's basket with the first week's shop |
 | 2 · S | H: the swap shed, where barter needs what others lack. | Swaps carried between sheds | — | Trade gains come from difference. | The swap shed with the first surplus |
 | 3 · S | R: the box scheme and farm shop. You are the shop for a few dozen households; the lever is the box's contents and price. | The van to customers | Output; Upkeep | You sell to households now (the spine). | The box scheme with the smallholding offer |
 | 4 · S | H: the buyer's contract and cosmetic standards. The lever is taking the contract or not. | Outgrades left in the field | Output; Quality | Fast: a rejected load. Slow: none. The buyer's spec sets waste. | Contracts with the first buyer's offer |
-| 5 · S | R: local demand by income and habit; you run the market. The levers are stall fees, market days and rules; stallholders act. | Shoppers at the market | Demand by decile (**Q2**) | You set the rules stallholders live by. | The market's levers from the start of the level |
+| 5 · S | R: local demand by income and habit; you run the market. The levers are stall fees, market days and rules; stallholders act. | Shoppers at the market | Demand by decile (**O·Q2**) | You set the rules stallholders live by. | The market's levers from the start of the level |
 | 6 · S | R: you are the buyer. The levers are range, price, promotions and standards; the chain's staff act. | Pallets in and out | — | Fast: a promotion's rush. Slow: suppliers leaving. Buyer power (the Groceries Code Adjudicator). | Buying from the start of the level |
 | 7 · P | A: prices and affordability by decile. The lever is law. | — | — | The poorest spend the largest share on food (Engel's law). | Affordability with the first price rise felt |
 | 8 · S | H: commodity prices. The lever is treaties and stocks. | — | — | A price spike abroad reaches the basket. | Commodity prices with the first spike |
 
 ### Trade and geopolitics
 
-Loop: trade. Spec: from 8. Seeded from 1 (**Q10**).
+Loop: trade. Spec: from 8. Seeded from 1 (**O·Q10**).
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
@@ -331,7 +331,7 @@ Loop: waste. Spec: from 1.
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
 | 1 · S | H: the heap; the kitchen and the box going off. The levers are the plan and the heap; the gardener carries. | Scraps to the heap | carbon | What's wasted still cost water and hours. | The heap from the first scraps; wasted kg in the Kitchen tab with the first thing that goes off |
-| 2 · S+P | H: the swap shed as redistribution. The committee's bonfire ban has no system yet (**Q11**). | — | — | Surplus given is surplus not wasted. | The swap shelf; the bonfire vote |
+| 2 · S+P | H: the swap shed as redistribution. The committee's bonfire ban is the waste system's burning against composting (**O·Q11**), which leads to the stubble-burning ban and burning abroad. | — | — | Surplus given is surplus not wasted. | The swap shelf; the bonfire vote |
 | 3 · S | H: manure, and spoilage on the way. | — | — | Fast: manure spread. Slow: the soil fed. One enterprise's waste is another's input. | Manure with the flock |
 | 4 · S | H: outgrades under cosmetic standards (the waste loop). | Outgrades | — | Standards make waste. | Outgrades with the first rejected load |
 | 5 · S | H: retail and household waste, redistribution. The lever is the council's collections and the food bank. | Food bank vans | — | Households waste the most after the farm gate (WRAP: about 60–70 % of UK post-farm waste, by year). | Waste levers from the start of the level |
@@ -347,7 +347,7 @@ Loop: energy. Spec: from 3. The model is PR #26 (fuels, pumps, cold stores and t
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · P | s (with **Q1**): the household's energy bill sits in the purse beside its food, so a cold winter squeezes the basket ("heat or eat"). The shed light buys evening hours. No energy lever yet. | The shed light on at dusk | Upkeep | A seed: energy and food compete for the same money. | The bill in the purse with the first cold month |
+| 1 · P | s (with **O·Q1**): the household's energy bill sits in the purse beside its food, so a cold winter squeezes the basket ("heat or eat"). The shed light buys evening hours. No energy lever yet. | The shed light on at dusk | Upkeep | A seed: energy and food compete for the same money. | The bill in the purse with the first cold month |
 | 2 · · | Not present: the allotment has no power. | — | — | — | — |
 | 3 · S | H: diesel, electricity for the pump, and heat for the polytunnel (PR #26). The lever is the year plan and the kit; the smallholder acts. | The tractor working; the pump running | Upkeep; carbon | Fast: the fuel bill. Slow: none. Every machine hour is a fuel cost. | Fuel with the tractor; the pump with irrigation |
 | 4 · S | H: on-farm renewables and a digester. The lever is the upgrade; the farmer acts. | Panels on a barn; a digester | Upkeep (less); carbon (less) | Fast: none. Slow: a payback over years. The farm can make energy as well as use it. | Renewables with the first offer |
@@ -362,13 +362,13 @@ Every loop ends here. Spec: from 1, counted per node from the first bed.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S+O | H: the dial (the heap, peat, the lawn), and the embodied carbon of the shop food (**O**). The shop food's carbon is counted beside the dial by **Q4**, never added to the air. The levers are the plan, peat-free compost and what the garden replaces. | The dial | carbon | Fast: none. Slow: the heap's slow sink. What you eat matters more than how far it came. | The dial with the first carbon choice (the first dig, peat or compost), not from day one (the owner, 29 Sep); the basket's needle with the first shop |
+| 1 · S+O | H: the dial (the heap, peat, the lawn), and the embodied carbon of the shop food (**O**). The shop food's carbon is counted beside the dial by **O·Q4**, never added to the air. The levers are the plan, peat-free compost and what the garden replaces. | The dial | carbon | Fast: none. Slow: the heap's slow sink. What you eat matters more than how far it came. | The dial with the first carbon choice (the first dig, peat or compost), not from day one (the owner, 29 Sep); the basket's needle with the first shop |
 | 2 · S | N: each plot's carbon; your plot's in detail. | The dial | carbon | Twelve plots' kg add up. | Plots' carbon on their tiles |
 | 3 · S | H: methane from the flock, the tractor's diesel, and fertiliser's N₂O. The lever is the year plan. | — | carbon | Fast: none. Slow: the soil carbon of the rotation. Animals and fuel dominate a small farm's account. | Methane with the flock; diesel with the tractor |
 | 4 · S | H: the full carbon account, emissions less sinks by source. The lever is the farm's plan and upgrades. | — | carbon | A farm can be a sink as well as a source. | The full account from the start of the level |
 | 5 · S | H: transport and the shops' carbon. The lever is routes and chillers. | — | carbon | Transport is small beside production. | From the start of the level |
 | 6 · S | H: the retail carbon account. The lever is sourcing and range. | — | carbon | A range choice (beef or beans) outweighs any lorry. | From the start of the level |
-| 7 · S | H: the national account against its target. With **Q4**, the territorial account shows beside the consumption footprint, so carbon leakage is visible. The lever is law. | Regions by emissions | — | Offshoring cuts the account, not the footprint. | The target from the start of the level |
+| 7 · S | H: the national account against its target. With **O·Q4**, the territorial account shows beside the consumption footprint, so carbon leakage is visible. The lever is law. | Regions by emissions | — | Offshoring cuts the account, not the footprint. | The target from the start of the level |
 | 8 · S | H: the atmosphere itself. The lever is a treaty or a carbon price. | — | — | Every country's kg go into the same air. | The atmosphere from the start |
 
 ### Climate feedback
@@ -390,11 +390,11 @@ Loop: diet. Spec: from 1 (the kitchen), 7.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
-| 1 · S+O | s: the kitchen's five a day, met from the garden, and the rest of the basket from the shop (**O**). A diet lever at the garden is **Q9**. | Produce carried to the kitchen | The share met (in Output's mix) | Fast: a day's five a day met. Slow: none. What a household eats is a choice, and a budget. | The five-a-day share in the Kitchen tab with the first harvest |
+| 1 · S+O | s: the kitchen's five a day, met from the garden, and the rest of the basket from the shop (**O**). A diet lever at the garden is a later note (Q9: part 6 or after the slice). | Produce carried to the kitchen | The share met (in Output's mix) | Fast: a day's five a day met. Slow: none. What a household eats is a choice, and a budget. | The five-a-day share in the Kitchen tab with the first harvest |
 | 2 · P | s: swaps widen the kitchen's mix. | Swaps | — | Variety comes from others. | With swaps |
 | 3 · P | s: the box customers' mix follows what's in the box. The lever is the box's contents. | Boxes | — | A seller shapes what people eat. | With the box's contents |
 | 4 · · | Not present. | — | — | — | — |
-| 5 · P | s: diets by income decile at the market. The lever is what the market stocks. | Shoppers' baskets | Demand (**Q2**) | The poorest eat the fewest vegetables (DEFRA Family Food). | Decile diets with the market |
+| 5 · P | s: diets by income decile at the market. The lever is what the market stocks. | Shoppers' baskets | Demand (**O·Q2**) | The poorest eat the fewest vegetables (DEFRA Family Food). | Decile diets with the market |
 | 6 · P | s: the category mix and promotions. The lever is range and promotions. | Shelves | — | Promotions change what the country eats. | The category mix with range |
 | 7 · S | H: diet and health, and the health cost. The levers are law and guidance (the sugar levy, school food, the Eatwell Guide). | Regions by diet-related illness | — | Fast: none. Slow: health over a generation. Manufacturers cut sugar rather than pay the levy. | Health with the first diet bill |
 | 8 · S | H: diets against the EAT-Lancet reference, with hunger and obesity side by side. The lever is a treaty or aid. | Countries by diet | — | The world has both hunger and obesity at once. | From the start of the level |
@@ -409,7 +409,7 @@ Loop: diet (culture pushes back or runs ahead). Spec: from 2 (neighbours), 7.
 | 2 · S | s: eleven neighbours with habits (tidy, lazy, generous, competitive). | Neighbours at their plots | — | People differ; the same plot fares differently. | Neighbours' habits as they're met |
 | 3 · P | s: the box customers' tastes (local, organic, cheap). | — | — | Fast: none. Slow: none. Customers buy on values as well as price. | Customers' tastes with the box scheme |
 | 4 · · | Not present: the farm's customers are buyers, not people. | — | — | — | — |
-| 5 · P | A: households by income decile and habit. | Shoppers | Demand (**Q2**) | Demand is people. | Deciles from the start of the level |
+| 5 · P | A: households by income decile and habit. | Shoppers | Demand (**O·Q2**) | Demand is people. | Deciles from the start of the level |
 | 6 · P | A: footfall and trends (vegan, local, cheap). | Queues | — | Trends move shelves faster than prices. | Footfall from the start of the level |
 | 7 · S | H: population, growth, trends and what people will bear. | Regions by population | — | Fast: none. Slow: demand shifts over a generation. Culture sets what policy people will bear. | From the start of the level |
 | 8 · S | H: population growth and urbanisation by country. | Cities growing | — | Fast: none. Slow: decades. More people, and more of them in cities, need more food moved. | From the start of the level |
@@ -459,15 +459,15 @@ Loops: all. Spec: from 1.
 | 7 · P | H: research policy and varieties. | — | — | Fast: none. Slow: a decade from lab to field. Research is the slowest lever and one of the strongest. | Research with the first bill |
 | 8 · S | H: alternative proteins and vertical farms. | — | — | Fast: none. Slow: decades. New proteins could free land, if people eat them. | As each is worth having |
 
-### Money, credit and insurance (Q5)
+### Money, credit and insurance (O·Q5)
 
-The spec's farm adds insurance and credit, and the nation must stay solvent, but the systems map has no row for money. **Q5** proposes one.
+The spec's farm adds insurance and credit, and the nation must stay solvent, but the systems map had no row for money. **O·Q5** adds one, seeded by the tractor loan at 3 (part 13).
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
 | 1 · O | H: the household's purse: the wage in, groceries out, the honesty box's takings. | — | Upkeep | Fast: the week's budget. Slow: savings. | Money in the top bar from the start; the purse's lines with the first week's wage and shop |
 | 2 · P | H: plot rent. | — | Upkeep | Fast: the year's rent. Slow: none. Land always has a price, even a plot's. | Rent with the plot |
-| 3 · P | H: the loan for the second-hand tractor (**Q5**). | — | Upkeep | Borrowing brings a machine forward and a repayment with it. | The loan with the tractor's offer |
+| 3 · P | H: the loan for the second-hand tractor (**O·Q5**). | — | Upkeep | Borrowing brings a machine forward and a repayment with it. | The loan with the tractor's offer |
 | 4 · S | H: insurance and credit. | — | Upkeep | Insurance turns a disaster into a premium. | Insurance with the first loss |
 | 5 · P | H: the market's margins. | — | Upkeep | Fast: a stall's takings. Slow: none. Every step between field and fork takes a share. | From the start of the level |
 | 6 · P | H: the chain's margins. | — | Upkeep | Fast: none. Slow: suppliers' margins squeezed. The farmer's share of the shelf price is small. | From the start of the level |
@@ -492,7 +492,7 @@ Spec: from 2.
 | --- | --- | --- | --- | --- | --- |
 | 1 · · | Not present: nothing below the garden. | — | — | — | — |
 | 2 · S | H: the first zoom back in, scripted: slugs from a neglected plot get into your garden. | The trace; the dive | Reliability +10 and the Rescued badge | Fast: the deadline. Slow: the lasting mark. A failure far off has a cause close up. | The trace with the first zoom back in |
-| 3–8 · S | H: the trace down to the failing node, at most once a game year per level. A demand-side trace is **Q12**. | The trace | — | Fixing the cause means going down to it. | The trace when it first comes |
+| 3–8 · S | H: the trace down to the failing node, at most once a game year per level. A demand-side trace is a later note (Q12: the nation's spec). | The trace | — | Fixing the cause means going down to it. | The trace when it first comes |
 
 ### Advisers, recommendations and Explain
 
@@ -516,13 +516,13 @@ Spec settles how events cross scales.
 
 ## The spine: the other side of the counter
 
-The game's narrative thread. The founding spec already has it in two places: at the supply chain "you're now the buyer", and the player is the steward who stays while governments change. This web makes it the rule of every level: **each level puts the player on the other side of something they met below.** The player learns a relationship as the weaker party, then runs it, and remembers how it felt. A later level's spec names its reversal from this table (**P** as a design rule; making it a column of the spec's ladder is **Q7**).
+The game's narrative thread. The founding spec already has it in two places: at the supply chain "you're now the buyer", and the player is the steward who stays while governments change. This web makes it the rule of every level: **each level puts the player on the other side of something they met below.** The player learns a relationship as the weaker party, then runs it, and remembers how it felt. A later level's spec names its reversal from this table (**P** as a design rule; it is now a column of the spec's ladder, **O·Q7**).
 
 | Lv | You meet (the weaker side) | You run (the other side) | Reversal of |
 | --- | --- | --- | --- |
 | 1 Garden | The shop you buy groceries from; the employer of the gardener's job; the passers-by at the honesty box; the adviser whose recommendations you follow | The plan the gardener works under | — (the start) |
 | 2 Allotment | The committee you vote in; the neighbour who helps and takes a bit more; the seed catalogue's advice with an interest | Your plot and the second plot; your swaps | 1's neighbour over the fence: you're now one of eleven neighbours, and your surplus supplies others at the swap shed |
-| 3 Smallholding | The parish's planning office and subsidy form; the lender for the tractor (**Q5**); the neighbour who objects | A box scheme sold to other households; the hired hand | 1's shop (you're now the shop for a few dozen households) and 1's job (you're now the employer) |
+| 3 Smallholding | The parish's planning office and subsidy form; the lender for the tractor (**O·Q5**); the neighbour who objects | A box scheme sold to other households; the hired hand | 1's shop (you're now the shop for a few dozen households) and 1's job (you're now the employer) |
 | 4 Farm | The buyer's contract and cosmetic standards; the union; the subsidy scheme; the insurer; the agency's abstraction licence | The farm business and its seasonal pickers | 3's hand at scale: you employ a crew whose wages someone else sets |
 | 5 Town | The council, elected by others | The market: stall fees, market days, rules; redistribution of surplus | 1's honesty box and 3's box scheme (you now set the rules every stall sells by); 2's committee (you now put proposals to a body others elected) |
 | 6 Chain | The Groceries Code Adjudicator; the public's view of your reputation | The buying: range, price, promotions, and the standards suppliers must meet | 4's buyer (you now set the cosmetic standards and terms you once suffered); 1's shop (you're the shop the gardener bought from, and you chose the March tomatoes' origin); 2's seed catalogue (your own-label advice has an interest too) |
@@ -536,18 +536,18 @@ Two threads run the whole length and are worth drawing on the page:
 
 ## Seeds: every late system starts small
 
-Every system first hands-on at level 4 or above, and the seed in levels 1 to 3 that makes it legible when it arrives. **S**: the spec has the seed. **O**: the owner's additions give it. **Q8** and the other numbers: the seed is missing and proposed.
+Every system first hands-on at level 4 or above, and the seed in levels 1 to 3 that makes it legible when it arrives. **S**: the spec has the seed. **O**: the owner's additions give it. **Later**: the owner approved the seed for part 6's groceries if cheap, otherwise later.
 
 | System (first hands-on) | Its seed in levels 1–3 | Status |
 | --- | --- | --- |
-| Insurance and credit (4) | The loan for the second-hand tractor (3); the purse with no cushion when the job's wage is late (1) | Lacking in the spec: **Q5** |
-| Contracts and cosmetic standards (4) | Passers-by at the honesty box take the best first, so Quality sets what sells (1); box customers complain about a scabby potato (3) | Lacking: **Q8** |
-| Abstraction licences (4) | The trough's daily limit and rota (2); a hosepipe ban in a dry garden summer (1) | Trough **S**; the ban lacking: **Q8** |
+| Insurance and credit (4) | The loan for the second-hand tractor (3); the purse with no cushion when the job's wage is late (1) | Not in the spec, so **O·Q5** seeds it |
+| Contracts and cosmetic standards (4) | Passers-by at the honesty box take the best first, so Quality sets what sells (1); box customers complain about a scabby potato (3) | **O·Q8a** (part 6) |
+| Abstraction licences (4) | The trough's daily limit and rota (2); a hosepipe ban in a dry garden summer (1) | Trough **S**; the ban **O·Q8b** (part 10) |
 | Precision inputs (4) | The watering line and drip lines (1) | **S** |
 | Animal disease (4) | The hens' and the flock's illness and the vet (1, 3; PR #25's `diseaseRisk()`) | **S** |
 | The full carbon account (4) | The dial from the first day (1) | **S** |
 | Seasonal labour (4) | The hand hired at harvest (3) | **S** |
-| The union (4) | The committee (2): plot-holders with a shared voice. Weak, since a union bargains against someone and the committee doesn't | Weak: named in the needs-owner issue under **Q8** |
+| The union (4) | The committee (2): plot-holders with a shared voice. Weak, since a union bargains against someone and the committee doesn't | Weak: the owner's answers don't add one; the committee stays the seed |
 | The subsidy scheme (4) | The parish subsidy form (3) | **S** |
 | Storage by product and temperature (5) | The kitchen's keeping days (1, built); spoilage on the way (3) | **S** |
 | Routes and vehicles (5) | Baskets carried (1, built); the van to market (3) | **S** |
@@ -559,8 +559,8 @@ Every system first hands-on at level 4 or above, and the seed in levels 1 to 3 t
 | Logistics at scale (6) | The van's round (3) | **S** |
 | Buyer power (6) | The farm's buyer (4), itself seeded by the box scheme (3) | **S** |
 | Imports as the standing substitute (6) | The imported tomatoes in the March basket (1) | **O** |
-| Packaging (6) | The basket's packaging in the kitchen's waste, where it can't go on the heap (1) | Lacking: **Q8** |
-| The retail carbon account (6) | The basket's embodied carbon beside the dial (1) | **O** with **Q4** |
+| Packaging (6) | The basket's packaging in the kitchen's waste, where it can't go on the heap (1) | Later: with part 6's groceries if cheap (Q8c) |
+| The retail carbon account (6) | The basket's embodied carbon beside the dial (1) | **O·Q4** |
 | Depot labour (6) | The hand (3) | **S** |
 | Reputation (6) | Neighbours' goodwill (2); the box customers staying or leaving (3) | **S** (goodwill is a Health part in PR #20) |
 | Diet and health (7) | The kitchen's own mix (1) | **S** |
@@ -568,13 +568,13 @@ Every system first hands-on at level 4 or above, and the seed in levels 1 to 3 t
 | The land budget (7) | Digging the lawn (1); the second plot and the bee plot (2); fields (3) | **S** |
 | The national carbon account and target (7) | The dial (1) | **S** |
 | Water at basin scale (7) | The trough (2) | **S** |
-| Food security (7) | Days of food in the kitchen, and an empty shop shelf in a shortage (1) | Lacking: **Q8** |
+| Food security (7) | Days of food in the kitchen, and an empty shop shelf in a shortage (1) | Later: with part 6's groceries if cheap (Q8d) |
 | Trade deals (7) | The swap shed (2) | **S** |
 | Elections (7) | The committee's votes (2) | **S** |
 | Geopolitics (8) | The neighbour over the fence (1) | **S** (a line in the spec, no mechanic: **P**) |
 | Treaties (8) | The trough rota (2): a shared resource under an agreed rule | **S** |
-| Carbon prices (8) | Nothing prices carbon below 8. Nearest: peat compost costing more than peat-free (1) | Weak: named under **Q8** |
-| Commodity prices (8) | The basket's prices moving with the world's (1) | Lacking: **Q8** |
+| Carbon prices (8) | Nothing prices carbon below 8. Nearest: peat compost costing more than peat-free (1) | Weak, and priced by **O·Q14**: goodwill puts a price on carbon from level 1 |
+| Commodity prices (8) | The basket's prices moving with the world's (1) | Later: with part 6's groceries if cheap (Q8e) |
 | Sea level (8) | The flood on the low field (3) | **S** (the spec's map list) |
 | Shifting crop zones (8) | Sowing windows and frost dates (1) | **S** |
 | Strategic imports (8) | The March tomatoes (1) | **O** |
@@ -584,14 +584,14 @@ Every system first hands-on at level 4 or above, and the seed in levels 1 to 3 t
 
 Every mechanic born in levels 1 to 3, and where it goes up the ladder. A flag means it stops, or its route isn't in the spec yet.
 
-| Mechanic (born) | Where it goes | Flag |
+| Mechanic (born) | Where it goes | Flag or answer |
 | --- | --- | --- |
 | The watering line (1) | The trough rota (2) → irrigate or not (3) → abstraction licences (4) → water policy (7) | — (the spec's own example) |
 | The butt and the tap (1) | The borehole and reservoir (3, 4) → basin water (7) | — |
 | The compost heap (1) | Manure (3) → a digester (4) → waste collections and landfill tax (7) → methane (8) | — |
 | Peat compost (1) | Peatland in the land budget (7); England's planned ban on peat in retail compost, a law that reaches the garden's shed | — |
 | Digging the lawn (1) | The second plot (2) → fields and hedges (3) → woodland and rewetting (4) → the land budget (7) → deforestation (8) | — |
-| Marigolds and flowers (1) | Margins and hedgerows (3) → agri-environment payments (4) → nature law (7) → the 30 by 30 treaty (8) | Lost at sealing: **Q6** |
+| Marigolds and flowers (1) | Margins and hedgerows (3) → agri-environment payments (4) → nature law (7) → the 30 by 30 treaty (8) | Kept at sealing by Health's wildlife part (**O·Q6**) |
 | The hens (1) | Your own hens carry up in the sealed garden's Output (2, N) → the flock (3) → herds (4) → the diet loop (7) → methane (8) | — |
 | The cold frame (1) | The polytunnel (3) → heated glasshouses and their energy (4–6), where the heated local tomato can beat the imported one on price and lose on carbon | — |
 | The pest policy (1) | Pest spread (2) → sprays and resistance (4) → pesticide law (7) → borders closing (8) | — |
@@ -600,8 +600,8 @@ Every mechanic born in levels 1 to 3, and where it goes up the ladder. A flag me
 | The weekly shop (1, **O**) | The box scheme's customers (3) → demand by decile (5) → footfall and the category mix (6) → affordability (7) → Bennett's law (8) | — |
 | The kitchen's ask (1) | The basket (1) → demand (5) → diet and health (7) → EAT-Lancet (8) | — |
 | The honesty box (1) | The box scheme (3) → the market (5) → the shop (6) → food aid (8) | — |
-| The honesty box's passers-by (1) | Nowhere named. **P:** they're households of the same model, and some become the box scheme's customers at 3 | Flag: fixed by **Q1** |
-| Quality (1) | Cosmetic standards (4) → price (5) | Flag: no price effect below 4 (**Q8**) |
+| The honesty box's passers-by (1) | Nowhere named. **P:** they're households of the same model, and some become the box scheme's customers at 3 | Fixed by **O·Q1**: they're households |
+| Quality (1) | Cosmetic standards (4) → price (5) | Flag: no price effect below 4, so **O·Q8a** makes Quality sell at the box |
 | The shed light (1) | Evening hours → labour (3) | — |
 | The cat (1) | Nowhere | Flag: decoration. Recommend keeping it so; it's drawn from nothing the sim has and changes nothing |
 | The adviser (1) | The seed catalogue (2) → hired advisers (3–6) → you, advising ministers (7) | — |
@@ -609,44 +609,44 @@ Every mechanic born in levels 1 to 3, and where it goes up the ladder. A flag me
 | The trough (2) | Water at basin scale (7) → the atmosphere as a commons (8) | — |
 | The swap shed (2) | Trade deals (7) → trade (8) | — |
 | The committee's water rota (2) | The parish (3) → the council (5) → elections (7) → treaties (8) | — |
-| The committee's bonfire ban (2) | Nowhere: no system models burning or air quality | Flag: **Q11** |
+| The committee's bonfire ban (2) | The waste system's burning against composting, then the stubble-burning ban and burning abroad | **O·Q11** |
 | The committee's bee plot (2) | Biodiversity (3, 7, 8) | — |
 | The neighbour who helps and over-takes (2) | The hand (3) → a manager who flatters yields (4) → a buyer who skims (6) → a captured rule (7) | — |
 | The seed catalogue's interest (2) | Advisers with interests → own-label advice (6) → lobbies (7) | — |
-| The neglected plot (2) | Reclaiming land (3, 4); the first zoom back in | Its cause is scripted today: **Q13** |
+| The neglected plot (2) | Reclaiming land (3, 4); the first zoom back in | Its cause is the household with the least time; the first zoom back in keeps its scripted timing (**O·Q13**) |
 | Rotation over years (3) | Soil Health carried up → the soil index (7) | — |
 | The flock and the vet (3) | Animal disease (4) → borders (8) | — |
 | The hired hand's goals (3) | Managers (4) → people you don't choose (5 and up) | — |
 | The second-hand tractor (3) | Machinery at scale (4), sealed into Upkeep and Reliability | — |
-| The tractor's cost (3) | Nowhere: it's paid outright | Flag: **Q5** |
+| The tractor's cost (3) | The loan for it (3) → insurance and credit (4) → the national budget's solvency (7) | **O·Q5** |
 | Energy and fuel (3) | Renewables (4) → the cold chain (6) → the grid (7) → gas (8) | — |
 | The box scheme and farm shop (3) | The market (5) → the chain (6) | — |
 | Spoilage on the way (3) | Storage (5) → the cold chain (6) | — |
-| Hedgerows and margins (3) | Agri-environment (4) → nature law (7) | Lost at sealing: **Q6** |
+| Hedgerows and margins (3) | Agri-environment (4) → nature law (7) | Kept at sealing by Health's wildlife part (**O·Q6**) |
 | The parish: planning, the subsidy form, the objector (3) | The scheme (4) → the council (5) → the land budget and planning law (7) | — |
 | The flood on the low field (3) | Floods (4) → sea level (8) | — |
 
 ## The household across the ladder
 
-The owner's additions (**O**), worked in full as the first example of a mechanic followed up the ladder. It's one model at every scale: **a household** is people with hours, a job or not, a purse, and a basket bought from a shop. The player's own household, the neighbours, the box customers, the town's deciles, the nation's population and each country's people are the same thing, summed. Making "household" a node kind at every level is **Q1**.
+The owner's additions (**O**), worked in full as the first example of a mechanic followed up the ladder. It's one model at every scale: **a household** is people with hours, a job or not, a purse, and a basket bought from a shop. The player's own household, the neighbours, the box customers, the town's deciles, the nation's population and each country's people are the same thing, summed. Making "household" a node kind at every level is **O·Q1**, approved.
 
 ### 1 · Garden: one household, hands-on
 
 - **The job and its hours.** One member is the gardener. They have a paid job, and the garden gets what's left: the spec's four hours on a weekday and six at the weekend. The wage comes into the purse weekly: the National Living Wage, £12.71 an hour from April 2026, the same figure PR #26 uses for a picker. The job's hours are a flow out to an employer, and the wage a flow in (a hook for the household model, below).
 - **The weekly shop.** The kitchen's ask that the garden doesn't meet is bought, together with everything the garden doesn't grow (bread, dairy, meat, fruit). It comes in from the `bought` boundary, with the money out to it. The UK average household spends roughly £70 a week on food and non-alcoholic drink (ONS, Family spending). Each kg grown is a kg not bought, so the garden's value is the shop price it replaces, not the £2.50 at the gate.
-- **Shop food's carbon.** Each product in the basket carries its footprint per kg (Poore & Nemecek, 2018), shown beside the dial (**Q4**). Transport is a small share of most foods' footprint, about 6 % of food's emissions worldwide. What you eat matters far more than how far it came, and the game corrects the food-miles myth here. The exceptions are air-freighted food and heated glasshouse produce: a tomato from a heated glasshouse nearby can carry more carbon than one trucked from Spain.
-- **The lever and who acts.** The plan decides what the garden replaces; the gardener grows it. A basket lever (swap some meat for beans) would seed the diet loop and is **Q9**. "Let them decide" keeps the usual basket.
+- **Shop food's carbon.** Each product in the basket carries its footprint per kg (Poore & Nemecek, 2018), shown beside the dial (**O·Q4**). Transport is a small share of most foods' footprint, about 6 % of food's emissions worldwide. What you eat matters far more than how far it came, and the game corrects the food-miles myth here. The exceptions are air-freighted food and heated glasshouse produce: a tomato from a heated glasshouse nearby can carry more carbon than one trucked from Spain.
+- **The lever and who acts.** The plan decides what the garden replaces; the gardener grows it. A basket lever (swap some meat for beans) would seed the diet loop and is a later note (Q9: part 6 or after the slice). "Let them decide" keeps the usual basket.
 - **Drawn.** The gardener leaving for work in the morning and coming back; the shopping carried in on shop day. The basket's carbon shows as a second, paler needle beside the dial.
-- **Seals as.** Output, Upkeep (the basket's cost less the box's takings), and, with **Q2**, the node's demand (kg a day by group, £ a day) and hours.
+- **Seals as.** Output, Upkeep (the basket's cost less the box's takings), and, with **O·Q2**, the node's demand (kg a day by group, £ a day) and hours.
 - **Fast / slow.** Fast: a week's shop. Slow: savings, and a diet's footprint.
 - **Lesson.** Local isn't the same as low-carbon: the food matters more than the miles.
 
 ### 2 · Allotment: the partner, and neighbours as households
 
 - **The partner's lever (O, part 10).** The partner can work more hours (more money for the shed) or help on the plot (more hours for the second plot). The player chooses and the partner acts. By the spec's own rule the partner has goals too: they might want the lawn kept, or weekends free.
-- **Neighbours are households.** Each of the eleven plot-holders is a household of the same model, with members, a job and hours. A neighbour whose job has long hours can't keep their plot, so the neglected plot next door emerges from the model rather than being scripted. The scripted first zoom back in can keep its timing and pick the household with the least time (**Q13**).
+- **Neighbours are households.** Each of the eleven plot-holders is a household of the same model, with members, a job and hours. A neighbour whose job has long hours can't keep their plot, so the neglected plot next door emerges from the model rather than being scripted. The scripted first zoom back in can keep its timing and pick the household with the least time (**O·Q13**).
 - **Drawn.** Neighbours arriving after work; the busy one's plot going to weeds.
-- **Seals as.** The allotment's Output and Health, and the households' hours (**Q2**).
+- **Seals as.** The allotment's Output and Health, and the households' hours (**O·Q2**).
 - **Fast / slow.** Fast: a weekend's help. Slow: a neglected plot's weeds and slugs.
 - **Lesson.** Time is the scarcest input, and it's set by people's jobs.
 
@@ -656,7 +656,7 @@ The owner's additions (**O**), worked in full as the first example of a mechanic
 - **The box scheme's customers are households.** A few dozen, of the same model: their basket is what they'd otherwise buy at the shop. The smallholding sells what the garden used to buy (the spine).
 - **The hand is another household's member.** Their wage is that household's income.
 - **Drawn.** The van delivering boxes to houses; the family in the field at the weekend.
-- **Seals as.** Output, Upkeep, and (**Q2**) the family's hours and the customers' demand.
+- **Seals as.** Output, Upkeep, and (**O·Q2**) the family's hours and the customers' demand.
 - **Fast / slow.** Fast: a box sold. Slow: the business outgrowing the job.
 - **Lesson.** A small farm's first capital is the family's time.
 
@@ -675,7 +675,7 @@ The owner's additions (**O**), worked in full as the first example of a mechanic
 - **Household demand by income decile** (DEFRA Family Food): each decile a basket by product group, with prices and income shaping it, and its waste. The town's demand is the garden's basket summed, which is **A**, an aggregate that is hands-on again. The player's own household is in there: one of the deciles, by its income.
 - **The lever.** The market's rules, stall fees and redistribution; stallholders and the council act.
 - **Drawn.** Shoppers by decile at the market and the retail park, with what they carry.
-- **Seals as.** Demand by product group and decile (**Q2**).
+- **Seals as.** Demand by product group and decile (**O·Q2**).
 - **Fast / slow.** Fast: a price change moves baskets within a week (price elasticity). Slow: habits change over years.
 - **Lesson.** The poorest spend the largest share of income on food and eat the fewest vegetables (Engel's law; DEFRA Family Food).
 
@@ -683,7 +683,7 @@ The owner's additions (**O**), worked in full as the first example of a mechanic
 
 - **Footfall** (households a day per store) and the **category mix** (the baskets summed by category): the player sets the range, the price and the promotions.
 - **Drawn.** Queues, shelves emptying and filling.
-- **Seals as.** Demand by category (**Q2**), reputation (Health's goodwill).
+- **Seals as.** Demand by category (**O·Q2**), reputation (Health's goodwill).
 - **Fast / slow.** Fast: a promotion's rush. Slow: what the country eats.
 - **Lesson.** Promotions and range shape what people eat more than guidance does.
 
@@ -694,7 +694,7 @@ The owner's additions (**O**), worked in full as the first example of a mechanic
 - **Affordability.** The food share of spending by decile, standing in for income. The UK average is roughly a tenth, and more than that for the poorest fifth (DEFRA, Food Statistics Pocketbook).
 - **Policy reaching the basket.** The sugar levy changes what's in the basket: manufacturers cut the sugar rather than pay. Benefits and free school meals change who can afford it.
 - **The lever.** Law, spending political capital; ministers act.
-- **Seals as.** Nothing above but the planet: a country's population, income and diet mix carried as its demand (**Q2**).
+- **Seals as.** Nothing above but the planet: a country's population, income and diet mix carried as its demand (**O·Q2**).
 - **Drawn.** Regions tinted by affordability, with a badge where food insecurity rises.
 - **Fast / slow.** Fast: a price spike's hardship. Slow: a generation's health.
 - **Lesson.** Wages and food rules shape diets as much as shops do. This is where the player sets the rules that shaped the gardener's job and basket (the spine).
@@ -710,30 +710,30 @@ The owner's additions (**O**), worked in full as the first example of a mechanic
 
 ### Checked against the models
 
-- **The household economy model** (#32, `docs/systems/household.md`) is one model for every household, as this section asks. It has members with a job and the work-or-help lever (`workShare`), the basket by food group at Family Food prices, the footprint per kg with transport split out (under 5 % of a typical shop), and demand by ONS income decile (`demand()`, `townDemand()`). Its wiring notes already make the neighbours (part 8), the partner (part 10) and the box customers (part 13) households. Still missing for the higher levels: income elasticities of diet across countries (Bennett's law, at 8), wages as a lever the nation sets (at 7), and demand carried up by sealed nodes (**Q2**).
+- **The household economy model** (#32, `docs/systems/household.md`) is one model for every household, as this section asks. It has members with a job and the work-or-help lever (`workShare`), the basket by food group at Family Food prices, the footprint per kg with transport split out (under 5 % of a typical shop), and demand by ONS income decile (`demand()`, `townDemand()`). Its wiring notes already make the neighbours (part 8), the partner (part 10) and the box customers (part 13) households. Still missing for the higher levels: income elasticities of diet across countries (Bennett's law, at 8), wages as a lever the nation sets (at 7), and demand carried up by sealed nodes (**O·Q2**).
 - **Labour, machinery and energy** (PR #26) already has a `person` node with a role, hours and a wage (`WAGES`), and pays from a purse (`PURSE = 'kitchen'`, to become `state.home`). The household model should own that purse. The model has no off-farm role and no wage-payment flow yet, and its wages are constants; the nation's minimum wage needs them to be a lever.
-- **Sealing** (PR #20): `Totals` has no demand, hours or income, so a sealed household carries up only as Upkeep. **Q2** is the change that lets the town's demand be the gardens' baskets summed.
+- **Sealing** (PR #20): `Totals` has no demand, hours or income, so a sealed household carries up only as Upkeep. **O·Q2** is approved: a models-ahead session adds demand and hours to `Totals` (`docs/systems/ladder.md`), so the town's demand is the gardens' baskets summed.
 - **The partner** (part 10): the work-or-help lever above; their goals follow the spec's rule for everyone you delegate to.
 
-## Questions for the owner (#29)
+## The owner's answers (#29)
 
-Each changes the founding spec's model, ladder or carry-over rule, so each is a proposal until the owner answers. The recommendation is given with each on the issue.
+Each of these changed the founding spec's model, ladder or carry-over rule, so each waited for the owner. On 29 Sep 2026 the owner took every recommendation (the coordinator's comment on #29 lists them) and the founding spec now says so, marked *(approved, #29 Q…)*. Rows above carry **O·Qn** for the answer that made them. Nothing here is built yet: the parts named build it.
 
-- **Q1.** A Households row in the systems map, and "a household" as a node kind at every level (the consumer side of the graph).
-- **Q2.** A sealed node carries its demand (kg a day by product group, £ a day) and its hours (had and used) beside the five numbers.
-- **Q3** (a note, not a change). The spec already carries Output "by product mix"; PR #20 carries one number. Asked so the owner confirms the product groups.
-- **Q4.** Two carbon numbers: the dial stays territorial (flows into the air, conserved), and a consumption footprint (the basket's attributed carbon) shows beside it and is never added to the air.
-- **Q5.** A Money, credit and insurance row, seeded by the tractor loan at 3.
-- **Q6.** A wildlife part in the carried Health, so hedges and margins survive sealing.
-- **Q7.** The spine as a column of the ladder table.
-- **Q8.** The seeds the slice lacks: Quality selling at the honesty box, a hosepipe ban, packaging in the basket, days of stock in the kitchen, the basket's prices moving with the world, and a weak union seed and carbon-price seed.
-- **Q9.** A diet lever at the garden: the household's basket mix.
-- **Q10.** Earlier "From" levels for storage (1), transport (1, 3) and trade (1).
-- **Q11.** A home for the bonfire ban (waste: burning against composting, which leads to the stubble-burning ban and burning abroad), or a different third vote.
-- **Q12.** A zoom back in on the demand side at the nation: a household that can't afford its basket. Decide at the nation's spec, not now.
-- **Q13.** The neglected plot's cause emerges from the household model; the first zoom back in keeps its scripted timing.
-- **Q14.** Carbon has a price at every level, through its people (goodwill, scheme payments, reputation), so ignoring it isn't the dominant choice.
-- **Q15.** Each level lasts long enough for its slowest lever to pay back once: the garden at least a year, the allotment and smallholding two or three.
+- **Q1, yes.** A Households row in the systems map, and "a household" as a node kind at every level (the consumer side of the graph). Part 6b wires the household.
+- **Q2, yes.** A sealed node carries its demand (kg a day by product group, £ a day) and its hours (people-hours a day, had and used) beside the five numbers. A models-ahead session adds it to the sealing maths.
+- **Q3, yes.** Output is carried by product group, as the spec's "product mix" says (PR #20 carried one number).
+- **Q4, yes.** Two carbon numbers: the dial stays territorial (flows into the air, conserved), and a consumption footprint shows beside it and is never added to the air.
+- **Q5, yes.** A Money, credit and insurance row, its seed the loan for the smallholding's tractor in part 13.
+- **Q6, yes.** A wildlife part in the carried Health, so hedges and margins survive sealing.
+- **Q7, yes.** The spine is a column of the spec's ladder table.
+- **Q8, in parts.** (a) Passers-by take the best first at the honesty box, so Quality sets what sells: yes, in part 6. (b) A hosepipe ban in a dry summer: yes, in part 10. (c) Packaging in the basket, (d) days of food and an empty shelf, and (e) shop prices moving with the world's: with part 6's groceries if cheap, otherwise later.
+- **Q9, later.** A diet lever at the garden, the household's basket mix: part 6 or after the slice.
+- **Q10, yes.** Earlier "From" levels for storage (1), transport (1 and 3) and trade (1).
+- **Q11, yes.** The bonfire vote gets the waste system: burning against composting, which leads to the stubble-burning ban and burning abroad.
+- **Q12, later.** A zoom back in on the demand side, a household that can't afford its basket: the nation's spec.
+- **Q13, yes.** The neglected plot's cause emerges from the household model (the household with the least time); the first zoom back in keeps its scripted timing.
+- **Q14, yes.** Carbon has a price at every level, through its people (goodwill, scheme payments, reputation), so ignoring it isn't the dominant choice.
+- **Q15, yes.** Each level lasts long enough for its slowest lever to pay back once: the garden at least a year, the allotment and the smallholding two or three. `docs/decisions/ADR-2026-09-29-strategic-and-long.md` records it with the owner's decision that the game is strategic and long.
 
 ## Using the web
 

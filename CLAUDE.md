@@ -57,7 +57,7 @@ Every change goes round the same loop, and each round leaves something that make
 - `npm run build` builds the site into `dist/` with Vite, then rejoins the lists. It refuses to run on a broken rule (`tools/rules.mjs`), naming the file and line.
 - `npm run check` (after `npm install`; web sessions do it at start-up) builds, typechecks, runs the Vitest tests (`src/**/*.test.ts`, the sim in Node) and then the browser check groups; `node tools/check.mjs <group>` runs one group. Each group is a file in `tools/checks/`, listed with what it covers in `docs/SYSTEMS.md`. Every page is seeded, so a failure repeats. When you change a rule on purpose, update its check in the same PR; add a check when you add a rule.
 - `npm run dev` for a live page while working. For UI changes, look at the result: a small Playwright script in `build/` at phone, tablet and desktop sizes (`docs/SYSTEMS.md`, "Checks").
-- For pacing or economy changes, run the bot on seeds 1, 2 and 3 (the `balance` playbook). A change meant to leave the game as it is must leave `PLAY` identical on seeds 1–3 against a build of `main`. Keep pacing within about 15% of the baselines unless the owner asks for a change.
+- For pacing or economy changes, run the bot on seeds 1, 2 and 3 (the `balance` playbook). A change meant to leave the game as it is must leave `PLAY` identical on seeds 1–3 against a build of `main`. Pacing is judged by the longest quiet stretch and by each level lasting long enough for its slowest lever to pay back; milestones may land later than the baselines' ranges, and `tools/baseline.json` is reset by part 6c with the bot's new measure (`docs/decisions/ADR-2026-09-29-strategic-and-long.md`).
 
 ## Rules every change keeps
 
