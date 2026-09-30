@@ -261,6 +261,11 @@ export const CLEAN = {slugs: 0.15, from: [1, 1], to: [2, 28], minutes: 30} as co
  *  two weeks on and cut for about five weeks, about 20 g a day from two trays; the propagator's warmth makes it 30
  *  (RHS, "Microgreens"; Garden Organic, "Growing salad indoors"). A packet of seed £1.50. */
 export const SILL = {gbp: 1.5, wait: 14, days: 35, kg: 0.02, warm: 0.03, from: [1, 15], to: [2, 28]} as const;
+/** Forcing chicory: roots lifted in autumn, potted and stood in the dark under an upturned pot, sprout pale chicons that
+ *  are cut in about three weeks, a dozen roots giving about 1.3 kg over a fortnight (RHS, "Chicory: forcing"). It takes
+ *  the pots the washing would use, so a winter has one or the other; twenty minutes. Simplifies: the roots come free
+ *  from the plot. */
+export const FORCE = {wait: 21, days: 14, kg: 0.09, minutes: 20, from: [1, 5], to: [2, 10]} as const;
 /** The hens' winter care: fresh straw deep in the house and a check for red mite (the British Hen Welfare Trust's winter
  *  care), £4 of straw and powder, which keeps their welfare from sliding in the cold months. Simplifies: their welfare
  *  is mended to whole at once, where the livestock model otherwise moves it a little each day. */

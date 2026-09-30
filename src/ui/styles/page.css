@@ -1407,3 +1407,8 @@ button.dig {
   font-size: var(--text-sm);
   border-top: 1px solid var(--line);
 }
+
+/* The dial's name shows where the top bar has room; on narrow screens the label says it. */
+.dial-name { display: none; }
+@media (min-width: 700px) { .dial-name { display: inline; } }
+.row-hint { display: block; font-size: var(--text-xs); }

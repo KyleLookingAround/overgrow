@@ -20,7 +20,7 @@ describe('the goal bar', () => {
     for (let d = 0; d < 35; d++) s = sim.apply({type: 'tick', hours: 24});
     const later = goalLine(s);
     expect(later.rows!.map((r) => r.key).sort()).toEqual(['health', 'output', 'reliability']);
-    expect(later.text).toMatch(/^(Output|Reliability|Health) [\d.]+ of [\d.]+( kg a day)?: .+ \(\d+ of 52 weeks so far\)$/);
+    expect(later.text).toMatch(/^(Output|Reliability|Health) [\d.]+ (g )?of [\d.]+( g a day)?: .+ \(\d+ of 52 weeks so far\)$/);
     expect(later.window).toBeGreaterThan(0);
     // the ring: the year's share so far, times how near the three are
     expect(later.ring).toBeGreaterThan(0);

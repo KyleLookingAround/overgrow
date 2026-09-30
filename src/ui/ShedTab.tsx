@@ -79,7 +79,7 @@ export function ShedTab({nodes, seen, purse, see, send, focus}: {
         </dl>
         <div class="offer-foot">
           {short > 0 && u.big && purseShown && <meter class="saving" min={0} max={u.price} value={Math.max(0, purse)} aria-label={`Saved towards the ${u.name.toLowerCase()}`} />}
-          {short > 0 ? <p class="soft short">{purseShown ? `${money(short)} more in the purse to buy it` : 'Not enough in the purse yet'}</p> : (
+          {short > 0 ? <p class="soft short">{purseShown ? `£${Math.ceil(short)} more in the purse to buy it` : 'Not enough in the purse yet'}</p> : (
             <button type="button" class="primary buy" onClick={() => send({type: 'buy', id})}>Buy {u.name.toLowerCase()}</button>
           )}
         </div>

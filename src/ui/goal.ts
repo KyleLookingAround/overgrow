@@ -203,9 +203,16 @@ export const nextAction = (snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>, key
 
 /** A requirement's value against its target, as the bar shows it. */
 export function valueText(r: RequirementStatus): string {
-  const v = r.key === 'output' ? r.value.toFixed(1) : String(Math.round(r.value)), t = r.key === 'output' ? `${r.target} kg a day` : String(r.target);
+  // grams a day, as the allotment shows it
+  const v = r.key === 'output' ? `${Math.round(r.value * 1000)} g` : String(Math.round(r.value)), t = r.key === 'output' ? `${Math.round(r.target * 1000)} g a day` : String(r.target);
   return `${NAME[r.key]} ${v} of ${t}`;
 }
+/** What a requirement measures, in a few words. */
+export const MEANING: Record<Requirement, string> = {
+  output: 'food a day, averaged over the year',
+  reliability: 'how steadily the garden met the household’s ask, out of 100',
+  health: 'soil, water and wildlife, out of 100',
+};
 
 export function goalLine(snap: Pick<Snapshot, 'nodes' | 'kitchen' | 'seen' | 'hours'>): GoalLine {
   if (snap.kitchen?.firstHarvest == null) {
