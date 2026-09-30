@@ -48,8 +48,8 @@ export interface MapRenderer {
     gardener: GardenerStats | null; life: LifeStats; creatures: Creature[]; torch: boolean; pulse: NodeId | null;
     /** The night layer's opacity. */
     night: number;
-    /** The level drawn, and the step up's zoom-out: running, and how far through, 0–1. */
-    level: number; zoom: number | null;
+    /** The level drawn, the step up's zoom-out and the dive: running, and how far through, 0–1; and the trace drawn. */
+    level: number; zoom: number | null; dive: number | null; trace: boolean;
   };
   destroy(): void;
 }
@@ -147,6 +147,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   const light = steadyLight(), dawnLight = steadyLight(); // the night's and the dawn's opacity, never flashing (src/ui/map/daylight.ts)
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null, grownOf: GraphNode[] | null = null;
   let atlas: Texture | null = null, frames: Texture[] = [], drop: Texture | null = null, flake: Texture | null = null, still = false, garden: Box | null = null, snowing = false;
+  // the zoom back in's dive (part 9): the allotment's last picture, and where the player's plot sat on it
+  let traced = false;
+  let dive: {start: number; shot: Sprite; P: {x: number; y: number}; pw: number; ph: number} | null = null;
   const drops: Particle[] = [];
   let weather: WeatherStats = {rain: 0, snow: false, drops: [], frost: 0, dawn: 0, puddles: 0, leaves: 0, soil: {}};
   let crops: Record<string, Stage> = {}, shapes: Record<string, Shape> = {}, leaves = 0, gardener: GardenerStats | null = null;
@@ -321,6 +324,40 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     world.cacheAsTexture(true);
     if (holder) holder.dataset.zooming = '1';
   };
+  // the dive, the zoom-out in reverse: the camera falls into the player's plot on the allotment's last picture while the
+  // garden opens out of it, about three seconds; a tap skips it; reduced motion cuts straight in
+  const endDive = () => {
+    if (!dive) return false;
+    dive.shot.destroy({texture: true});
+    dive = null;
+    world.scale.set(1);
+    world.position.set(0, 0);
+    if (holder) delete holder.dataset.zooming;
+    return true;
+  };
+  const startDive = () => {
+    const box = boxes.get(PLAYER_PLOT);
+    if (!box || !cam) return;
+    const tex = app.renderer.generateTexture({target: world, frame: new Rectangle(0, 0, width, height), resolution: window.devicePixelRatio || 1});
+    const shot = new Sprite(tex);
+    app.stage.addChild(shot);
+    dive = {start: performance.now(), shot, P: {x: cam.x + (box.x + box.w / 2) * cam.s, y: cam.y + (box.y + box.h / 2) * cam.s}, pw: box.w * cam.s, ph: box.h * cam.s};
+    if (holder) holder.dataset.zooming = '1';
+  };
+  const stepDive = () => {
+    if (!dive) return;
+    const t = Math.min(1, (performance.now() - dive.start) / ZOOM_MS), e = t * t * (3 - 2 * t), {P, pw, ph} = dive;
+    const k0 = Math.min(width / pw, height / ph) * 0.92, K = Math.pow(k0, e);
+    const Q = {x: P.x + (width / 2 - P.x) * e, y: P.y + (height / 2 - P.y) * e};
+    dive.shot.scale.set(K);
+    dive.shot.position.set(Q.x - K * P.x, Q.y - K * P.y);
+    dive.shot.alpha = t < 0.5 ? 1 : Math.max(0, 1 - (t - 0.5) / 0.35);
+    // the garden grows out of the plot to fill the map
+    const s = K / k0;
+    world.scale.set(s);
+    world.position.set(Q.x - s * width / 2, Q.y - s * height / 2);
+    if (t >= 1) endDive();
+  };
   const stepZoom = () => {
     const box = boxes.get(PLAYER_PLOT);
     if (!zoom || !box || !cam) return void endZoom(true);
@@ -361,9 +398,12 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       // the step up: the garden's picture taken before the allotment is drawn
       const stepped = level === 1 && cur.level === 2;
       if (stepped && !still && cam) startZoom();
+      // going down: the allotment's picture taken before the garden is drawn
+      if (level === 2 && cur.level === 1 && !still && cam) startDive();
       if (cur.level !== level) {
         if (level !== -1 && cur.level === 2) highlight = performance.now() + (still ? 0 : ZOOM_MS) + HIGHLIGHT_MS;
         if (cur.level !== 2) endZoom(true);
+        if (cur.level !== 1) endDive();
         level = cur.level;
       }
       if (cur.rev !== drawnRev || key !== drawnKey || !cam) {
@@ -470,13 +510,28 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       dawn.visible = dawn.alpha > 0;
       // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
       ring.clear();
-      const ringAt = pulse ?? (performance.now() < highlight ? PLAYER_PLOT : null), box = ringAt ? boxes.get(ringAt) : undefined;
+      // the zoom back in's trace (part 9): one line from the neglected plot the slugs came from to the player's plot, a
+      // few slugs along it, and the player's tile pulsing, while the outbreak runs unfixed
+      const z = cur.level === 2 ? cur.zoom : null, tracing = !!z && !z.rescued && v.hours < z.event.from + z.event.days * 24;
+      const a = tracing ? boxes.get(z!.from) : undefined, b = tracing ? boxes.get(PLAYER_PLOT) : undefined;
+      traced = !!(a && b);
+      if (a && b) {
+        const x0 = c.x + (a.x + a.w / 2) * c.s, y0 = c.y + (a.y + a.h / 2) * c.s, x1 = c.x + (b.x + b.w / 2) * c.s, y1 = c.y + (b.y + b.h / 2) * c.s;
+        ring.moveTo(x0, y0).lineTo(x1, y1).stroke({width: Math.max(2, 0.25 * c.s), color: pal.trace.color, alpha: pal.trace.alpha * 0.85});
+        const time = still ? 0.5 : performance.now() / 8000;
+        for (let i = 0; i < 3; i++) {
+          const k = (time + i / 3) % 1;
+          ring.ellipse(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k, Math.max(2.5, 0.35 * c.s), Math.max(1.5, 0.18 * c.s)).fill(pal.slug);
+        }
+      }
+      const ringAt = pulse ?? (performance.now() < highlight || b ? PLAYER_PLOT : null), box = ringAt ? boxes.get(ringAt) : undefined;
       if (box) {
         const k = still ? 0.5 : (performance.now() / 1000) % 1, grow = (0.1 + 0.5 * k) * c.s, t = Math.max(2, 0.06 * c.s);
         ring.roundRect(c.x + box.x * c.s - grow, c.y + box.y * c.s - grow, box.w * c.s + 2 * grow, box.h * c.s + 2 * grow, 0.2 * c.s + grow)
           .stroke({width: t, color: pal.pulse.color, alpha: pal.pulse.alpha * (1 - k * 0.8)});
       }
       if (zoom) stepZoom();
+      else if (dive) stepDive();
       else if (settleAt && performance.now() >= settleAt) uncache();
       app.render();
       frameTimes.push(performance.now() - t0);
@@ -505,9 +560,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     setPulse(at) {
       pulse = at;
     },
-    skipZoom: endZoom,
+    skipZoom: () => endZoom() || endDive(),
     stats: () => ({frames: frameTimes.slice(), movers: lastMovers, stepping, cam, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
-      zoom: zoom ? Math.min(1, (performance.now() - zoom.start) / ZOOM_MS) : null}),
+      zoom: zoom ? Math.min(1, (performance.now() - zoom.start) / ZOOM_MS) : null, dive: dive ? Math.min(1, (performance.now() - dive.start) / ZOOM_MS) : null, trace: traced}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
     },

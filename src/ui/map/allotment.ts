@@ -1,7 +1,7 @@
 // The allotment on the map (level 2), drawn with the style kit (src/ui/map/kit.ts, plants.ts; docs/specs/map-art.md), the
 // kit's first second level: each plot a tile of dug soil tinted by its Health (from the dry soil of a poor one to the
 // dark loam of a good one) with rows of plants as many as its Output fills, their leaves yellowing as Health falls, the
-// neglected plot gone to grass and weeds, the player's plot outlined; the sheds with their roofs, and the trough with its
+// neglected plot gone to grass and weeds, the player's plot outlined, a rescued plot's rosette; the sheds with their roofs, and the trough with its
 // water. The paths are the kit's gravel, the grass between the plots the kit's lawn, and a hedge runs round the whole
 // site (drawGround in draw.ts). The plots' numbers are the page's labels over the map (src/ui/PlotLabels.tsx); the
 // people walking to their plots are the renderer's movers, from the allotment's activities. Nothing drawn changes the
@@ -27,7 +27,7 @@ const holderNeglected = (n: GraphNode) => (n.levers.holder as {neglected?: boole
 /** What the allotment's ground depends on beside the graph's revision: each plot's Health and Output, coarsely. */
 export function allotmentKey(nodes: readonly GraphNode[]): string {
   let k = '';
-  for (const n of nodes) if (n.kind === 'plot') k += `${Math.round(n.totals.health / 4)}.${Math.round((n.totals.output / FULL_KG) * 8)},`;
+  for (const n of nodes) if (n.kind === 'plot') k += `${Math.round(n.totals.health / 4)}.${Math.round((n.totals.output / FULL_KG) * 8)}${n.levers.rescued ? 'r' : ''},`;
   return k + seasonKey(nodes);
 }
 
@@ -76,6 +76,12 @@ export function drawAllotmentNode(g: Graphics, n: GraphNode, c: Camera, pal: Pal
     g.fill(pal['lawn-tuft']);
   }
   drawSeasonPlot(g, n, c, pal); // the season's marks on a plot (part 8)
+  // a rescued plot's lasting mark (part 9): a rosette in its corner
+  if (n.levers.rescued) {
+    const R = Math.max(5, 0.9 * s), cx = r.x + r.w - R * 0.9, cy = r.y + R * 0.9;
+    g.star(cx, cy, 8, R, R * 0.72).fill(pal.rescued);
+    g.circle(cx, cy, R * 0.45).fill(pal['shed-roof']);
+  }
   if (n.id === PLAYER_PLOT) g.roundRect(r.x - 0.15 * s, r.y - 0.15 * s, r.w + 0.3 * s, r.h + 0.3 * s, round + 0.15 * s).stroke({width: Math.max(2, 0.2 * s), color: pal.pulse.color, alpha: 1});
   return true;
 }

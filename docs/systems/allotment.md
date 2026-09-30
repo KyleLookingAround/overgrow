@@ -65,7 +65,7 @@ The step up that seals the garden into a plot, and the allotment it opens. The p
   - The plot's Output as sealed against its year's own samples, within 1 %.
   - The land and carbon, exactly.
   - One cycle rebuilt from the sealed node, day by day, against `inflateTarget()` by `carryCheck()`: every number inside `INFLATE_TOLERANCE`, and Reliability inside `INFLATE_RELIABILITY_TOLERANCE` (15 %). A spread measured over one year of lumpy days has a sampling error of its own, 1–9 % on seeds 1–8.
-  - Part 9 replaces the rebuilt cycle with the garden inflated in detail.
+  - Part 9 kept the rebuilt cycle: going down runs the garden's own graph on rather than rebuilding it, and its sealed year stays as sealed (`docs/systems/zoom.md`).
 - **The bot** (`tools/bot/player.ts`):
   - `takePlot` takes the plot the morning after the offer latches.
   - `plotPlan` sets care to 3 h, the mix that saves the most at the shop's prices (`bestMix()`), and keeps compost.

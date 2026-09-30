@@ -106,7 +106,7 @@ export const TRUST = {
   prior: 0.5,
   learn: 0.4,
   /** What each kind of thing is worth to goodwill; shared surplus and help are per kg and per hour. */
-  events: {kept: 0.03, missed: -0.06, shared: 0.004, help: 0.006, gap: -0.05} as Record<string, number>,
+  events: {kept: 0.03, missed: -0.06, shared: 0.004, help: 0.006, gap: -0.05, rescued: 0.06} as Record<string, number>,
   /** The most a week's shared surplus can add, whatever the kg. */
   sharedCap: 0.05,
 };

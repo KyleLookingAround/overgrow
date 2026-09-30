@@ -264,5 +264,21 @@ export const seasonPlay: Policy = ({snap}) => {
   return out;
 };
 
-/** The policies at the allotment (level 2): the plot's plan and its first season. */
-export const allotmentPolicies = (_p: Player): Policy[] => [plotPlan, seasonPlay];
+/** The zoom back in (src/sim/zoom.ts), as a sensible player plays it: goes down as soon as the trace shows, sets the
+ *  gardener picking slugs at dusk, waters on nematodes once the shed offers them, and comes back up once the slugs are
+ *  halved or the deadline has passed. */
+export const zoomPlay: Policy = ({snap}) => {
+  const z = snap.zoom;
+  if (!z) return [];
+  if (z.down === null) return snap.level === 2 && !z.rescued && !z.missed && !z.sent && snap.seen.includes('zoom.trace') ? [{type: 'go-down'}] : [];
+  if (z.rescued || z.missed) return [{type: 'back-up'}];
+  const person = snap.nodes.find((n) => n.kind === 'person' && 'slugs' in n.levers), out: Command[] = [];
+  if (person && person.levers.slugs !== 'pick') out.push({type: 'policy', node: person.id, lever: 'slugs', value: 'pick'});
+  if (unfolded(snap.seen, 'shed.nematodes') && kitOf(snap).nematodes <= 0 && snap.money >= UPGRADES.nematodes.price) out.push({type: 'buy', id: 'nematodes'});
+  return out;
+};
+
+/** The policies at the allotment (level 2): the plot's plan, its first season, and the zoom back in. */
+export const allotmentPolicies = (_p: Player): Policy[] => [plotPlan, seasonPlay, zoomPlay];
+/** The policies while down in the garden: the rescue alone (the garden's own plan stays as it was left). */
+export const downPolicies = (_p: Player): Policy[] => [zoomPlay];

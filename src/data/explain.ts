@@ -117,6 +117,9 @@ export const CAUSES = {
   committee: {kind: 'household', causes: ['motion put', 'vote', 'talking to members']},
   swaps: {kind: 'kitchen', causes: ['surplus', 'left at the swap shed', 'from the swap shed', 'taken from the swap shed']},
   allotmentHours: {kind: 'household', causes: ['garden hours']},
+  outbreak: {kind: 'pest', causes: ['slugs in your garden', 'slugs from next door', 'slugs back to normal']},
+  goingDown: {kind: 'household', causes: ['going down', 'back up', 'rescued']},
+  adviserSent: {kind: 'household', causes: ['an adviser’s fee']},
 } satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
 
 export type Entry = keyof typeof CAUSES;
@@ -202,6 +205,30 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
     fast: 'A plot that goes short loses part of that day’s harvest; queueing costs hours.',
     slow: 'A plot short week after week heads for a lower Health.',
     source: 'Ostrom (1990), “Governing the Commons”; FAO-56 (Allen et al. 1998) for how much a plot uses.',
+  },
+  outbreak: {
+    title: 'Slugs in your garden',
+    says: 'Slugs from the neglected plot next door have got into your own garden, the plot sealed below.',
+    mechanism: 'Untended ground is a reservoir: weeds shelter slugs, and in a mild, wet summer they move a few metres a night into the ground beside it. A failure far off has a cause close up: the plot’s shortfall traces down to its beds.',
+    fast: 'While they last the plot gives 40 % less; in the garden they graze the beds at night.',
+    slow: 'Left alone they run their course over four weeks, and die back as the summer dries.',
+    source: 'RHS, “Slugs and snails”; AHDB, “Slug control”.',
+  },
+  goingDown: {
+    title: 'Going down',
+    says: 'The zoom back in: the plot opened as the garden it was, to fix what’s failing there yourself.',
+    mechanism: 'One clock: while you’re down it runs at the garden’s rate, so the allotment above barely moves. The garden’s own tools fix it: the torch patrol, traps, pellets, the hens. Fixed in time, the plot’s numbers come back and it earns a lasting mark.',
+    fast: 'The beds back to their usual slugs before the deadline: the plot rescued.',
+    slow: 'A rescued plot keeps Reliability +10 and its badge, and the neighbours’ goodwill.',
+    source: 'The founding spec, “Zooming back in”; the garden’s slug model (AHDB, RHS).',
+  },
+  adviserSent: {
+    title: 'Sending someone',
+    says: 'An adviser sorted the slugs for a fee, and half the reward.',
+    mechanism: 'Delegating buys your time and costs money, and an adviser has an interest of their own: ask who pays them. Nematodes watered on moist soil kill slugs below ground in three to seven days.',
+    fast: 'The fee comes out of the purse now; the slugs are gone in a few days.',
+    slow: 'The plot is rescued, but the goodwill is shared with whoever did the work.',
+    source: 'Wilson et al. (1993) on Phasmarhabditis hermaphrodita; Jensen & Meckling (1976) on agents.',
   },
   nextDoor: {
     title: 'Pests from next door',
@@ -796,6 +823,9 @@ export const HELPS: Record<Entry, string> = {
   watching: 'Audit to learn how far to trust them, then glance or trust.',
   trough: 'Vote for a rota or for sharing by need, so the back of the queue isn’t always short.',
   nextDoor: 'Take on the neglected plot and reclaim it.',
+  outbreak: 'Go down and set the slug policy, or send someone.',
+  goingDown: 'Pick slugs at dusk, trap or treat until the beds are clear, then go back up.',
+  adviserSent: 'Go down yourself next time: all the reward and no fee.',
   committee: 'Vote, and talk to members first if it’s close.',
   swaps: 'Leave your surplus at the swap shed.',
   allotmentHours: 'A helper saves your hours; watching them spends some.',

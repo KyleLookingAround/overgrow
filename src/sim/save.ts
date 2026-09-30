@@ -10,7 +10,7 @@ import type {State} from './state';
 /** The one key the game saves under (the project notes). */
 export const SAVE_KEY = 'overgrow-save-v1';
 /** The version this build writes. Raise it whenever the saved shape changes (with a migration step once released). */
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 
 /** What's written: the state less what's runtime only, with the generator's state in place of the generator. */
 export type SaveFile = Omit<State, 'rng' | 'rejected' | 'errors' | 'effects'> & {version: number; rng: number};
@@ -46,7 +46,7 @@ export function migrate(save: Record<string, unknown>, steps: Readonly<Record<nu
 export function toSave(s: State): string {
   const file: SaveFile = {
     version: SAVE_VERSION, seed: s.seed, rng: s.rng.state(), hours: s.hours, level: s.level, speed: s.speed, home: s.home,
-    graph: s.graph, flows: s.flows, activities: s.activities, ladder: s.ladder, upgrades: s.upgrades, laws: s.laws,
+    graph: s.graph, flows: s.flows, activities: s.activities, ladder: s.ladder, zoom: s.zoom, upgrades: s.upgrades, laws: s.laws,
     goals: s.goals, settings: s.settings, seen: s.seen, unfolding: s.unfolding, answered: s.answered,
   };
   return JSON.stringify(file);
@@ -74,7 +74,7 @@ export function fromSave(text: string): State {
   for (const k of ['goals', 'settings', 'answered', 'unfolding'] as const) if (!isObj(f[k])) throw new SaveError(`${k} is missing`);
   return {
     seed: f.seed, rng: rng(f.rng), hours: f.hours, level: f.level, speed: f.speed, home: f.home, graph: f.graph, flows: f.flows,
-    activities: f.activities, ladder: f.ladder, upgrades: f.upgrades, laws: f.laws, goals: f.goals, settings: f.settings,
+    activities: f.activities, ladder: f.ladder, zoom: isObj(f.zoom) ? f.zoom : null, upgrades: f.upgrades, laws: f.laws, goals: f.goals, settings: f.settings,
     seen: f.seen, unfolding: f.unfolding, answered: f.answered, rejected: null, errors: [], effects: [],
   };
 }

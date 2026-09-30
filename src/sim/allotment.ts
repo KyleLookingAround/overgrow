@@ -50,6 +50,8 @@ export interface Below {
   hours: number;
   totals: LadderTotals;
   graph: Graph;
+  /** The game hour its graph stands at, once it has been run on since it was sealed (part 9's zoom back in). */
+  at?: number;
 }
 
 /** Who holds a neighbour's plot, in brief, for the plot list: the full agent is their own node (src/sim/season.ts). */
@@ -236,7 +238,7 @@ export function allotmentGraph(seed: number, garden: SealedNode, home: {money: n
 /** Takes the plot: seals the garden with its year's totals, keeps its graph below, and builds the allotment. Refused
  *  unless the garden's offer is latched. Returns why not, or null. */
 export function stepUp(s: State): string | null {
-  if (s.level !== 1) return 'the plot is already yours';
+  if (s.level !== 1 || s.ladder.length) return 'the plot is already yours';
   if (!offered(goalOf(s.graph))) return 'the committee hasn’t offered a plot yet';
   const totals = gardenTotals(s.graph);
   if (!totals) return 'the garden’s year isn’t in yet';
@@ -380,7 +382,8 @@ export interface CarryReport {
 
 /** The carry-over rule held to account: a sealed garden's Output against its last full year (within 1 %), its land and
  *  carbon carried exactly, and a first cycle rebuilt from the sealed node inside `INFLATE_TOLERANCE` of the totals it was
- *  sealed with. Until part 9 rebuilds the garden in detail, the rebuilt cycle is the sealed node's own daily ticks. Null before the step up. */
+ *  sealed with. The rebuilt cycle is the sealed node's own daily ticks (part 9's zoom back in runs the garden's own graph on
+ *  instead, and keeps its sealed year, docs/systems/zoom.md). Null before the step up. */
 export function carryReport(s: Pick<State, 'ladder' | 'graph' | 'seed'>): CarryReport | null {
   const below = s.ladder.find((b) => b.level === 1), base = baseOf(s.graph.nodes[PLAYER_PLOT]), goal = below ? goalOf(below.graph) : null;
   if (!below || !base || !goal || !goal.history.samples.length) return null;

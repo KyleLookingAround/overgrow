@@ -233,6 +233,8 @@
   --map-robin: #7a5a3c;
   --map-robin-breast: #e2622a;
   --map-steam: #ffffffa0; /* steam off the heap on a cold morning */
+  --map-trace: #c2410c; /* the zoom back in's trace, from the shortfall to the failing plot */
+  --map-rescued: #d9a520; /* the Rescued badge's rosette on a plot */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -355,6 +357,8 @@
     --map-robin: #634832;
     --map-robin-breast: #c25422;
     --map-steam: #ffffff80;
+    --map-trace: #f08a4b;
+    --map-rescued: #e8bb3a;
   }
 }
 /* a touch screen: 44 px targets (the spec; the UI record's 40 px stays for a mouse) */

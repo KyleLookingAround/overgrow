@@ -15,19 +15,27 @@ import {membersIn, weekGardenHours} from '../sim/models/household';
 import {money, num} from './format';
 import {Num} from './Num';
 import {SheetHead, type Sheet} from './Panel';
-import {COMING, Neighbours, SeasonSections} from './SeasonPanel';
+import {Neighbours, SeasonSections} from './SeasonPanel';
 import {keptOf} from '../sim/season';
+import type {ZoomView} from '../sim/zoom';
+import {zoomOutcome} from './ZoomCard';
 import './styles/allotment.css';
 
 type Tab = 'plot' | 'allotment';
+
+/** What's left for part 10, in a line (the slugs in your old garden came with part 9). */
+const COMING = 'Coming soon at the allotment: more votes, and the allotment’s own offer.';
 
 /** Which way a plot's Health is heading: toward its plan's target, a point a season at most. */
 export function trend(n: GraphNode): '↑' | '↓' | '→' {
   const s = sealedOf(n), gap = s ? s.plan.health - n.totals.health : 0;
   return gap > 0.5 ? '↑' : gap < -0.5 ? '↓' : '→';
 }
-/** A plot's headline, as its tile and its row lead with it: Output a day, and Health with its direction. */
-export const headline = (n: GraphNode) => `${num(n.totals.output * 1000)} g · ${Math.round(n.totals.health)}${trend(n)}`;
+/** A plot's Output a day as it stands: its sealed Output less what the events on it (slugs, a short day at the trough)
+ *  are taking while they last. */
+export const outputNow = (n: GraphNode) => n.totals.output * (sealedOf(n)?.events ?? []).reduce((f, e) => f * (1 - Math.min(1, Math.max(0, e.size))), 1);
+/** A plot's headline, as its tile and its row lead with it: Output a day as it stands, and Health with its direction. */
+export const headline = (n: GraphNode) => `${num(outputNow(n) * 1000)} g · ${Math.round(n.totals.health)}${trend(n)}`;
 type Explain = (cause: string, at: string | null) => void;
 
 /** The plan's levers in the panel: each option's words, and the Explain card behind the lever's name. */
@@ -53,9 +61,10 @@ function consequence(n: GraphNode, lever: Lever, value: string | number): string
   return `${num(then.output * 1000)} g a day, ${money(then.upkeep)} a day, Health heads for ${Math.round(then.health)}${then.carbon > now.carbon + 1e-9 ? ', more carbon' : ''}.`;
 }
 
-function PlotTab({nodes, hours, send, onExplain, seen, all}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain; seen: readonly string[]; all: boolean}) {
+function PlotTab({nodes, hours, send, onExplain, seen, all, zoom}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain; seen: readonly string[]; all: boolean; zoom: ZoomView | null}) {
   const n = nodes.find((x) => x.id === PLAYER_PLOT), home = nodes.find((x) => x.id === 'household');
   if (!n) return null;
+  const outcome = zoom ? zoomOutcome(zoom, hours) : null;
   const t = n.totals, l = home?.levers.ledger as unknown as AllotmentLedger | undefined;
   // days by the plot's last tick, as the sim counts them for what has unfolded
   const days = l ? ((sealedOf(n)?.at ?? hours) - l.since) / 24 : 0, spare = weekGardenHours(membersIn(home));
@@ -65,8 +74,10 @@ function PlotTab({nodes, hours, send, onExplain, seen, all}: {nodes: GraphNode[]
     <>
       <section class="place" aria-labelledby="plot-title">
         <h3 id="plot-title">Your plot</h3>
-        <p class="headline"><Num v={`${num(t.output * 1000)} g`} cause="harvest" at={n.id} onExplain={onExplain} label="Output" /> <span class="headline-unit">a day from your plot</span></p>
+        <p class="headline"><Num v={`${num(outputNow(n) * 1000)} g`} cause={outputNow(n) < t.output - 1e-9 ? (zoom && !zoom.rescued && !zoom.missed ? "slugs in your garden" : "harvest") : "harvest"} at={n.id} onExplain={onExplain} label="Output" /> <span class="headline-unit">a day from your plot</span></p>
         <p class="soft">Your garden’s last year, as one plot. You can’t tend its beds from here, only plan it.</p>
+        {n.levers.rescued ? <p class="rescued-mark"><span aria-hidden="true">✦</span> Rescued</p> : null}
+        {outcome ? <p class="soft zoom-outcome">{outcome}</p> : null}
         <dl>
           <div class="row"><dt>Health</dt><dd><Num v={`${Math.round(t.health)} / 100 ${trend(n)}`} cause="plot care" at={n.id} onExplain={onExplain} label="Health" /></dd></div>
           <div class="row"><dt>Reliability</dt><dd><Num v={`${Math.round(t.reliability)} / 100`} cause="sealing" at={n.id} onExplain={onExplain} label="Reliability" /></dd></div>
@@ -141,7 +152,7 @@ function AllotmentTab({nodes, onExplain, onSelect, seen, all: details}: {nodes: 
 
 export function AllotmentPanel(props: {
   nodes: GraphNode[]; hours: number; sheet: Sheet; onSheet: (s: Sheet) => void; send: (cmd: Command) => void; onExplain: Explain; onSelect: (id: string) => void;
-  seen?: readonly string[]; all?: boolean;
+  seen?: readonly string[]; all?: boolean; zoom?: ZoomView | null;
 }) {
   const seen = props.seen ?? [], all = props.all ?? false;
   const [tab, setTab] = useState<Tab>('plot');
@@ -151,7 +162,7 @@ export function AllotmentPanel(props: {
       <SheetHead tabs={tabs} current={tab} sheet={props.sheet} onSheet={props.onSheet} onTab={(t) => setTab(t as Tab)} />
       <div class="panel-body" id="panel-body">
         <div class="panel-content" key={tab}>
-          {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} seen={seen} all={all} />
+          {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} seen={seen} all={all} zoom={props.zoom ?? null} />
             : <AllotmentTab nodes={props.nodes} onExplain={props.onExplain} seen={seen} all={all} onSelect={(id) => {
               props.onSelect(id);
               if (id === PLAYER_PLOT) setTab('plot');

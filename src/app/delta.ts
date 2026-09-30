@@ -1,7 +1,7 @@
 // Snapshot deltas across the worker boundary: after the first snapshot, the worker sends only the nodes whose stocks,
 // levers or totals changed and the activities that started or ended, and the page patches its copy. A 5,000-node
 // snapshot copied whole took far past the 2 ms budget on a throttled phone (docs/SYSTEMS.md, "Speed budget"), so the
-// founding spec's fallback applies from the start. A new game, a load or a changed graph (its rev) sends it whole again.
+// founding spec's fallback applies from the start. A new game, a load, a changed graph (its rev) or level (the step up, going down and back up) sends it whole again.
 // A changed node sends only the stocks that changed. An activity never changes once started (a system ends it and
 // starts another with a new id); one that reaches its end time is dropped on both sides, so only one cut short is sent.
 import type {Activity} from '../sim/activity';
@@ -46,7 +46,7 @@ const sameTotals = (a: Totals, b: Totals) =>
 export function diff(prev: Snapshot | null, next: Snapshot): SnapshotDelta {
   const {nodes, edges, activities, ...base} = next;
   const whole = () => ({base, whole: {nodes, edges, activities}});
-  if (!prev || prev.rev !== next.rev || prev.seed !== next.seed || next.hours < prev.hours || prev.nodes.length !== nodes.length) return whole();
+  if (!prev || prev.rev !== next.rev || prev.level !== next.level || prev.seed !== next.seed || next.hours < prev.hours || prev.nodes.length !== nodes.length) return whole();
   const changed: NodePatch[] = [];
   for (let i = 0; i < nodes.length; i++) {
     const a = prev.nodes[i]!, b = nodes[i]!;

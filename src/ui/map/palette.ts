@@ -6,7 +6,7 @@ const NAMES = [
   'drill', 'seedling', 'leaf', 'leaf-light', 'leaf-dark', 'leaf-ripe', 'sheen', 'cane', 'wilt', 'blackened', 'fruit-red', 'fruit-pink', 'gate', 'gate-slot', 'can', 'basket', 'bags', 'compost',
   'slug', 'slime', 'aphid', 'blight', 'bee', 'bee-stripe', 'wing', 'ladybird', 'ladybird-spot', 'cat', 'torch', 'marigold', 'pulse',
   'frame', 'frame-edge', 'bin', 'trap', 'hose', 'timber', 'tank', 'run', 'hen-house', 'hen', 'hen-tail', 'comb', 'beak', 'net', 'berry', 'blossom',
-  'autumn-leaf', 'autumn-leaf-2', 'butterfly', 'robin', 'robin-breast', 'eye', 'steam',
+  'autumn-leaf', 'autumn-leaf-2', 'butterfly', 'robin', 'robin-breast', 'eye', 'steam', 'trace', 'rescued',
 ] as const;
 export type Swatch = (typeof NAMES)[number];
 

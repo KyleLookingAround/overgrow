@@ -28,6 +28,8 @@ import {juiceOf, JUICE_MS, type Juice} from './juice';
 import {FirstYearCard} from './YearCard';
 import {latched, StayBar, StepUpCard} from './StepUpCard';
 import {AllotmentPanel} from './AllotmentPanel';
+import {ZoomCard, ZoomStrip} from './ZoomCard';
+import {TRACE, zoomOpen} from '../sim/zoom';
 import {YEAR_HOURS} from '../sim/commands';
 import type {MapRenderer} from './map/renderer';
 import {MapView} from './MapView';
@@ -126,9 +128,12 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
     const m = fresh ? {moments: [], mark: markOf(s)} : momentsOf(before!.snap, s, before!.mark);
     was.current = {seed: s.seed, seen: s.seen, snap: s, mark: m.mark};
     if (fresh) return;
-    // the step up: the garden is a plot now, and the garden's moments and rewards stay behind with it
-    if (before!.snap.level === 1 && s.level === 2) {
-      setNotices((l) => push(l, {id: ++noticeId, text: 'This is your plot now: your garden’s year, as one tile among twelve.', moment: 'season', at: Date.now(), day: calendar(s.hours).dayIndex}));
+    // the step up: the garden is a plot now, and the garden's moments and rewards stay behind with it; going down and back
+    // up (part 9) change the level too, with a line of their own
+    if (before!.snap.level !== s.level) {
+      const day = calendar(s.hours).dayIndex, text = s.zoom?.down != null ? 'Down in your garden: the slugs are in the beds. Set the slug policy.'
+        : before!.snap.zoom?.down != null ? 'Back at the allotment.' : before!.snap.level === 1 && s.level === 2 ? 'This is your plot now: your garden’s year, as one tile among twelve.' : null;
+      if (text) setNotices((l) => push(l, {id: ++noticeId, text, moment: 'season', at: Date.now(), day}));
       return;
     }
     if (s.level !== 1) return;
@@ -150,6 +155,9 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const first = !!snap && firstPlanDue(snap);
   // the allotment (level 2): its own panel, and none of the garden's cards
   const allot = !!snap && snap.level === 2;
+  // the zoom back in (part 9): down in the garden below, with the deadline strip in the goal bar's place; or at the
+  // allotment, the outbreak open with Go down and Send someone
+  const zoom = snap?.zoom ?? null, down = zoom?.down != null, rescue = allot && zoomOpen(zoom) && snap!.seen.includes(TRACE);
   // the garden's year done: the level's end, once a save
   const year = !!snap && !first && !snap.seen.includes(CARDS.year) && latched(snap);
   // the offer kept after "Stay in the garden a while": the stay bar in the goal bar's place
@@ -219,7 +227,9 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
             : year ? <StepUpCard snap={snap!} onTake={() => send({type: 'step-up'})} onStay={() => send({type: 'card', id: 'year', answer: 'ok'})} />
             : explain ? <Explain what={explain} nodes={nodes} log={log} onClose={() => setExplain(null)} />
             : firstYear ? <FirstYearCard snap={snap!} onDone={() => send({type: 'card', id: 'first-year', answer: 'ok'})} />
-            : allot ? null
+            : allot ? (rescue ? <ZoomCard z={zoom!} hours={shown!.hour} money={snap!.money} onDown={() => send({type: 'go-down'})} onSend={(adviser) => send({type: 'send-someone', adviser})}
+              onExplain={() => explainAt('slugs in your garden', zoom!.node)} /> : null)
+            : down ? null
             : stay ? <StayBar onTake={() => send({type: 'step-up'})} />
             : snap && <GoalBar snap={snap} onGo={(go) => {
               go.cmds.forEach(send);
@@ -228,6 +238,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
                 setFocus({tab: go.tab, shed: go.shed, at: Date.now()});
               }
             }} />}
+          {down && <ZoomStrip z={zoom!} hours={shown!.hour} onUp={() => send({type: 'back-up'})} />}
           {shown && !first && (
             <button type="button" class="speed-pill" aria-label={`Speed: ${speedLabel(shown.speed)}${shown.quiet ? ', quiet night: passing quickly' : ''}. Next: ${nextSpeed(shown.speed) === 0 ? 'pause' : speedLabel(nextSpeed(shown.speed))}`}
               onClick={() => speed(nextSpeed(shown.speed))}>
@@ -240,7 +251,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
             </button>
           )}
         </MapView>
-        {allot ? <AllotmentPanel nodes={nodes} seen={snap?.seen ?? []} all={all} hours={shown?.hour ?? 0} sheet={sheetShown} onSheet={onSheet} send={send} onExplain={explainAt}
+        {allot ? <AllotmentPanel zoom={zoom} nodes={nodes} seen={snap?.seen ?? []} all={all} hours={shown?.hour ?? 0} sheet={sheetShown} onSheet={onSheet} send={send} onExplain={explainAt}
           onSelect={(id) => { setSelected(id); if (sheet === 'peek') setSheet('half'); }} />
         : <Panel nodes={nodes} seen={snap?.seen ?? []} all={all} onDetails={(v) => send({type: 'setting', key: 'details', value: v})} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null} log={log}
           selected={selected} onSelect={setSelected} sheet={sheetShown} focus={focus} onSheet={onSheet} send={send} onExplain={explainAt} />}

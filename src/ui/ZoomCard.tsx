@@ -1,0 +1,50 @@
+// The zoom back in over the map (part 9): at the allotment, while the slug outbreak runs unfixed, a card with Go down and
+// Send someone, the fee and the reward on it; down in the garden, the deadline strip across the top with the plot's
+// shortfall still counting and Back up; and back at the allotment, one line on how it ended. Commands only.
+import {ADVISERS, OUTBREAK, RESCUE} from '../data/zoom';
+import type {ZoomView} from '../sim/zoom';
+import {num} from './format';
+
+const H = 24;
+const days = (d: number) => `${Math.max(0, Math.ceil(d - 1e-9))} ${Math.ceil(d - 1e-9) === 1 ? 'day' : 'days'}`;
+
+/** Go down or Send someone: the outbreak open at the allotment. */
+export function ZoomCard({z, hours, money, onDown, onSend, onExplain}: {z: ZoomView; hours: number; money: number; onDown: () => void; onSend: (id: string) => void; onExplain: () => void}) {
+  // the adviser is offered only while they can be paid and can finish before the deadline
+  const a = ADVISERS.slugs!, left = (z.deadline - hours) / H, send = money >= a.fee && left >= a.days;
+  return (
+    <section class="goal-bar zoom-card" aria-label="Slugs in your garden">
+      <p class="zoom-text">
+        <button type="button" class="link" onClick={onExplain}>Slugs from {z.holder}’s plot</button> are in your garden: your plot gives {Math.round(z.event.size * 100)} % less. {days(left)} to fix it.
+      </p>
+      <p class="zoom-terms soft">Goodwill with the neighbours, more the sooner.{send ? ` ${a.name}: £${a.fee}, half of it.` : ''}</p>
+      <div class="zoom-actions">
+        <button type="button" class="primary zoom-down" onClick={onDown}>Go down</button>
+        {send && <button type="button" class="zoom-send" onClick={() => onSend(a.id)}>Send {a.name.split(' ')[0]} · £{a.fee}</button>}
+      </div>
+    </section>
+  );
+}
+
+/** The deadline strip while down in the garden: one line, and Back up. */
+export function ZoomStrip({z, hours, onUp}: {z: ZoomView; hours: number; onUp: () => void}) {
+  const text = z.rescued ? `Rescued in ${days((z.rescued.at - z.event.from) / H)}`
+    : z.missed ? 'Missed the deadline'
+    : `${days((z.deadline - hours) / H)} left · ${num(z.kg)} kg short`;
+  return (
+    <section class={`zoom-strip${z.rescued ? ' done' : z.missed ? ' missed' : ''}`} aria-label="The rescue’s deadline" role="status">
+      <p>{text}</p>
+      <button type="button" class={z.rescued ? 'primary zoom-up' : 'zoom-up'} onClick={onUp}>Back up</button>
+    </section>
+  );
+}
+
+/** How it ended, in a line for the plot's panel. */
+export function zoomOutcome(z: ZoomView, hours: number): string | null {
+  const a = ADVISERS[z.sent?.adviser ?? 'slugs'];
+  if (z.rescued?.by === 'adviser' && hours < z.rescued.at) return `${a?.name ?? 'The adviser'} is on it: ${days((z.rescued.at - hours) / H)} to go.`;
+  if (z.rescued?.by === 'adviser') return `${a?.name ?? 'The adviser'} ${a?.did ?? 'sorted it'}: rescued, for a fee.`;
+  if (z.rescued) return `Rescued in ${num((z.rescued.at - z.event.from) / H)} garden days: Reliability +${RESCUE.reliability}, and the neighbours noticed.`;
+  if (z.missed) return `The slugs ran their course: ${num(z.kg)} kg lost over ${OUTBREAK.days} days.`;
+  return null;
+}

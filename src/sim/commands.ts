@@ -8,6 +8,7 @@ import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
 import {kindOf} from './effects';
 import {goalOf, offered} from './goal';
 import {stepUp} from './allotment';
+import {backUp, goDown, sendSomeone, zoomTick} from './zoom';
 import {helperCommand, secondPlotCommand, voteCommand, watchCommand} from './season';
 import type {Watching} from '../data/agency';
 import type {Vote} from './models/committee';
@@ -86,6 +87,11 @@ export type Command =
   | {type: 'helper'; answer: 'accept' | 'refuse' | 'let go'}
   | {type: 'watch'; watching: Watching}
   | {type: 'vote'; answer: Vote; talk?: Record<string, number>}
+  /** The zoom back in (src/sim/zoom.ts): go down into the garden below to fix the outbreak yourself, come back up to the
+   *  allotment, or send an adviser (by id, src/data/zoom.ts) for a fee and half the reward. */
+  | {type: 'go-down'}
+  | {type: 'back-up'}
+  | {type: 'send-someone'; adviser: string}
   /** A setting of the page's that's saved with the game ('details': show every number early). It changes no play. */
   | {type: 'setting'; key: string; value: LeverValue};
 
@@ -107,7 +113,7 @@ function ask(systems: readonly System[], s: State, cmd: Command): string | null 
 /** Runs whole steps of the clock, collecting the flows they moved, any that couldn't, and every effect with its cause and
  *  place (src/sim/effects.ts). */
 function tick(s: State, systems: readonly System[], hours: number) {
-  const step = levelClock(s.level).stepHours, steps = Math.floor(hours / step + 1e-9);
+  const from = s.hours, step = levelClock(s.level).stepHours, steps = Math.floor(hours / step + 1e-9);
   const flows: Flow[] = [], errors: string[] = [], effects = new Recorder();
   recordInto(s.graph, effects);
   const ctx = {
@@ -127,10 +133,12 @@ function tick(s: State, systems: readonly System[], hours: number) {
   }
   recordInto(s.graph, null);
   s.flows = mergeFlows(flows);
+  // the zoom back in: the outbreak's start, its kg, a rescue and the deadline (src/sim/zoom.ts)
+  const zoomed = zoomTick(s, from);
   // the purse's week: what came in, and what the garden spent (src/sim/purse.ts)
   tally(s.graph, s.flows, s.hours);
   // each flow is an effect of its `what` at its place, and the systems' events besides
-  s.effects = flowEffects(s.graph, s.flows).concat(effects.list());
+  s.effects = flowEffects(s.graph, s.flows).concat(effects.list(), zoomed);
   // an instrument unfolds the first time one of its causes happens (src/data/unfold.ts), one batch a day
   unfold(s, revealed(s.seen, causesOf(s.effects)));
   s.errors = errors;
@@ -196,6 +204,12 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       if (!s.rejected) reveal(s, s.effects.map((e) => e.cause));
       return s;
     }
+    case 'go-down':
+    case 'back-up':
+    case 'send-someone':
+      s.rejected = cmd.type === 'go-down' ? goDown(s, systems) : cmd.type === 'back-up' ? backUp(s, systems) : sendSomeone(s, cmd.adviser);
+      if (!s.rejected) reveal(s, s.effects.map((e) => e.cause));
+      return s;
     case 'setting':
       if (!(cmd.key in SETTINGS)) s.rejected = `no setting ${cmd.key}`;
       else if (!SETTINGS[cmd.key]!.includes(cmd.value)) s.rejected = `${cmd.key} is ${SETTINGS[cmd.key]!.join(' or ')}`;
