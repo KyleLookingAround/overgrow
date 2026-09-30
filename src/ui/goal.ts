@@ -125,7 +125,7 @@ export function rungStep(snap: {nodes: GraphNode[]; seen: readonly string[]}): S
   const id = nextRung(snap);
   if (!id) return null;
   const u = UPGRADES[id], purse = snap.nodes.find((n) => n.id === 'kitchen')?.stocks.money?.amount ?? 0;
-  return purse >= u.price ? {text: `Buy the ${lower(u.name)}: ${lower(u.saves)}`, cmds: [{type: 'buy', id}]} : {text: `${u.name}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id};
+  return purse >= u.price ? {text: `Buy the ${lower(u.name)} (£${u.price})`, cmds: [{type: 'buy', id}]} : {text: `${u.name}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id};
 }
 
 /**
@@ -227,7 +227,11 @@ export function goalLine(snap: Pick<Snapshot, 'nodes' | 'kitchen' | 'seen' | 'ho
     return {text: 'The allotment: the committee looks at your garden’s whole year, from its first day', action, step, rows: null, window: 0, verb: action ?? 'Keep every bed sown and picked', ring: 0, go: goOf(step)};
   }
   // the requirement's own next action, or else the money ladder's next rung, so the bar always names something to do
-  const own = st.binding ? nextStep(snap, st.binding.key) : null, step = own ?? rungStep(snap), action = own?.text ?? null;
+  // (a big buy to save for gives way to a cheaper rung first: the ladder climbs one step at a time)
+  let own = st.binding ? nextStep(snap, st.binding.key) : null;
+  const rung = rungStep(snap), rungId = nextRung(snap);
+  if (own?.shed && rung && rungId && UPGRADES[rungId].price < UPGRADES[own.shed].price) own = null;
+  const step = own ?? rung, action = own?.text ?? null;
   const held = st.binding ? `${valueText(st.binding)}: ${action ?? RAISE[st.binding.key]}` : 'All three met';
   const window = Math.min(1, st.days / st.windowDays), near = st.requirements.reduce((a, r) => a + Math.min(1, r.progress), 0) / Math.max(1, st.requirements.length);
   const verb = step?.text ?? (st.binding ? RAISE[st.binding.key][0]!.toUpperCase() + RAISE[st.binding.key].slice(1) : 'Keep it up: all three are met');
