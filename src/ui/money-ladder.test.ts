@@ -128,7 +128,8 @@ describe('the honesty box and the glut', () => {
   });
 
   it('says what each glut choice gives', () => {
-    expect(glutGives('sell', 4)).toBe('about £10.00');
+    expect(glutGives('sell', 4)).toBe('up to £10.00');
+    expect(glutGives('sell', 40)).toBe('up to £15.00');
     expect(glutGives('preserve', 4)).toBe('10 jars, £10.40 saved in winter');
     expect(glutGives('give', 4)).toBe('goodwill next door');
   });
@@ -158,6 +159,7 @@ describe('midwinter’s jobs', () => {
     expect(card(sim, 'clean')).not.toBeNull();
     expect(answer(sim, 'clean', 'clean').rejected).toBeNull();
     if (was > 1) expect(slugs()).toBeLessThan(was);
+    expect(answer(sim, 'clean', 'clean').rejected).toMatch(/already/);
     expect(card(sim, 'clean')).toBeNull();
     to(sim, SETS.from[0], SETS.from[1]);
     expect(card(sim, 'sets')).not.toBeNull();

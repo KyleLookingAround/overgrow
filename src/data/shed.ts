@@ -167,7 +167,7 @@ export const UPGRADES: Record<UpgradeId, Upgrade> = {
   },
   'fruit-bush': {
     id: 'fruit-bush', name: 'Blackcurrant bush', price: 15, kept: true,
-    does: 'A potted blackcurrant planted by the fence, any time of year.',
+    does: 'A potted blackcurrant planted by the heap, any time of year.',
     saves: 'About 4 kg of fruit a summer once established.',
     trade: 'A light crop next summer, and the full one only the summer after.',
   },
@@ -262,8 +262,8 @@ export const CLEAN = {slugs: 0.15, from: [1, 1], to: [2, 28], minutes: 30} as co
  *  (RHS, "Microgreens"; Garden Organic, "Growing salad indoors"). A packet of seed £1.50. */
 export const SILL = {gbp: 1.5, wait: 14, days: 35, kg: 0.02, warm: 0.03, from: [1, 15], to: [2, 28]} as const;
 /** The hens' winter care: fresh straw deep in the house and a check for red mite (the British Hen Welfare Trust's winter
- *  care), £4 of straw and powder, which keeps their welfare from sliding in the cold months: their welfare mended to
- *  whole. */
+ *  care), £4 of straw and powder, which keeps their welfare from sliding in the cold months. Simplifies: their welfare
+ *  is mended to whole at once, where the livestock model otherwise moves it a little each day. */
 export const HEN_CARE = {gbp: 4, from: [12, 15], to: [2, 28]} as const;
 /** Whether a date (month, day) is inside a midwinter job's window, which runs over the new year. */
 export const inWinter = (w: {from: readonly [number, number]; to: readonly [number, number]}, month: number, day: number) => {

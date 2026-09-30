@@ -107,7 +107,7 @@ describe('the autumn’s and winter’s cards', () => {
     // each choice says what it gives; with the purse short of the next rung, selling comes first
     const snap = sim.snapshot(), rung = nextRung(snap)!;
     expect(snap.money).toBeLessThan(UPGRADES[rung].price);
-    expect(d.actions[0]!.label).toMatch(/^Sell at the box \(about £\d+\.\d\d\)$/);
+    expect(d.actions[0]!.label).toMatch(/^Sell at the box \(up to £\d+\.\d\d\)$/);
     expect(d.actions[1]!.label).toBe('Give it away (goodwill next door)');
     expect(d.text).toMatch(/going to the freezer \(\d+ jars, £\d+\.\d\d saved in winter\)/);
     expect(sim.apply(d.actions[0]!.cmd).rejected).toBeNull();

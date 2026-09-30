@@ -125,7 +125,7 @@ export function rungStep(snap: {nodes: GraphNode[]; seen: readonly string[]}): S
   const id = nextRung(snap);
   if (!id) return null;
   const u = UPGRADES[id], purse = snap.nodes.find((n) => n.id === 'kitchen')?.stocks.money?.amount ?? 0;
-  return purse >= u.price ? {text: `Buy the ${lower(u.name)} (£${u.price})`, cmds: [{type: 'buy', id}]} : {text: `${u.name}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id};
+  return purse >= u.price ? {text: `Buy the ${lower(u.name)} (£${u.price.toFixed(2)})`, cmds: [{type: 'buy', id}]} : {text: `${u.name}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id};
 }
 
 /**

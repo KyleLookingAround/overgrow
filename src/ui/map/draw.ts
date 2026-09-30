@@ -377,7 +377,7 @@ const LEAN_TO_BOX: Box = {x: 5.3, y: 0.55, w: 2.2, h: 0.5};
 const TANK_BOX: Box = {x: 11.35, y: 0.55, w: 0.55, h: 1.2};
 
 /** The big buys, drawn over their places each frame: the greenhouse's glass and its bars, the hens scratching about their
- *  run (a cosmetic wander from the clock, the three of them), the fruit cage's canes and bushes under the net with the
+ *  run (a cosmetic wander from the clock, however many are in), the fruit cage's canes and bushes under the net with the
  *  ripe fruit on them, the cordon redcurrants along the fence, one for each planted, and the blackcurrant bush. An empty
  *  hen house (round four) is its run with no hens in it. */
 function drawSites(g: Graphics, nodes: readonly GraphNode[], hours: number, c: Camera, pal: Palette) {

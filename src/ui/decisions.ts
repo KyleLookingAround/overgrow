@@ -10,7 +10,7 @@
 // washed, seed potatoes by post and salad on the windowsill; and when the purse is short of the money ladder's next
 // rung, the honesty box kept stocked. The glut card says what each choice gives, selling first when money's short. Pure, so a Vitest test holds it; App.tsx queues the first one due as a notice, and the
 // bot answers them (tools/bot/player.ts).
-import {CLEAN, FLEECE, HEN_CARE, PRUNE, SETS, SILL, UPGRADES} from '../data/shed';
+import {CLEAN, FLEECE, HEN_CARE, inWinter, PRUNE, SETS, SILL, UPGRADES} from '../data/shed';
 import {BOX, PRESERVE} from '../data/kitchen';
 import {PRICE} from '../data/household';
 import {unfolded} from '../data/unfold';
@@ -24,7 +24,6 @@ import {boxPolicy, KITCHEN, surplusOf} from '../sim/models/kitchen';
 import {nextRung} from './goal';
 import {forecastOf, tonight, type WeatherDay} from '../sim/models/weather';
 import {cataloguePrice, catalogueOpen, chitOpen, digOverBeds, frostBeds, henCareOpen, leavesOpen, pruneCount, pruneOpen, refuseBuy, setsOpen, sillOpen, warmBeds} from '../sim/shed';
-import {inWinter} from '../data/shed';
 import type {Snapshot} from '../sim/state';
 import {money} from './format';
 
@@ -50,10 +49,13 @@ const GLUT_LABEL: Record<string, string> = {preserve: 'Preserve it', give: 'Give
 /** What each glut choice gives for `kg`: £ at the box, jars (and the £ they save in the winter, at the shop's price for
  *  green veg), or the neighbours' goodwill. */
 export function glutGives(choice: string, kg: number): string {
-  if (choice === 'sell') return `about ${money(kg * BOX.price)}`;
+  // the box sells a few days' worth before the rest goes off
+  if (choice === 'sell') return `up to ${money(Math.min(kg, BOX.perDay * GLUT_DAYS) * BOX.price)}`;
   if (choice === 'preserve') return `${Math.max(1, Math.round(kg / PRESERVE.jarKg))} jars, ${money(kg * PRICE.greens)} saved in winter`;
   return 'goodwill next door';
 }
+/** The days of the box's sales a glut's money is counted over. */
+const GLUT_DAYS = 3;
 /** The box card asks again no sooner than this after an answer, game hours. */
 const BOX_AGAIN = 60 * 24;
 
@@ -136,7 +138,7 @@ export function decisionsOf(snap: Snapshot): Decision[] {
     out.push({id: 'prune', at: snap.nodes.some((x) => x.id === 'cordons') ? 'cordons' : 'bush', text: `The currants are dormant: prune ${n === 1 ? 'it' : `all ${n}`} back to a bud or two, for a fuller crop next summer (${PRUNE.minutes * n} minutes)?`,
       actions: [{label: 'Prune them', cmd: card('prune', 'prune')}], dismiss: card('prune', 'no')});
   }
-  if (inWinter(CLEAN, date.month, date.day) && asked('clean') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.shed')) {
+  if (inWinter(CLEAN, date.month, date.day) && kitOf(g).cleaned !== date.year + 1 && asked('clean') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.shed')) {
     out.push({id: 'clean', at: 'shed', text: 'A midwinter job: wash the pots, the trays and the glass, where slugs hide through the winter?',
       actions: [{label: 'Wash them', cmd: card('clean', 'clean')}], dismiss: card('clean', 'no')});
   }

@@ -358,11 +358,13 @@ export function orderSets(g: Graph, d: CalendarDate): string | null {
 /** Washing the pots and the frame: a share of each dug bed's slugs, sheltering under them, go. Why not, or null. */
 export function cleanPots(g: Graph, d: CalendarDate): string | null {
   if (!inWinter(CLEAN, d.month, d.day)) return 'the pots are washed in midwinter';
+  if (kitOf(g).cleaned === d.year + 1) return 'the pots are washed already this winter';
   for (const b of dugBeds(g)) {
     const slugs = slugsOn(b) * CLEAN.slugs;
     if (slugs > 1e-9) applyFlow(g, {what: 'washing pots', unit: 'pests', product: 'slugs', amount: qty(slugs, 'pests'), from: {node: b.id, stock: SLUG_KEY}, to: {boundary: 'decay'}});
     touch(g, b.id);
   }
+  setKit(g, {cleaned: d.year + 1});
   return null;
 }
 /** Whether salad can be sown on the windowsill now, and isn't already growing there. */

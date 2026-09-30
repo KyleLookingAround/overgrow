@@ -1,6 +1,6 @@
 # The playable garden, round four: a money ladder and a winter with work in it
 
-Issue: #83 · Status: Approved (by the brief, `docs/briefs/playable-garden-4.md`, under the owner's decisions 15, 19 and 20) · PRs: (added as they open)
+Issue: #83 · Status: Built (by the brief, `docs/briefs/playable-garden-4.md`, under the owner's decisions 15, 19 and 20) · PRs: (added as they open)
 
 ## What the player gets
 
@@ -9,8 +9,8 @@ A goal within a few weeks' reach all year. The big buys come in steps, each a re
 ## The mechanism
 
 - **Staged buys.** A hen house and run (a flat-pack house for two to four hens, about £75) stands empty until the hens come, and meanwhile keeps the heap's finished compost dry, so less of its nitrogen washes out (RHS, "Compost": cover the heap). Hens are social and never kept alone (the British Hen Welfare Trust), so they come as a pair (£25 each, point-of-lay hybrids), then a third. A lean-to growhouse (£40) on the house's sunny wall raises the tender crops two weeks bigger before they go out (RHS, "Greenhouses: lean-to"; "Sowing seeds indoors"), before the greenhouse. A potted blackcurrant bush (£15, planted any time; about 4 kg a summer once established, RHS "Blackcurrants") comes before the fruit cage.
-- **The box.** "Keep it stocked": the gardener fills the box with up to a day and a half's sales from what the kitchen has beyond the next day's meal, eggs and preserves among it (a jar about £2 for 400 g: £5 a kg). The household buys what it then lacks at the shop: cash now for a little less of the week's veg from the garden (Reliability), a real market gardener's trade.
-- **Midwinter jobs** (15 December to February): winter pruning of the cordons and the bush (RHS: an unpruned currant crops about a sixth less as it crowds); seed potatoes and onion sets ordered by post in January (cheaper than the spring's garden-centre packs, when the catalogue hasn't covered them); pots, the frame and cloches washed (RHS "Slugs and snails": slugs shelter under pots, so about a sixth of the beds' slugs go); salad sown in trays on the windowsill (cut-and-come-again leaves, faster in the propagator); the hens' winter care (fresh straw and a check for red mite, the Hen Welfare Trust), which keeps their welfare up through the cold.
+- **The box.** "Keep it stocked": the gardener fills the box with up to a day and a half's sales (3 kg) from the fresh produce beyond two days' ask, eggs, and the preserves beyond 10 kg (never what's stored for the winter) (a jar about £2 for 400 g: £5 a kg). The household buys what it then lacks at the shop: cash now for a little less of the week's veg from the garden (Reliability), a real market gardener's trade.
+- **Midwinter jobs** (15 December to February): winter pruning of the cordons and the bush (RHS: an unpruned currant crops about a sixth less as it crowds); seed potatoes ordered by post in January (cheaper than the spring's garden-centre packs, when the catalogue hasn't covered them); pots, the frame and cloches washed (RHS "Slugs and snails": slugs shelter under pots, so about a sixth of the beds' slugs go); salad sown in trays on the windowsill (cut-and-come-again leaves, faster in the propagator); the hens' winter care (fresh straw and a check for red mite, the Hen Welfare Trust), which keeps their welfare up through the cold.
 - Fast effect: this week's purse and eggs. Slow effect: the hens' and the fruit's years.
 
 ## Where it sits on the ladder
@@ -32,7 +32,7 @@ The garden (level 1). A sealed garden carries its kit, hens and box takings in i
 
 ## Saved state
 
-New kit fields (`pruned`, `sets`, `sill`), the kitchen's `box` lever, the unfold queue; a hen house with no hens is a herd of none. `SAVE_VERSION` rises (no compatibility promise before release).
+New kit fields (`pruned`, `sets`, `cleaned`, `sill`, `henCare`), the kitchen's `box` lever, the unfold queue; a hen house with no hens is a herd of none. `SAVE_VERSION` rises (no compatibility promise before release).
 
 ## Balance
 

@@ -22,14 +22,15 @@ export interface Kit {
   /** Bare-root season (November to March): cordons are sold and planted (src/data/shed.ts's CORDON). */
   bare?: boolean;
   /** Midwinter's jobs (round four): the garden year the fruit was pruned for, the garden year seed potatoes were ordered
-   *  for by post, the game hour salad was sown on the windowsill, and the game hour the hens had their winter care. */
+   *  for by post, the garden year the pots were washed for, the game hour salad was sown on the windowsill, and the game hour the hens had their winter care. */
   pruned?: number | null;
   sets?: number | null;
+  cleaned?: number | null;
   sill?: number | null;
   henCare?: number | null;
 }
 
-export const NO_KIT: Kit = {owned: [], nematodes: 0, dry: false, seeds: null, fleece: false, chitted: null, bare: false, pruned: null, sets: null, sill: null, henCare: null};
+export const NO_KIT: Kit = {owned: [], nematodes: 0, dry: false, seeds: null, fleece: false, chitted: null, bare: false, pruned: null, sets: null, cleaned: null, sill: null, henCare: null};
 /** Degree days of a head start a crop sown or planted now has: a potato from its chitting (none unchitted, or chitted too
  *  long ago), a tender crop raised in the lean-to. */
 export const chitStart = (g: Graph, crop: string, hours: number) => {
