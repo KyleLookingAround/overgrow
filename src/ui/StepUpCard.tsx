@@ -8,7 +8,7 @@ import type {Goal} from '../sim/goal';
 import type {Snapshot} from '../sim/state';
 import {Card} from './Card';
 import {money, num} from './format';
-import {statusOf, valueText} from './goal';
+import {MEANING, statusOf, valueText} from './goal';
 import {lessons, savedAtShop} from './YearCard';
 import './styles/allotment.css';
 
@@ -16,6 +16,7 @@ import './styles/allotment.css';
 export const latched = (snap: Pick<Snapshot, 'nodes' | 'level'>) =>
   snap.level === 1 && (snap.nodes.find((n) => n.id === 'kitchen')?.levers.goal as unknown as Goal | undefined)?.offered != null;
 
+const NAME_OF = {output: 'Output', reliability: 'Reliability', health: 'Health'} as const;
 const WHEN = (days: number) => (days === 0 ? 'at once' : days === 7 ? 'after a week' : `after ${Math.round(days / 7)} weeks`);
 
 /** What the allotment opens, in lines, from the tables it gates on. */
@@ -38,6 +39,7 @@ export function StepUpCard({snap, onTake, onStay}: {snap: Snapshot; onTake: () =
       </div>}>
       <div class="year-card step-up-card">
         <p>The allotment committee has seen your garden’s year: {st.requirements.map((r) => valueText(r)).join(', ')}. A plot is yours.</p>
+        <ul class="step-up-means soft">{st.requirements.map((r) => <li>{NAME_OF[r.key]}: {MEANING[r.key]}.</li>)}</ul>
         <dl>
           <div class="row"><dt>Picked</dt><dd>{num(k?.picked ?? 0)} kg</dd></div>
           <div class="row"><dt>Eaten at home</dt><dd>{num(k?.eaten ?? 0)} kg</dd></div>
