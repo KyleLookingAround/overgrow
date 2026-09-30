@@ -15,7 +15,7 @@ Part 8 of the founding spec's roadmap, from `docs/briefs/allotment-season.md` wi
   - the trough gains `today`, and the sheds a `food` stock and a `shelf`;
   - edges carry food from every plot to the sheds and from the neglected plot to the helper's node.
   - The garden's weather and its run of dry days carry over at the step up, and the `weather` system runs at level 2 too.
-- **The order** (`src/sim/systems.ts`): the weather, the `swapShed`, the `allotment`, the people's week (`agency`), the `season`, the sealed plots and the `committee`, the last four at level 2 only.
+- **The order** (`src/sim/systems.ts`): the weather, the `swapShed`, the `allotment`, the household's hours (`allotmentHours`), the people's week (`agency`), the `season`, the sealed plots and the `committee`. All but the weather run at level 2 only.
 - **The neighbours' weeks** (`keptWeek`, `plans`): each week a neighbour's `week` goes onto their plot's `kept`. Each day a neighbour's plot heads for Health `15 + 65 × kept^1.5` and yields its usual kg times `kept / usual`, held to 0.6–1.3. The habit's lean part 7 used is gone. Their walks to the plot follow the week's hours.
 - **The trough** (`troughDayTick`, `troughDay`):
   - A plot draws nothing until its soil has had three dry days in a row (the weather's forecast's `dry`). Then it draws FAO-56's use: the day's reference rate × 0.9 over half its 96 m², less for a weedy plot.
@@ -25,12 +25,14 @@ Part 8 of the founding spec's roadmap, from `docs/briefs/allotment-season.md` wi
   - A plot that gets less than 80 % of its need is short. A short day costs `0.4 × gap` of that day's harvest (a one-day event on its sealed node), and a short week lowers its Health target by up to 10.
   - The queue waits at the trough each dry evening (activities, and figures drawn beside it).
   - Each week the household queues for `effects(rules, dryness).queueHours` over its watering days, from its hours.
+  - The player's cans go along the `trough-water` edge to their plot and out as its evapotranspiration; the neighbours' go in one flow from the trough.
 - **Pests from next door** (`spread`): each week every plot is a source of `min(1, (1 − kept) / 0.5)`. For the second plot kept is how far it's reclaimed; for the player's, its care against the tile's ground. The pressure on a plot is `Σ source × e^(−d / 11 m)` from the others. From April to October it costs `0.25 × pressure` of the week's harvest and up to 8 points of Health target. The map draws slugs on a plot's edges by its pressure.
 - **The second plot** (`offer`, `secondPlotCommand`, `secondWeek`):
   - The neglected plot is offered on the allotment's 12th day, which unfolds `agency.helper`.
   - Taking it (`{type: 'second-plot', answer: 'take'}`) makes the player pay its rent. Its holder keeps their node but has no plot, and so leaves the committee.
   - It starts 10 % reclaimed and needs 150 hours in all. It heads for Health 30 to 70, and yields a well-kept neighbour's kg times how far it's reclaimed.
-  - Its food waits on its shelf for the week. The helper takes theirs (`agency`), and the rest comes home as `eaten from the second plot`, into the ledger's week by its mix.
+  - Its food waits on its shelf for the week. The helper takes theirs (`agency`), and the rest comes home as `eaten from the second plot`, into the ledger's week by its mix. That's after the household's week has been counted, so it counts in the next week's shop.
+  - The level's history counts its crops' m² as the player's land as far as it's reclaimed (`playerLand`).
 - **The helper** (`helperCommand`, `watchCommand`): the offer is the model's `helper`.
   - Accepting sets their `helping` lever: they work the plot with their spare hours, up to six a week, for the agreed third. Refusing or letting them go means the household works it from its hours.
   - `{type: 'watch', watching}` sets trust, a glance or an audit.
@@ -49,7 +51,7 @@ Part 8 of the founding spec's roadmap, from `docs/briefs/allotment-season.md` wi
   - The ledger's groups are corrected, so a swap adds its kg to the week and moves them between groups.
   - Each swap moves every neighbour's goodwill a little (`after(r, {type: 'shared'})`). The first swap unfolds `agency.goodwill`.
   - Half the shelf goes home with someone each week.
-- **The household's hours** (`hoursWeek`): topped up each week to its garden hours less the plot's care, from the `time` boundary. They're spent on reclaiming alone, watching (`agency`), queueing and talking.
+- **The household's hours** (`hoursWeek`, the `allotmentHours` system): at the start of each week, last week's queueing comes out of what's left, and the hours are topped up to its garden hours less the plot's care, from the `time` boundary. That week's watching (`agency`), reclaiming alone and talking then spend them, so the panel's "hours left" shows what they cost. Talking to members is offered only while the hours are there. The household's `seed`, `ledger` and `goal` are refused as levers.
 - **Unfolding**, one at a time: `allotment.neighbours` (the first neighbour's harvest), `agency.helper`, `allotment.trough` and `committee.panel` (the first dry spell), `allotment.shed` (the first surplus), `agency.goodwill` (the first swap) and `agency.trust` (the first audit). The `swap` lever is gated on `allotment.shed`. Sections of the panel stay hidden until their key.
 - **The bot** (`seasonPlay` in `tools/bot/player.ts`):
   - It takes the second plot, accepts the helper, audits for four weeks and then glances, votes for the motion, and swaps once the shed unfolds.
@@ -76,7 +78,7 @@ Part 8 of the founding spec's roadmap, from `docs/briefs/allotment-season.md` wi
 6. **The map.** Weeds by how kept; slugs from next door; short plots paler; the queue; the barrow; swaps carried to the shed.
 7. **Explain.** `secondPlot`, `helper`, `watching`, `trough`, `nextDoor`, `committee`, `swaps` and `allotmentHours` in `src/data/explain.ts`.
 8. **Economy and balance.** The bot's `SEASON` line on seeds 1–3.
-9. **Carbon and land.** The second plot's land is the allotment's already; swapped food is food not given away unused.
+9. **Carbon and land.** The second plot's m² join the player's land as it's reclaimed; swapped food is food not given away unused. The allotment's air starts at 0 at the step up (part 7), so the weather's warming index reads the level's own carbon.
 10. **Polish.** 320 px up: the neighbours a column of names with a face each, the report one line, the motion a card.
 11. **The lesson.** A report isn't the truth, and watching costs time; a shared trough needs rules people agree to.
 12. **Unfolding.** As above.
