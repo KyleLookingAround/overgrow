@@ -22,12 +22,12 @@ describe('unfold', () => {
     for (const g of GATES) expect(g.key in UNFOLD).toBe(true);
   });
   it('reveals every key a batch of causes reaches, once, in the table’s order', () => {
-    expect(revealed([], ['spreading compost'])).toEqual(['garden.soil', 'garden.carbon', 'household.footprint', 'shed.compost-bin', 'shed.hens']);
-    expect(revealed(['garden.soil'], ['spreading compost', 'watering'])).toEqual(['garden.water', 'garden.carbon', 'household.footprint', 'shed.compost-bin', 'shed.hens']);
+    expect(revealed([], ['spreading compost'])).toEqual(['garden.soil', 'garden.carbon', 'household.footprint', 'shed.compost-bin', 'shed.coop']);
+    expect(revealed(['garden.soil'], ['spreading compost', 'watering'])).toEqual(['garden.water', 'garden.carbon', 'household.footprint', 'shed.compost-bin', 'shed.coop']);
     // the gardener home from work on day 2 comes with the kitchen's first ask: one batch, the kitchen first
     expect(revealed(['garden.water', 'garden.slugs', 'garden.shed'], ['commute', 'ask', 'eating'])).toEqual(['garden.kitchen', 'household.commute']);
     // payday reveals the money, and the first week the garden fed the household reveals groceries saved beside it
-    expect(revealed([], ['groceries saved', 'wages'])).toEqual(['garden.money', 'household.groceries']);
+    expect(revealed([], ['groceries saved', 'wages'])).toEqual(['garden.money', 'household.groceries', 'shed.fruit-bush']);
     expect(revealed([], ['rain', 'growth'])).toEqual([]);
   });
   it('gates the watering line, the pest policy, flowers along an edge, a bed of marigolds and a winter crop, and nothing else', () => {

@@ -3,12 +3,14 @@
 // it costs besides, and a Buy button that sends a `buy` command (src/sim/shed.ts); then the garden's tools and kit. Offers
 // not yet worth having are hidden, not greyed; one the purse can't pay for yet says so, and a big buy shows how far the
 // purse has saved towards it. It reads as a shop (the spec docs/specs/ui-overhaul.md): the purse's line at the top, once
-// money has unfolded (src/sim/purse.ts: the week's money in and out, and the last big spend), then the next big buy to
-// save for with its meter, so one is always in sight, then each offer as a row with its name and price on one line.
+// money has unfolded (src/sim/purse.ts: the week's money in and out, and the last big spend), then the money ladder's next
+// rung to save for with its meter (round four: the one the goal bar names), so one is always in sight, then each offer as a row with its name and price on one line.
 // The goal bar's button can open the tab at one offer (`focus`), which it scrolls to and marks.
 import {TOOLS, type Tool} from '../data/jobs';
 import {useEffect} from 'preact/hooks';
-import {CORDON, NEMATODES, UPGRADE_IDS, UPGRADES, type UpgradeId} from '../data/shed';
+import {NEMATODES, UPGRADE_IDS, UPGRADES, type UpgradeId} from '../data/shed';
+import {refuseBuy} from '../sim/shed';
+import {nextRung} from './goal';
 import {calendar} from '../sim/clock';
 import {KITCHEN} from '../sim/models/kitchen';
 import {PURSE, type Purse} from '../sim/purse';
@@ -19,22 +21,23 @@ import {GARDENER} from '../sim/gardener';
 import type {GraphNode} from '../sim/graph';
 import {NO_KIT, SHED, type Kit} from '../sim/kit';
 import {money} from './format';
-import {isDug} from './map/draw';
 
 export const kitIn = (nodes: GraphNode[]): Kit => (nodes.find((n) => n.id === SHED)?.levers.kit as unknown as Kit | undefined) ?? NO_KIT;
 
-/** The offers the shed shows now: unfolded, and not kept already (a pack of nematodes shows again once it's spent). */
+/** The offers the shed shows now: unfolded, and the garden can take it, the purse aside: not kept already, a pack of
+ *  nematodes only once the last is spent, and a thing bought again (a raised bed, a cordon) only while there's a bed to
+ *  raise or room on the fence (round four: hidden, not greyed, once the garden can't take another). */
 export function offersIn(nodes: GraphNode[], seen: readonly string[]): UpgradeId[] {
-  const kit = kitIn(nodes), unraised = nodes.some((n) => n.kind === 'bed' && isDug(n) && n.levers.raised !== true && n.levers.cover !== 'greenhouse');
-  const cordons = kit.owned.filter((x) => x === 'cordon').length;
-  return UPGRADE_IDS.filter((id) => unfolded(seen, `shed.${id}`) && !(UPGRADES[id].kept && kit.owned.includes(id)) && !(id === 'nematodes' && kit.nematodes > 0) &&
-    !(id === 'raised-bed' && !unraised) && !(id === 'cordon' && (!kit.bare || cordons >= CORDON.most)));
+  const g = {nodes: Object.fromEntries(nodes.map((n) => [n.id, n])), edges: [], rev: 0};
+  return UPGRADE_IDS.filter((id) => {
+    if (!unfolded(seen, `shed.${id}`)) return false;
+    const r = refuseBuy(g, id);
+    return r === null || r === `${UPGRADES[id].name} costs £${UPGRADES[id].price.toFixed(2)}`;
+  });
 }
 
-/** The big buys in the order they're worth saving for: eggs, then glass, then fruit. */
-export const BIG_ORDER: readonly UpgradeId[] = ['hens', 'greenhouse', 'fruit-cage'];
-/** The next big buy to save for: the first on offer that isn't bought. */
-export const savingFor = (offers: readonly UpgradeId[]) => BIG_ORDER.find((id) => offers.includes(id)) ?? null;
+/** The thing to save for: the money ladder's next rung (src/ui/goal.ts), the same the goal bar names. */
+export const savingFor = (nodes: GraphNode[], seen: readonly string[]) => nextRung({nodes, seen});
 
 /** The purse's line: the week's money in and out, and the last big spend with its date. */
 function PurseLine({nodes}: {nodes: GraphNode[]}) {
@@ -57,7 +60,7 @@ export function ShedTab({nodes, seen, purse, see, send, focus}: {
 }) {
   const tools = (nodes.find((n) => n.id === GARDENER)?.levers.tools as Tool[] | undefined) ?? [], kit = kitIn(nodes), offers = offersIn(nodes, seen);
   const covered = (id: string) => nodes.find((n) => n.kind === 'bed' && n.levers.cover === id);
-  const purseShown = see('garden.money'), next = savingFor(offers);
+  const purseShown = see('garden.money'), next = savingFor(nodes, seen);
   // the shop's order (docs/specs/ui-overhaul.md, "Presenting a lot of information"): the next thing to save for, then
   // what the purse can pay for now, and the rest behind one line, opened when the goal bar points into it
   const rest = offers.filter((id) => id !== next && UPGRADES[id].price > purse);

@@ -45,7 +45,24 @@ export function block(run: Run): string {
   const reached = MILESTONES.filter((m) => m.reached).map((m) => `${m.id}: ${m.id in run.reached ? `day ${run.reached[m.id]}` : '—'}`);
   const bought = run.bought.map((b) => `${b.id}: day ${b.day}`).join(', ');
   const food = `eaten ${run.days.reduce((a, d) => a + d.eaten, 0).toFixed(1)}, sold ${run.days.reduce((a, d) => a + d.sold, 0).toFixed(1)}, preserved ${run.preserved.toFixed(1)}, given ${run.given.toFixed(1)}, wasted ${run.wasted.toFixed(1)}`;
-  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `FOOD kg {${food}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, ...(run.allotment ? [allotmentLine(run.allotment)] : []), `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
+  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `FOOD kg {${food}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, ...purseLines(run), ...(run.allotment ? [allotmentLine(run.allotment)] : []), `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
+}
+
+/** The purse (round four): its £ at each 30 days, the longest run of days it sat under £1, and the longest wait between
+ *  one purchase (a cordon's included) and the next. */
+export function purseLines(run: Run): string[] {
+  const month = run.days.filter((d) => d.day % 30 === 0).map((d) => `${d.day}: £${d.money.toFixed(0)}`);
+  let zero = {days: 0, from: 0}, run0 = 0;
+  for (const d of run.days) {
+    run0 = d.money < 1 ? run0 + 1 : 0;
+    if (run0 > zero.days) zero = {days: run0, from: d.day - run0 + 1};
+  }
+  let gap = {days: 0, from: 0};
+  run.bought.forEach((b, i) => {
+    const last = i ? run.bought[i - 1]!.day : 1;
+    if (b.day - last > gap.days) gap = {days: b.day - last, from: last};
+  });
+  return [`PURSE {${month.join(', ')}}`, `EMPTY ${zero.days} days from day ${zero.from}; LONGEST WAIT TO BUY ${gap.days} days from day ${gap.from}`];
 }
 
 /** The allotment's line: the step-up day, and the plot's and the neighbours' numbers at the end. */

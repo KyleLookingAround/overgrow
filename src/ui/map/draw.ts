@@ -350,6 +350,12 @@ function drawKit(g: Graphics, nodes: readonly GraphNode[], c: Camera, pal: Palet
     g.roundRect(r.x + 0.05 * c.s, r.y + 0.07 * c.s, r.w, r.h, 0.1 * c.s).fill(pal.shadow);
     g.roundRect(r.x, r.y, r.w, r.h, 0.1 * c.s).fill(pal.tank);
   }
+  // the lean-to growhouse against the house's sunny wall: clear panels over its shelves of pots
+  if (owned.includes('lean-to')) {
+    const r = px(LEAN_TO_BOX, c), t = Math.max(1, 0.03 * c.s);
+    g.rect(r.x, r.y, r.w, r.h).fill({color: pal.frame.color, alpha: 0.4}).stroke({width: t, color: pal['frame-edge'].color});
+    for (let i = 0; i < 5; i++) g.circle(r.x + ((i + 0.5) * r.w) / 5, r.y + r.h * 0.55, 0.1 * c.s).fill(pal.leaf);
+  }
   // cloches: a clear tunnel along the bed, its hoops across it
   const cloched = nodes.find((n) => n.kind === 'bed' && n.levers.cover === 'cloches');
   if (cloched) {
@@ -365,12 +371,15 @@ function drawKit(g: Graphics, nodes: readonly GraphNode[], c: Camera, pal: Palet
   }
 }
 
+/** Where the lean-to stands: against the house wall, above bed 3 and short of the tap. */
+const LEAN_TO_BOX: Box = {x: 5.3, y: 0.55, w: 2.2, h: 0.5};
 /** Where the rainwater tank stands: against the house wall in the corner past the shed. */
 const TANK_BOX: Box = {x: 11.35, y: 0.55, w: 0.55, h: 1.2};
 
 /** The big buys, drawn over their places each frame: the greenhouse's glass and its bars, the hens scratching about their
  *  run (a cosmetic wander from the clock, the three of them), the fruit cage's canes and bushes under the net with the
- *  ripe fruit on them, and the cordon redcurrants along the fence, one for each planted. */
+ *  ripe fruit on them, the cordon redcurrants along the fence, one for each planted, and the blackcurrant bush. An empty
+ *  hen house (round four) is its run with no hens in it. */
 function drawSites(g: Graphics, nodes: readonly GraphNode[], hours: number, c: Camera, pal: Palette) {
   for (const n of nodes) {
     const r = n.box && px(n.box, c);
@@ -402,6 +411,14 @@ function drawSites(g: Graphics, nodes: readonly GraphNode[], hours: number, c: C
         const dots = Math.min(4, Math.ceil(ripe * 3));
         for (let k = 0; k < dots; k++) g.circle(x + 0.12 * c.s * Math.cos(k * 1.9 + i), y + 0.12 * c.s * Math.sin(k * 1.9 + i), 0.035 * c.s).fill(pal.berry);
       }
+      continue;
+    }
+    if (n.kind === 'fruit' && n.id === 'bush') {
+      // the one blackcurrant bush, unnetted, with its ripe fruit
+      const x = r.x + r.w / 2, y = r.y + r.h / 2, ripe = n.stocks['food.berries']?.amount ?? 0;
+      g.circle(x, y, 0.4 * c.s).fill(pal['leaf-dark']);
+      g.circle(x - 0.1 * c.s, y - 0.1 * c.s, 0.25 * c.s).fill(pal.leaf);
+      for (let k = 0; k < Math.min(6, Math.ceil(ripe * 4)); k++) g.circle(x + 0.25 * c.s * Math.cos(k * 1.9), y + 0.25 * c.s * Math.sin(k * 1.9), 0.045 * c.s).fill(pal.berry);
       continue;
     }
     if (n.kind === 'fruit') {

@@ -30,7 +30,7 @@ import {BERRIES, ripeFruit} from './models/fruit';
 import {clearOut, herdOf, LIVE} from './models/livestock';
 import {chitStart} from './kit';
 import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
-import {GATE, give, glutPolicy, KITCHEN, mixQuality, preserve, preserveRoom, qualityAt, recordGlut, recordPick, surplusOf} from './models/kitchen';
+import {GATE, give, glutPolicy, KITCHEN, mixQuality, preserve, preserveRoom, qualityAt, recordGlut, recordPick, stockFor, surplusOf} from './models/kitchen';
 import {GLUT, PRESERVE} from '../data/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
 import {hourOf, sunOn, weatherOf} from './models/weather';
@@ -479,7 +479,7 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   const p = new Planner(g, pos, t, left - (night.length ? patrol : 0), next, date.dayIndex, awayOn(g, date, t)), line = Number(g.nodes[GARDENER]?.levers.waterBelow ?? 0.5);
   // 0. the hens first thing: fed, watered and their eggs brought in, and cleaned out on a Saturday
   const hens = g.nodes[HENS_NODE];
-  if (hens && herdOf(hens)) {
+  if (hens && (herdOf(hens)?.head ?? 0) > 0) {
     const clean = date.weekday === 5;
     p.job((j) => {
       j.walk(HENS_NODE);
@@ -573,6 +573,9 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
       }
     }
     const neighbour = policy === 'give';
+    // a box kept stocked: a share of what the kitchen has beyond tomorrow's meal as well, carried on the same trips (not
+    // while the gluts go over the fence)
+    if (!neighbour) items = [...items, ...stockFor(g, items)];
     while (items.length) {
       let room = carry.trip ?? Infinity;
       const load: {product: string; kg: number}[] = [], rest: {product: string; kg: number}[] = [];
