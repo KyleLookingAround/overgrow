@@ -55,7 +55,7 @@ In the allotment's first summer your plot's output falls: slugs from the neglect
 
 - `State.zoom` (null until the outbreak) and `Below.at` (the hour a level kept below has been run to).
 - While you're down, the allotment's graph is kept in `zoom.down`.
-- The save version rises to 14. An older save starts a new game.
+- The save version rises to 15. An older save starts a new game.
 
 ## Balance
 

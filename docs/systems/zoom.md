@@ -37,7 +37,7 @@ Part 9 of the founding spec's roadmap, from `docs/briefs/zoom-back-in.md` with i
   - Down in the garden, the deadline strip sits across the top of the map ("9 days left · 0.4 kg short", then "Rescued in 5 days" or "Missed the deadline"), with Back up; the goal bar and the stay bar are hidden.
   - A change of level sends the snapshot whole (`src/app/delta.ts`), and the sim copies a swapped graph afresh (`src/sim/state.ts`).
   - The dive is the zoom-out in reverse: the allotment's last picture grows about the player's plot while the garden opens out of it, about 3 s; a tap skips it; reduced motion cuts straight in. Back up plays the step up's zoom-out.
-- **Saved state:** `State.zoom` (null until the outbreak; while down it holds the allotment's graph) and `Below.at`. The save version is 14.
+- **Saved state:** `State.zoom` (null until the outbreak; while down it holds the allotment's graph) and `Below.at`. The save version is 15.
 - **The bot** (`zoomPlay` in `tools/bot/player.ts`): it goes down as soon as it can, sets the patrol, buys nematodes once the shed offers them, and comes back up once rescued or missed. Down there it runs only that policy, and the garden's measures (its diary, quiet and purchases) stay closed. `ZOOM {…}` reports the outbreak's day, how it was met, the rescue's garden days against the deadline's, the kg lost, and the plot's kg a day over the four weeks before and from it.
 - **Speed:** see `docs/SYSTEMS.md`, "Speed budget", part 9's line.
 
