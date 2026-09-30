@@ -81,7 +81,9 @@ export default async function({ok,open:bare,out}){
     // a touch sheet: its three resting heights, tapped
     if(cls.sheet&&touch){
       ok(`layout: at ${w}×${h} the sheet at rest shows at least 150 px of panel under the top bar, the map and its head`,m.body&&m.body.h>=150,`body ${m.body&&Math.round(m.body.h)} px`);
-      const tapToggle=async()=>{const t=await box(page,'.sheet-toggle');await page.touchscreen.tap(t.x+t.w/2,t.y+t.h/2);await settle(page)};
+      // the sheet's height moves in a transition, slow on a software-drawn runner: wait until two reads 300 ms apart agree
+      const settled=()=>page.waitForFunction(()=>{const h=Math.round(document.querySelector('.panel').getBoundingClientRect().height);const same=window.__sheetH===h;window.__sheetH=h;return same},null,{polling:300,timeout:6000}).catch(()=>{});
+      const tapToggle=async()=>{const t=await box(page,'.sheet-toggle');await page.touchscreen.tap(t.x+t.w/2,t.y+t.h/2);await page.evaluate(()=>{window.__sheetH=-1});await settled()};
       await tapToggle();
       const tall=await measure(page);
       await tapToggle();
