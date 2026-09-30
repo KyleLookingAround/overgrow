@@ -107,7 +107,7 @@ The owner (29 Sep 2026): the game should be strategic and long. Choices have tra
 | Treating pests at 1–4 | Treat: the loss is now and the cost is invisible | Already a trade-off: predators lost and, at the farm, resistance. It needs showing on the map (part 5) | Night: the pests. Seasons: predators and resistance. |
 | The step-up at every level | Take the offer at once | **P:** a level stays open to finish a slow investment (a hedge, a rotation) that will carry up in its Health; the offer waits | Now: the next level. Years: a better sealed node. |
 
-**The time scales (O·Q15).** The garden's offer used to come between days 55 and 75, and the smallholding's first year takes about ten minutes, so the slow effects the levels are built round (soil organic matter, rotation, hedges) couldn't pay off inside the level that teaches them. Each level now lasts long enough for its slowest lever to pay back once. The garden runs at least a full year, with the offer after a year's steady supply and not a lucky summer. The allotment and smallholding run two or three years each. The clock keeps its rates (seconds per game day), so the game gets longer, not slower. The longest quiet stretch (above) is the guard against boredom.
+**The time scales (O·Q15).** The garden's offer used to come between days 55 and 75, and the smallholding's first year takes about ten minutes, so the slow effects the levels are built round (soil organic matter, rotation, hedges) couldn't pay off inside the level that teaches them. Each level now lasts long enough for its slowest lever to pay back once. The garden runs at least a full year, with the offer after a year's steady supply and not a lucky summer. The allotment and smallholding run two or three years each. The clock keeps its rates (seconds per game day), so the game gets longer, not slower. The longest quiet stretch (above) is the guard against boredom. The one map (`docs/specs/one-map.md`, **O**, 30 Sep 2026) sets the rates by the zoom instead, and each level's length is measured again at its widest view.
 
 ## The physical world
 
@@ -479,6 +479,8 @@ The spec's farm adds insurance and credit, and the nation must stay solvent, but
 ### The ladder and sealing
 
 Spec settles it; the maths is PR #20. A sealed node keeps its totals and runs by them alone.
+
+On the one map (`docs/specs/one-map.md`, **O**, 30 Sep 2026) the zoom-out becomes the camera pulling back, and the level reached sets how far it goes; the zoom back in is the same camera pushing in.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
