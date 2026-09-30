@@ -60,7 +60,7 @@ In the allotment's first summer your plot's output falls: slugs from the neglect
 ## Balance
 
 - `PLAY` before the step up is unchanged. The garden's milestones on seeds 1–3 are identical.
-- The bot goes down, picks slugs and waters on nematodes. It rescues in 2–5 garden days of 14 on seeds 1–3, and the outbreak costs the plot 0.2–0.5 kg.
+- The bot goes down the day the trace unfolds, picks slugs and waters on nematodes. It rescues in 2–4 garden days of 14 on seeds 1–3, and the slugs eat about 0.03 kg in the garden meanwhile (the kg counted while down are the garden's own).
 - Left alone, it costs about 3.4 kg (seed 3).
 - The bot's `ZOOM` line reports it.
 
