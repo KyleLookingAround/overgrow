@@ -11,6 +11,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 <!-- joined:lessons from docs/lessons/ by tools/join.mjs: don't edit between these lines -->
 ### Coordinator
 
+- [The first slice's fourth coordinator · 29–30 Sep 2026](lessons/73-coordinator-4.md)
 - [The first slice's third coordinator · 29 Sep 2026](lessons/60-coordinator-3.md)
 - [The first slice's second coordinator (#46) · 29 Sep 2026](lessons/46-second-coordinator.md)
 - [The first slice's first coordinator · 28–29 Sep 2026 (#28)](lessons/28-first-coordinator.md)
@@ -38,6 +39,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 - [The rotation and field-soil model, ahead of part 11 (#43) · 29 Sep 2026](lessons/2026-09-29-10-rotation-and-fields-model.md)
 - [Part 7, sealing and the step up (#69, #70) · 30 Sep 2026](lessons/70-step-up.md)
+- [A shorter garden year (#65) · 29 Sep 2026](lessons/65-shorter-garden-year.md)
 - [The playable garden, round three (#62) · 29 Sep 2026](lessons/62-playable-garden-3.md)
 - [Headroom for the garden day, again (#61) · 29 Sep 2026](lessons/61-garden-day-headroom.md)
 - [The playable garden, round two (#58) · 29 Sep 2026](lessons/58-playable-garden-2.md)

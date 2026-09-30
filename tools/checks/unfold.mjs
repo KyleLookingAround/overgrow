@@ -36,9 +36,9 @@ export default async function({ok,open}){
   const core=await page.evaluate(()=>({card:document.querySelector('.card-overlay .card-title')?.textContent??null,speed:window.__sim.snapshot()?.speed,
     tabs:[...document.querySelectorAll('.tab')].map(t=>t.textContent),money:!!document.querySelector('.topbar .money'),dial:!!document.querySelector('.dial'),
     temp:!!document.querySelector('.temp'),water:!!document.querySelector('#plan-water'),sow:!!document.querySelector('#plan-bed-2'),gardener:!!document.querySelector('.card .job'),
-    speeds:document.querySelectorAll('.speeds .speed').length,goal:!!document.querySelector('.goal-bar')}));
+    speeds:document.querySelectorAll('.speeds .speed:not(.speed-fast)').length,goal:!!document.querySelector('.goal-bar')}));
   ok('unfold: a new game shows only the core, paused under the first plan’s card',
-    core.card==='The first plan'&&core.speed===0&&core.tabs.join()==='Garden'&&!core.money&&!core.dial&&!core.temp&&!core.water&&core.sow&&core.gardener&&core.speeds===4&&!core.goal,JSON.stringify(core));
+    core.card==='The first plan'&&core.speed===0&&core.tabs.join()==='Garden'&&!core.money&&!core.dial&&!core.temp&&!core.water&&core.sow&&core.gardener&&core.speeds===6&&!core.goal,JSON.stringify(core));
   await pick(page,'Bed 1');
   const bare=await rowsOf(page);
   ok('unfold: a bed’s panel shows no soil numbers before they unfold',!bare.some(r=>/Moisture|Organic|Nitrogen|Carbon/.test(r)),bare.join(', '));

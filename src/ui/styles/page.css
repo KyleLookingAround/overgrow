@@ -151,9 +151,47 @@ button.num {
 .speed-cycle {
   font-variant-numeric: tabular-nums;
 }
+/* the moon while a quiet night passes quickly: a small badge on the pressed speed's corner, taking no room in the bar,
+   glowing softly (still under reduced motion) */
+.speed,
+.speed-cycle {
+  position: relative;
+}
+.quiet-night {
+  position: absolute;
+  top: calc(var(--moon) * -0.4);
+  left: calc(var(--moon) * -0.4);
+  display: grid;
+  place-items: center;
+  width: var(--moon);
+  height: var(--moon);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--ink);
+  pointer-events: none;
+  animation: moon-glow var(--moon-ms) ease-in-out infinite alternate;
+}
+.quiet-night svg {
+  width: calc(var(--moon) * 0.75);
+  height: calc(var(--moon) * 0.75);
+  fill: currentColor;
+}
+@keyframes moon-glow {
+  from {
+    opacity: var(--moon-low);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quiet-night {
+    animation: none;
+  }
+}
 .speed-cycle {
   display: none;
   margin-left: auto;
+}
+.speed-fast {
+  display: none;
 }
 .pause {
   font-size: var(--text-small);
@@ -700,7 +738,17 @@ select {
     display: none;
   }
 }
-/* a narrow top bar: the four speeds fold into one button that cycles them (the owner's win W11) */
+/* a top bar a little narrow for every speed: 4×, 8× and 16× fold into one button that cycles them, so it keeps four
+   buttons (with December's money and dial the bar needs about 830 px for six) */
+@container topbar (max-width: 959px) {
+  .speed.fast {
+    display: none;
+  }
+  .speed-fast {
+    display: inline-block;
+  }
+}
+/* a narrow top bar: pause and the speeds fold into one button that cycles them (the owner's win W11) */
 @container topbar (max-width: 639px) {
   .speeds {
     display: none;

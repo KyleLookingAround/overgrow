@@ -11,9 +11,11 @@ describe('clock', () => {
     expect(calendar(366 * 24)).toMatchObject({year: 2, month: 3, day: 15, hour: 6});
   });
 
-  it("runs the garden at an hour a real second at 1×, and each level at the ladder's rate", () => {
-    expect(hoursPerSecond(1, 1)).toBe(1);
-    expect(hoursPerSecond(1, 4)).toBe(4);
+  it("runs the garden at two hours a real second at 1× (a year in about 73 minutes), and each level at the ladder's rate", () => {
+    expect(hoursPerSecond(1, 1)).toBe(2);
+    expect(hoursPerSecond(1, 4)).toBe(8);
+    expect(hoursPerSecond(1, 8)).toBe(16);
+    expect((365 * 24) / hoursPerSecond(1, 1) / 60).toBeCloseTo(73, 0);
     expect(hoursPerSecond(1, 0)).toBe(0);
     expect(hoursPerSecond(3, 1)).toBe(24);
     expect(LEVELS.map((l) => l.stepHours).slice(0, 3)).toEqual([1, 1, 24]);
