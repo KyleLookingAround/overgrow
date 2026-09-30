@@ -13,7 +13,7 @@ export interface Paint {
   color: number;
   alpha: number;
 }
-export type Palette = Record<Swatch, Paint> & {nightMax: number; frostMax: number};
+export type Palette = Record<Swatch, Paint> & {nightMax: number; nightQuiet: number; frostMax: number};
 
 function parse(css: string): Paint {
   const hex = css.trim().replace('#', '');
@@ -26,6 +26,7 @@ export function readPalette(el: Element): Palette {
   const cs = getComputedStyle(el), out = {} as Palette;
   for (const k of NAMES) out[k] = parse(cs.getPropertyValue('--map-' + k));
   out.nightMax = parseFloat(cs.getPropertyValue('--map-night-max')) || 0;
+  out.nightQuiet = parseFloat(cs.getPropertyValue('--map-night-quiet')) || 0;
   out.frostMax = parseFloat(cs.getPropertyValue('--map-frost-max')) || 0;
   return out;
 }
