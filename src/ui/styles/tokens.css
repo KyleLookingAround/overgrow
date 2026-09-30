@@ -1,19 +1,127 @@
-/* Design tokens: every colour, size and font the UI uses, in one place. Panels and the map read these; nothing
-   else declares a colour. Light and dark follow the device. The map's colours (--map-*) are the owner's pick of art
-   style, flat, top-down and soft (docs/specs/overgrow/art-styles.html, style A); the map reads them at start and when
-   the scheme changes. A colour with a shadow's softness carries its alpha as #rrggbbaa. */
+/* Design tokens: every colour, size and font the UI uses, in one place (the spec docs/specs/ui-overhaul.md, "One visual
+   language"). Panels and the map read these; nothing else declares a colour or a size. Light and dark follow the
+   device, and the dark scheme has every role the light one has. The colour roles: the page's --bg, the --surface of the
+   panel and cards, --surface-2 for an inset row or a pressed state, --ink and --soft for text (4.5:1 on their
+   surface), --line for a hairline and --line-strong for a control's border (3:1), --accent with --accent-ink on it and
+   --accent-soft as a marked row's tint, --warn, --focus, --sink and --source for the dial, and the notices' pair. The map's colours (--map-*) are the owner's pick of art style, flat, top-down and soft
+   (docs/specs/overgrow/art-styles.html, style A); the map reads them at start and when the scheme changes. A colour
+   with a shadow's softness carries its alpha as #rrggbbaa. The older names (--panel, --gap, --text-small…) stay as
+   aliases so a component can move to the scales in its own time. */
 :root {
-  --bg: #f4efe3;
+  color-scheme: light;
+  --bg: #efe9da;
+  --surface: #fffdf7;
+  --surface-2: #f3eee1;
   --ink: #1e2a22;
-  --soft: #5b6b5d;
-  --panel: #fffdf7;
-  --line: #d9d2c0;
-  --accent: #2f7a45;
+  --soft: #55655a;
+  --line: #ddd6c5;
+  --line-strong: #86917f;
+  --accent: #2b7040;
   --accent-ink: #ffffff;
+  --accent-soft: #dcefe0;
   --warn: #b7521e;
   --focus: #1d5fa8;
-  --sink: #2f7a45; /* carbon taken out of the air */
+  --sink: #2b7040; /* carbon taken out of the air */
   --source: #b7521e; /* carbon put into it */
+  --notice-bg: #1e2a22;
+  --notice-ink: #fffdf7;
+  --panel: var(--surface);
+  --badge-bg: var(--surface);
+  --badge-ink: var(--ink);
+
+  /* the type scale: a label, small text, the body, a section heading, a card's title, a headline number */
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text: 16px;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --leading: 1.45;
+  --leading-tight: 1.2;
+  --text-small: var(--text-sm);
+  --text-tiny: var(--text-xs);
+  --text-heading: var(--text-xl);
+  --line-tight: 1.15; /* two short lines in one control: the dial's figure and the footprint under it */
+
+  /* the spacing scale, 4 px steps */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --gap: var(--s-3);
+  --gap-small: var(--s-2);
+  --gap-tiny: var(--s-1);
+  --gap-hair: 2px;
+
+  /* radii and elevation */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+  --radius: var(--r);
+  --shadow-1: 0 -2px 12px #0000001a;
+  --shadow-2: 0 6px 24px #00000033;
+  --shadow-3: 0 8px 28px #00000040;
+  --card-shadow: var(--shadow-2);
+  --motion: 160ms; /* a transition's length: the sheet, a card, a tab, a press */
+  --press: 0.97; /* a pressed control's scale */
+
+  /* the shell's sizes */
+  --touch: 40px; /* the smallest tap target: 44 px on a touch screen (below) */
+  --control: 40px; /* a button's or menu's height */
+  --topbar-h: 48px;
+  --panel-w: 360px; /* the side panel beside the map on tablets and laptops */
+  --panel-w-large: 400px; /* from 1920 px */
+  --panel-w-ultra: 440px; /* from 2560 px */
+  --panel-w-landscape: 36%; /* beside the map on a phone on its side */
+  --panel-min-landscape: 220px;
+  --panel-content-w: 40rem; /* the most a panel's text spans on a wide sheet */
+  --sheet-half: 44dvh; /* the sheet's three resting heights on a phone */
+  --sheet-tall: min(78dvh, calc(100dvh - var(--topbar-h) - 172px)); /* tall still leaves 160 px of map under a 53 px bar */
+  --sheet-max: var(--sheet-half);
+  --card-w: 26rem; /* the overlay card (Explain) over the map */
+  --card-max-h: 60%; /* of the map's height */
+  --card-max-h-wide: 50%;
+  --dial: 36px; /* the carbon dial */
+  --dial-arc: 5; /* the dial's arcs and needle, in its 44-unit drawing */
+  --dial-needle: 2.5;
+  --bag: 12px; /* the shop's footprint under the dial's figure */
+  --bag-handle: 1.5; /* its handle, in its 16-unit drawing */
+  --moon: 16px; /* the quiet night's moon on the pressed speed's corner */
+  --moon-low: 0.55; /* the moon's glow at its faintest */
+  --moon-ms: 2400ms; /* the quiet night's moon glowing softly (still under reduced motion) */
+  --pause-squeeze: -2px; /* draws the pause bars close together */
+  --focus-ring: 3px;
+  --focus-offset: 1px;
+  --focus-halo: 2px; /* a ring of surface under the focus ring on map chrome, so it reads on the lawn */
+  --icon: 20px; /* an icon in a round button */
+  --check: 24px; /* a checkbox, inside its 44 px row */
+  --tracking: 0.06em; /* a label's letter-spacing */
+  --label-w: 3.5em; /* a two-column list's label: Saves, But */
+  --kicker-w: 5.5em; /* the Explain card's: What helps, How */
+  --label-lift: 3px; /* a small-caps label's nudge to the baseline of its row */
+  --underline-offset: 3px; /* a number's dotted line */
+  --rise: 8px; /* a card's entrance */
+  --meter-max: 12rem; /* the gardener's hours */
+  --ring-w: 3; /* the goal ring's stroke, in its 24-unit drawing */
+  --icon-line: 2; /* an icon's stroke, in its 24-unit drawing */
+  --pulse-ms: 1600ms; /* the one first-time pulse of an unfold sign (static under reduced motion) */
+  --pulse-ring: 3px; /* its ring */
+  --goal-ring: 1.75rem; /* the goal bar's progress ring */
+  --goal-icon: 1.1rem; /* the prize's icon */
+  --meter-w: 6rem; /* the gardener's hours and the kitchen's groups */
+  --meter-h: 0.6rem;
+  --badge: 26px; /* a map badge's drawn disc; its touch target is --touch */
+  --badge-line: 1.8; /* a badge icon's stroke, in its 24-unit drawing */
+  --grabber-w: 36px; /* the sheet's grab bar */
+  --grabber-h: 4px;
+  --juice-ring: 3px; /* a purchase's pulse ring */
+  --juice-dot: 8px; /* a coin, a leaf or a seed in the map's small rewards */
+  --juice-ms: 1.6s; /* how long each shows (src/ui/juice.ts's JUICE_MS) */
 
   /* the map */
   --map-edge: #6f9f57; /* around the garden: the hedge */
@@ -86,70 +194,29 @@
   --map-torch: #ffe9a8; /* the gardener's torch after dark */
   --map-marigold: #f08a1c; /* French marigolds in bloom */
   --map-pulse: #ffffff; /* the ring at the place an Explain card is about */
-
-  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
-  --text: 16px;
-  --text-small: 0.85rem;
-  --text-tiny: 0.75rem;
-  --line-tight: 1.15; /* two short lines in one control: the dial's figure and the footprint under it */
-  --radius: 10px;
-  --gap: 12px;
-  --gap-small: 6px;
-  --gap-tiny: 4px;
-  --gap-hair: 2px;
-  --text-heading: 1.15rem;
-  --dial-arc: 5; /* the dial's arcs and needle, in its 44-unit drawing */
-  --dial-needle: 2.5;
-  --pause-squeeze: -2px; /* draws the pause bars close together */
-  --focus-offset: 1px;
-  --touch: 40px; /* the smallest tap target on touch screens */
-  --moon-ms: 2400ms; /* the quiet night's moon glowing softly (still under reduced motion) */
-  --pulse-ms: 1600ms; /* the one first-time pulse of an unfold sign (static under reduced motion) */
-  --pulse-ring: 3px; /* its ring */
-  --goal-ring: 1.6rem; /* the goal bar's progress ring */
-  --goal-icon: 1.1rem; /* the prize's icon */
-  --juice-ring: 3px; /* a purchase's pulse ring */
-  --juice-dot: 8px; /* a coin, a leaf or a seed in the map's small rewards */
-  --juice-ms: 1.6s; /* how long each shows (src/ui/juice.ts's JUICE_MS) */
-  --panel-w: 360px; /* the panel's width beside the map on wide screens */
-  --panel-w-landscape: 40%; /* beside the map on a phone on its side */
-  --panel-min-landscape: 220px;
-  --sheet-max: 45vh; /* the sheet's most height on a portrait phone */
-  --dial: 40px; /* the carbon dial */
-  --bag: 12px; /* the shop's footprint under the dial's figure */
-  --moon: 16px; /* the quiet night's moon beside the speeds */
-  --moon-low: 0.55; /* the moon's glow at its faintest */
-  --bag-handle: 1.5; /* its handle, in its 16-unit drawing */
-  --focus-ring: 3px;
-  --meter-w: 6rem; /* the gardener's hours and the kitchen's groups */
-  --meter-h: 0.8rem;
-  --card-w: 26rem; /* the overlay card (Explain) over the map */
-  --card-max-h: 80%;
-  --card-shadow: 0 6px 24px #00000033;
-  --badge: 26px; /* a map badge's drawn disc; its touch target is --touch */
-  --badge-bg: #fffdf7;
-  --badge-ink: #1e2a22;
-  --badge-line: 1.8; /* a badge icon's stroke, in its 24-unit drawing */
-  --notice-bg: #1e2a22;
-  --notice-ink: #fffdf7;
 }
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --bg: #131a15;
+    --surface: #1c2620;
+    --surface-2: #243129;
     --ink: #eee8d8;
-    --soft: #a7b3a5;
-    --panel: #1c2620;
+    --soft: #aab6a8;
     --line: #2e3b32;
+    --line-strong: #6c7b70;
     --accent: #5db06f;
     --accent-ink: #0d160f;
+    --accent-soft: #24412c;
+    --warn: #e0874f;
     --focus: #8ab8ff;
     --sink: #5db06f;
     --source: #e0874f;
-    --badge-bg: #1c2620;
-    --badge-ink: #eee8d8;
     --notice-bg: #eee8d8;
     --notice-ink: #131a15;
+    --shadow-1: 0 -2px 12px #00000059;
+    --shadow-2: 0 6px 24px #00000080;
+    --shadow-3: 0 8px 28px #00000099;
 
     --map-edge: #3f5f33;
     --map-lawn: #5f8a4c;
@@ -211,5 +278,12 @@
     --map-torch: #ffe39a;
     --map-marigold: #d57818;
     --map-pulse: #f4efe3;
+  }
+}
+/* a touch screen: 44 px targets (the spec; the UI record's 40 px stays for a mouse) */
+@media (pointer: coarse) {
+  :root {
+    --touch: 44px;
+    --control: 44px;
   }
 }

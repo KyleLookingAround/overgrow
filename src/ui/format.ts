@@ -1,10 +1,13 @@
-// Numbers and dates as the panels show them: concise, UK English, units always named.
+// Numbers and dates as the panels show them: concise, UK English, units always named, with a narrow no-break space
+// (NNBSP) between a number and its unit so the two never part and read alike everywhere.
 import type {CalendarDate} from '../sim/clock';
 import type {Stock} from '../sim/graph';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const two = (n: number) => String(n).padStart(2, '0');
+/** The narrow no-break space between a number and its unit. */
+export const UNIT_SPACE = '\u202f';
 
 /** "Mon 15 Mar" */
 export const dayName = (d: CalendarDate) => `${DAYS[d.weekday]} ${d.day} ${MONTHS[d.month - 1]}`;
@@ -31,25 +34,25 @@ const UNIT: Record<Stock['unit'], string> = {
 export function amount(s: Stock): string {
   if (s.unit === 'GBP') return money(s.amount);
   const u = UNIT[s.unit];
-  return `${num(s.amount)}${s.cap !== undefined ? ' of ' + num(s.cap) : ''}${u ? ' ' + u : ''}`;
+  return `${num(s.amount)}${s.cap !== undefined ? ' of ' + num(s.cap) : ''}${u ? UNIT_SPACE + u : ''}`;
 }
 
 /** Days, to a sensible precision: "1 day", "2.5 days". */
-export const days = (d: number) => `${num(d)} ${num(d) === '1' ? 'day' : 'days'}`;
+export const days = (d: number) => `${num(d)}${UNIT_SPACE}${num(d) === '1' ? 'day' : 'days'}`;
 
 /** A small mass in kg as grams below a kilogram: "12 g", "1.2 kg". The unit is chosen after rounding (never "1,000 g"),
  *  and nothing reads "−0". */
 export function grams(kg: number): string {
   const g = Math.round(Math.abs(kg) * 1000) === 0 ? 0 : kg * 1000;
-  if (Math.abs(g) >= 999.5) return `${num(kg)} kg`;
-  return `${num(Math.abs(g) >= 10 ? Math.round(g) : g) || 0} g`;
+  if (Math.abs(g) >= 999.5) return `${num(kg)}${UNIT_SPACE}kg`;
+  return `${num(Math.abs(g) >= 10 ? Math.round(g) : g) || 0}${UNIT_SPACE}g`;
 }
 
 /** An effect's amount in its unit, as a place's list and the Explain card show it: "12 L", "3 % of the crop". */
 export function effectAmount(amount: number, unit: string): string {
   switch (unit) {
     case 'share':
-      return `${num(100 * amount)} % of the crop`;
+      return `${num(100 * amount)}${UNIT_SPACE}% of the crop`;
     case 'GBP':
       return money(amount);
     case 'kgFood':
@@ -60,16 +63,16 @@ export function effectAmount(amount: number, unit: string): string {
     case 'kgK':
       return `${grams(amount)} ${unit.slice(2)}`;
     case 'kgCO2e':
-      return `${num(amount)} kg CO₂e`;
+      return `${num(amount)}${UNIT_SPACE}kg CO₂e`;
     case 'pests':
       return num(amount);
     case 'h':
-      return `${num(amount)} h`;
+      return `${num(amount)}${UNIT_SPACE}h`;
     case 'm2':
-      return `${num(amount)} m²`;
+      return `${num(amount)}${UNIT_SPACE}m²`;
     case 'dd':
-      return `${num(amount)} degree days`;
+      return `${num(amount)}${UNIT_SPACE}degree days`;
     default:
-      return `${num(amount)} ${unit}`;
+      return `${num(amount)}${UNIT_SPACE}${unit}`;
   }
 }

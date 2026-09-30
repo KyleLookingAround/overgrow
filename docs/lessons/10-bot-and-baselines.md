@@ -1,3 +1,4 @@
+Theme: balance
 # The bot and the first baselines, the first slice's part 4 (#10) · 29 Sep 2026
 
 - **Numbers:** estimate $15; $5.84 when the fresh review ran (context about 240k of 1M). Session started 02:28 UTC; draft PR opened 02:44, part 3 merged 04:02, wired and proposed by 04:20. About 80 minutes waiting on part 3, spent reading its branch and wiring against it in a scratch worktree. One `needs-owner` issue (#15, the baselines) with a page for the pick. Merges from `main`: two, both by Catch up. Seeds 1–3 through 120 days take about 1.2 s together, start-up included.
@@ -9,6 +10,6 @@
 - **Lessons:**
   - `it.fails` passes on any throw, so it can't mark a known gap: a crash reads as the gap still being there. Assert today's relation in a plain test and say which part turns it round (`src/sim/strategy.test.ts`).
   - A strategy test on three seeds can pass by luck. Before trusting one, run a few more seeds and a second pace, and see whether the gap has a mechanism behind it.
-  - A `labeled` trigger fires only when the label is added: to re-run a label-driven workflow, remove the label and add it again (the `balance` playbook, Tips).
+  - A `labeled` trigger fires only when the label is added: remove it and add it again. → `balance` Tips.
   - A range with no upper end can't catch a milestone that regresses to never (`first-sale`, `half-kitchen` in `tools/baseline.json`). It's in the owner's issue (#15); when the game reaches them, give them both ends.
-  - Push, wait for the push's run to show, and only then mark a draft ready. A push two seconds before leaving draft started a Checks run that skipped (it saw a draft) and, sharing the PR's concurrency group, cancelled the ready run; the latest head had no Checks until it was started by hand. Worth a line in the `steward` playbook at the next tidy.
+  - Push, wait for that push's run to show, and only then mark a draft ready: a push seconds before leaving draft cancelled the ready run and left the head with no Checks. → `steward` "Checks workflow".

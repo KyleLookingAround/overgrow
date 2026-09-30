@@ -1,3 +1,4 @@
+Theme: parts
 # Pests, wildlife and Explain, the first slice's part 5 (#35) · 29 Sep 2026
 
 - **Numbers:** estimate $25; about $19 when the PR opened (context about 520k of 1M) and about $32 by the merge, past the estimate but under twice it. The overrun: two asks from the coordinator added mid-build (unfolding and the soil-borne pests for rotation), and three merges from `main` that each broke on another part's new file or a slower CI runner (the household tally, the storage test, the speed test crowded by this PR's heavy effects test). Session started 04:11 UTC; a five-hour usage limit stopped it from about 05:14 to 05:20 (the fresh review's first run died with it); PR opened about 06:30 UTC. No waiting on the owner. Two asks from the coordinator arrived mid-build (unfold the instruments; make rotation pay) and went into the same PR. Five commits before opening; CI rounds and merges from `main` are counted at the merge.
@@ -6,7 +7,7 @@
   - Writing the new `layout` cases first and running them on a worktree build of `main` showed them failing (three rows, no fold) before they were trusted, as the UI rules ask.
   - The speed budget found two real costs: noting every flow as it moved cost 0.08 ms a garden day, and the Explain table's words were shipping in the worker too. Effects from the merged flows, and the table split into kinds and words, fixed both.
 - **Lessons:**
-  - A headless per-day figure on this machine moves by ±0.05 ms from run to run and more when a browser check runs beside it; measure A/B against `main` in alternation, three runs each, with nothing else running.
+  - A headless per-day figure moves by ±0.05 ms between runs and more beside a browser check: A/B against `main` in alternation, three runs each, with nothing else running. → `feature` step 4 "Speed".
   - Rollup keeps a big literal if anything computed at the top level reads it, `/*#__PURE__*/` or not: data the sim needs and words only the page needs belong in separate top-level objects, joined by functions, never by a computed constant.
   - A strategy target (rotation beating one crop by 10 % by day 120) can't be met by the mechanism meant for it when the gap comes from somewhere else (the fast crops' speed): measure where the gap comes from before building the fix, and say so in the PR rather than tuning past the sources.
   - Both plans' output falls towards nothing by the third year on `main` too; a long-run test on the kitchen's figures for years two and three would have caught it (`src/sim/index.test.ts` checks only the two-year total).

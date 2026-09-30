@@ -3,7 +3,8 @@
 // three requirements in plain words (how well the garden fed the household, how steadily, the soil), each with its
 // meter and its value against the target (src/ui/goal.ts). Before the first harvest the ring is the first crop's growth.
 // Beside the verb, its button (round three): one tap does the step, opens the Shed at what it saves for, or opens the
-// plan, so no verb stands without a button behind it. It gives way to any card or notice over the map (win W5).
+// plan, so no verb stands without a button behind it. It gives way to a card over the map (win W5) and stays under a
+// notice, which sits at the map's top (docs/decisions/ADR-2026-09-29-ui-overhaul.md).
 import {useState} from 'preact/hooks';
 import type {Snapshot} from '../sim/state';
 import {goalLine, PLAIN, PRIZE, PRIZE_SHORT, valueText, type Go} from './goal';

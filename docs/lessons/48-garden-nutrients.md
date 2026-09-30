@@ -1,3 +1,4 @@
+Theme: parts
 # The garden's nutrients (Bug #47, #48) · 29 Sep 2026
 
 - **Numbers:** estimate $10; $8.18 when the PR opened, about $10 at the merge. Session started 09:45 UTC, PR opened 10:16, no hours waiting on the owner; about half an hour waiting on the coordinator's answer on the pass mark. Four pushes before the merge of `main`, one merge from `main` by hand (part 6a: both had raised the save version to 5, so 6), no red CI runs before it.
