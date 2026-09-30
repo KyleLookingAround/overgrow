@@ -76,7 +76,7 @@ export default async function({ok,open,out}){
   await send(page,{type:'tick',hours:12});
   const vH=await drawnNow(page);await page.screenshot({path:join(out,'garden-harvest-1440x900.png')});
   await page.click('#tab-kitchen');
-  const kitchen=await page.waitForFunction(()=>/Met \d+ %/.test(document.querySelector('.panel-body')?.textContent||''),null,{timeout:5000}).then(()=>true,()=>false);
+  const kitchen=await page.waitForFunction(()=>/\d+\s% of .+ met at the last meal/.test(document.querySelector('.panel-body')?.textContent||''),null,{timeout:5000}).then(()=>true,()=>false);
   ok('garden: the Kitchen tab shows the day’s ask and what met it',kitchen&&vH.crops['bed-1'],`${kitchen} ${JSON.stringify(vH.crops)}`);
   await page.screenshot({path:join(out,'garden-kitchen-1440x900.png')});
   await page.click('#tab-garden');

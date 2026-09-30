@@ -2,9 +2,10 @@
 // worth having (its own `shed.<id>` key), with its price (a price tag, shown before the purse is), what it saves and what
 // it costs besides, and a Buy button that sends a `buy` command (src/sim/shed.ts); then the garden's tools and kit. Offers
 // not yet worth having are hidden, not greyed; one the purse can't pay for yet says so, and a big buy shows how far the
-// purse has saved towards it. Above them, once money has unfolded, the purse's line (src/sim/purse.ts): the week's money
-// in and out, and the last big spend; and the next big buy to save for, so one is always in sight. The goal bar's button
-// can open the tab at one offer (`focus`), which it scrolls to and marks.
+// purse has saved towards it. It reads as a shop (the spec docs/specs/ui-overhaul.md): the purse's line at the top, once
+// money has unfolded (src/sim/purse.ts: the week's money in and out, and the last big spend), then the next big buy to
+// save for with its meter, so one is always in sight, then each offer as a row with its name and price on one line.
+// The goal bar's button can open the tab at one offer (`focus`), which it scrolls to and marks.
 import {TOOLS, type Tool} from '../data/jobs';
 import {useEffect} from 'preact/hooks';
 import {CORDON, NEMATODES, UPGRADE_IDS, UPGRADES, type UpgradeId} from '../data/shed';
@@ -57,6 +58,8 @@ export function ShedTab({nodes, seen, purse, see, send, focus}: {
   const tools = (nodes.find((n) => n.id === GARDENER)?.levers.tools as Tool[] | undefined) ?? [], kit = kitIn(nodes), offers = offersIn(nodes, seen);
   const covered = (id: string) => nodes.find((n) => n.kind === 'bed' && n.levers.cover === id);
   const purseShown = see('garden.money'), next = savingFor(offers);
+  // the shop's order: the next thing to save for first, then the rest as the catalogue lists them
+  const listed = next ? [next, ...offers.filter((id) => id !== next)] : offers;
   // the goal bar's button: the offer it points at scrolled into view
   useEffect(() => {
     if (!focus?.shed) return;
@@ -64,28 +67,37 @@ export function ShedTab({nodes, seen, purse, see, send, focus}: {
   }, [focus]);
   return (
     <>
-      {offers.length > 0 && (
-        <section class="card" aria-labelledby="offers-title">
-          <h3 id="offers-title">Worth having</h3>
-          {purseShown && <PurseLine nodes={nodes} />}
-          {purseShown && next && purse < UPGRADES[next].price && <p class="soft saving-for">Saving for: {UPGRADES[next].name.toLowerCase()}, {money(UPGRADES[next].price - purse)} to go.</p>}
-          {offers.map((id) => {
-            const u = UPGRADES[id], short = u.price - purse;
-            return (
-              <div class={focus?.shed === id && Date.now() - focus.at < FOCUS_MS ? 'offer focus' : 'offer'} data-offer={id} key={id}>
-                <p class="job"><strong>{u.name}</strong>, {money(u.price)}</p>
-                <p class="soft">{u.does}</p>
-                <p class="soft">Saves: {u.saves}</p>
-                <p class="soft">But: {u.trade}</p>
+      <section class="shop" aria-labelledby="offers-title">
+        <h3 id="offers-title">Worth having</h3>
+        {purseShown && <PurseLine nodes={nodes} />}
+        {purseShown && next && purse < UPGRADES[next].price && (
+          <p class="saving-for">
+            Saving for: {UPGRADES[next].name.toLowerCase()}, {money(UPGRADES[next].price - purse)} to go.
+            <meter min={0} max={UPGRADES[next].price} value={Math.max(0, purse)} aria-label={`Saved towards the ${UPGRADES[next].name.toLowerCase()}`} />
+          </p>
+        )}
+        {!offers.length && <p class="empty">Nothing to buy yet: the shed fills as the garden needs things.</p>}
+        {listed.map((id) => {
+          const u = UPGRADES[id], short = u.price - purse;
+          return (
+            <div class={focus?.shed === id && Date.now() - focus.at < FOCUS_MS ? 'offer focus' : 'offer'} data-offer={id} key={id}>
+              <p class="offer-name job"><strong>{u.name}</strong></p>
+              <p class="offer-price">{money(u.price)}</p>
+              <p class="offer-does soft">{u.does}</p>
+              <dl class="offer-rows">
+                <dt>Saves</dt><dd class="soft">{u.saves}</dd>
+                <dt>But</dt><dd class="soft">{u.trade}</dd>
+              </dl>
+              <div class="offer-foot">
                 {short > 0 && u.big && purseShown && <meter class="saving" min={0} max={u.price} value={Math.max(0, purse)} aria-label={`Saved towards the ${u.name.toLowerCase()}`} />}
                 {short > 0 ? <p class="soft short">{purseShown ? `${money(short)} more in the purse to buy it` : 'Not enough in the purse yet'}</p> : (
                   <button type="button" class="primary buy" onClick={() => send({type: 'buy', id})}>Buy {u.name.toLowerCase()}</button>
                 )}
               </div>
-            );
-          })}
-        </section>
-      )}
+            </div>
+          );
+        })}
+      </section>
       <section class="place">
         <h3>In the shed</h3>
         <ul class="tools">

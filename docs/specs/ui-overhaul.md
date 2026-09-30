@@ -1,6 +1,6 @@
 # The UI and UX overhaul: one shell for every device, with a fullscreen mode
 
-Issue: #64 · Status: Approved (the brief `docs/briefs/ui-overhaul.md` approves it in advance, decision 15) · PRs: #65
+Issue: #64 · Status: Approved (the brief `docs/briefs/ui-overhaul.md` approves it in advance, decision 15) · PRs: #68
 
 The page's shell designed as one thing: a clear hierarchy, one visual language from the tokens, and the map first on every device from a 320 px phone to an ultrawide screen. It changes how the game looks and handles, never what it does.
 
@@ -41,24 +41,24 @@ The class is chosen by screen width and orientation only (the sheet or the side 
 
 | Class | Sizes | Layout | Map floor |
 | --- | --- | --- | --- |
-| Phone portrait | width < 700 px | top bar (one row, 48 px), the map, the sheet | 42 % of the screen with the sheet at rest |
-| Phone landscape | height ≤ 500 px and width ≥ 500 px | top bar (one row, 44 px), the map, a side panel at 38 % (240 px at least) | 50 % |
+| Phone portrait | width < 700 px | top bar (one row, at most 60 px), the map, the sheet | 42 % of the screen with the sheet at rest |
+| Phone landscape | height ≤ 500 px and width ≥ 500 px | top bar (one row), the map, a side panel at 36 % (220 px at least) | 50 % |
 | Tablet portrait | 700 to 1023 px wide, portrait | top bar, the map, the sheet (its content capped at 40 rem and centred) | 50 % |
 | Tablet landscape and laptop | 700 px and up otherwise, under 1920 px | top bar, the map, a side panel of 360 px | 60 % |
 | Large desktop | 1920 to 2559 px | side panel 400 px; the map grows | 70 % |
-| Ultrawide | 2560 px and up | side panel 440 px, its text still 16 px in a 40 rem column | 80 % |
+| Ultrawide | 2560 px and up | side panel 440 px, its text still 16 px in a 40 rem column | 78 % |
 
-- **The sheet** (phones and portrait tablets) has three resting heights, all in CSS (rule 9): *peek* (its head only: the grabber and the tabs), *half* (the default, 44 % of the screen) and *tall* (78 %: for the plan and the Shed). The grabber cycles them; a tab tap opens at least *half*; the button says which state it's in. Its foot keeps the bottom safe area.
+- **The sheet** (phones and portrait tablets) has three resting heights, all in CSS (rule 9): *peek* (its head only: the grabber and the tabs), *half* (the default, 44 % of the screen) and *tall* (78 %, always leaving 160 px of map: for the plan and the Shed). Its button cycles them and names the next state; a tab tap opens a folded sheet; a card over the map folds it to its head while the card is up, and the button and tabs say so. Its foot keeps the bottom safe area, folded or not.
 - **The side panel** scrolls inside itself; its head is the tabs. The map takes the rest.
-- **The top bar** keeps its parts (the level, the date and time with the temperature, the money, the dial, the speeds) and its two container steps (the temperature goes below 600 px, the speeds fold below 640 px); it becomes one 48 px row on phones by giving the level and the date one line at the small size. The speeds are the last part on the right, as a segmented control.
+- **The top bar** keeps its parts (the level, the date and time with the temperature, the money, the dial, the speeds) and its container steps (the temperature goes below 600 px, the speeds fold below 700 px now that they're 44 px each); it becomes one 48 px row on phones by giving the level and the date one line at the small size. The speeds are the last part on the right, as a segmented control.
 - **Thumb reach on phones.** The goal bar sits at the foot of the map, just above the sheet, and the folded speed button beside it at the map's bottom right corner, both in the map's chrome. The tabs are the sheet's head. Nothing the player taps often is at the top.
-- **Fullscreen.** A round button at the map's top right corner (map chrome, like a map's own controls), shown only where `document.fullscreenEnabled` is true (hidden, never greyed). It toggles fullscreen on the page, shows "Leave" while in it, and Esc leaves it as the browser does. The layout is the same in and out; a viewport change re-fits the map.
+- **Fullscreen.** A round button at the map's top right corner (map chrome, like a map's own controls), shown only where `document.fullscreenEnabled` is true and the page isn't already an installed app without chrome (hidden, never greyed). It toggles fullscreen on the page, is pressed while in it, and Esc leaves it as the browser does. The layout is the same in and out; a viewport change re-fits the map. On a phone the notices keep clear of it.
 
 ### How the chrome shares the screen
 
 Over the map, from the bottom: the badges and the small rewards (taps go through around them); the goal bar at the foot; the notices at the top; one card. Cards, notices and the goal bar never sit over the thing they talk about:
 
-- **One card at a time** (win W5), docked *away from its place*: the map says whether the place the card is about is in its upper or lower half and docks the card at the other end. A card with no place (the first plan, the year) docks at the bottom. On a phone the card takes at most 60 % of the map's height, so the top or bottom strip of the map and the pulse stay in view.
+- **One card at a time** (win W5), docked *away from its place*: the map says whether the place the card is about is in its upper or lower half and docks the card at the other end. A card with no place (the first plan, the year) docks at the bottom. A card takes at most 50 % of a wide map's height and 60 % of a phone's, where it also folds the sheet to its head so the map grows under it; the pulse at the place stays in view unless the place straddles the middle. No notice shows while a card is up; the notices' clocks start again when it closes. On a phone the speed pill moves to the map's top corner under a bottom-docked card, so the clock can always be paused.
 - **Notices** are one line at the top of the map, never wider than the map (a bug fixed), wrapping to two lines on touch rather than clipping (rule 11), with their action and close inside the line. A notice about a place is the same. The queue is unchanged: one at a time, with the count waiting.
 - **The goal bar** stays while a notice shows (the two never overlap: the notice is at the top, the bar at the foot) and gives way only to a card. A rule change, recorded in the decision. Its button is the one accent button on the map: the obvious next action.
 - **The Explain card** keeps its words and sources. Its layout is the card's: kicker, title, what happened, where, "What helps" and "How" as two rows, and the source in the foot.
@@ -74,16 +74,16 @@ Over the map, from the bottom: the badges and the small rewards (taps go through
 
 All in `src/ui/styles/tokens.css`; nothing else declares a colour or a size.
 
-- **Type scale:** `--text-xs` 12 px (labels only, never a sentence), `--text-sm` 14 px, `--text` 16 px, `--text-lg` 18 px (section headings), `--text-xl` 22 px (card titles), `--text-2xl` 28 px (the headline numbers). Line height 1.2 for headings, 1.45 for text. Every number is `font-variant-numeric: tabular-nums` and its unit follows it in the same run (`src/ui/format.ts`), a small space before the unit.
+- **Type scale:** `--text-xs` 12 px (labels only, never a sentence), `--text-sm` 14 px, `--text` 16 px (text, and a section's heading in bold), `--text-lg` 18 px (the Explain card's line), `--text-xl` 22 px (card titles), `--text-2xl` 28 px (the headline numbers). Line height 1.2 for headings, 1.45 for text. Every number is `font-variant-numeric: tabular-nums` and its unit follows it in the same run (`src/ui/format.ts`), a small space before the unit.
 - **Spacing:** a 4 px scale: `--s-1` 4, `--s-2` 8, `--s-3` 12, `--s-4` 16, `--s-5` 24, `--s-6` 32.
 - **Radii:** `--r-sm` 6 px (chips, inputs), `--r` 10 px (cards, buttons), `--r-lg` 16 px (the sheet's top corners), `--r-pill` 999 px (the goal bar, the notices).
-- **Elevation:** `--shadow-1` (the sheet and the side panel's edge), `--shadow-2` (cards and the goal bar), `--shadow-3` (a notice).
-- **Colour roles**, light and dark: `--bg` (the page), `--surface` (the panel, cards), `--surface-2` (a row's inset, a pressed state), `--ink`, `--soft`, `--line` (hairlines), `--line-strong` (a control's border, at least 3:1 on the surface), `--accent`, `--accent-ink`, `--accent-soft` (a selected tab's tint), `--warn`, `--focus`, `--sink` and `--source` (the dial), `--notice-bg` and `--notice-ink`, `--scrim` (under a card on a phone). The map's `--map-*` tokens are untouched. Contrast: every text role at least 4.5:1 on its surface and every control border at least 3:1, in both schemes, and the dark scheme is the light one's equal (the same roles, no missing states).
+- **Elevation:** `--shadow-1` (the sheet), `--shadow-2` (cards, the goal bar and the map's buttons), `--shadow-3` (a notice). Every other size a rule needs (an icon, a checkbox, a label's tracking and lift, a list's label column, a card's rise) is a token too.
+- **Colour roles**, light and dark: `--bg` (the page), `--surface` (the panel, cards), `--surface-2` (an empty state's box, a pressed control), `--ink`, `--soft`, `--line` (hairlines), `--line-strong` (a control's border, at least 3:1 on the surface), `--accent`, `--accent-ink`, `--accent-soft` (the Shed's marked offer), `--warn` (kept for a warning, unused yet), `--focus` (with a halo of surface under it on the map's chrome), `--sink` and `--source` (the dial), `--notice-bg` and `--notice-ink`. The map's `--map-*` tokens are untouched. Contrast: every text role at least 4.5:1 on its surface and every control border at least 3:1, in both schemes, and the dark scheme is the light one's equal (the same roles, no missing states).
 - **Controls:** one button style (`--line-strong` border, `--r`), one primary (accent), one quiet (no border: a number, the money, the dial), one chip (a tab, a place); pressed and selected states share `--accent` and `--accent-soft`. Every tap gives feedback: `:active` presses the control (a 3 % scale) and a selected state changes at once.
 
 ### Motion
 
-- The sheet's height, a card's entrance (fade and a 8 px rise), a tab's content (a fade) and a pressed control, each 120 to 180 ms `ease-out`, never longer than 200 ms.
+- The sheet's height (between half and tall), a card's and a notice's entrance (a fade and an 8 px rise), a tab's content (a fade) and a pressed control, each 160 ms `ease-out`, never longer than 200 ms.
 - `prefers-reduced-motion: reduce`: stills, as the map already does. Nothing waits on a transition.
 
 ### Input
@@ -95,8 +95,8 @@ All in `src/ui/styles/tokens.css`; nothing else declares a colour or a size.
 ### The fullscreen mode and the home screen
 
 - The Fullscreen API on `document.documentElement`, from the map's button; `fullscreenchange` keeps the button's state true; Esc leaves.
-- iPhone Safari has no page fullscreen: `public/manifest.webmanifest` (`name`, `short_name`, `start_url: "./"`, `scope: "./"`, `display: "fullscreen"` (the browser falls back to `standalone`), `background_color`, `theme_color` for both schemes, icons) and the Apple meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style: black-translucent`, `apple-mobile-web-app-title`, `apple-touch-icon`). Added to the home screen, the game opens without chrome and `viewport-fit=cover` with the safe-area tokens keeps its edges clear.
-- **Icons:** `public/icon.svg` drawn from the game's palette (a dug bed with a row of leaves on the lawn's green, the style of the map), and `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` and `apple-touch-icon.png` (180 px) rendered from it by `build/icons.mjs`. Not in the page's bundle.
+- iPhone Safari has no page fullscreen: `public/manifest.webmanifest` (`name`, `short_name`, `start_url: "./"`, `scope: "./"`, `display: "fullscreen"` with `standalone` behind it, `background_color`, `theme_color`, icons) and the Apple meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style: default`, so the clock stays readable over the light top bar, `apple-mobile-web-app-title`, `apple-touch-icon`). Added to the home screen, the game opens without chrome and `viewport-fit=cover` with the safe-area tokens keeps its edges clear: the top bar pads the top, the sheet's foot (or the map's chrome beside a side panel) the bottom, the page the sides.
+- **Icons:** `public/icon.svg` drawn from the game's palette (a dug bed with two rows of leaves on the lawn's green, the style of the map), and `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` and `apple-touch-icon.png` (180 px) rendered from it by `tools/icons.mjs`. Not in the page's bundle.
 - No service worker, no offline mode.
 
 ## How it works
@@ -114,14 +114,14 @@ None: `PLAY` identical on seeds 1–3 against `main`.
 
 ## Checks
 
-- `layout` extends to the whole device list, phones and tablets with `isMobile`, `hasTouch` and a device scale factor of 2 or 3: no overflow, every part inside the viewport, every tap target 44 px on touch, the map's share above the class's floor, the sheet's three heights, the notice inside the map, a card docked away from its place, fullscreen in and out where the API exists, and the manifest and its fields. One page per size (rule: keep groups cheap).
-- `build` checks the manifest and the icons are served.
+- `layout` extends to the whole device list, phones and tablets with `isMobile`, `hasTouch` and a device scale factor of 2 or 3: no overflow, every part inside the viewport, every tap target 44 px on touch, the map's share above the class's floor, the sheet's three heights, the notice inside the map, a card docked away from its place, and fullscreen in and out where the API exists. One page per size (rule: keep groups cheap).
+- `build` checks the manifest, its fields, the icons and the Apple meta tags are in the built page. The safe-area check only reads the stylesheet; a real iPhone confirms the insets.
 - A WebKit smoke pass at 390 × 844 and 1024 × 1366 if Playwright's WebKit runs here; if not, the PR says so and lists what only a real iPhone or iPad can confirm (the home-screen install, `black-translucent`, the notch's insets).
 - What to look at: the before-and-after page at a phone, a landscape phone, a tablet, a laptop and an ultrawide in both schemes.
 
 ## Files
 
-`src/ui/styles/tokens.css` and `page.css`; `src/ui/App.tsx`, `MapView.tsx`, `Panel.tsx`, `GoalBar.tsx`, `Notices.tsx`, `Card.tsx`, `Explain.tsx`, `ShedTab.tsx`, `KitchenTab.tsx`, `GardenTab.tsx`, `YearCard.tsx`, `FirstPlan.tsx`, `format.ts`; a new fullscreen component in `src/ui/`; `index.html`; `public/manifest.webmanifest` and the icons (new); `tools/checks/layout.mjs` and `build.mjs`; the notes. `TopBar.tsx` only once `feature/shorter-garden-year` is in `main`.
+`src/ui/styles/tokens.css` and `page.css`; `src/ui/App.tsx`, `MapView.tsx`, `Panel.tsx`, `ShedTab.tsx`, `KitchenTab.tsx`, `GardenTab.tsx`, `format.ts`; `src/ui/Fullscreen.tsx` (new); `index.html`; `public/manifest.webmanifest` and the icons (new), rendered by `tools/icons.mjs`; `tools/check.mjs` (a device scale factor) and `tools/checks/layout.mjs`, `build.mjs`, `garden.mjs`, `shed.mjs`, `explain.mjs`; the notes. `TopBar.tsx` only once `feature/shorter-garden-year` is in `main`: its own comment still says the speeds fold into one button in the bar, which on a sheet layout now moves to the map's foot.
 
 ## Left out
 

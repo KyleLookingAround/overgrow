@@ -84,7 +84,7 @@ export default async function({ok,open,out}){
     await page.evaluate(()=>document.querySelector('.card-close')?.click());
     // day 2, morning: the beer trap in the shed, and the goal bar counting down to the first harvest
     await drawnAt(page,26);
-    // the goal bar gives way to a notice: wait for the night's signs to go, one at a time (src/ui/notices.ts)
+    // the goal bar stays under a notice now (the UI overhaul); the night's signs go one at a time (src/ui/notices.ts)
     const goal=await page.waitForSelector('.goal-bar .goal-text',{timeout:25000}).then(e=>e.getAttribute('data-text'),()=>'');
     await page.click('#tab-shed').catch(()=>{});
     const shed=await page.waitForFunction(()=>document.querySelector('.offer')?.textContent,null,{timeout:4000}).then(r=>r.jsonValue(),()=>'');

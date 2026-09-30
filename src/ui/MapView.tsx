@@ -2,7 +2,9 @@
 // it. A tap on a creature (a slug, a bee, the cat) opens its Explain card; a tap on a place selects it in the panel;
 // nothing on the map does the work. Over the canvas sit the badges (src/ui/Badges.tsx), the Explain card and the notices,
 // in a layer that lets taps through to the map (the owner's win W12). The same places are in the panel's list, so
-// everything here is reachable by keyboard too.
+// everything here is reachable by keyboard too. The layer says which way a card docks (data-dock: away from the place
+// the card is about, "top" when that place is in the map's lower half), and the map's own controls sit at its corners:
+// fullscreen where the browser has it (src/ui/Fullscreen.tsx).
 import type {ComponentChildren} from 'preact';
 import {useEffect, useRef, useState} from 'preact/hooks';
 import type {Loop} from '../app/clock-loop';
@@ -14,6 +16,7 @@ import type {Juice} from './juice';
 import {camera} from './map/draw';
 import {readPalette} from './map/palette';
 import {createRenderer, type MapRenderer} from './map/renderer';
+import {Fullscreen} from './Fullscreen';
 
 export function MapView({loop, onSelect, onReady, onExplain, nodes, badges, pulse, juice = [], children}: {
   loop: Loop; onSelect: (id: NodeId) => void; onReady: (r: MapRenderer) => void; onExplain: (cause: string, at: string) => void;
@@ -67,10 +70,14 @@ export function MapView({loop, onSelect, onReady, onExplain, nodes, badges, puls
   };
   // the camera the renderer draws with, for the badges (the same helper, from the same places and size)
   const drawn = nodes.filter((n) => n.box), cam = size.w && drawn.length ? camera(drawn, size.w, size.h) : null;
+  // a card docks away from its place: at the top when the place's centre is in the lower half of the map
+  const at = pulse ? drawn.find((n) => n.id === pulse)?.box : undefined;
+  const dock = at && cam && cam.y + (at.y + at.h / 2) * cam.s > size.h / 2 ? 'top' : 'bottom';
   return (
     <div class="map" ref={box}>
       <canvas ref={canvas} role="img" aria-label="The garden, from above" onPointerDown={tap} />
-      <div class="map-over">
+      <div class="map-over" data-dock={dock}>
+        <Fullscreen />
         <Badges badges={badges} nodes={drawn} cam={cam} w={size.w} h={size.h} onExplain={onExplain} />
         <JuiceLayer list={juice} nodes={drawn} cam={cam} />
         {children}

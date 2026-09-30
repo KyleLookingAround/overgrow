@@ -1,7 +1,9 @@
 // The page: the top bar, the map filling the rest, and the panel beside or below it (the founding spec, "The look: a
 // living map"). The UI shows what the clock loop's view shows, and changes the game only by sending commands. Over the
 // map sit the badges, the notices, the goal bar and one card at a time (win W5's queue): the first plan's card first,
-// while nothing else is shown over it, then the Explain card (opened by a tap on any effect, badge or number). What the
+// while nothing else is shown over it, then the Explain card (opened by a tap on any effect, badge or number); no notice
+// shows while a card is up, and the goal bar gives way to a card but stays under a notice (the spec
+// docs/specs/ui-overhaul.md). On a phone the folded speed button sits at the map's foot, in thumb reach. What the
 // player sees unfolds from the snapshot's `seen` (src/data/unfold.ts), one sign a batch; the page keeps a week's log of
 // effects for the places' panels (src/ui/effects-log.ts).
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
@@ -30,10 +32,14 @@ import {MapView} from './MapView';
 import {current, push, today, unfoldSign, type Notice} from './notices';
 import {markOf, momentsOf, type SeasonMark} from './moments';
 import {Notices} from './Notices';
-import {Panel, type Focus} from './Panel';
+import {Panel, type Focus, type Sheet} from './Panel';
+import {nextSpeed} from './TopBar';
 import {TopBar} from './TopBar';
 
 let noticeId = 0;
+
+/** A speed's label on the map's folded button, as the top bar writes it. */
+const speedLabel = (s: Speed) => (s === 0 ? 'paused' : `${s}×`);
 
 /** The game hours after which the first minute is over and the "try faster" nudge may show (win W17). */
 const FIRST_MINUTE = 60;
@@ -52,7 +58,8 @@ function hourNow(snap: Snapshot, hours: number) {
 export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRenderer: (r: MapRenderer) => void}) {
   const [shown, setShown] = useState<{snap: Snapshot; hour: number; speed: Speed} | null>(null);
   const [selected, setSelected] = useState<NodeId | null>(null);
-  const [open, setOpen] = useState(true);
+  // the sheet's resting height on a phone (src/ui/Panel.tsx); a side panel ignores it
+  const [sheet, setSheet] = useState<Sheet>('half');
   const [explain, setExplain] = useState<Explaining | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   // the goal bar's button opens a tab of the panel, the Shed at one offer (src/ui/goal.ts's Go)
@@ -142,15 +149,26 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const dueNotice: Notice | null = due ? {id: -3, at: 0, choice: true, text: due.text, actions: due.actions.map((a) => ({label: a.label, run: () => send(a.cmd)}))} : null;
   const nodes = snap?.nodes ?? [];
   const badges = snap ? badgesOf(nodes, hourNow(snap, shown!.hour), snap.seen, all) : [];
-  // the nudge is a notice like the rest, waiting its turn in the queue
-  const shownNotices = first ? [] : [...notices, ...(faster ? [faster] : []), ...(dueNotice ? [dueNotice] : []), ...(bedNotice ? [bedNotice] : [])];
+  // the nudge is a notice like the rest, waiting its turn in the queue; nothing shows while a card is up, and the
+  // notices' clocks start again when it closes, so none expires unseen behind it
+  const cardUp = first || year || !!explain || firstYear;
+  useEffect(() => {
+    if (!cardUp) setNotices((l) => l.map((n) => ({...n, at: Date.now()})));
+  }, [cardUp]);
+  const shownNotices = cardUp ? [] : [...notices, ...(faster ? [faster] : []), ...(dueNotice ? [dueNotice] : []), ...(bedNotice ? [bedNotice] : [])];
+  // on a phone a card folds the sheet while it's up (page.css); the panel says so, and a tap on it closes an Explain card
+  const sheetShown: Sheet = cardUp ? 'peek' : sheet;
+  const onSheet = (s: Sheet) => {
+    if (explain) setExplain(null);
+    setSheet(s);
+  };
   return (
     <div class="page" data-sim={shown ? 'ready' : 'waiting'}>
       <h1 class="visually-hidden">Overgrow</h1>
       {shown ? <TopBar snap={shown.snap} hours={shown.hour} speed={shown.speed} flash={flash} onSpeed={speed} onExplain={explainAt} /> : <header class="topbar"><span class="soft">Starting…</span></header>}
       <main class="main">
-        <MapView loop={loop} onSelect={(id) => { setSelected(id); setOpen(true); }} onReady={onRenderer} onExplain={explainAt} nodes={nodes} badges={badges}
-          pulse={first ? null : explain?.at ?? null} juice={first ? [] : juice}>
+        <MapView loop={loop} onSelect={(id) => { setSelected(id); if (sheet === 'peek') setSheet('half'); }} onReady={onRenderer} onExplain={explainAt} nodes={nodes} badges={badges}
+          pulse={explain && !first && !year ? explain.at : null} juice={first ? [] : juice}>
           <Notices list={shownNotices} onDismiss={(id) => {
             if (id === -1) send({type: 'card', id: 'try-faster', answer: 'no'});
             else if (id === -2) bed?.dismiss.forEach(send);
@@ -161,16 +179,22 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
             : year ? <YearCard snap={snap!} onDone={() => send({type: 'card', id: 'year', answer: 'ok'})} />
             : explain ? <Explain what={explain} nodes={nodes} log={log} onClose={() => setExplain(null)} />
             : firstYear ? <FirstYearCard snap={snap!} onDone={() => send({type: 'card', id: 'first-year', answer: 'ok'})} />
-            : snap && !shownNotices.length && <GoalBar snap={snap} onGo={(go) => {
+            : snap && <GoalBar snap={snap} onGo={(go) => {
               go.cmds.forEach(send);
               if (go.tab) {
-                setOpen(true);
+                if (sheet === 'peek') onSheet('half');
                 setFocus({tab: go.tab, shed: go.shed, at: Date.now()});
               }
             }} />}
+          {shown && !first && (
+            <button type="button" class="speed-pill" aria-label={`Speed: ${speedLabel(shown.speed)}. Next: ${nextSpeed(shown.speed) === 0 ? 'pause' : speedLabel(nextSpeed(shown.speed))}`}
+              onClick={() => speed(nextSpeed(shown.speed))}>
+              {shown.speed === 0 ? <span aria-hidden="true" class="pause">❚❚</span> : speedLabel(shown.speed)}
+            </button>
+          )}
         </MapView>
         <Panel nodes={nodes} seen={snap?.seen ?? []} all={all} onDetails={(v) => send({type: 'setting', key: 'details', value: v})} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null} log={log}
-          selected={selected} onSelect={setSelected} open={open} focus={focus} onToggle={() => setOpen(!open)} send={send} onExplain={explainAt} />
+          selected={selected} onSelect={setSelected} sheet={sheetShown} focus={focus} onSheet={onSheet} send={send} onExplain={explainAt} />
       </main>
     </div>
   );

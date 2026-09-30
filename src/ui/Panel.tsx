@@ -1,5 +1,6 @@
-// The panel: beside the map on wide screens and tablets, below it as a sheet on portrait phones (which can fold down to
-// its heading), beside it on a phone on its side. Its tabs are the garden's (the founding spec: Garden, Shed, Kitchen,
+// The panel: beside the map on wide screens and tablets on their side, below it as a sheet on phones and tablets held
+// upright (three resting heights, peek, half and tall, cycled by its button: docs/specs/ui-overhaul.md), beside it on a
+// phone on its side. Its tabs are the garden's (the founding spec: Garden, Shed, Kitchen,
 // Goals, each shown once it has something in it, src/data/unfold.ts): today the Garden tab (the gardener's card, the
 // plan, and the places with what each holds, its pests and what happened there in the last week), the Shed tab and the
 // Kitchen tab. A place's numbers unfold with their systems (moisture with the watering line, N-P-K and organic matter
@@ -177,12 +178,18 @@ export interface Focus {
   shed: UpgradeId | null;
   at: number;
 }
+/** The sheet's resting heights on a phone: its head only, about half the screen, or most of it. */
+export type Sheet = 'peek' | 'half' | 'tall';
+/** The sheet's button cycles up through the heights and back to its head. */
+export const nextSheet = (s: Sheet): Sheet => (s === 'half' ? 'tall' : s === 'tall' ? 'peek' : 'half');
+const SHEET_LABEL: Record<Sheet, string> = {peek: 'Open the panel', half: 'Open the panel fully', tall: 'Fold the panel down'};
+
 /** The tabs, and the key each shows with (null: from the start). */
 const TABS: [Tab, string, string | null][] = [['garden', 'Garden', null], ['shed', 'Shed', 'garden.shed'], ['kitchen', 'Kitchen', 'garden.kitchen']];
 
 export function Panel(props: {
   nodes: GraphNode[]; acts: Activity[]; hours: number; ledger: Ledger | null; log: EffectsLog; seen: readonly string[]; selected: NodeId | null; onSelect: (id: NodeId) => void;
-  open: boolean; onToggle: () => void; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
+  sheet: Sheet; onSheet: (s: Sheet) => void; send: (cmd: Command) => void; onExplain: (cause: string, at: string | null) => void;
   /** "Show all details": every number shows, whatever has unfolded (the sim's gates on levers stay). */
   all: boolean; onDetails: (all: boolean) => void;
   focus?: Focus | null;
@@ -196,49 +203,54 @@ export function Panel(props: {
   const shown = TABS.filter(([t, , key]) => (!key || see(key)) && (t !== 'kitchen' || props.ledger));
   const current = shown.some(([t]) => t === tab) ? tab : 'garden';
   return (
-    <aside class={props.open ? 'panel' : 'panel folded'} aria-labelledby="panel-title">
+    <aside class="panel" data-sheet={props.sheet} aria-labelledby="panel-title">
       <div class="panel-head">
         <h2 id="panel-title" class="visually-hidden">{shown.find(([t]) => t === current)![1]}</h2>
         <div class="tabs" role="group" aria-label="Panels">
           {shown.map(([t, label]) => (
             <button type="button" id={`tab-${t}`} aria-pressed={t === current} aria-controls="panel-body" class="tab" onClick={() => {
               setTab(t);
-              if (!props.open) props.onToggle();
+              if (props.sheet === 'peek') props.onSheet('half');
             }}>
               {label}
             </button>
           ))}
         </div>
-        <button type="button" class="sheet-toggle" aria-expanded={props.open} aria-controls="panel-body" onClick={props.onToggle}>
-          {props.open ? 'Hide' : 'Show'}
+        <button type="button" class="sheet-toggle" aria-expanded={props.sheet !== 'peek'} aria-controls="panel-body" aria-label={SHEET_LABEL[props.sheet]}
+          title={SHEET_LABEL[props.sheet]} onClick={() => props.onSheet(nextSheet(props.sheet))}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            {props.sheet === 'tall' ? <path d="M6 9l6 6 6-6" /> : <path d="M6 15l6-6 6 6" />}
+          </svg>
         </button>
       </div>
       <div class="panel-body" id="panel-body">
-        {current === 'kitchen' && props.ledger ? (
-          <KitchenTab ledger={props.ledger} nodes={props.nodes} see={see} onExplain={props.onExplain} />
-        ) : current === 'shed' ? (
-          <ShedTab nodes={props.nodes} seen={props.seen} purse={props.nodes.find((n) => n.id === KITCHEN)?.stocks.money?.amount ?? 0} see={see} send={props.send}
-            focus={props.focus?.tab === 'shed' ? props.focus : null} />
-        ) : (
-          <>
-            <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} job={see('household.commute')} send={props.send} onExplain={props.onExplain} />
-            <h3 class="places-title">Places</h3>
-            <ul class="places" aria-label="Places in the garden">
-              {places.map((n) => (
-                <li>
-                  <button type="button" class="place-button" aria-pressed={n.id === props.selected} onClick={() => props.onSelect(n.id)}>
-                    {n.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {chosen ? <Place n={chosen} days={cupboardDays(props.nodes)} log={props.log} see={see} dig={unfolded(props.seen, 'garden.dig')} send={props.send} onExplain={props.onExplain} /> : <p class="soft">Tap a place on the map, or pick one here, to see what it holds.</p>}
-            <label class="check details">
-              <input type="checkbox" checked={props.all} onChange={(e) => props.onDetails((e.target as HTMLInputElement).checked)} />
-              Show all details
-            </label>
-          </>
-        )}
+        <div class="panel-content" key={current}>
+          {current === 'kitchen' && props.ledger ? (
+            <KitchenTab ledger={props.ledger} nodes={props.nodes} see={see} onExplain={props.onExplain} />
+          ) : current === 'shed' ? (
+            <ShedTab nodes={props.nodes} seen={props.seen} purse={props.nodes.find((n) => n.id === KITCHEN)?.stocks.money?.amount ?? 0} see={see} send={props.send}
+              focus={props.focus?.tab === 'shed' ? props.focus : null} />
+          ) : (
+            <>
+              <GardenTab nodes={props.nodes} acts={props.acts} hours={props.hours} seen={props.seen} job={see('household.commute')} send={props.send} onExplain={props.onExplain} />
+              <h3 class="places-title">Places</h3>
+              <ul class="places" aria-label="Places in the garden">
+                {places.map((n) => (
+                  <li>
+                    <button type="button" class="place-button" aria-pressed={n.id === props.selected} onClick={() => props.onSelect(n.id)}>
+                      {n.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {chosen ? <Place n={chosen} days={cupboardDays(props.nodes)} log={props.log} see={see} dig={unfolded(props.seen, 'garden.dig')} send={props.send} onExplain={props.onExplain} /> : <p class="empty">Tap a place on the map, or pick one here, to see what it holds.</p>}
+              <label class="check details">
+                <input type="checkbox" checked={props.all} onChange={(e) => props.onDetails((e.target as HTMLInputElement).checked)} />
+                Show all details
+              </label>
+            </>
+          )}
+        </div>
       </div>
     </aside>
   );

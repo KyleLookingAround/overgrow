@@ -21,7 +21,7 @@ Six parts each added their piece to the page and the `layout` check kept each in
 Option 2. The rules, each held by the `layout` check:
 
 1. **Touch targets are 44 px on touch and 40 px otherwise** (`--touch` under `(pointer: coarse)`). Replaces rule 10 of the UI record.
-2. **A card docks away from its place.** The map says which half the card's place is in and the card docks at the other end; a card with no place docks at the bottom. On a phone a card takes at most 60 % of the map's height. Cards, notices and the goal bar never sit over the thing they talk about.
+2. **A card docks away from its place.** The map says which half the card's place is in and the card docks at the other end; a card with no place docks at the bottom. A card takes at most 50 % of a wide map's height and 60 % of a phone's, where it also folds the sheet to its head so the map grows. No notice shows while a card is up. Cards and the goal bar are placed away from the thing they talk about; a notice sits at the map's top, which the top row of beds shares.
 3. **The goal bar gives way to a card, not to a notice.** A notice is one line at the top of the map and the bar is at its foot; they never overlap. The bar is the next action and stays in reach. Replaces the "gives way to any card or notice" line of `docs/systems/unfolding.md`.
 4. **A notice is never wider than the map,** and wraps to two lines on touch rather than clipping (the record's rule 11 applied to notices).
 5. **Control borders reach 3:1** (`--line-strong`) in both schemes; hairlines (`--line`) stay decorative. Text roles reach 4.5:1. The dark scheme has every role the light one has.
