@@ -14,7 +14,8 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..'),dist=join(root,'dist'),out=join(root,'build/check');
 mkdirSync(out,{recursive:true});
-const only=process.argv[2];
+// which groups: none named = all; names = just those; --except then names = all but those (CI splits the suite across jobs)
+const args=process.argv.slice(2),except=args[0]==='--except',named=except?args.slice(1):args;
 const SAVE_KEY='overgrow-save-v1'; // the one localStorage key the game saves to (the project notes)
 const TYPES={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.map':'application/json','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
 const server=createServer((req,res)=>{try{
@@ -45,9 +46,11 @@ async function open(vp={width:1280,height:800},{save=null,touch=false,seed=1,dsf
 
 // the groups, one file each in tools/checks/, in file-name order
 const groups=readdirSync(join(root,'tools/checks')).filter(f=>f.endsWith('.mjs')).sort().map(f=>f.slice(0,-4));
-if(only&&!groups.includes(only)){console.log(`no check group "${only}"; the groups are ${groups.join(', ')}`);process.exit(1)}
+const unknown=named.filter(g=>!groups.includes(g));
+if(unknown.length){console.log(`no check group "${unknown[0]}"; the groups are ${groups.join(', ')}`);process.exit(1)}
+const wanted=g=>except?!named.includes(g):!named.length||named.includes(g);
 // a group that throws reports one line for the whole group
-for(const g of groups)if(!only||only===g)
+for(const g of groups)if(wanted(g))
   try{await (await import(pathToFileURL(join(root,'tools/checks',g+'.mjs')).href)).default({open,ok,root,out,url,SAVE_KEY,get browser(){return getBrowser()}})}
   catch(e){const msg=String(e&&e.message||e).split('\n')[0].slice(0,200);ok(`${g}: *`,false,'the group stopped: '+msg)}
 if(browser)await browser.close();

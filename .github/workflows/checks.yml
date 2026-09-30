@@ -1,6 +1,6 @@
 name: Checks
 
-# Runs every check group (npm run check) on each PR that isn't a draft, and on demand. Marking a draft ready for review
+# Runs every check group (npm run check, split across parallel jobs by time; `check` below is the one required status) on each PR that isn't a draft, and on demand. Marking a draft ready for review
 # (ready_for_review) runs it too, so a draft is never merged on an older result. Final Call narrowed a draft's run to the
 # groups its files touch; with a handful of quick groups that saves nothing yet
 # (docs/decisions/ADR-2026-09-28-runbook-from-final-call.md).
@@ -18,10 +18,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  # the browser groups by time (docs/SYSTEMS.md, "CI's limit"): layout about 10 minutes, scene and night about 10, the rest
+  # (with the typecheck and the Vitest tests) about 12
+  parts:
     if: github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: layout, groups: layout}
+          - {name: scene and night, groups: scene night}
+          - {name: the rest, rest: true}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,10 +51,24 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit != 'true'
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
-      - run: npm run check
+      - name: ${{ matrix.name }}
+        run: |
+          if [ "${{ matrix.rest }}" = "true" ]; then
+            node tools/build.mjs && npx tsc --noEmit && npx vitest run && node tools/check.mjs --except layout scene night
+          else
+            node tools/build.mjs && node tools/check.mjs ${{ matrix.groups }}
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: check-failures
+          name: check-failures-${{ matrix.name }}
           path: build/check
           if-no-files-found: ignore
+
+  # the one required status: fails if any part failed or was cancelled
+  check:
+    if: always() && (github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft)
+    needs: parts
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.parts.result }}" = "success"
