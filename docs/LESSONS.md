@@ -51,4 +51,8 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Tidy
 
 - [The first lessons tidy (#80) · 30 Sep 2026](lessons/80-lessons-tidy.md)
+
+### Not sorted yet
+
+- [A steady light at speed (#81) · 30 Sep 2026](lessons/81-steady-light.md)
 <!-- /joined:lessons -->
