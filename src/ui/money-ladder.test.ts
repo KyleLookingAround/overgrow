@@ -2,7 +2,7 @@
 // the honesty box kept stocked, the glut card's money, midwinter's jobs as cards asked once and gone, and one "New:" a day.
 import {describe, expect, it} from 'vitest';
 import {BOX} from '../data/kitchen';
-import {CLEAN, SETS, SILL} from '../data/shed';
+import {CLEAN, FORCE, SETS, SILL} from '../data/shed';
 import {calendar} from '../sim/clock';
 import {createSim, type Command} from '../sim/index';
 import {SPACED_FROM, unfold} from '../sim/commands';
@@ -118,6 +118,7 @@ describe('the honesty box and the glut', () => {
     const sim = game((s) => {
       s.graph.nodes.kitchen.stocks.money.amount = 5;
       s.graph.nodes.kitchen.levers.ledger.firstHarvest = 1;
+      s.graph.nodes.kitchen.levers.ledger.sold = 1;
       s.seen = ['card.first-plan', 'garden.money', 'shed.coop'];
     });
     const d = card(sim, 'box')!;
@@ -125,6 +126,17 @@ describe('the honesty box and the glut', () => {
     expect(sim.apply(d.actions[0]!.cmd).rejected).toBeNull();
     expect(node(sim, 'kitchen').levers.box).toBe('stock');
     expect(card(sim, 'box')).toBeNull();
+  });
+
+  it('is offered once a surplus has been seen, whatever the purse, and not before', () => {
+    const play = (sold: number) => game((s) => {
+      s.graph.nodes.kitchen.stocks.money.amount = 500;
+      s.graph.nodes.kitchen.levers.ledger.firstHarvest = 1;
+      s.graph.nodes.kitchen.levers.ledger.sold = sold;
+      s.seen = ['card.first-plan', 'garden.money'];
+    });
+    expect(card(play(0), 'box')).toBeNull();
+    expect(card(play(2), 'box')).not.toBeNull();
   });
 
   it('says what each glut choice gives', () => {
@@ -200,5 +212,32 @@ describe('spacing what unfolds', () => {
     // and a second batch that day waits again
     unfold(s, ['garden.soil']);
     expect(s.seen).not.toContain('garden.soil');
+  });
+});
+
+describe('forcing chicory', () => {
+  it('asks once a winter, gives leaves in three weeks, and shuts out the pot-washing', () => {
+    const sim = game((s: any) => {
+      s.graph.nodes.kitchen.stocks.money.amount = 500;
+      s.seen = ['card.first-plan', 'garden.money', 'garden.soil', 'garden.shed', 'garden.kitchen'];
+    });
+    to(sim, FORCE.from[0], FORCE.from[1]);
+    expect(card(sim, 'force')).not.toBeNull();
+    expect(answer(sim, 'force', 'force').rejected).toBeNull();
+    expect(card(sim, 'force')).toBeNull();
+    expect(answer(sim, 'clean', 'clean').rejected).toMatch(/forcing/);
+    const picked = sim.snapshot().kitchen!.picked;
+    sim.apply({type: 'tick', hours: 24 * (FORCE.wait + FORCE.days + 2)});
+    // about a dozen roots' 1.3 kg
+    const kg = sim.snapshot().kitchen!.picked - picked;
+    expect(kg).toBeGreaterThan(0.8);
+    expect(kg).toBeLessThan(2);
+  });
+  it('is shut out by the pots being washed', () => {
+    const sim = game((s: any) => { s.seen = ['card.first-plan', 'garden.money', 'garden.soil', 'garden.shed', 'garden.kitchen']; });
+    to(sim, CLEAN.from[0], CLEAN.from[1]);
+    expect(answer(sim, 'clean', 'clean').rejected).toBeNull();
+    to(sim, FORCE.from[0], FORCE.from[1]);
+    expect(card(sim, 'force')).toBeNull();
   });
 });

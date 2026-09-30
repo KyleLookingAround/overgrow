@@ -27,10 +27,12 @@ export interface Kit {
   sets?: number | null;
   cleaned?: number | null;
   sill?: number | null;
+  /** The game hour chicory roots were put to force under the pots, or null. */
+  forced?: number | null;
   henCare?: number | null;
 }
 
-export const NO_KIT: Kit = {owned: [], nematodes: 0, dry: false, seeds: null, fleece: false, chitted: null, bare: false, pruned: null, sets: null, cleaned: null, sill: null, henCare: null};
+export const NO_KIT: Kit = {owned: [], nematodes: 0, dry: false, seeds: null, fleece: false, chitted: null, bare: false, pruned: null, sets: null, cleaned: null, sill: null, forced: null, henCare: null};
 /** Degree days of a head start a crop sown or planted now has: a potato from its chitting (none unchitted, or chitted too
  *  long ago), a tender crop raised in the lean-to. */
 export const chitStart = (g: Graph, crop: string, hours: number) => {
