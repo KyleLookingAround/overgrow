@@ -1,0 +1,18 @@
+Theme: parts
+# The playable garden, three rounds (#56, #58, #62) · 29 Sep 2026
+
+- **Numbers:** each estimated $30; the cost readings were stuck at $1.12, nothing and $0.40 (read as unknown, not cheap). Round one's first turn ended with a plan and nothing built and a check-in restarted it two hours later; round two was green on its first push after four local full runs; round three's brief arrived in a second message (the first said "below" and had nothing below).
+- **Went well:**
+  - Measuring before building: the bot over one and two years, with a two-bed player beside the full one, showed the step-up offer as proposed could never be met by a back garden (0.26 kg a day against 1.5, Reliability 0) and turned "make it move" into a question with numbers (#55).
+  - A day-by-day trace found both brief "bugs" were labels ("ready to pick" meant the picking window, "not up yet" was seed potatoes in a cold March); a year-long trace showed the rotation converging on one family, which no test had.
+  - Speed fingerprinted: hashing snapshots and saves on seeds 1–3 over 400 days before and after each change made every speed cut provably play-neutral; the A/B gave 23 % faster (#58).
+  - Ordering the bot's shopping (small kit, big buys, raised beds) and buying each piece of kit only in the months it pays brought back an offer a £22 fork on day 14 had starved (#58, #62); the tips player, following only the goal bar, found two tips the bar lacked and one bad one.
+  - The fresh review caught real loops and bugs each round (a card returning when a bed had a later start, a cordon checked against the whole strip's lawn, a goal bar offering a buy the shed would refuse); the playtest's stuck "… and 22 more" notice was a real bug, fixed by starting the page afresh on a load (#62).
+- **Lessons:**
+  - **A card is a loop until proved otherwise**, and a bot policy can fight one (the watering policy reset the line each morning, so the dry-spell card returned). → `feature` step 4: a test per card that answers it and asserts it's gone, and a one-way bot policy.
+  - **Seeing the economy's ceiling:** £8 a week sets the ceiling on "a purchase every week or two"; the bot's longest gap stayed 61–81 days while it saved for the hens. More cheap kit won't close it; the next economy brief says whether it wants more income or a cheaper step (round four's brief).
+  - **Winter is structurally quiet** while every bed holds a winter crop: real winter jobs took the longest quiet stretch from 44–96 to 29–40 days, not to 14; the rest needs a spring with beds free to plan, or harvests counted as events.
+  - **A window's length decides whether a first year can win** (`ceil(365 / 7)` is 53 samples, so the year's window fills on day 371; a goal meant for the first year needs 52 weeks), and a brief item that looks like balance can be a definition problem (100 × (1 − CV) clamps at 0 for any seasonal series): check a formula's range against the series first (#56, #58).
+  - **Budget `dist/` early:** six cards, five big buys and fourteen Explain entries came to 17 KB against a 15 KB share, found only at the end (#58).
+  - **Timing and waits:** a check run and a timing run at once double every figure; a rebuild of `dist/` mid-run stops a check; making notices queue moved every check that waited for one; a new check run against `main` can hang, so give it a timeout; the effects log's `total` keeps adding, read `last` (#56). The first four → `feature` step 4; a paused page ticks five hours before it's read (#62, `feature` step 4).
+  - **A brief can arrive empty or a session stop after planning.** → `coordinator` §6.

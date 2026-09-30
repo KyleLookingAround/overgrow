@@ -228,7 +228,7 @@ Each choice made on 28 Sep was looked at again with the whole spec in view. They
 | D3-geo, over a generated world | projections and a globe for an invented planet with no map service and no boundary data to license; the world is generated from the seed with real-world ranges behind its countries | never (Natural Earth was the plan while real countries were; the owner chose invented places) |
 | `localStorage` saves | sealed nodes are compact; the checks seed saves through it easily | a save passes 1 MB: IndexedDB, behind the same save module |
 | Real mechanisms, rough numbers | an educational sim that stays a game; every model sourced, tuned inside the rough size | never |
-| The runbook from Final Call | briefs, one file per entry, the checks and the look backs proved themselves there | one thing done differently in hindsight: design the systems before porting the tooling, not after (`docs/lessons/1-runbook.md`) |
+| The runbook from Final Call | briefs, one file per entry, the checks and the look backs proved themselves there | one thing done differently in hindsight: design the systems before porting the tooling, not after (`docs/lessons/57-runbook-and-final-call.md`) |
 
 ## Saved state
 

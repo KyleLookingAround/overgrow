@@ -1,3 +1,4 @@
+Theme: parts
 # Part 7, sealing and the step up (#69, #70) · 30 Sep 2026
 
 - **Numbers:**
@@ -18,4 +19,4 @@
     - A command's reply at the same hour replaces the newest snapshot. But the reduced-motion view shows the one before until the clock reaches it.
     - A player who paused and took the plot would still see the garden. A level change now starts the loop's view afresh, as a load does.
     - The same lag remains after a load while paused under reduced motion. It's `src/app/clock-loop.ts`'s, which the shorter garden year owns; the `stepup` check steps round it and says so.
-  - **A JSDoc line starting `/**` is code to the rules check.** "window" in a comment's first line failed the build. → Keep "window" out of `/**` opening lines in `src/sim/`, or start the comment a line lower.
+  - A JSDoc line starting `/**` is code to the `rules` check ("window" failed the build). → `feature` step 3 "Words the `rules` check reads".
