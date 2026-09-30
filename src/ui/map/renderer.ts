@@ -278,15 +278,25 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   // to the allotment, the plot ringed for a few seconds either way
   const ZOOM_MS = 3000, HIGHLIGHT_MS = 5000;
   const holder = canvas.parentElement;
-  const endZoom = () => {
-    if (!zoom) return false;
-    zoom.shot?.destroy({texture: true});
-    zoom = null;
+  // the zoom ends on input, but the world stays the one cached picture for a moment longer: the frames right after a
+  // tap only show it, and the first uncached frame (the whole allotment drawn live) is where a slow renderer stalls
+  const SETTLE_MS = 600;
+  let settleAt = 0;
+  const uncache = () => {
+    settleAt = 0;
     world.cacheAsTexture(false);
+  };
+  const endZoom = (now = false) => {
+    if (!zoom && !settleAt) return false;
+    const ended = !!zoom;
+    zoom?.shot?.destroy({texture: true});
+    zoom = null;
     world.scale.set(1);
     world.position.set(0, 0);
     if (holder) delete holder.dataset.zooming;
-    return true;
+    if (now) uncache();
+    else if (ended) settleAt = performance.now() + SETTLE_MS;
+    return ended;
   };
   const startZoom = () => {
     // the garden's picture: the part of the canvas its places cover
@@ -305,6 +315,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       app.stage.addChild(shot);
     }
     zoom = {start: performance.now(), shot};
+    settleAt = 0;
     // for the zoom's three seconds the world is one cached texture: its frames only move and scale it, so a tap to skip
     // is answered at once even where the allotment's ground is slow to rasterise
     world.cacheAsTexture(true);
@@ -312,7 +323,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   };
   const stepZoom = () => {
     const box = boxes.get(PLAYER_PLOT);
-    if (!zoom || !box || !cam) return void endZoom();
+    if (!zoom || !box || !cam) return void endZoom(true);
     const t = Math.min(1, (performance.now() - zoom.start) / ZOOM_MS), e = t * t * (3 - 2 * t);
     const pw = box.w * cam.s, ph = box.h * cam.s, P = {x: cam.x + (box.x + box.w / 2) * cam.s, y: cam.y + (box.y + box.h / 2) * cam.s};
     const k0 = Math.min(width / pw, height / ph) * 0.92, k = Math.pow(k0, 1 - e);
@@ -352,7 +363,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       if (stepped && !still && cam) startZoom();
       if (cur.level !== level) {
         if (level !== -1 && cur.level === 2) highlight = performance.now() + (still ? 0 : ZOOM_MS) + HIGHLIGHT_MS;
-        if (cur.level !== 2) endZoom();
+        if (cur.level !== 2) endZoom(true);
         level = cur.level;
       }
       if (cur.rev !== drawnRev || key !== drawnKey || !cam) {
@@ -466,6 +477,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
           .stroke({width: t, color: pal.pulse.color, alpha: pal.pulse.alpha * (1 - k * 0.8)});
       }
       if (zoom) stepZoom();
+      else if (settleAt && performance.now() >= settleAt) uncache();
       app.render();
       frameTimes.push(performance.now() - t0);
       if (frameTimes.length > 240) frameTimes.shift();
