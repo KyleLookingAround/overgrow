@@ -71,7 +71,7 @@ The step up that seals the garden into a plot, and the allotment it opens. The p
   - `plotPlan` sets care to 3 h, the mix that saves the most at the shop's prices (`bestMix()`), and keeps compost.
   - `tools/bot/play.ts` reports `ALLOTMENT {…}`: the step-up day, the plan, the plot's kg a day, Health, upkeep, groceries saved, the neighbours' mean and the neglected plot's Health.
   - The long headless run crosses the step up (`src/sim/index.test.ts`).
-- **Speed:** an allotment day is well under 0.1 ms headless (the test asserts under 0.5 ms). The garden's day is unchanged, since the garden's systems carry one more `levels` test each.
+- **Speed:** an allotment day is about 0.4 of a garden day headless (0.39–0.44 ms against about 1.03 ms on a cloud session's machine, 30 Sep). The test's budget is 0.5 ms where a garden day takes 0.675 ms, which is the machine part 7 set it on. It scales with a garden day timed in the same run, in alternating chunks, so a slow shared runner moves both sides (#93). Since part 8 the day has been about 0.5 ms on the CI runner, right at a fixed 0.5 ms. The garden's day is unchanged, since the garden's systems carry one more `levels` test each.
 
 ## Part 8
 

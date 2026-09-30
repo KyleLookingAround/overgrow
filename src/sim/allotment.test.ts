@@ -12,6 +12,7 @@ import {GOAL, type Goal} from './goal';
 import {qty, type LeverValue} from './graph';
 import {emptyHistory, record, windowTotals, type LadderTotals} from './ladder';
 import {rng} from './random';
+import {createSim} from './index';
 import {fromSave, toSave} from './save';
 import {newState, snapshotOf, type State} from './state';
 import {SYSTEMS} from './systems';
@@ -153,13 +154,28 @@ describe('the allotment', () => {
     expect(straight.activities.length + resumed.activities.length).toBeGreaterThanOrEqual(0);
   });
 
-  it('runs an allotment day in well under its 0.5 ms budget', () => {
-    const s = latched(5);
+  it('runs an allotment day in well under its 0.5 ms budget, scaled by a garden day timed alongside it', () => {
+    // The 0.5 ms was set by part 7 on a machine where a garden day (index.test.ts's measure) took about 0.675 ms.
+    // A shared runner can be twice as slow, so the budget scales with a garden day timed in the same run, in
+    // alternating chunks so a slow patch hits both, and each side is the median of its chunks.
+    const GARDEN_WHEN_SET = 0.675, BUDGET = 0.5;
+    const s = latched(5), garden = createSim(3, SYSTEMS);
     stepUp(s);
     tick(s, 24 * 20);
-    const t0 = performance.now(), days = 200;
-    for (let i = 0; i < 24 * days; i++) tick(s, 1);
-    expect((performance.now() - t0) / days).toBeLessThan(0.5);
+    for (let i = 0; i < 24 * 20; i++) garden.apply({type: 'tick', hours: 1});
+    const perDay = (run: () => void, days: number) => {
+      const t0 = performance.now();
+      for (let i = 0; i < 24 * days; i++) run();
+      return (performance.now() - t0) / days;
+    };
+    const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[xs.length >> 1]!;
+    const allot: number[] = [], gardens: number[] = [];
+    for (let round = 0; round < 7; round++) {
+      allot.push(perDay(() => tick(s, 1), 30));
+      gardens.push(perDay(() => garden.apply({type: 'tick', hours: 1}), 30));
+    }
+    const budget = BUDGET * Math.max(1, median(gardens) / GARDEN_WHEN_SET);
+    expect(median(allot), `garden day ${median(gardens).toFixed(3)} ms here, so the budget is ${budget.toFixed(3)} ms`).toBeLessThan(budget);
   });
 
   it('holds the carry-over rule: the Output its year had, the land and carbon exactly, and a rebuilt cycle within tolerance', () => {
