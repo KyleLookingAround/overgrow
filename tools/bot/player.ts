@@ -7,7 +7,7 @@
 // and winter's among them (the leaves raked, a cordon each time bare-root season asks, the beds left no-dig). A policy on a lever or an offer
 // that unfolds (src/data/unfold.ts) waits until it has, as a player would: the sim refuses it before.
 import {CROPS, type CropId} from '../../src/data/crops';
-import {UPGRADE_IDS, UPGRADES, type UpgradeId} from '../../src/data/shed';
+import {RUNGS, UPGRADE_IDS, UPGRADES, type UpgradeId} from '../../src/data/shed';
 import {digCost} from '../../src/data/garden';
 import {unfolded} from '../../src/data/unfold';
 import {NO_KIT, SHED, type Kit} from '../../src/sim/kit';
@@ -21,7 +21,8 @@ import {CARDS} from '../../src/data/unfold';
 import {YEAR_HOURS} from '../../src/sim/commands';
 import {decisionsOf} from '../../src/ui/decisions';
 import {PRESERVE} from '../../src/data/kitchen';
-import {cataloguePrice} from '../../src/sim/shed';
+import {cataloguePrice, refuseBuy} from '../../src/sim/shed';
+import {nextRung} from '../../src/ui/goal';
 import {MIX_IDS, PLAYER_PLOT, type Care, type Feed, type Mix} from '../../src/data/allotment';
 import {PRICE} from '../../src/data/household';
 import {baseOf, leverOpen, planFor, plotDays} from '../../src/sim/allotment';
@@ -111,9 +112,6 @@ export const kitOf = (snap: Snapshot): Kit => (snap.nodes.find((n) => n.id === S
 
 /** The purse kept back when buying, £: a week's beer and seed for a sowing or two. */
 export const RESERVE = 10;
-/** The big buys in the order a player saves for them: the hens (eggs every week, and droppings for the heap), then the
- *  greenhouse, then the fruit cage (the slowest to pay back). */
-export const BIG_ORDER = ['hens', 'greenhouse', 'fruit-cage'] as const;
 
 /** What the shed offers now that the player would buy: what's come up and isn't owned (a raised bed while a dug bed isn't
  *  one), nematodes only from April to September, when the soil is warm enough for them, and a pack at a time. */
@@ -124,20 +122,23 @@ function offers(snap: Snapshot, date: CalendarDate): UpgradeId[] {
     .filter((id) => id !== 'nematodes' || (kit.nematodes <= 0 && date.month >= 4 && date.month <= 9));
 }
 
-/** Buys the cheapest small offer that has come up once the purse holds its price and the reserve; with none left, saves
- *  for the next big buy in BIG_ORDER and buys it once the purse holds it; then the beds raised and the tank. */
+/** Climbs the money ladder (round four): the first rung in RUNGS that has come up, the garden can take, and pays now (the
+ *  mid-priced kit only in its months), bought once the purse holds its price and the reserve; a pack of nematodes in
+ *  the warm months beside it. It saves for one rung at a time rather than spending on whatever's cheapest. */
 export const buyNext: Policy = ({snap, date}) => {
   // the cordons are planted one at a time as bare-root season's card asks
-  const want = offers(snap, date).filter((id) => id !== 'cordon' && (WHEN[id]?.includes(date.month) ?? true)), small = want.filter((id) => !UPGRADES[id].big && !LATER.includes(id)).sort((a, b) => UPGRADES[a].price - UPGRADES[b].price);
-  const id = small.find((x) => snap.money >= UPGRADES[x].price + RESERVE) ?? BIG_ORDER.find((x) => want.includes(x)) ?? LATER.find((x) => want.includes(x));
+  const g = graphOf(snap) as never, want = offers(snap, date).filter((id) => id !== 'cordon' && (WHEN[id]?.includes(date.month) ?? true));
+  const room = (id: UpgradeId) => {
+    const r = refuseBuy(g, id);
+    return r === null || r === `${UPGRADES[id].name} costs £${UPGRADES[id].price.toFixed(2)}`;
+  };
+  const id = RUNGS.find((x) => want.includes(x) && room(x)) ?? (want.includes('nematodes') ? 'nematodes' : undefined);
   return id && snap.money >= UPGRADES[id].price + RESERVE ? [{type: 'buy', id}] : [];
 };
 /** The mid-priced kit, bought only in the months it pays (the rest of the year it would sit in the shed while the purse
  *  goes short of seed): the fork for the winter digging, cloches for the autumn and the early spring, the propagator
  *  for the spring's tender sowings, and the bee hotel before the mason bees fly. */
 export const WHEN: Partial<Record<UpgradeId, readonly number[]>> = {fork: [10, 11, 12, 1, 2], cloches: [9, 10, 2, 3], propagator: [1, 2, 3], 'bee-hotel': [3, 4]};
-/** What the player buys only once the big buys are in: the beds raised one by one, and the tank. */
-const LATER: readonly UpgradeId[] = ['raised-bed', 'water-tank'];
 
 /** Digs the first plot under grass once "Dig this bed" has come up and the purse holds a bed's edging and compost, one at
  *  a time: in the growing months once every dug bed is in use, and in the winter digging season whenever it can. */
@@ -170,10 +171,13 @@ export const answerBeds: Policy = ({snap}) => bedCardOf(snap)?.actions[0]?.cmds 
 /** What an engaged player answers the week's decisions with: fleece for a frost, a glut preserved while the freezer has
  *  room (it feeds the winter) and given away when it's full, water sooner in a dry spell, and blight-resistant seed. */
 export const ANSWERS: Record<string, string> = {frost: 'fleece', glut: 'preserve', dry: 'water', catalogue: 'resistant', chit: 'chit', mulch: 'mulch', warm: 'warm',
-  leaves: 'rake', 'bare-root': 'plant', 'dig-over': 'no-dig'};
+  leaves: 'rake', 'bare-root': 'plant', 'dig-over': 'no-dig', prune: 'prune', sets: 'order', clean: 'clean', sill: 'sow', 'hen-care': 'care', box: 'stock'};
 export const decideAll: Policy = ({snap}) => [...yearCards(snap), ...decisionsOf(snap).flatMap((d) => {
     let want = ANSWERS[d.id]!;
     if (d.id === 'glut' && Number(snap.nodes.find((n) => n.id === 'kitchen')?.stocks['food.preserves']?.amount ?? 0) >= PRESERVE.cap - 1) want = 'give';
+    // a glut sold when the purse is short of the next rung
+    const rung = nextRung(snap);
+    if (d.id === 'glut' && rung && snap.money < UPGRADES[rung].price) want = 'sell';
     // next year's seed only once the purse has its price and the reserve
     if (d.id === 'catalogue' && snap.money < cataloguePrice(graphOf(snap), 'resistant') + RESERVE) want = 'later';
     const pick = d.actions.find((a) => (a.cmd as {answer?: string}).answer === want)?.cmd ?? (want === (d.dismiss as {answer?: string}).answer ? d.dismiss : d.actions[0]!.cmd);
@@ -208,6 +212,14 @@ export const plotPlan: Policy = ({snap}) => {
   return out;
 };
 
+/** Sells when short (round four): the honesty box kept stocked while the purse is short of the next rung (the box card's
+ *  answer), and back to only what's spare once it holds the rung's price, so the household eats its own again. */
+export const sellWhenShort: Policy = ({snap}) => {
+  const k = snap.nodes.find((n) => n.id === 'kitchen'), rung = nextRung(snap);
+  if (!k || k.levers.box !== 'stock') return [];
+  return !rung || snap.money >= UPGRADES[rung].price + RESERVE ? [{type: 'policy', node: 'kitchen', lever: 'box', value: 'spare'}] : [];
+};
+
 /** The slug policy once the beer traps are in: leave them to the traps and keep the gardener's evenings. */
 export const SLUGS_AFTER_TRAP: Policy = (v) => (kitOf(v.snap).owned.includes('beer-trap') ? pestPolicy({slugs: 'leave'})(v) : []);
 
@@ -217,7 +229,7 @@ export const PLAYERS: Record<string, Player> = {
   sensible: {
     name: 'sensible', plan: rotate(['salad', 'potatoes']), water: waterLine,
     pests: (v) => [...SENSIBLE_PESTS(v).filter((c) => !(c.type === 'policy' && c.lever === 'slugs' && kitOf(v.snap).owned.includes('beer-trap'))), ...SLUGS_AFTER_TRAP(v)],
-    shop: buyNext, dig: digNext, winter: answerBeds, decide: decideAll,
+    shop: (v) => [...buyNext(v), ...sellWhenShort(v)], dig: digNext, winter: answerBeds, decide: decideAll,
   },
   /** The sensible plan with no shopping, digging or winter crops: the garden as it was before the shed opened. */
   /** Does exactly what the goal bar says, and nothing else (the `feature` playbook's tips, proved by a player who follows

@@ -31,11 +31,18 @@
 // - A fruit cage with soft fruit: a netted cage over raspberry canes and currant bushes, the net keeping the birds off.
 //   Summer raspberries fruit on last year's canes and currants on older wood, so a new planting crops lightly the next
 //   summer and fully from the one after (RHS, "Raspberries" and "Blackcurrants": about 1.5–2 kg a m² once established).
-// - A hen house and three hens: point-of-lay hybrids in a house with a run on the lawn (src/data/livestock.ts, the
-//   `livestock` model): a daily chore of feeding, watering and collecting eggs, and a weekly clean-out whose droppings
+// - A hen house and run first, then two hens, then a third (round four's ladder): a flat-pack house for two to four hens
+//   with its run, which until the hens come keeps the heap's finished compost dry, so less of its nitrogen washes out
+//   (RHS, "Compost": cover the heap); hens are social and never kept alone (the British Hen Welfare Trust), so they come
+//   as a pair. Point-of-lay hybrids in the house with a run on the lawn (src/data/livestock.ts, the `livestock` model): a daily chore of feeding, watering and collecting eggs, and a weekly clean-out whose droppings
 //   go to the heap with their nitrogen; layers' pellets from the purse (about £13 for 20 kg, which three hens eat in about
 //   two months). Hybrids lay about 280 eggs a year, few in the dark months (the British Hen Welfare Trust; Defra's
 //   guidance for keepers of fewer than 50 birds).
+// - A lean-to growhouse: shelves under clear plastic against the house's sunny wall, where the tender crops are raised in
+//   pots before they go out, so they go out bigger and crop about two weeks sooner (RHS, "Sowing seeds indoors" and
+//   "Greenhouses"): the step before the greenhouse.
+// - A blackcurrant bush in a pot: planted any time of year, a light crop the next summer and about 4 kg a summer from the
+//   one after (RHS, "Blackcurrants": 4.5 kg from an established bush): the step before the fruit cage.
 // The mid-priced kit, each a smaller trade than the big buys:
 // - A digging fork: its tines go into heavy ground and lift turf and roots out with less effort than a spade's blade, so
 //   a new bed is dug about a fifth faster (RHS, "Digging": a fork for heavy or stony soil).
@@ -51,7 +58,7 @@
 //   ones, and they settle in best then (RHS, "Redcurrants" and "Bare-root plants").
 
 export type UpgradeId = 'beer-trap' | 'hose' | 'nematodes' | 'compost-bin' | 'cold-frame' | 'water-butt' | 'raised-bed' | 'water-tank' | 'greenhouse' | 'fruit-cage' | 'hens' |
-  'fork' | 'cloches' | 'propagator' | 'bee-hotel' | 'cordon';
+  'fork' | 'cloches' | 'propagator' | 'bee-hotel' | 'cordon' | 'coop' | 'hen' | 'lean-to' | 'fruit-bush';
 
 export interface Upgrade {
   id: UpgradeId;
@@ -69,6 +76,8 @@ export interface Upgrade {
   kept: boolean;
   /** A big buy, worth saving for: the Shed tab shows how far the purse has to go. */
   big?: true;
+  /** The rung before it on the ladder, which must be owned first (the hens' house before the hens). */
+  after?: UpgradeId;
 }
 
 export const UPGRADES: Record<UpgradeId, Upgrade> = {
@@ -150,27 +159,63 @@ export const UPGRADES: Record<UpgradeId, Upgrade> = {
     saves: 'Half the house roof’s rain: the tap left alone through most dry spells.',
     trade: 'A big tank against the house wall.',
   },
+  'lean-to': {
+    id: 'lean-to', name: 'Lean-to growhouse', price: 40, kept: true,
+    does: 'Shelves under plastic on the house’s sunny wall, for raising plants.',
+    saves: 'Tomatoes, beans and marigolds go out bigger: a crop two weeks sooner.',
+    trade: 'Only the tender crops, and nothing grows in it to eat.',
+  },
+  'fruit-bush': {
+    id: 'fruit-bush', name: 'Blackcurrant bush', price: 15, kept: true,
+    does: 'A potted blackcurrant planted by the heap, any time of year.',
+    saves: 'About 4 kg of fruit a summer once established.',
+    trade: 'A light crop next summer, and the full one only the summer after.',
+  },
+  coop: {
+    id: 'coop', name: 'Hen house and run', price: 75, kept: true, big: true,
+    does: 'A hen house with its run on the lawn, ready for hens.',
+    saves: 'Until the hens come, it keeps the heap’s compost dry.',
+    trade: '12 m² of lawn, and no eggs until the hens.',
+  },
   greenhouse: {
-    id: 'greenhouse', name: 'Greenhouse', price: 320, kept: true, big: true,
+    id: 'greenhouse', name: 'Greenhouse', price: 320, kept: true, big: true, after: 'lean-to',
     does: 'A 6 × 8 ft greenhouse on the lawn, cropped like a bed under glass.',
     saves: 'Tomatoes without blight, and six more weeks of season at each end.',
     trade: 'Lawn under glass, no rain inside, and the price of a year’s saving.',
   },
   'fruit-cage': {
-    id: 'fruit-cage', name: 'Fruit cage', price: 150, kept: true, big: true,
+    id: 'fruit-cage', name: 'Fruit cage', price: 150, kept: true, big: true, after: 'fruit-bush',
     does: 'Raspberry canes and currant bushes under a net on the lawn.',
     saves: 'About 10 kg of fruit a summer once established, for the household’s fruit.',
     trade: 'A light crop next summer and the full one only the summer after.',
   },
   hens: {
-    id: 'hens', name: 'Hen house and three hens', price: 240, kept: true, big: true,
-    does: 'Three hens in a house with a run on the lawn.',
-    saves: 'Eggs every day in summer, and droppings rich in nitrogen for the heap.',
+    id: 'hens', name: 'Two hens', price: 50, kept: true, after: 'coop',
+    does: 'Two point-of-lay hens for the house: hens are never kept alone.',
+    saves: 'Eggs most days in summer, and droppings rich in nitrogen for the heap.',
     trade: 'A chore every day, layers’ pellets each week, and few eggs in winter.',
+  },
+  hen: {
+    id: 'hen', name: 'A third hen', price: 25, kept: true, after: 'hens',
+    does: 'One more point-of-lay hen: the house takes three.',
+    saves: 'Half as many eggs again.',
+    trade: 'More pellets, and the run is full.',
   },
 };
 
 export const UPGRADE_IDS = Object.keys(UPGRADES) as UpgradeId[];
+
+/** The money ladder (round four): the order the goal bar names the next thing to save for, cheap kit first and each big
+ *  buy in its steps, so the next rung is a few weeks' saving away. Nematodes (used up) and cordons (bare-root season's
+ *  card) aren't rungs; a raised bed is one while a dug bed isn't raised. */
+export const RUNGS: readonly UpgradeId[] = ['beer-trap', 'bee-hotel', 'fruit-bush', 'cloches', 'fork', 'hose', 'propagator', 'compost-bin', 'lean-to', 'cold-frame',
+  'water-butt', 'coop', 'hens', 'hen', 'fruit-cage', 'raised-bed', 'water-tank', 'greenhouse'];
+/** The first step towards a big buy: the thing to save for when the big buy is the aim. */
+export const firstStep = (id: UpgradeId, owned: readonly UpgradeId[]): UpgradeId => {
+  let at = id;
+  for (let before = UPGRADES[at].after; before && !owned.includes(before); before = UPGRADES[at].after) at = before;
+  return at;
+};
 
 /** The beer trap: the share of each night's slugs out that drown in it, and the beer it takes a week, £. */
 export const BEER_TRAP = {share: 0.35, beerPerWeek: 0.8};
@@ -189,7 +234,42 @@ export const TANK = {litres: 350, roofM2: 20};
 /** The hens: three of them on 12 m², their run and an hour or two out on the lawn a day (the RSPCA's 4 m² a hen); layers' pellets bought a week, £ (a 20 kg sack at about £13 lasts three hens about eight weeks), kg of feed
  *  a sack, the feed kept topped up to a week's, and the keeper's minutes a day and for the weekly clean-out (feeding,
  *  water, eggs and a look at the birds: the British Hen Welfare Trust's ten minutes or so a day). */
-export const HENS = {head: 3, area: 12, sackGbp: 13, sackKg: 20, feedDays: 7, dailyMinutes: 10, cleanMinutes: 30};
+export const HENS = {head: 3, pair: 2, area: 12, sackGbp: 13, sackKg: 20, feedDays: 7, dailyMinutes: 10, cleanMinutes: 30};
+
+/** The empty hen house: the share of the heap's nitrogen lost while its compost is kept dry there, not the open heap's 0.2
+ *  (between the open heap's and the closed bin's: rain off, but no warmer inside). */
+export const COOP = {nLost: 0.15};
+/** The lean-to: degree days of a head start a tender crop has when it goes out, raised in pots (about two weeks of a June
+ *  day's warmth), and the crops it raises. */
+export const LEAN_TO = {dd: 100, crops: ['tomatoes', 'beans', 'marigolds']};
+/** The blackcurrant bush: kg a summer once established (RHS: about 4.5). */
+export const BUSH = {kg: 4};
+
+// Midwinter's jobs (round four), each asked once a winter from its own date (month, day) so they come a few days apart:
+/** Winter pruning of the currants (the cordons and the bush): side shoots cut back to a bud or two while they're dormant
+ *  keeps the fruiting spurs open; a currant left unpruned crowds and crops about a sixth less (RHS, "Redcurrants" and
+ *  "Blackcurrants"). A planting more than a year old needs it for its next summer; 10 minutes a plant. */
+export const PRUNE = {unpruned: 0.85, from: [12, 20], to: [2, 28], minutes: 10} as const;
+/** Seed potatoes by post in January: first earlies bought loose by the kilo, cheaper than the garden centre's packs in the
+ *  spring (a 2 kg bag about £5, rough 2027), so the spring's potato plantings cost nothing more; asked when the
+ *  catalogue's order hasn't covered them. */
+export const SETS = {gbp: 5, crops: ['potatoes'], from: [1, 5], to: [2, 20]} as const;
+/** Washing the pots, the frame's glass and the cloches: slugs and their eggs shelter under pots and frames through the
+ *  winter (RHS, "Slugs and snails": remove their hiding places), so a share of each dug bed's go; half an hour. */
+export const CLEAN = {slugs: 0.15, from: [1, 1], to: [2, 28], minutes: 30} as const;
+/** Salad sown in trays on the windowsill: cut-and-come-again leaves (pea shoots, rocket, mixed leaves) ready to cut about
+ *  two weeks on and cut for about five weeks, about 20 g a day from two trays; the propagator's warmth makes it 30
+ *  (RHS, "Microgreens"; Garden Organic, "Growing salad indoors"). A packet of seed £1.50. */
+export const SILL = {gbp: 1.5, wait: 14, days: 35, kg: 0.02, warm: 0.03, from: [1, 15], to: [2, 28]} as const;
+/** The hens' winter care: fresh straw deep in the house and a check for red mite (the British Hen Welfare Trust's winter
+ *  care), £4 of straw and powder, which keeps their welfare from sliding in the cold months. Simplifies: their welfare
+ *  is mended to whole at once, where the livestock model otherwise moves it a little each day. */
+export const HEN_CARE = {gbp: 4, from: [12, 15], to: [2, 28]} as const;
+/** Whether a date (month, day) is inside a midwinter job's window, which runs over the new year. */
+export const inWinter = (w: {from: readonly [number, number]; to: readonly [number, number]}, month: number, day: number) => {
+  const at = (m: number, d: number) => (m >= 7 ? m - 12 : m) * 100 + d;
+  return at(month, day) >= at(w.from[0], w.from[1]) && at(month, day) <= at(w.to[0], w.to[1]);
+};
 
 /** The hose: litres a minute from the tap, and minutes to run it out and reel it back. */
 export const HOSE = {perMin: 12, setup: 5};

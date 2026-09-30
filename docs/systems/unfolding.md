@@ -35,3 +35,8 @@ Eight more keys: `shed.beer-trap` (with the Shed tab), `garden.dig` (`beds full`
 - **The try-faster nudge** comes once the first minute (120 game hours) is over, before the wait for the spring sowings, without waiting on a harvest; the head start's first cut comes on day 2 or 3 (`HEAD_START.ddToGo` 5).
 - **Notices** each carry their game day: an informational one not shown by its day's end is dropped, never shown on a later day (`today()`), while a choice waits to be answered; an opened notice's line sits under a rule, and a screen reader hears a stop between the title and its line.
 - **The choices** in the queue after the notices: the try-faster nudge, the most pressing of the week's decisions (`src/ui/decisions.ts`, `docs/systems/shed.md`), and the bed card (`src/ui/bed-card.ts`, `docs/systems/crops.md`), one shown at a time.
+
+## The playable garden, round four
+
+- **One "New:" a day.** From the third game day (`SPACED_FROM`), no more than one batch unfolds a day: a key whose cause comes after the day's batch waits in the state's `unfolding` list and unfolds with the next day's first tick or command (`unfold()` in `src/sim/commands.ts`). Its lever waits with it, so the bot plays the same game. The first minute's days keep their run of signs.
+- **The ladder's keys:** `shed.coop` (the first compost spread), `shed.hens` (`bought coop`), `shed.hen` (`bought hens`), `shed.lean-to` (frost damage or blight), `shed.greenhouse` (`bought lean-to`), `shed.fruit-bush` (the first groceries saved, or bees on the flowers) and `shed.fruit-cage` (`bought fruit-bush`): a `buy` records `bought <id>` beside `buying`.

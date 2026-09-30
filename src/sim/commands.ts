@@ -11,7 +11,7 @@ import {stepUp} from './allotment';
 import {helperCommand, secondPlotCommand, voteCommand, watchCommand} from './season';
 import type {Watching} from '../data/agency';
 import type {Vote} from './models/committee';
-import {buyFlow, chit, digOver, fleece, orderSeeds, placeOf, rakeLeaves, warmSoil} from './shed';
+import {buyFlow, chit, cleanPots, digOver, fleece, henCare, orderSeeds, orderSets, placeOf, prune, rakeLeaves, sowSill, warmSoil} from './shed';
 import {GLUT_POLICIES, type GlutPolicy} from '../data/kitchen';
 import type {Variety} from '../data/shed';
 import {askMulch, waterSooner} from './gardener';
@@ -67,6 +67,15 @@ export type Command =
   | {type: 'card'; id: 'bare-root'; answer: 'plant' | 'later' | 'no'}
   /** Winter: the empty beds dug over, or left no-dig. */
   | {type: 'card'; id: 'dig-over'; answer: 'dig' | 'no-dig'}
+  /** Midwinter's jobs (round four): the currants pruned, seed potatoes ordered by post, the pots and frame washed, salad
+   *  sown on the windowsill, and the hens' winter care; and, when the purse is short of the next rung, the honesty box kept
+   *  stocked (the kitchen's `box` policy). */
+  | {type: 'card'; id: 'prune'; answer: 'prune' | 'no'}
+  | {type: 'card'; id: 'sets'; answer: 'order' | 'no'}
+  | {type: 'card'; id: 'clean'; answer: 'clean' | 'no'}
+  | {type: 'card'; id: 'sill'; answer: 'sow' | 'no'}
+  | {type: 'card'; id: 'hen-care'; answer: 'care' | 'no'}
+  | {type: 'card'; id: 'box'; answer: 'stock' | 'spare'}
   /** The garden's first year done, whether or not the offer's requirements are met: 'ok' carries on into the second. */
   | {type: 'card'; id: 'first-year'; answer: 'ok'}
   /** The allotment's first season (src/sim/season.ts): take the neglected second plot on, or not yet; the helper's offer
@@ -121,9 +130,8 @@ function tick(s: State, systems: readonly System[], hours: number) {
   tally(s.graph, s.flows, s.hours);
   // each flow is an effect of its `what` at its place, and the systems' events besides
   s.effects = flowEffects(s.graph, s.flows).concat(effects.list());
-  // an instrument unfolds the first time one of its causes happens (src/data/unfold.ts)
-  const fresh = revealed(s.seen, causesOf(s.effects));
-  if (fresh.length) s.seen = [...s.seen, ...fresh];
+  // an instrument unfolds the first time one of its causes happens (src/data/unfold.ts), one batch a day
+  unfold(s, revealed(s.seen, causesOf(s.effects)));
   s.errors = errors;
 }
 
@@ -208,8 +216,8 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
         tally(s.graph, [{...s.flows[0]!, what: UPGRADES[cmd.id as UpgradeId].name}], s.hours);
         // at the thing's place, so the map pulses where it now stands
         s.effects = [{kind: kindOf('buying'), cause: 'buying', at: placeOf(s.graph, cmd.id as UpgradeId), amount: 1, unit: cmd.id}];
-        const fresh = revealed(s.seen, ['buying']);
-        if (fresh.length) s.seen = [...s.seen, ...fresh];
+        // and the next step towards a big buy shows once the one before is bought (src/data/unfold.ts)
+        unfold(s, revealed(s.seen, ['buying', `bought ${cmd.id}`]));
       }
       return s;
     }
@@ -230,12 +238,12 @@ export const DRY_LINE = 0.75;
 export const YEAR_HOURS = 365 * 24;
 
 /** The week's decision cards, each asked once for what it's about. */
-export const DECISIONS = ['glut', 'catalogue', 'frost', 'dry', 'chit', 'mulch', 'warm', 'leaves', 'bare-root', 'dig-over'] as const;
+export const DECISIONS = ['glut', 'catalogue', 'frost', 'dry', 'chit', 'mulch', 'warm', 'leaves', 'bare-root', 'dig-over', 'prune', 'sets', 'clean', 'sill', 'hen-care', 'box'] as const;
 type DecisionCmd = Extract<Command, {type: 'card'; id: (typeof DECISIONS)[number]}>;
 const isDecision = (c: Extract<Command, {type: 'card'}>): c is DecisionCmd => (DECISIONS as readonly string[]).includes(c.id);
 
 /** What a decision's own spend is called in the purse's week (a cordon's is its buy's). */
-const SPEND: Partial<Record<DecisionCmd['id'], string>> = {catalogue: 'seed catalogue', frost: 'fleece', warm: 'fleece'};
+const SPEND: Partial<Record<DecisionCmd['id'], string>> = {catalogue: 'seed catalogue', frost: 'fleece', warm: 'fleece', sets: 'seed potatoes', sill: 'seed', 'hen-care': 'hen care'};
 
 /** Answers one of the week's decision cards: its choice carried out, and the hour kept so it asks once. */
 function decide(s: State, cmd: DecisionCmd, systems: readonly System[]): State {
@@ -262,6 +270,24 @@ function decide(s: State, cmd: DecisionCmd, systems: readonly System[]): State {
   } else if (cmd.id === 'dig-over') {
     if (cmd.answer !== 'dig' && cmd.answer !== 'no-dig') r = 'dig or no-dig';
     else if (cmd.answer === 'dig') r = digOver(g, date);
+  } else if (cmd.id === 'prune') {
+    if (cmd.answer !== 'prune' && cmd.answer !== 'no') r = 'prune or no';
+    else if (cmd.answer === 'prune') r = prune(g, date, s.hours);
+  } else if (cmd.id === 'sets') {
+    if (cmd.answer !== 'order' && cmd.answer !== 'no') r = 'order or no';
+    else if (cmd.answer === 'order') r = orderSets(g, date);
+  } else if (cmd.id === 'clean') {
+    if (cmd.answer !== 'clean' && cmd.answer !== 'no') r = 'clean or no';
+    else if (cmd.answer === 'clean') r = cleanPots(g, date);
+  } else if (cmd.id === 'sill') {
+    if (cmd.answer !== 'sow' && cmd.answer !== 'no') r = 'sow or no';
+    else if (cmd.answer === 'sow') r = sowSill(g, date, s.hours);
+  } else if (cmd.id === 'hen-care') {
+    if (cmd.answer !== 'care' && cmd.answer !== 'no') r = 'care or no';
+    else if (cmd.answer === 'care') r = henCare(g, date, s.hours);
+  } else if (cmd.id === 'box') {
+    if (cmd.answer !== 'stock' && cmd.answer !== 'spare') r = 'stock or spare';
+    else applyCommand(s, {type: 'policy', node: KITCHEN, lever: 'box', value: cmd.answer}, systems), (r = s.rejected);
   } else if (cmd.id === 'frost') {
     if (cmd.answer !== 'fleece' && cmd.answer !== 'no') r = 'fleece or no';
     else if (cmd.answer === 'fleece') r = fleece(g, s.hours);
@@ -288,8 +314,23 @@ function decide(s: State, cmd: DecisionCmd, systems: readonly System[]): State {
 
 /** Unfolds what a command's causes reveal (src/data/unfold.ts). */
 function reveal(s: State, causes: string[]) {
-  const fresh = revealed(s.seen, causes);
-  if (fresh.length) s.seen = [...s.seen, ...fresh];
+  unfold(s, revealed(s.seen, causes));
+}
+
+/** From this game day on (the third), no more than one batch unfolds a day, so no more than one "New:" sign: the first
+ *  minute's own run of them (the water, the slugs, the shed, the kitchen) is its design. */
+export const SPACED_FROM = 2;
+/** Unfolds keys, spaced (round four): a batch today, with any still waiting, unless one has unfolded today already, when
+ *  they wait for the next day's first tick or command. The sim's gates wait with them, so the bot plays the same game. */
+export function unfold(s: State, fresh: readonly string[]) {
+  const u = s.unfolding, day = calendar(s.hours).dayIndex;
+  if (!fresh.length && (!u.waiting.length || u.day === day)) return;
+  const all = [...u.waiting, ...fresh.filter((k) => !u.waiting.includes(k) && !s.seen.includes(k))];
+  if (!all.length) return;
+  if (day < SPACED_FROM || u.day !== day) {
+    s.seen = [...s.seen, ...all];
+    s.unfolding = {day, waiting: []};
+  } else if (all.length !== u.waiting.length) s.unfolding = {day, waiting: all};
 }
 
 function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readonly System[]): State {

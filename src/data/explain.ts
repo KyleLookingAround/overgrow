@@ -101,6 +101,8 @@ export const CAUSES = {
   leaves: {kind: 'carbon', causes: ['raking leaves']},
   digOver: {kind: 'soil', causes: ['digging over']},
   bareRoot: {kind: 'crop', causes: ['bare-root season', 'planting']},
+  ladder: {kind: 'household', causes: ['bought coop', 'bought hens', 'bought lean-to', 'bought fruit-bush']},
+  midwinter: {kind: 'work', causes: ['washing pots', 'windowsill salad', 'seed potatoes', 'hen care', 'pruning']},
   sealing: {kind: 'crop', causes: ['sealing', 'harvest']},
   plotCare: {kind: 'work', causes: ['plot care']},
   plotMix: {kind: 'crop', causes: ['plot mix', 'eaten from the plot']},
@@ -769,6 +771,22 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
     slow: 'A light crop the first summer and about a kilo a year after, for ten years or more.',
     source: 'RHS, “Bare-root plants” and “Redcurrants”.',
   },
+  ladder: {
+    title: 'A step towards a big buy',
+    says: 'The first step towards something bigger is in: the next shows in the shed.',
+    mechanism: 'Big buys come in steps a garden can save for: a hen house before the hens (which keeps the compost dry meanwhile), a pair of hens (never one alone) then a third, a lean-to before a greenhouse, one bush before a fruit cage.',
+    fast: 'A few weeks’ saving to the next step, and a use from today.',
+    slow: 'Eggs, fruit and glass pay back over years, not weeks.',
+    source: 'The British Hen Welfare Trust; RHS, “Greenhouses”, “Blackcurrants” and “Compost”; garden-centre prices, 2027.',
+  },
+  midwinter: {
+    title: 'Midwinter’s jobs',
+    says: 'A winter job done while the garden rests.',
+    mechanism: 'Currants pruned while dormant keep their fruiting spurs open; washed pots and glass leave slugs fewer places to hide; seed potatoes by post are cheaper than spring packs; salad grows on a windowsill; deep straw keeps hens well in the cold.',
+    fast: 'Fewer slugs, a little salad, the hens kept well.',
+    slow: 'A fuller crop next summer, and a cheaper spring.',
+    source: 'RHS, “Redcurrants”, “Slugs and snails” and “Microgreens”; the British Hen Welfare Trust, winter care.',
+  },
 };
 
 /** The lever that helps, in a line: what the Explain card offers after what happened. */
@@ -847,6 +865,8 @@ export const HELPS: Record<Entry, string> = {
   fleece: 'Fleece the tender crops when a frost is forecast.',
   leaves: 'Rake them up each autumn: they’re free.',
   digOver: 'No-dig: leave the beds and mulch them with compost instead.',
+  ladder: 'The goal bar names the next step and what’s left to save.',
+  midwinter: 'Answer the winter’s cards as they come.',
   bareRoot: 'Plant fruit in winter, when it’s cheapest and settles best.',
   sealing: 'Set the plot’s plan: its care, its mix and its feed.',
   plotCare: 'Give it the hours the household can spare.',

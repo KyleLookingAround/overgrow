@@ -2,14 +2,15 @@
 // comes once the offer is latched. It's a card over the map like the others (win W5): one at a time. When the offer
 // isn't won by the garden's first anniversary, "Your first year" comes instead (round three): what the garden picked,
 // ate, sold, gave and wasted, what it saved at the shop and what was bought, and which of the offer's requirements is
-// short, by how much, with the goal bar's next step for it; year two carries on with the bar pointing there.
+// short, by how much, with the goal bar's next step for it; year two carries on with the bar pointing there. Round four
+// adds one line with the next rung on the money ladder and where the offer stands (nextLine()).
 import {UPGRADES} from '../data/shed';
 import type {GraphNode} from '../sim/graph';
 import {kitIn} from './ShedTab';
 import type {Snapshot} from '../sim/state';
 import {Card} from './Card';
 import {money, num} from './format';
-import {nextStep, RAISE, statusOf, valueText} from './goal';
+import {nextStep, RAISE, rungStep, statusOf, valueText} from './goal';
 import type {RequirementStatus} from '../sim/ladder';
 
 const dug = (n: GraphNode) => n.kind === 'bed' && (n.stocks['land.crops']?.amount ?? 0) > 0 && !((n.stocks['land.grass']?.amount ?? 0) > 1e-6);
@@ -50,6 +51,13 @@ export function shortfalls(snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>) {
     .map((r) => ({r, tips: [nextStep(snap, r.key)?.text, RAISE[r.key][0]!.toUpperCase() + RAISE[r.key].slice(1)].filter((t): t is string => !!t)}));
 }
 
+/** The year's next step (round four), in one line: the money ladder's next rung, and where the allotment offer stands. */
+export function nextLine(snap: Pick<Snapshot, 'nodes' | 'seen'>): string {
+  const step = rungStep(snap), st = statusOf(snap), met = st.requirements.filter((r) => r.met).length;
+  const offer = st.ready ? 'the allotment’s offer is yours' : `the allotment: ${met} of ${st.requirements.length} requirements met`;
+  return `${step ? `Next: ${step.text[0]!.toLowerCase()}${step.text.slice(1)}` : 'Next: keep every bed sown and picked'}; ${offer}.`;
+}
+
 /** The garden's first year, on its anniversary, with the offer not won yet: what it did, and what's short. */
 export function FirstYearCard({snap, onDone}: {snap: Snapshot; onDone: () => void}) {
   const k = snap.kitchen, short = shortfalls(snap);
@@ -66,6 +74,7 @@ export function FirstYearCard({snap, onDone}: {snap: Snapshot; onDone: () => voi
           <div class="row"><dt>Saved at the shop</dt><dd>{money(savedAtShop(snap))}</dd></div>
           <div class="row"><dt>Bought</dt><dd>{boughtLine(snap)}</dd></div>
         </dl>
+        <p class="year-next" data-next>{nextLine(snap)}</p>
         <h4>For the allotment</h4>
         <ul class="lessons">
           {short.map(({r, tips}) => <li data-short={r.key}>{valueText(r)}: {shortBy(r)}. {tips.join('; or ')}.</li>)}

@@ -17,7 +17,8 @@
 import {qty, type GraphNode, type LeverValue} from '../graph';
 import type {System, TickContext} from '../clock';
 import {recordWaste} from './kitchen';
-import {CORDON} from '../../data/shed';
+import {CORDON, PRUNE} from '../../data/shed';
+import {kitOf} from '../kit';
 
 export const BERRIES = 'berries';
 export const BERRY_KEY = `food.${BERRIES}`;
@@ -43,6 +44,8 @@ export function cordonMaturity(days: number): number {
 export interface Bushes {
   planted: number | null;
   plants?: (number | null)[];
+  /** Each plant's kg a summer once established: a cordon's by default, the blackcurrant bush's its own. */
+  kg?: number;
 }
 export const bushesOf = (n: GraphNode): Bushes | null => (n.levers.bushes as unknown as Bushes | undefined) ?? null;
 export const newBushes = (hours: number): LeverValue => ({planted: hours}) as unknown as LeverValue;
@@ -69,7 +72,15 @@ function day(c: TickContext) {
     if (b.plants?.includes(null)) n.levers.bushes = (b = {...b, plants: b.plants.map((t) => t ?? c.hours)}) as unknown as LeverValue;
     const area = n.stocks['land.crops']?.amount ?? 0;
     // the fruit a summer when full: the cage's by its area, and each cordon's by its own age
-    const full = b.plants ? b.plants.reduce<number>((a, t) => a + CORDON.kg * cordonMaturity((c.hours - (t ?? c.hours)) / 24), 0) : FRUIT_YIELD * area * maturity((c.hours - (b.planted ?? c.hours)) / 24);
+    // (a plant more than a year old crops less if it wasn't pruned last winter)
+    const pruned = kitOf(c.graph).pruned === c.date.year, each = b.kg ?? CORDON.kg;
+    const full = b.plants
+      ? b.plants.reduce<number>((a, t) => {
+        const age = (c.hours - (t ?? c.hours)) / 24;
+        // a potted bush settles like the cage's plants; a bare-root cordon, planted dormant, a little sooner
+        return a + each * (b.kg ? maturity(age) : cordonMaturity(age)) * (age > 365 && !pruned ? PRUNE.unpruned : 1);
+      }, 0)
+      : FRUIT_YIELD * area * maturity((c.hours - (b.planted ?? c.hours)) / 24);
     // what's been on the canes too long drops, then today's fruit ripens
     const lost = ripeFruit(n) * (1 - Math.exp(-days / KEEPS_ON_PLANT));
     if (lost > 1e-9) {

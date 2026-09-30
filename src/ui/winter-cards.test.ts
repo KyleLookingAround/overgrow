@@ -11,7 +11,7 @@ import {createSim, type Command} from '../sim/index';
 import {seedCost} from '../sim/shed';
 import type {Purse} from '../sim/purse';
 import {decisionsOf} from './decisions';
-import {goOf, nextStep} from './goal';
+import {goOf, nextRung, nextStep} from './goal';
 
 /** A game from seed 1 carried on from an edited save. */
 function game(edit: (save: any) => void) {
@@ -98,13 +98,19 @@ describe('the autumn’s and winter’s cards', () => {
     const sim = game((s) => {
       s.graph.nodes.kitchen.stocks['food.lettuce'] = {unit: 'kgFood', amount: 8, product: 'lettuce'};
       s.graph.nodes.kitchen.levers.glut = 'preserve';
-      s.seen = ['card.first-plan'];
+      s.graph.nodes.kitchen.stocks.money.amount = 2;
+      s.seen = ['card.first-plan', 'shed.coop', 'shed.beer-trap'];
+      s.graph.nodes.shed.levers.kit.owned = ['beer-trap'];
     });
     for (let h = 0; h < 30; h++) sim.apply({type: 'tick', hours: 1});
     const d = card(sim, 'glut')!;
-    expect(d.actions.map((a) => a.label)).toEqual(['Give it away', 'Sell at the box']);
-    for (const a of d.actions) expect(d.text.toLowerCase()).toContain(a.label.toLowerCase());
-    expect(sim.apply(d.actions[1]!.cmd).rejected).toBeNull();
+    // each choice says what it gives; with the purse short of the next rung, selling comes first
+    const snap = sim.snapshot(), rung = nextRung(snap)!;
+    expect(snap.money).toBeLessThan(UPGRADES[rung].price);
+    expect(d.actions[0]!.label).toMatch(/^Sell at the box \(up to £\d+\.\d\d\)$/);
+    expect(d.actions[1]!.label).toBe('Give it away (goodwill next door)');
+    expect(d.text).toMatch(/going to the freezer \(\d+ jars, £\d+\.\d\d saved in winter\)/);
+    expect(sim.apply(d.actions[0]!.cmd).rejected).toBeNull();
     expect(card(sim, 'glut')).toBeNull();
   });
 });
@@ -168,11 +174,12 @@ describe('the mid-priced kit', () => {
   it('points the goal bar at the Shed when the step is a thing to save for', () => {
     const sim = game((s) => {
       s.graph.nodes.kitchen.stocks.money.amount = 30;
-      s.seen = ['card.first-plan', 'garden.money', 'shed.hens'];
+      s.seen = ['card.first-plan', 'garden.money', 'shed.coop'];
     });
+    // the hens come in steps: the house first, named with the gap
     const step = nextStep(sim.snapshot(), 'output')!;
-    expect(step.text).toMatch(/^Save for the hen house and three hens: £210 to go$/);
-    expect(goOf(step)).toMatchObject({label: 'Open the Shed', tab: 'shed', shed: 'hens'});
+    expect(step.text).toMatch(/^Hen house and run: £45 to go$/);
+    expect(goOf(step)).toMatchObject({label: 'Open the Shed', tab: 'shed', shed: 'coop'});
     expect(goOf(null).tab).toBe('garden');
     expect(goOf({text: 'x', cmds: [{type: 'buy', id: 'hens'}]}).cmds).toHaveLength(1);
   });
