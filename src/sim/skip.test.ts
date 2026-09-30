@@ -80,7 +80,9 @@ describe('skips', () => {
 
   it('refuses a skip past what’s next or with nothing to skip to, and stops when asked', () => {
     const sim = started(1, 2), s = untilDue(sim);
-    expect(sim.apply({type: 'skip', until: s.due!.hours + 1}).rejected).toMatch(/what’s next/);
+    // asked from a snapshot a step behind, past what's next, it runs to what's next
+    expect(sim.apply({type: 'skip', until: s.due!.hours + 1}).skip?.until).toBe(s.due!.hours);
+    sim.apply({type: 'skip', until: null});
     expect(sim.apply({type: 'skip', until: s.hours}).rejected).toMatch(/what’s next/);
     expect(sim.apply({type: 'skip', until: s.due!.hours}).skip).not.toBeNull();
     expect(sim.apply({type: 'skip', until: null}).skip).toBeNull();

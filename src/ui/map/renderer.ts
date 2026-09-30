@@ -417,7 +417,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     }
     let shot: Sprite | null = null;
     if (Number.isFinite(x0) && x1 > x0 && y1 > y0) {
-      const tex = app.renderer.generateTexture({target: world, frame: new Rectangle(x0, y0, x1 - x0, y1 - y0), resolution: window.devicePixelRatio || 1});
+      // zoomed in, the garden spans several screens: its picture at no more than a texture's safe size
+      const res = Math.min(window.devicePixelRatio || 1, 4096 / Math.max(x1 - x0, y1 - y0));
+      const tex = app.renderer.generateTexture({target: world, frame: new Rectangle(x0, y0, x1 - x0, y1 - y0), resolution: res});
       shot = new Sprite(tex);
       app.stage.addChild(shot);
     }

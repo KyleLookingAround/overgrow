@@ -198,9 +198,10 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       }
       const due = dueOf(s);
       if (!due) s.rejected = 'nothing to skip to';
-      else if (!(cmd.until > s.hours) || cmd.until > due.hours + 1e-9) s.rejected = 'a skip runs only to what’s next';
+      else if (!(cmd.until > s.hours)) s.rejected = 'a skip runs only to what’s next';
       else {
-        s.skip = {until: cmd.until, why: due.why};
+        // the page asks from a snapshot a step or two behind: past what's next now, it runs to what's next
+        s.skip = {until: Math.min(cmd.until, due.hours), why: due.why};
         seeOnce(s, CARDS.skip);
       }
       return s;

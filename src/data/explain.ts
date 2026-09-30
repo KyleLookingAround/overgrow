@@ -133,7 +133,7 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
     mechanism: 'A wider view is a longer view of time: a bed changes by the hour, an allotment by the week, a country by the season. The clock follows the camera, stepping evenly between each level’s pace. A skip runs the same hours watching would, and stops at the first thing you’d act on: a frost, a pest, a crop ready, something new.',
     fast: 'Zoom out to hurry a quiet week, or zoom in to watch closely.',
     slow: 'Further out, a year passes in minutes, then seconds.',
-    source: 'The game’s pacing: the one map’s clock (from 12 s a garden day to a year in about 22 s over the planet), after the founding spec’s ladder.',
+    source: 'The game’s pacing: each level’s widest view sets its pace (a garden day in 12 s, an allotment day in 6 s), after the founding spec’s ladder.',
   },
   sealing: {
     title: 'Your garden, as one plot',

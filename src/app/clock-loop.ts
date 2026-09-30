@@ -72,6 +72,8 @@ export function createLoop(sim: SimClient): Loop {
     // a skip the sim has ended before its hour (a wake) ends the time-lapse at the hour it ended at; a new one starts here
     if (!benchN && s.skip && s.skip.until !== stopped && (!lapse || lapse.until !== s.skip.until)) lapse = {from: target, until: s.skip.until};
     else if (lapse && !s.skip && s.hours < lapse.until) lapse.until = Math.max(target, s.hours);
+    // the sim has the stop: the same skip asked for again runs
+    if (!s.skip) stopped = -1;
     if (!top || s.hours < top.hours || s.seed !== top.seed || s.level !== top.level) {
       queue = [s]; // a new game, a load, a step up to the next level, or the bench starting: start the view here
       target = s.hours;
