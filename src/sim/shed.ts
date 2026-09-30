@@ -7,8 +7,8 @@
 // The hose (src/sim/gardener.ts), the compost bin (src/sim/models/carbon.ts), the frame's frost, rain and sowing
 // windows (src/sim/models/crops.ts, src/sim/models/water.ts) are read where they act. docs/systems/shed.md says how.
 import {CROPS, type CropId} from '../data/crops';
-import {BEER_TRAP, BUSH, CATALOGUE, CHIT, CLEAN, CORDON, DIG_OVER, FLEECE, HEN_CARE, LEAVES, PROPAGATOR, PRUNE, SETS, SILL, WARM, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, bareRoot, inWinter, type UpgradeId, type Variety} from '../data/shed';
-import type {CalendarDate} from './clock';
+import {BEER_TRAP, BUSH, CATALOGUE, CHIT, CLEAN, CORDON, DIG_OVER, FLEECE, FORCE, HEN_CARE, LEAVES, PROPAGATOR, PRUNE, SETS, SILL, WARM, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, bareRoot, inWinter, type UpgradeId, type Variety} from '../data/shed';
+import {calendar, type CalendarDate} from './clock';
 import {cropOf} from './models/crops';
 import type {System, TickContext} from './clock';
 import {note} from './effects';
@@ -359,12 +359,23 @@ export function orderSets(g: Graph, d: CalendarDate): string | null {
 export function cleanPots(g: Graph, d: CalendarDate): string | null {
   if (!inWinter(CLEAN, d.month, d.day)) return 'the pots are washed in midwinter';
   if (kitOf(g).cleaned === d.year + 1) return 'the pots are washed already this winter';
+  if (forcing(g, d.year)) return 'the pots are forcing chicory this winter';
   for (const b of dugBeds(g)) {
     const slugs = slugsOn(b) * CLEAN.slugs;
     if (slugs > 1e-9) applyFlow(g, {what: 'washing pots', unit: 'pests', product: 'slugs', amount: qty(slugs, 'pests'), from: {node: b.id, stock: SLUG_KEY}, to: {boundary: 'decay'}});
     touch(g, b.id);
   }
   setKit(g, {cleaned: d.year + 1});
+  return null;
+}
+/** Whether the pots are forcing chicory this winter (forced since the start of the garden year's winter). */
+const forcing = (g: Graph, year: number) => { const t = kitOf(g).forced; return t != null && t > 0 && calendar(t).year === year; };
+/** Whether chicory can be put to force now: in its window, the pots not washed this winter, and not forcing already. */
+export const forceOpen = (g: Graph, d: CalendarDate) => inWinter(FORCE, d.month, d.day) && kitOf(g).cleaned !== d.year + 1 && !forcing(g, d.year);
+/** Puts chicory roots to force under the pots, which then can't be washed. Why not, or null. */
+export function forceChicory(g: Graph, d: CalendarDate, hours: number): string | null {
+  if (!forceOpen(g, d)) return kitOf(g).cleaned === d.year + 1 ? 'the pots are washed already this winter' : 'chicory is forced in January';
+  setKit(g, {forced: hours});
   return null;
 }
 /** Whether salad can be sown on the windowsill now, and isn't already growing there. */
@@ -408,6 +419,17 @@ function sill(c: TickContext) {
   recordPick(c.graph, c.hours, kg);
 }
 
+/** The forced chicory, cut each day once it's ready, into the kitchen. */
+function chicory(c: TickContext) {
+  const t = kitOf(c.graph).forced;
+  if (t == null) return;
+  const age = (c.hours - t) / 24;
+  if (age < FORCE.wait || age > FORCE.wait + FORCE.days) return;
+  const kg = FORCE.kg * Math.max(1, Math.round(c.dt / 24));
+  c.flow({what: 'forced chicory', unit: 'kgFood', product: 'salad', amount: qty(kg, 'kgFood'), from: {boundary: 'growth'}, to: {node: KITCHEN, stock: 'food.salad'}});
+  recordPick(c.graph, c.hours, kg);
+}
+
 /** Pays for the beer traps' week from the purse; they go dry for the week if it can't. */
 function beerWeek(c: TickContext) {
   if (!owns(c.graph, 'beer-trap')) return;
@@ -420,6 +442,7 @@ function beerWeek(c: TickContext) {
  *  opening in November and closing after March. */
 function day(c: TickContext) {
   sill(c);
+  chicory(c);
   const g = c.graph, kit = kitOf(g), trap = kit.owned.includes('beer-trap') && !kit.dry, bare = bareRoot(c.date.month);
   if (!!kit.bare !== bare) {
     setKit(g, {bare});

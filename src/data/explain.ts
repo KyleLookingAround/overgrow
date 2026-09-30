@@ -102,7 +102,7 @@ export const CAUSES = {
   digOver: {kind: 'soil', causes: ['digging over']},
   bareRoot: {kind: 'crop', causes: ['bare-root season', 'planting']},
   ladder: {kind: 'household', causes: ['bought coop', 'bought hens', 'bought lean-to', 'bought fruit-bush']},
-  midwinter: {kind: 'work', causes: ['washing pots', 'windowsill salad', 'seed potatoes', 'hen care', 'pruning']},
+  midwinter: {kind: 'work', causes: ['washing pots', 'windowsill salad', 'forced chicory', 'seed potatoes', 'hen care', 'pruning']},
   sealing: {kind: 'crop', causes: ['sealing', 'harvest']},
   plotCare: {kind: 'work', causes: ['plot care']},
   plotMix: {kind: 'crop', causes: ['plot mix', 'eaten from the plot']},
@@ -782,10 +782,10 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
   midwinter: {
     title: 'Midwinter’s jobs',
     says: 'A winter job done while the garden rests.',
-    mechanism: 'Currants pruned while dormant keep their fruiting spurs open; washed pots and glass leave slugs fewer places to hide; seed potatoes by post are cheaper than spring packs; salad grows on a windowsill; deep straw keeps hens well in the cold.',
+    mechanism: 'Currants pruned while dormant keep their fruiting spurs open; washed pots and glass leave slugs fewer places to hide; seed potatoes by post are cheaper than spring packs; salad grows on a windowsill; chicory roots forced in the dark under a pot sprout pale, tender chicons (and the pots then can’t be washed); deep straw keeps hens well in the cold.',
     fast: 'Fewer slugs, a little salad, the hens kept well.',
     slow: 'A fuller crop next summer, and a cheaper spring.',
-    source: 'RHS, “Redcurrants”, “Slugs and snails” and “Microgreens”; the British Hen Welfare Trust, winter care.',
+    source: 'RHS, “Redcurrants”, “Slugs and snails” and “Microgreens” and “Chicory”; the British Hen Welfare Trust, winter care.',
   },
 };
 

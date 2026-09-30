@@ -49,3 +49,10 @@ Vitest for the rungs, the caps, the staged buys, the box policy, each midwinter 
 ## Left out
 
 A polytunnel (the lean-to is the step), a broad-bean sowing in pots, prices for the box by crop, advisers.
+
+## Round five: a box you find and a midwinter worth playing (Approved: coordinator, decisions 15 and 20)
+
+- **The box, found.** The `box` card comes once a surplus has been seen (a glut, or the box has sold), whatever the purse or the speed; the "Keep the honesty box stocked" tick moves from the foot of the Kitchen tab to its headline. In winter, with the box stocked and empty, the headline says so. Winter takings of about £1 a week are right for a lane-side box of leaves and roots in the cold months (rough figure, farm-gate sales); the stock rule stays.
+- **A midwinter choice.** Forcing chicory (5 January to 10 February): a dozen roots forced in the dark under the pots give about 1.3 kg of pale leaves three weeks on (RHS, "Chicory"), for twenty minutes. It takes the pots, so the pot-washing (slugs) is the other way to spend them: one or the other each winter.
+- **Words on numbers.** The step-up card says what Output, Reliability and Health each measure and shows Output in g a day, as the allotment does. The shop's rows carry a one-line hint; the dial reads "kg CO₂e".
+- **One number.** The Shed rounds its gap up to whole pounds, as the goal bar does.

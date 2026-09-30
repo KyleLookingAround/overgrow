@@ -32,7 +32,7 @@ function CarbonDial({kg, shop, onExplain}: {kg: number; shop: number | null; onE
         <line class="dial-needle" x1="0" y1="0" x2="0" y2="-15" transform={`rotate(${needle(kg)})`} />
       </svg>
       <span class="dial-text">
-        <span class="dial-kg">{kg > 0 ? '+' : kg < 0 ? '−' : ''}{num(Math.abs(kg))} kg</span>
+        <span class="dial-kg">{kg > 0 ? '+' : kg < 0 ? '−' : ''}{num(Math.abs(kg))} kg<span class="dial-name"> CO₂e</span></span>
         {shop !== null && (
           <span class="dial-shop">
             <svg viewBox="0 0 16 16" aria-hidden="true">

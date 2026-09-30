@@ -12,6 +12,7 @@ import {MEAL_HOUR} from '../data/kitchen';
 import type {GraphNode} from '../sim/graph';
 import {cupboardDays, HOUSEHOLD, householdLedgerIn, membersIn, people} from '../sim/models/household';
 import {kitchenAsk, type Ledger} from '../sim/models/kitchen';
+import {calendar} from '../sim/clock';
 import {days, grams, money, num, UNIT_SPACE} from './format';
 import {Num} from './Num';
 
@@ -40,12 +41,20 @@ function Held({n, title, empty}: {n: GraphNode | undefined; title: string; empty
 }
 
 type Row = readonly [string, string, string];
+/** A line of words for the shop's rows, so the figures read on first sight. */
+const HINT: Record<string, string> = {
+  Pay: 'what the household earned last week',
+  'The shop': 'spent on food that week',
+  'The rest of life': 'rent, bills and everything else',
+  'Groceries saved': 'the shop bill the garden’s veg replaced',
+  'Its footprint': 'carbon in the food bought, and the share that is transport',
+};
 function Rows({rows, label, onExplain}: {rows: Row[]; label?: string; onExplain: (cause: string, at: string | null) => void}) {
   return (
     <dl aria-label={label}>
       {rows.map(([k, v, cause]) => (
         <div class="row">
-          <dt>{k}</dt>
+          <dt>{k}{HINT[k] && <span class="soft row-hint"> {HINT[k]}</span>}</dt>
           <dd><Num v={v} cause={cause} at="kitchen" onExplain={onExplain} label={k} /></dd>
         </div>
       ))}
@@ -69,11 +78,22 @@ function Week({nodes, see, onExplain}: {nodes: GraphNode[]; see: (key: string) =
   );
 }
 
-export function KitchenTab({ledger, nodes, see, onExplain, send}: {ledger: Ledger; nodes: GraphNode[]; see: (key: string) => boolean; onExplain: (cause: string, at: string | null) => void; send?: (cmd: Command) => void}) {
+export function KitchenTab({hours, ledger, nodes, see, onExplain, send}: {hours: number; ledger: Ledger; nodes: GraphNode[]; see: (key: string) => boolean; onExplain: (cause: string, at: string | null) => void; send?: (cmd: Command) => void}) {
   const purse = see('garden.money'), saved = householdLedgerIn(nodes.find((n) => n.id === HOUSEHOLD)).saved;
   const ask = kitchenAsk(people(membersIn(nodes.find((n) => n.id === HOUSEHOLD))));
   const ate = (g: Group) => Object.entries(ledger.ate).reduce((s, [p, kg]) => s + (Object.values(CROPS).find((c) => c.product === p)?.group === g ? kg : 0), 0);
   const week = ledger.week.length ? ledger.week.reduce((s, x) => s + x, 0) / ledger.week.length : 0;
+  const stocked = nodes.find((n) => n.id === 'kitchen')?.levers.box === 'stock', boxKg = Object.values(CROPS).reduce((a, c) => a + (nodes.find((n) => n.id === 'gate')?.stocks[`food.${c.product}`]?.amount ?? 0), 0);
+  // the box's policy (round four), found where the harvest is: only what's spare, or kept stocked for money now, eggs and jars too
+  const boxToggle = purse && send && (
+    <>
+      <label class="check box-stock">
+        <input type="checkbox" checked={stocked} onChange={(e) => send({type: 'policy', node: 'kitchen', lever: 'box', value: (e.target as HTMLInputElement).checked ? 'stock' : 'spare'})} />
+        Keep the honesty box stocked: money now, a little less veg at home
+      </label>
+      {stocked && boxKg < 0.05 && [11, 12, 1, 2].includes(calendar(hours).month) && <p class="soft box-empty">The box is empty: winter’s veg stays in the kitchen, and a few winter leaves earn about £1 a week.</p>}
+    </>
+  );
   return (
     <>
       <section class="card" aria-labelledby="ask-title">
@@ -82,11 +102,13 @@ export function KitchenTab({ledger, nodes, see, onExplain, send}: {ledger: Ledge
           <>
             <p class="headline"><Num v={grams(ledger.ask)} cause="eating" at="kitchen" onExplain={onExplain} label="The day’s ask" /> <span class="headline-unit">of veg a day</span></p>
             <p class="soft">The household eats at {MEAL_HOUR}:00.</p>
+            {boxToggle}
           </>
         ) : (
           <>
             <p class="headline"><Num v={pct(ledger.met)} cause="eating" at="kitchen" onExplain={onExplain} label="Met at the last meal" /> <span class="headline-unit">of {grams(ledger.ask)} met at the last meal</span></p>
             <p class="job soft">{pct(week)} over the last week.</p>
+            {boxToggle}
           </>
         )}
         <dl class="ask">
@@ -107,14 +129,6 @@ export function KitchenTab({ledger, nodes, see, onExplain, send}: {ledger: Ledge
       <section class="place">
         <Held n={nodes.find((n) => n.id === 'kitchen')} title="In the kitchen" empty="Nothing yet: the first pick goes here." />
         <Held n={nodes.find((n) => n.id === 'gate')} title="In the honesty box" empty="Nothing: surplus goes to the box." />
-        {purse && send && (
-          // the box's policy (round four): only what's spare, or kept stocked for money now, eggs and jars too
-          <label class="check box-stock">
-            <input type="checkbox" checked={nodes.find((n) => n.id === 'kitchen')?.levers.box === 'stock'}
-              onChange={(e) => send({type: 'policy', node: 'kitchen', lever: 'box', value: (e.target as HTMLInputElement).checked ? 'stock' : 'spare'})} />
-            Keep the box stocked: money now, a little less veg at home
-          </label>
-        )}
         <h4>Since the start</h4>
         <Rows
           rows={[

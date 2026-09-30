@@ -11,7 +11,7 @@ import {stepUp} from './allotment';
 import {helperCommand, secondPlotCommand, voteCommand, watchCommand} from './season';
 import type {Watching} from '../data/agency';
 import type {Vote} from './models/committee';
-import {buyFlow, chit, cleanPots, digOver, fleece, henCare, orderSeeds, orderSets, placeOf, prune, rakeLeaves, sowSill, warmSoil} from './shed';
+import {buyFlow, chit, cleanPots, digOver, fleece, forceChicory, henCare, orderSeeds, orderSets, placeOf, prune, rakeLeaves, sowSill, warmSoil} from './shed';
 import {GLUT_POLICIES, type GlutPolicy} from '../data/kitchen';
 import type {Variety} from '../data/shed';
 import {askMulch, waterSooner} from './gardener';
@@ -74,6 +74,7 @@ export type Command =
   | {type: 'card'; id: 'sets'; answer: 'order' | 'no'}
   | {type: 'card'; id: 'clean'; answer: 'clean' | 'no'}
   | {type: 'card'; id: 'sill'; answer: 'sow' | 'no'}
+  | {type: 'card'; id: 'force'; answer: 'force' | 'no'}
   | {type: 'card'; id: 'hen-care'; answer: 'care' | 'no'}
   | {type: 'card'; id: 'box'; answer: 'stock' | 'spare'}
   /** The garden's first year done, whether or not the offer's requirements are met: 'ok' carries on into the second. */
@@ -238,7 +239,7 @@ export const DRY_LINE = 0.75;
 export const YEAR_HOURS = 365 * 24;
 
 /** The week's decision cards, each asked once for what it's about. */
-export const DECISIONS = ['glut', 'catalogue', 'frost', 'dry', 'chit', 'mulch', 'warm', 'leaves', 'bare-root', 'dig-over', 'prune', 'sets', 'clean', 'sill', 'hen-care', 'box'] as const;
+export const DECISIONS = ['glut', 'catalogue', 'frost', 'dry', 'chit', 'mulch', 'warm', 'leaves', 'bare-root', 'dig-over', 'prune', 'sets', 'clean', 'sill', 'hen-care', 'force', 'box'] as const;
 type DecisionCmd = Extract<Command, {type: 'card'; id: (typeof DECISIONS)[number]}>;
 const isDecision = (c: Extract<Command, {type: 'card'}>): c is DecisionCmd => (DECISIONS as readonly string[]).includes(c.id);
 
@@ -282,6 +283,9 @@ function decide(s: State, cmd: DecisionCmd, systems: readonly System[]): State {
   } else if (cmd.id === 'sill') {
     if (cmd.answer !== 'sow' && cmd.answer !== 'no') r = 'sow or no';
     else if (cmd.answer === 'sow') r = sowSill(g, date, s.hours);
+  } else if (cmd.id === 'force') {
+    if (cmd.answer !== 'force' && cmd.answer !== 'no') r = 'force or no';
+    else if (cmd.answer === 'force') r = forceChicory(g, date, s.hours);
   } else if (cmd.id === 'hen-care') {
     if (cmd.answer !== 'care' && cmd.answer !== 'no') r = 'care or no';
     else if (cmd.answer === 'care') r = henCare(g, date, s.hours);
