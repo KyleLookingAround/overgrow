@@ -87,7 +87,12 @@ export default async function({ok,open,out}){
     // night) and night (over three quarters)
     const watch=(speed,hour,ms,until)=>page.evaluate(async([speed,hour,ms,until,full])=>{
       await window.__sim.send({type:'new-game',seed:1,speed:0});if(hour>6)await window.__sim.send({type:'tick',hours:hour-6});
-      await new Promise(r=>setTimeout(r,2500));await window.__sim.send({type:'speed',speed});
+      // wait for the view to show the new game at that hour and its night layer to stop moving (it eases from the last
+      // case's night at LIGHT_MOST a second, slower still on a busy runner), not for a fixed time
+      await new Promise(done=>{let calm=0,prev=NaN;const t0=performance.now(),f=()=>{const v=window.__sim.view();
+        calm=Math.abs(v.hours%24-hour%24)<0.01&&Math.abs(v.night-prev)<1e-4?calm+1:0;prev=v.night;
+        if(calm>=15||performance.now()-t0>20000)done();else requestAnimationFrame(f)};requestAnimationFrame(f)});
+      await window.__sim.send({type:'speed',speed});
       return new Promise(done=>{const seen=[],t0=performance.now();const f=t=>{const v=window.__sim.view();seen.push({t,night:v.night,hours:v.hours});
         if(t-t0<ms&&!(until&&v.night>=until*full))requestAnimationFrame(f);else{
           let fastest=0,swings=0,side=null,first=seen[0],last=seen[seen.length-1];

@@ -31,9 +31,17 @@ concurrency:
 jobs:
   # Nothing else tests main: two PRs, each green on its own head, can still combine into a broken
   # game. This job runs the same checks a PR does, on main itself, before anything deploys.
-  check:
+  # Split across parallel jobs by time like Checks (docs/SYSTEMS.md, "CI's limit"); `check` below gathers them.
+  parts:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: layout, groups: layout}
+          - {name: scene and night, groups: scene night}
+          - {name: the rest, rest: true}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -52,15 +60,19 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit != 'true'
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
-      - name: npm run check
+      - name: ${{ matrix.name }}
         run: |
           mkdir -p build
           set -o pipefail
-          npm run check 2>&1 | tee build/check.log
+          if [ "${{ matrix.rest }}" = "true" ]; then
+            (node tools/build.mjs && npx tsc --noEmit && npx vitest run && node tools/check.mjs --except layout scene night) 2>&1 | tee build/check.log
+          else
+            (node tools/build.mjs && node tools/check.mjs ${{ matrix.groups }}) 2>&1 | tee build/check.log
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: check-failures
+          name: check-failures-${{ matrix.name }}
           path: build/check
           if-no-files-found: ignore
       - name: Open or update the "main is red" issue
@@ -85,7 +97,7 @@ jobs:
             const existing = issues.find(i => i.body && i.body.includes(marker));
             const body = [marker,
               '### main is red', '',
-              `Failing: ${groups.join(', ') || 'see run'}`,
+              `Failing (${{ matrix.name }}): ${groups.join(', ') || 'see run'}`,
               ...fails.slice(0, 10).map(l => '- ' + l.replace(/^FAIL\s+/, '')),
               ...(fails.length > 10 ? [`- and ${fails.length - 10} more`] : []),
               '', `Broken by [${sha.slice(0, 7)}](${commitUrl})${commitMsg ? ': ' + commitMsg : ''}`,
@@ -93,10 +105,16 @@ jobs:
             ].join('\n');
             if (existing) {
               await github.rest.issues.update({owner, repo, issue_number: existing.number, body});
-              await github.rest.issues.createComment({owner, repo, issue_number: existing.number, body: `Still red as of ${now} UTC · [run](${run})`});
+              await github.rest.issues.createComment({owner, repo, issue_number: existing.number, body: `Still red (${{ matrix.name }}) as of ${now} UTC · [run](${run})`});
             } else {
               await github.rest.issues.create({owner, repo, title: 'main is red', body, labels: ['bug']});
             }
+
+  check:
+    needs: parts
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.parts.result }}" = "success"
 
   build:
     needs: check
