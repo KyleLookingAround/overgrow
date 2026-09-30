@@ -69,6 +69,11 @@ The session first started on this brief (`session_01E6NetxNBkDRCNjQRcKNBS5`, sta
 - merged #90 after one re-run (the allotment day's 0.5 ms budget read 0.56 ms on a docs-only PR), and opened this note with the playbook fix;
 - found at about 13:55: #88 merged at 13:41; #89 (part 9, $22.50, 499k context) and #72 ($3.70) idle in CI with no wake booked, and neither can book one. #72's run 36723547788 failed `scene: at 1× the night still falls` ("from a day (false)": the case began at night).
 
+- at 14:15 the sixth coordinator deleted its own heartbeat, taking itself as retired, so nothing in the lineage can wake a session now;
+- `main` is red: the push run for #88 (`291b07e`) failed only the allotment day's 0.5 ms budget, so Pages skipped it. Its failed job was re-run once at 14:12. The same test failed on #90, #91 and #89. Measured in this container, one run each: 0.50, 0.65 and 0.55 ms a day on `291b07e`, and 0.51, 0.57 and 0.52 ms on the commit before #88. So `main` was already at the budget, and #88 didn't cause it;
+- part 9 (#89, $26.80, 560k context) stopped at 14:16 to ask: a speed pass in #89 (about $10), or a separate brief. **Chosen (decision 15): the separate brief, which is item 1, the steady timing checks**, since the budget fails on a shared runner whatever the change. Part 9 doesn't profile further: it re-runs the failed job once, merges on green, confirms Pages and stops. If it fails again, it waits for item 1 to land, merges `main` and re-runs. Item 1 starts first, before anything else;
+- #72 ($4.30) was in CI at 14:06 with no wake booked.
+
 **The next coordinator is started by the owner from the web on this brief.** In its first turn it does the steps above as written: book the heartbeat, then retire the sixth coordinator and `archive_session` the depth-8 one (`session_01E6NetxNBkDRCNjQRcKNBS5`). Parts it starts sit at depth 1 and can book their own wakes.
 
 ## What's left for others
