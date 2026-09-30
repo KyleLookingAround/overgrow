@@ -53,7 +53,7 @@ export function lawn(g: Graphics, r: Rect, s: number, pal: Palette, seed: number
     g.fill(pal['lawn-stripe']);
   }
   // tufts: a small dark blade or two every square metre or so
-  const m2 = (r.w * r.h) / (s * s), tufts = Math.min(600, Math.round(m2 * 1.0)), len = Math.max(2, 0.09 * s), wide = Math.max(1, 0.03 * s);
+  const m2 = (r.w * r.h) / (s * s), tufts = Math.min(300, Math.round(m2 * (m2 > 200 ? 0.3 : 1.0))), len = Math.max(2, 0.09 * s), wide = Math.max(1, 0.03 * s);
   for (let i = 0; i < tufts; i++) {
     const x = r.x + scatter(seed, id, i) * r.w, y = r.y + scatter(seed, id, 500 + i) * r.h, a = (scatter(seed, id, 1000 + i) - 0.5) * 1.2;
     g.poly([x - wide, y + len * 0.3, x + wide, y + len * 0.3, x + Math.sin(a) * len, y - Math.cos(a) * len]);
@@ -116,7 +116,7 @@ export function soil(g: Graphics, r: Rect, s: number, pal: Palette, colour: Pain
 
 /** Crumbs of tilth over dug soil, seeded: drawn once over the soil's colour, which changes under them. */
 export function tilth(g: Graphics, r: Rect, s: number, pal: Palette, seed: number, id: string) {
-  const m2 = (r.w * r.h) / (s * s), n = Math.min(400, Math.round(m2 * 12)), pad = 0.1 * s, dot = Math.max(1, 0.028 * s);
+  const m2 = (r.w * r.h) / (s * s), n = Math.min(120, Math.round(m2 * (m2 > 20 ? 2 : 12))), pad = 0.1 * s, dot = Math.max(1, 0.028 * s);
   for (let i = 0; i < n; i++) {
     const x = r.x + pad + scatter(seed, id, 2000 + i) * (r.w - 2 * pad), y = r.y + pad + scatter(seed, id, 3000 + i) * (r.h - 2 * pad);
     g.ellipse(x, y, dot * (0.8 + 0.6 * scatter(seed, id, 4000 + i)), dot * 0.7);

@@ -57,7 +57,7 @@ export function drawAllotmentNode(g: Graphics, n: GraphNode, c: Camera, pal: Pal
   const rows = Math.max(1, Math.min(8, Math.round((n.totals.output / FULL_KG) * 8))), pad = 0.8 * s, gap = (r.h - 2 * pad) / 8;
   // the plants: a rosette a plant, its green fuller the healthier the plot and yellowing as it fails
   const colours = leaves(pal, kit.mix(pal['leaf-light'], pal.leaf, health), {ready: false, stress: 0, hunger: Math.min(0.6, 1 - health), burnt: 0, blight: 0});
-  const across = Math.max(4, Math.floor((r.w - 2 * pad) / (0.6 * s))), cw = (r.w - 2 * pad) / across, rad = Math.min(cw, gap) * 0.42;
+  const across = Math.min(10, Math.max(4, Math.floor((r.w - 2 * pad) / (0.6 * s)))), cw = (r.w - 2 * pad) / across, rad = Math.min(cw, gap) * 0.42;
   for (let i = 0; i < rows; i++)
     for (let j = 0; j < across; j++)
       plant(g, 'rosette', r.x + pad + cw * (j + 0.5), r.y + pad + gap * (i + 0.5), rad, pal, colours, {ready: false, droop: 0, phase: ((i * 5 + j * 3) % 6) * 0.5});

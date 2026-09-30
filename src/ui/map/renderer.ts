@@ -117,6 +117,8 @@ const SNOW_C = 1;
  *  a bigger crowd (the top levels' thousands) glides in one frame, its figures too small for a step to show, through a
  *  container that uploads positions alone. */
 const STRIDE_M = 0.22, WALK: (0 | 1 | 2)[] = [1, 0, 2, 0], WALK_MAX = 200;
+/** How often at most the plants are redrawn, ms. */
+const GROWN_MS = 250;
 // a fixed scatter for the drops, from a hash of their index (cosmetic, and the same every frame): where each crosses,
 // where it starts falling and how fast, worked out once
 const SCATTER = new Float32Array(DROPS.max * 3).map((_, j) => {
@@ -139,7 +141,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   const world = new Container();
   world.addChild(ground, live, tilth, grown, over, life, movers, crowd, carried, rain, night, dawn, glow, ring);
   app.stage.addChild(world);
-  let level = -1, zoom: {start: number; shot: Sprite | null} | null = null, highlight = 0;
+  let level = -1, zoom: {start: number; shot: Sprite | null} | null = null, highlight = 0, grownAt = 0, grownRev = -1;
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null, grownOf: GraphNode[] | null = null;
   let atlas: Texture | null = null, frames: Texture[] = [], drop: Texture | null = null, flake: Texture | null = null, still = false, garden: Box | null = null, snowing = false;
   const drops: Particle[] = [];
@@ -161,6 +163,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     tilth.clear();
     drawTilth(tilth, drawn, cam, pal, s.seed);
     grownOf = null;
+    grownAt = 0;
     night.clear().rect(0, 0, width, height).fill({color: pal.night.color, alpha: 1});
     dawn.clear().rect(0, 0, width, height).fill({color: pal.dawn.color, alpha: 1});
     // the figures: one atlas of six frames (the gardener and the household, standing and stepping either foot)
@@ -352,14 +355,17 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       drawnKey = key;
       keyOf = cur.nodes;
       const c = cam!, w = weatherAt(v);
-      // what grows: redrawn once a snapshot
-      if (grownOf !== cur.nodes) {
+      // what grows: redrawn once a snapshot, and at most a few times a second (at 16× a snapshot comes every frame, and
+      // the plants change too slowly to show a lag of a quarter of a second)
+      if (grownOf !== cur.nodes && (grownAt === 0 || t0 - grownAt >= GROWN_MS || cur.rev !== grownRev)) {
         grown.clear();
         const g = drawGrown(grown, cur, c, pal);
         crops = g.crops;
         shapes = g.shapes;
         leaves = g.leaves;
         grownOf = cur.nodes;
+        grownAt = t0;
+        grownRev = cur.rev;
       }
       live.clear();
       const lived = drawLive(live, v, c, pal, w);

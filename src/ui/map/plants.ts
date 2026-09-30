@@ -52,7 +52,7 @@ function outline(shape: Shape, x: number, y: number, rad: number, phase: number,
   const pts: number[] = [];
   const lobes = shape === 'rosette' ? 6 : shape === 'flower' ? 5 : shape === 'blades' ? 5 : 3;
   const depth = shape === 'blades' ? 0.75 : shape === 'rosette' || shape === 'flower' ? 0.3 : 0.15;
-  const n = shape === 'blades' ? lobes * 2 : 24;
+  const n = shape === 'blades' ? lobes * 2 : rad < 6 ? 12 : 24; // fewer points on a small plant: the lobes still read
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + phase;
     const k = shape === 'blades' ? (i % 2 ? 1 - depth : 1) : 1 - depth * (0.5 - 0.5 * Math.cos(lobes * (a - phase)));
