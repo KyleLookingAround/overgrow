@@ -69,7 +69,7 @@ The session first started on this brief (`session_01E6NetxNBkDRCNjQRcKNBS5`, sta
 - merged #90 after one re-run (the allotment day's 0.5 ms budget read 0.56 ms on a docs-only PR), and opened this note with the playbook fix;
 - found at about 13:55: #88 merged at 13:41; #89 (part 9, $22.50, 499k context) and #72 ($3.70) idle in CI with no wake booked, and neither can book one. #72's run 36723547788 failed `scene: at 1× the night still falls` ("from a day (false)": the case began at night).
 
-**The next coordinator is started by the owner from claude.ai on this brief.** In its first turn it does the steps above as written: book the heartbeat, then retire the sixth coordinator and `archive_session` the depth-8 one (`session_01E6NetxNBkDRCNjQRcKNBS5`). Parts it starts sit at depth 1 and can book their own wakes.
+**The next coordinator is started by the owner from the web on this brief.** In its first turn it does the steps above as written: book the heartbeat, then retire the sixth coordinator and `archive_session` the depth-8 one (`session_01E6NetxNBkDRCNjQRcKNBS5`). Parts it starts sit at depth 1 and can book their own wakes.
 
 ## What's left for others
 
