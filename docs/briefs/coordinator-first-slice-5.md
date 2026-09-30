@@ -69,7 +69,7 @@ This brief keeps the second, third and fourth coordinator briefs in force (`docs
 
 - The project notes, `docs/briefs/coordinator-first-slice-4.md` (decisions 17 to 21 and the plan it started), then `node tools/graph.mjs coordinator` and only what it lists.
 - The `coordinator`, `feature` and `steward` playbooks.
-- `docs/lessons/70-step-up.md`, and the fourth coordinator's look back, `docs/lessons/74-coordinator-4.md`.
+- `docs/lessons/70-step-up.md`, and the fourth coordinator's look back, `docs/lessons/73-coordinator-4.md`.
 
 ## How it fits and grows
 
