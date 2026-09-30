@@ -344,7 +344,8 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
         movers.update();
       }
       lastMovers = out;
-      night.alpha = dusk * pal.nightMax;
+      // a quiet night passing quickly dims the map a little more (not under reduced motion: the moon alone shows it)
+      night.alpha = dusk * (pal.nightMax + (v.quiet && !still ? pal.nightQuiet : 0));
       // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
       ring.clear();
       const ringAt = pulse ?? (performance.now() < highlight ? PLAYER_PLOT : null), box = ringAt ? boxes.get(ringAt) : undefined;
