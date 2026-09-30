@@ -4,8 +4,8 @@ The garden's art pass and the style kit (#72, from `docs/briefs/map-art.md`).
 
 ## Numbers
 
-- Cost: (filled in before the merge) against a $25 estimate.
-- Started about 00:05 on 30 Sep; the PR opened at (filled in); pushes (filled in); red CI runs (filled in); merges from `main` (filled in).
+- Cost: about $38 against a $25 estimate, with about 440k of context used. About a third of it went on the two rounds the estimate didn't hold: three merges from `main` by hand (parts 7's allotment and #66, then the shorter year, then a docs-only one), the allotment moved onto the kit at the coordinator's ask, and a resume after the account's usage limit stopped the session for two and a half hours (01:27 to 03:50).
+- Started about 00:00 on 30 Sep; the PR opened at 01:12; 14 commits over 4 pushes before CI's first run; red CI runs: none; merges from `main`: three by hand (the Catch up workflow hit conflicts in the map's files each time).
 - Hours waiting on the owner: none. The brief approved the spec in advance.
 
 ## Went well
@@ -17,6 +17,7 @@ The garden's art pass and the style kit (#72, from `docs/briefs/map-art.md`).
 
 ## Lessons
 
+- **Never `pkill -f` a pattern in your own command line.** Stopping a stale check with `pkill -f "npm run check"` killed the shell running it, as the feature playbook already warns; kill by pid from `ps`. → the warning stands in the `feature` playbook; this is the second time it bit.
 - A paused view moves only on a tick of more than four steps: a screenshot script that steps an hour at a time shows the hour before. The `scene` check knew; the script had to learn it.
 - **Measure the crowd, not only the garden.** The walk cycle cost nothing on six people and half again on the phone bench's 5,000: per-figure work and re-uploaded texture frames scale with the count. A level-of-detail rule (a crowd past 200 glides through a position-only container) gave the budget back. Measure both figures the brief names before opening the PR, not after.
 - **A fresh review earns its cost on drawing code.** It found a texture swap that left the old quads, leaves drawn over roofs, and a delight that opened the wrong Explain card: none of them fail a check, all of them a player would see.
