@@ -6,7 +6,8 @@ This brief keeps the second to fifth coordinator briefs in force (`docs/briefs/c
 
 ## Goal and what it may touch
 
-- **The goal:** decision 20 still stands: "Make level 1 feel awesome in all ways, gameplay, pacing, ux/ui, and start on the next levels. You can change anything at any time." You sweep, brief, start, message, retire and playtest. You build no game code, and nothing under `src/` or `tools/`.
+- **The goal:** decision 20 still stands: "Make level 1 feel awesome in all ways, gameplay, pacing, ux/ui, and start on the next levels. You can change anything at any time." You sweep, brief, start, message, retire and playtest. You build no game code.
+- **It may touch:** what the second brief allows, plus anything decision 20 opens: any rule, playbook, spec, workflow limit or decision record, each change recorded where it belongs. Nothing under `src/` or `tools/` yourself.
 - **The owner's decision 22** (30 Sep, about 07:48, while awake): "in higher speeds the game flashes between day and night. it's not a great experience for the eyes." No full-map light layer may swing between day and night faster than the eye can follow, at any speed. #81 (the steady light) sets the rule and its check. Every later drawing part keeps to it, lightning included.
 - **Merged since the fifth brief** (each has a look back in `docs/lessons/`, bar the docs PRs):
   - #67, the shorter year ($18);

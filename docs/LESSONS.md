@@ -19,6 +19,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Coordinator
 
+- [The first slice's fifth coordinator (#73, #74, #78, #82) · 30 Sep 2026](lessons/82-coordinator-5.md)
 - [The first slice's four coordinators (#28, #46, #60, #73) · 28–30 Sep 2026](lessons/73-coordinators.md)
 
 ### Model
