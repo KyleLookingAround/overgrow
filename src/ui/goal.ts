@@ -7,7 +7,7 @@
 // its own short line.
 import {CROPS, WINTER_IDS, type CropId} from '../data/crops';
 import type {Requirement} from '../data/ladder-rules';
-import {UPGRADES, type UpgradeId} from '../data/shed';
+import {firstStep, RUNGS, UPGRADES, type UpgradeId} from '../data/shed';
 import {unfolded} from '../data/unfold';
 import {calendar} from '../sim/clock';
 import {gardenStatus, GOAL, type Goal} from '../sim/goal';
@@ -97,10 +97,35 @@ export function goOf(step: Step | null): Go {
 /** A thing in the shed as the next step: bought if the purse can pay and the shed would sell it, saved for (the Shed
  *  opened at it) if only the money is short, or null if something else stands in the way (no room on the lawn, no bed
  *  in the open for a cover). */
-function shedStep(nodes: GraphNode[], id: UpgradeId, purse: number, why: string): Step | null {
-  const u = UPGRADES[id], why_not = refuseBuy({nodes: Object.fromEntries(nodes.map((n) => [n.id, n])), edges: [], rev: 0}, id);
-  if (!why_not) return {text: `Buy the ${lower(u.name)}: ${why}`, cmds: [{type: 'buy', id}]};
-  return purse < u.price && why_not === `${u.name} costs £${u.price.toFixed(2)}` ? {text: `Save for the ${lower(u.name)}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id} : null;
+function shedStep(nodes: GraphNode[], aim: UpgradeId, purse: number, why: string, seen?: readonly string[]): Step | null {
+  // a big buy in steps: the first step not yet bought (the hen house before the hens), once it's on offer
+  const kit = (nodes.find((n) => n.id === SHED)?.levers.kit as unknown as Kit | undefined) ?? NO_KIT, id = firstStep(aim, kit.owned);
+  if (seen && !unfolded(seen, `shed.${id}`)) return null;
+  const u = UPGRADES[id], why_not = refuseBuy(graphOf(nodes), id);
+  if (!why_not) return {text: `Buy the ${lower(u.name)}: ${id === aim ? why : lower(u.saves)}`, cmds: [{type: 'buy', id}]};
+  return purse < u.price && why_not === `${u.name} costs £${u.price.toFixed(2)}` ? {text: `${u.name}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id} : null;
+}
+const graphOf = (nodes: GraphNode[]) => ({nodes: Object.fromEntries(nodes.map((n) => [n.id, n])), edges: [], rev: 0});
+
+/** The next rung on the money ladder (src/data/shed.ts's RUNGS): the first on offer that the garden hasn't got and could
+ *  take, whether or not the purse can pay for it yet. Null when the ladder's climbed as far as it's shown. */
+export function nextRung(snap: {nodes: GraphNode[]; seen: readonly string[]}): UpgradeId | null {
+  const g = graphOf(snap.nodes), kit = (snap.nodes.find((n) => n.id === SHED)?.levers.kit as unknown as Kit | undefined) ?? NO_KIT;
+  for (const id of RUNGS) {
+    const u = UPGRADES[id];
+    if (!unfolded(snap.seen, `shed.${id}`) || (u.kept && kit.owned.includes(id))) continue;
+    const r = refuseBuy(g, id);
+    if (r === null || r === `${u.name} costs £${u.price.toFixed(2)}`) return id;
+  }
+  return null;
+}
+/** The ladder's next rung as the goal bar's step: bought when the purse can pay ("Do it"), else saved for (the Shed
+ *  opened at it), with the gap: "Cold frame: £12 to go". */
+export function rungStep(snap: {nodes: GraphNode[]; seen: readonly string[]}): Step | null {
+  const id = nextRung(snap);
+  if (!id) return null;
+  const u = UPGRADES[id], purse = snap.nodes.find((n) => n.id === 'kitchen')?.stocks.money?.amount ?? 0;
+  return purse >= u.price ? {text: `Buy the ${lower(u.name)} (£${u.price.toFixed(2)})`, cmds: [{type: 'buy', id}]} : {text: `${u.name}: £${Math.ceil(u.price - purse)} to go`, cmds: [], shed: id};
 }
 
 /**
@@ -139,8 +164,8 @@ export function nextStep(snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>, key: 
     // a big buy that makes more food this year, bought or saved for: eggs most days, then a crop under glass (the fruit
     // cage crops only from its second summer, so it's no answer to this year's Output)
     for (const id of ['hens', 'greenhouse'] as const)
-      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id)) {
-        const s = shedStep(nodes, id, purse, lower(UPGRADES[id].saves));
+      if (!kit.owned.includes(id)) {
+        const s = shedStep(nodes, id, purse, lower(UPGRADES[id].saves), snap.seen);
         if (s) return s;
       }
   }
@@ -160,8 +185,8 @@ export function nextStep(snap: Pick<Snapshot, 'nodes' | 'seen' | 'hours'>, key: 
     if (pick && cold) return {text: `Plan ${pick} in ${bedName(cold)}: it’s picked through the winter`, cmds: [plan(cold, 'sow', pick)]};
     // a longer season at each end, so the beds feed the household in the thin weeks: cloches, the frame, then glass
     for (const id of ['cloches', 'cold-frame', 'greenhouse'] as const)
-      if (unfolded(snap.seen, `shed.${id}`) && !kit.owned.includes(id)) {
-        const s = shedStep(nodes, id, purse, 'a longer season at each end');
+      if (!kit.owned.includes(id)) {
+        const s = shedStep(nodes, id, purse, 'a longer season at each end', snap.seen);
         if (s) return s;
       }
   }
@@ -198,13 +223,18 @@ export function goalLine(snap: Pick<Snapshot, 'nodes' | 'kitchen' | 'seen' | 'ho
   }
   const st = statusOf(snap), weeks = Math.round(st.days / 7), of = Math.round(st.windowDays / 7);
   if (!st.days) {
-    const step = nextStep(snap, 'output'), action = step?.text ?? null;
+    const step = nextStep(snap, 'output') ?? rungStep(snap), action = step?.text ?? null;
     return {text: 'The allotment: the committee looks at your garden’s whole year, from its first day', action, step, rows: null, window: 0, verb: action ?? 'Keep every bed sown and picked', ring: 0, go: goOf(step)};
   }
-  const step = st.binding ? nextStep(snap, st.binding.key) : null, action = step?.text ?? null;
+  // the requirement's own next action, or else the money ladder's next rung, so the bar always names something to do
+  // (a big buy to save for gives way to a cheaper rung first: the ladder climbs one step at a time)
+  let own = st.binding ? nextStep(snap, st.binding.key) : null;
+  const rung = rungStep(snap), rungId = nextRung(snap);
+  if (own?.shed && rung && rungId && UPGRADES[rungId].price < UPGRADES[own.shed].price) own = null;
+  const step = own ?? rung, action = own?.text ?? null;
   const held = st.binding ? `${valueText(st.binding)}: ${action ?? RAISE[st.binding.key]}` : 'All three met';
   const window = Math.min(1, st.days / st.windowDays), near = st.requirements.reduce((a, r) => a + Math.min(1, r.progress), 0) / Math.max(1, st.requirements.length);
-  const verb = action ?? (st.binding ? RAISE[st.binding.key][0]!.toUpperCase() + RAISE[st.binding.key].slice(1) : 'Keep it up: all three are met');
+  const verb = step?.text ?? (st.binding ? RAISE[st.binding.key][0]!.toUpperCase() + RAISE[st.binding.key].slice(1) : 'Keep it up: all three are met');
   return {text: st.full ? held : `${held} (${weeks} of ${of} weeks so far)`, action, step, rows: st.requirements, window, verb, ring: window * near, go: goOf(step)};
 }
 

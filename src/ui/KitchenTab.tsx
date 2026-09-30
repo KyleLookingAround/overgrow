@@ -2,8 +2,10 @@
 // spec docs/specs/ui-overhaul.md): the day's ask by group and what met it at the last meal, the last week's share, the week's shop (the
 // pay, the shop and the rest of life, the groceries the garden saved, the days of food in the cupboard and the shop
 // food's footprint), what's in the kitchen and at the honesty box, and the running totals: picked, eaten, sold (and
-// what the box took), groceries saved and wasted. Each number opens its Explain card; the money shows once it has
+// what the box took), groceries saved and wasted; and, once money has unfolded, the box's policy (round four): only what's
+// spare, or kept stocked. Each number opens its Explain card; the money shows once it has
 // unfolded, groceries saved and the footprint with theirs (src/data/unfold.ts).
+import type {Command} from '../sim/commands';
 import {CROPS, type Group} from '../data/crops';
 import {VEG} from '../data/household';
 import {MEAL_HOUR} from '../data/kitchen';
@@ -67,7 +69,7 @@ function Week({nodes, see, onExplain}: {nodes: GraphNode[]; see: (key: string) =
   );
 }
 
-export function KitchenTab({ledger, nodes, see, onExplain}: {ledger: Ledger; nodes: GraphNode[]; see: (key: string) => boolean; onExplain: (cause: string, at: string | null) => void}) {
+export function KitchenTab({ledger, nodes, see, onExplain, send}: {ledger: Ledger; nodes: GraphNode[]; see: (key: string) => boolean; onExplain: (cause: string, at: string | null) => void; send?: (cmd: Command) => void}) {
   const purse = see('garden.money'), saved = householdLedgerIn(nodes.find((n) => n.id === HOUSEHOLD)).saved;
   const ask = kitchenAsk(people(membersIn(nodes.find((n) => n.id === HOUSEHOLD))));
   const ate = (g: Group) => Object.entries(ledger.ate).reduce((s, [p, kg]) => s + (Object.values(CROPS).find((c) => c.product === p)?.group === g ? kg : 0), 0);
@@ -105,6 +107,14 @@ export function KitchenTab({ledger, nodes, see, onExplain}: {ledger: Ledger; nod
       <section class="place">
         <Held n={nodes.find((n) => n.id === 'kitchen')} title="In the kitchen" empty="Nothing yet: the first pick goes here." />
         <Held n={nodes.find((n) => n.id === 'gate')} title="In the honesty box" empty="Nothing: surplus goes to the box." />
+        {purse && send && (
+          // the box's policy (round four): only what's spare, or kept stocked for money now, eggs and jars too
+          <label class="check box-stock">
+            <input type="checkbox" checked={nodes.find((n) => n.id === 'kitchen')?.levers.box === 'stock'}
+              onChange={(e) => send({type: 'policy', node: 'kitchen', lever: 'box', value: (e.target as HTMLInputElement).checked ? 'stock' : 'spare'})} />
+            Keep the box stocked: money now, a little less veg at home
+          </label>
+        )}
         <h4>Since the start</h4>
         <Rows
           rows={[

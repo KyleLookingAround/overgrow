@@ -13,8 +13,14 @@ export const KEEP_DAYS = 21;
  *  shed, for up to five months of the household's ask, not sold at the gate (RHS, "Storing fruit and vegetables"). */
 export const STORE = {keeps: 60, days: 150};
 
-/** The honesty box: £ per kg, and how much the lane's passers-by take a day (more at weekends). */
-export const BOX = {price: 2.5, perDay: 2, weekend: 3.5};
+/** The honesty box: £ per kg, how much the lane's passers-by take a day (more at weekends), and what "keep it stocked"
+ *  fills it to, kg: about a day and a half of the lane's buying. */
+export const BOX = {price: 2.5, perDay: 2, weekend: 3.5, stock: 3, keepDays: 2, keepJars: 10};
+/** What goes to the box (round four): only what the kitchen won't eat while it's fresh (the default), or, kept stocked, a
+ *  share of the fresh produce beyond `keepDays` of the household's ask, eggs, and the preserves beyond `keepJars` kg, for
+ *  the purse now (what stores through the winter stays in the shed); the household buys what it then lacks at the shop. A market gardener's trade: cash now for less of the week's veg from the garden. */
+export type BoxPolicy = 'spare' | 'stock';
+export const BOX_POLICIES: BoxPolicy[] = ['spare', 'stock'];
 
 /** The garden's food beyond its veg: the hens' eggs and the fruit cage's berries. Each stands in for some of a group of the
  *  rest of the diet the household would otherwise buy (src/data/household.ts's BASKET): up to `perWeek` kg a person a
@@ -34,11 +40,11 @@ export const GLUT = {kg: 3, gapDays: 5};
  *  it to a neighbour. */
 export type GlutPolicy = 'sell' | 'preserve' | 'give';
 export const GLUT_POLICIES: GlutPolicy[] = ['sell', 'preserve', 'give'];
-/** Preserving: about 25 minutes of washing, blanching and bagging a kg (WRAP, "Love Food Hate Waste": freezing veg), jars,
+/** Preserving (`box`: a jar of chutney or jam at the honesty box about £2 for 400 g, `jarKg`): about 25 minutes of washing, blanching and bagging a kg (WRAP, "Love Food Hate Waste": freezing veg), jars,
  *  bags and the freezer's electricity about 30p a kg, keeping about ten months, up to a freezer drawer's 20 kg; eaten
  *  in place of fresh veg the garden can't meet, most in the lean months. A household that preserves or gives its gluts
  *  keeps only `freshDays` of the ask fresh and deals with the rest while it's fresh. WRAP counts fresh veg as a third of household
  *  food waste, most of it thrown out for not being used in time. */
-export const PRESERVE = {hoursPerKg: 0.4, gbpPerKg: 0.3, keeps: 300, cap: 20, freshDays: 3};
+export const PRESERVE = {hoursPerKg: 0.4, gbpPerKg: 0.3, keeps: 300, cap: 20, freshDays: 3, box: 5, jarKg: 0.4};
 /** Given over the fence: the neighbour's thanks, counted as goodwill (the allotment's currency, part 8). */
 export const GIFT = {goodwillPerKg: 1};

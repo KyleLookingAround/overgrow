@@ -10,7 +10,7 @@ import type {State} from './state';
 /** The one key the game saves under (the project notes). */
 export const SAVE_KEY = 'overgrow-save-v1';
 /** The version this build writes. Raise it whenever the saved shape changes (with a migration step once released). */
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 
 /** What's written: the state less what's runtime only, with the generator's state in place of the generator. */
 export type SaveFile = Omit<State, 'rng' | 'rejected' | 'errors' | 'effects'> & {version: number; rng: number};
@@ -47,7 +47,7 @@ export function toSave(s: State): string {
   const file: SaveFile = {
     version: SAVE_VERSION, seed: s.seed, rng: s.rng.state(), hours: s.hours, level: s.level, speed: s.speed, home: s.home,
     graph: s.graph, flows: s.flows, activities: s.activities, ladder: s.ladder, upgrades: s.upgrades, laws: s.laws,
-    goals: s.goals, settings: s.settings, seen: s.seen, answered: s.answered,
+    goals: s.goals, settings: s.settings, seen: s.seen, unfolding: s.unfolding, answered: s.answered,
   };
   return JSON.stringify(file);
 }
@@ -71,10 +71,10 @@ export function fromSave(text: string): State {
   }
   if (typeof f.home !== 'string' || !f.graph.nodes[f.home]) throw new SaveError('the household is missing');
   for (const k of ['flows', 'activities', 'ladder', 'upgrades', 'laws', 'seen'] as const) if (!Array.isArray(f[k])) throw new SaveError(`${k} isn't a list`);
-  for (const k of ['goals', 'settings', 'answered'] as const) if (!isObj(f[k])) throw new SaveError(`${k} is missing`);
+  for (const k of ['goals', 'settings', 'answered', 'unfolding'] as const) if (!isObj(f[k])) throw new SaveError(`${k} is missing`);
   return {
     seed: f.seed, rng: rng(f.rng), hours: f.hours, level: f.level, speed: f.speed, home: f.home, graph: f.graph, flows: f.flows,
     activities: f.activities, ladder: f.ladder, upgrades: f.upgrades, laws: f.laws, goals: f.goals, settings: f.settings,
-    seen: f.seen, answered: f.answered, rejected: null, errors: [], effects: [],
+    seen: f.seen, unfolding: f.unfolding, answered: f.answered, rejected: null, errors: [], effects: [],
   };
 }

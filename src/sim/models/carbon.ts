@@ -27,7 +27,7 @@
 //   the beds' organic matter up, and dug ground losing carbon over decades.
 import {PRODUCE} from '../../data/crops';
 import {BAGGED, DIG} from '../../data/garden';
-import {BIN} from '../../data/shed';
+import {BIN, COOP} from '../../data/shed';
 import {owns} from '../kit';
 import type {System, TickContext} from '../clock';
 import {qty, type GraphNode} from '../graph';
@@ -151,7 +151,9 @@ function heapDay(c: TickContext, heap: GraphNode, temp: number, days: number) {
   const waste = heap.stocks[HEAPED.waste]?.amount ?? 0;
   if (waste <= 1e-9) return;
   // a closed bin keeps the heap warmer and moister: faster, less nitrogen lost, a little more methane (src/data/shed.ts)
-  const bin = owns(c.graph, 'compost-bin'), pace = bin ? BIN.pace : 1, nLost = bin ? BIN.nLost : N_LOST, gases = bin ? BIN.gases : 1;
+  // an empty hen house keeps its finished compost dry until the hens come: less nitrogen washed out
+  const bin = owns(c.graph, 'compost-bin'), pace = bin ? BIN.pace : 1, gases = bin ? BIN.gases : 1;
+  const dry = !bin && owns(c.graph, 'coop') && !owns(c.graph, 'hens'), nLost = bin ? BIN.nLost : dry ? COOP.nLost : N_LOST;
   const kg = waste * (1 - Math.exp(-K_HEAP * pace * tempFactor(temp) * (days / 365)));
   if (kg <= 1e-9) return;
   c.flow({what: 'composting', unit: 'kgWaste', product: 'greens', amount: qty(kg, 'kgWaste'), from: at(HEAP, HEAPED.waste), to: {boundary: 'decay'}});
