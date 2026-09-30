@@ -1,3 +1,4 @@
+Theme: parts
 # The UI and UX overhaul (#68) · 30 Sep 2026
 
 - **Numbers:**
@@ -16,6 +17,6 @@
   - **A media-query-driven component must read its condition once.** The fullscreen button hid itself the moment the page went fullscreen (`display-mode: fullscreen` matched) and the check's second click timed out. Read at mount.
   - **44 px targets move a fold.** The four speeds at 44 px each no longer fit a 640 px bar; the fold moved to 700 px. A tap-target change is a row change too (the UI record's rule 3).
   - **Check the tap's coordinates after the layout moves.** The sheet's button moved when the sheet grew, and the second tap at the old spot landed on the map. → the `layout` check re-measures the button before each tap.
-  - **Pull before you push, every time.** Two pushes were rejected because the Catch up workflow had merged `main` into the branch on GitHub while the local branch merged the same `main` itself. The steward playbook already says so; the cost was one aborted merge and one clean re-merge.
+  - **Pull before you push, every time:** two pushes were rejected because the Catch up workflow had merged `main` on GitHub first. → already in `steward` "Catching up with `main`".
   - **A parallel part that rewrites the same files costs a second resolution.** Part 7 and the shorter year landed while this PR rewrote the stylesheet, the app and the layout check: nine conflicts, resolved by taking this branch's version and folding the other's additions in by hand (the moon, the six speeds, the allotment's panel). A shell rewrite is best merged before the parts that sit on it, or briefed with them.
   - **WebKit isn't here.** Only Chromium is installed and the brief says not to download browsers, so the home-screen install, the status bar style and the notch's insets wait for a real iPhone or iPad; the PR lists them.
