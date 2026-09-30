@@ -98,6 +98,19 @@ export const UNFOLD: Record<string, Unfold> = {
     causes: ['bare-root season']},
   // the temperature matters once a frost reaches a crop it can hurt
   'garden.weather': {what: 'the temperature', why: 'A frost reached a crop: the temperature now shows.', causes: ['frost damage']},
+  // the allotment's first season (part 8), one at a time: the neighbours on the first day; the neglected plot offered,
+  // with the helper's offer, after a fortnight; the trough the first time it leaves a plot short, and the vote a
+  // neighbour puts with it; trust with the first week of auditing the helper; the shed with the first surplus, and
+  // goodwill with the first swap
+  'allotment.neighbours': {what: 'the neighbours, a face each', why: 'Eleven households garden here, each as their lives allow.', causes: ['a neighbour’s harvest']},
+  'agency.helper': {what: 'the second plot, and a neighbour’s offer to help', why: 'The neglected plot’s holder has given it up: it’s yours if you want it.',
+    causes: ['second plot offered']},
+  'allotment.trough': {what: 'the trough, its queue and who went short', why: 'A dry spell: twelve plots, one trough, and the back of the queue went short.',
+    causes: ['trough short']},
+  'committee.panel': {what: 'the committee and its vote', why: 'A neighbour has put the water rota to the committee: you have a vote.', causes: ['motion put']},
+  'agency.trust': {what: 'how far you trust the helper’s report', why: 'An audit compares what they said with what you saw.', causes: ['audit']},
+  'allotment.shed': {what: 'the swap shed', why: 'The plot gave more of something than the household needs: swap it.', causes: ['surplus']},
+  'agency.goodwill': {what: 'each neighbour’s goodwill', why: 'A swap is a favour: the neighbours notice.', causes: ['from the swap shed']},
 };
 
 /** Cards answered once a save (src/sim/commands.ts): the first plan, the one "try faster" nudge, the garden's year done
@@ -114,6 +127,7 @@ export const GATES: {lever: string; key: string; except?: string; only?: string}
   {lever: 'edge', key: 'garden.flowers', except: 'none'},
   {lever: 'sow', key: 'garden.flowers', only: 'marigolds'},
   {lever: 'winter', key: 'garden.winter', except: 'none'},
+  {lever: 'swap', key: 'allotment.shed'},
 ];
 
 /** Whether a key has unfolded: it must be in the table and seen. */

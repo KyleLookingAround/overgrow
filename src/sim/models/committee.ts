@@ -1,7 +1,7 @@
 // The allotment committee: motions, each member's vote from their goals, habit and goodwill towards the proposer,
 // persuasion by hours spent talking, political capital spent on proposing and replenished by goodwill, the rules a passed
 // motion sets and what they cost the plots, and burning garden waste against composting it. Pure functions over the
-// graph's typed quantities, and a `committee` system, not yet listed in src/sim/systems.ts (part 10 adds it).
+// graph's typed quantities, and a `committee` system, listed in src/sim/systems.ts at the allotment (part 8's first vote).
 // docs/systems/committee.md says how it works.
 //
 // Sources: the founding spec's coalition and veto-player models (a vote is members' goals as weights on a motion's effects,
@@ -127,10 +127,11 @@ export function aftermath(c: Committee, t: Tally, you: Vote, proposedByYou: bool
   return out;
 }
 
-/** A rule after a motion has passed: the rota goes to fixed slots, bonfires are banned, one more plot goes to the bees, a hosepipe rule comes on. */
+/** A rule after a motion has passed: the rota goes to fixed slots (or to shares by need), bonfires are banned, one more plot goes to the bees, a hosepipe rule comes on. */
 export function applyMotion(r: Rules, motion: MotionId): Rules {
   switch (motion) {
     case 'waterRota': return {...r, rota: 'slots'};
+    case 'waterNeed': return {...r, rota: 'need'};
     case 'bonfireBan': return {...r, bonfires: 'banned'};
     case 'plotToBees': return {...r, bees: Math.min(MAX_BEES, r.bees + 1)};
     case 'hosepipe': return {...r, hosepipe: 'on'};
@@ -181,7 +182,7 @@ export interface Effects {
   plots: number;
   pollination: number;
 }
-/** What the rules in force do to the plots, at a dryness of the season. Open first-come queues cost nothing in a wet week and most in the driest; fixed slots cost a flat half hour. */
+/** What the rules in force do to the plots, at a dryness of the season. Open first-come queues cost nothing in a wet week and most in the driest; fixed slots, or shares by need, cost a flat half hour. */
 export function effects(r: Rules, dryness = 0): Effects {
   return {
     queueHours: r.rota === 'open' ? RULE.queueBase + RULE.queue * clamp(dryness, 0, 1) : RULE.slot,
@@ -239,8 +240,8 @@ export function proposeOn(g: Graph, motion: MotionId, o: Hold, rng: Rng): Tally 
 
 /**
  * The committee system: each week its political capital comes back with the site's goodwill, and the goodwill stock shows
- * the mean of its members' relationships. Nothing here is a vote: a vote is a command (`proposeOn`). Not yet listed in
- * src/sim/systems.ts.
+ * the mean of its members' relationships. Nothing here is a vote: a vote is a command (`proposeOn`, or src/sim/season.ts's
+ * `vote` on a motion a member put). Listed in src/sim/systems.ts at level 2.
  */
 export const committee: System = {
   name: 'committee',

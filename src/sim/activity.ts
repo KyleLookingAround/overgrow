@@ -21,8 +21,9 @@ export interface Activity {
   /** Game hours. */
   start: number;
   end: number;
-  /** What's carried, if anything: the can, a basket of salad. */
-  carry?: {unit: Unit; amount: number; product?: string};
+  /** What's carried, if anything: the can, a basket of salad; `of`, what the load is measured against (a helper's barrow
+   *  against what they said they took). */
+  carry?: {unit: Unit; amount: number; product?: string; of?: number};
 }
 
 export interface Placed {
