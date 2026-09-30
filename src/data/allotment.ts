@@ -46,7 +46,7 @@ export const SHARED: {id: string; kind: string; name: string; box: Box; land: La
   {id: 'path-2', kind: 'path', name: 'The bottom path', box: {x: X0, y: 2 * TILE.h + ROW_PATH + 0.25, w: WIDTH - X0, h: ROW_PATH - 0.5}, land: 'path'},
   {id: 'trough', kind: 'trough', name: 'The trough', box: {x: X0 + 2 * (TILE.w + GAP) - 2.3, y: TILE.h + 0.35, w: 3.6, h: 1.3}, land: 'water'},
 ];
-/** The trough's water when the allotment opens, and what it holds, L (a galvanised trough of about 1 m³, part 8's). */
+/** The trough's water when the allotment opens, and what it holds, L (a galvanised trough of about 1 m³; src/sim/season.ts shares it out). */
 export const TROUGH_L = {start: 600, cap: 1000};
 
 /** A plot's rent, £ a day: about £100 a year for a full ten-rod plot (the National Allotment Society's rough median). */
@@ -105,5 +105,5 @@ export const LEVER_DAYS: Record<keyof typeof PLAN_LEVERS, number> = {care: 0, mi
  */
 export const NEIGHBOUR_RANGE = {output: [0.6, 1.4] as const, health: [38, 72] as const, jitter: 0.15, neglected: 35};
 
-/** The allotment's length, game days: about two years (the owner's decision 17), for part 8 to fill. */
+/** The allotment's length, game days: about two years (the owner's decision 17), which part 8's first season starts to fill. */
 export const ALLOTMENT_DAYS = 730;

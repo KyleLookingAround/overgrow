@@ -3,11 +3,11 @@
 // `allotment` system that runs the level each day and week: the plan onto the sealed node, the plots' food to their
 // households, the people on their plots, the household's week and the level's own history. The sealed nodes themselves
 // tick by `sealedSystem` (src/sim/ladder.ts). The founding spec's "The carry-over rule" and "The allotment";
-// docs/systems/allotment.md says how it works and what part 8 adds.
+// docs/systems/allotment.md says how it works; part 8's first season is src/sim/season.ts.
 //
 // Sources: as src/data/allotment.ts's (the National Allotment Society and RHS on plots, care, rent and yields; the
 //   fertiliser literature on bought feed's carbon), and the household model's time (src/sim/models/household.ts).
-// Simplifies: a plot is one sealed node (no beds, no weather, no pests until part 8); the neighbours' plots are drawn
+// Simplifies: a plot is one sealed node (no beds; the weather, water and pests reach it through src/sim/season.ts); the neighbours' plots are drawn
 //   once from the seed and then only tick; the household eats what the plot gives up to its week's veg and the rest
 //   leaves as given away; the people on the map walk to their plots on the days their plots gave food, for the hours
 //   their households have.
@@ -17,7 +17,8 @@ import {
   ALLOTMENT_DAYS, CARE, FEEDS, LEVER_DAYS, MIXES, NEIGHBOUR_RANGE, PLAN_LEVERS, PLAYER_PLOT, PLOTS, RENT_PER_DAY, SHARED, TROUGH_L, plotBox, plotId,
   type Care, type Feed, type Mix,
 } from '../data/allotment';
-import type {Habit} from '../data/agency';
+import {TRUST, type Habit} from '../data/agency';
+import {CAPITAL, START_RULES} from '../data/committee';
 import {BASKET, PLOT, PRICE, VEG, type FoodGroup} from '../data/household';
 import {INFLATE_RELIABILITY_TOLERANCE, PRODUCT_GROUPS, type ProductGroup} from '../data/ladder-rules';
 import type {Activity} from './activity';
@@ -29,7 +30,10 @@ import {
   type LadderTotals, type SealPlan, type SealedNode,
 } from './ladder';
 import {allotment as people, plotHours} from './models/agency';
-import {basket, householdWage, keptness, membersOf, restSpend, people as heads, type Household, type Member} from './models/household';
+import {CAPITAL_STOCK, COMMITTEE, GOODWILL_STOCK, RULES} from './models/committee';
+import {HOURS_LEFT} from './models/labour';
+import {isSecond, keptOf, playerLand, seasonNodes, SHEDS} from './season';
+import {basket, householdWage, keptness, membersOf, restSpend, people as heads, weekGardenHours, type Household, type Member} from './models/household';
 import {rng} from './random';
 import {ATMOSPHERE, type State} from './state';
 
@@ -48,7 +52,7 @@ export interface Below {
   graph: Graph;
 }
 
-/** Who holds a neighbour's plot: the household model's person, in brief (part 8 adds the full agent). */
+/** Who holds a neighbour's plot, in brief, for the plot list: the full agent is their own node (src/sim/season.ts). */
 export interface Holder {
   id: string;
   name: string;
@@ -163,9 +167,8 @@ export function neighbourPlots(seed: number, base: LadderTotals): {holder: Holde
       ...base, output, health, reliability: clamp(base.reliability * luck(), 0, 100), upkeep: base.upkeep + RENT_PER_DAY * luck(),
       carbon: base.carbon * luck(), land: {...base.land}, outputByGroup: scaleTo(base.outputByGroup ?? basketMix(output), output),
     };
-    // a tidy plot's ground gets better and a lazy one's worse, a point a season at most (the sealing rules)
-    const lean = a.habit === 'tidy' ? 8 : a.habit === 'lazy' ? -8 : a.habit === 'competitive' ? 4 : 0;
-    const sealed = sealNode(totals, 0, {health: clamp(health + lean - (neglected ? 10 : 0), 0, 100)});
+    // where its Health heads comes from its holder's week (src/sim/season.ts), a point a season at most (the sealing rules)
+    const sealed = sealNode(totals, 0);
     return {id: a.plot!, sealed, holder: {id: a.id, name: a.name, habit: a.habit, hours: hours[i]!, neglected}};
   });
 }
@@ -183,27 +186,44 @@ export function allotmentGraph(seed: number, garden: SealedNode, home: {money: n
   nodes.push(plot(PLAYER_PLOT, 0, 'Your plot', {
     [SEALED.lever]: mine as unknown as LeverValue, base: base as unknown as LeverValue, [SEALED.payer]: HOME, ...plan,
   }, base.land));
-  for (const n of neighbourPlots(seed, base)) {
+  const drawn = neighbourPlots(seed, base), season = seasonNodes(seed, drawn.map((n) => ({id: n.id, base: n.sealed.totals.output})));
+  for (const n of drawn) {
     const i = Number(n.id.slice(5)) - 1;
     n.sealed.at = hours;
-    nodes.push(plot(n.id, i, `${n.holder.name}’s plot`, {[SEALED.lever]: n.sealed as unknown as LeverValue, holder: n.holder as unknown as LeverValue}, n.sealed.totals.land));
+    nodes.push(plot(n.id, i, `${n.holder.name}’s plot`, {
+      [SEALED.lever]: n.sealed as unknown as LeverValue, holder: n.holder as unknown as LeverValue, kept: season.kept[n.id] as unknown as LeverValue,
+    }, n.sealed.totals.land));
   }
+  // the neighbours themselves (src/sim/models/agency.ts), and the committee they sit on (src/sim/models/committee.ts)
+  nodes.push(...season.neighbours);
+  nodes.push({
+    id: COMMITTEE, kind: 'committee', name: 'The committee', box: null, land: {built: 0},
+    stocks: {[CAPITAL_STOCK]: {unit: 'support', amount: qty(CAPITAL.start, 'support')}, [GOODWILL_STOCK]: {unit: 'support', amount: qty(TRUST.baseline, 'support')}},
+    levers: {[RULES]: {...START_RULES} as unknown as LeverValue, motion: null},
+  });
   for (const p of SHARED) {
     const spec: NodeSpec = {id: p.id, kind: p.kind, name: p.name, box: {...p.box}, land: {[p.land]: p.box.w * p.box.h}};
-    if (p.id === 'trough') spec.stocks = {water: {unit: 'L', amount: qty(TROUGH_L.start, 'L'), cap: qty(TROUGH_L.cap, 'L')}};
+    if (p.id === 'trough') (spec.stocks = {water: {unit: 'L', amount: qty(TROUGH_L.start, 'L'), cap: qty(TROUGH_L.cap, 'L')}}), (spec.levers = {today: null});
+    // the swap shed's shelf (src/sim/season.ts)
+    if (p.id === SHEDS) (spec.stocks = {[SEALED.food]: {unit: 'kgFood', amount: qty(0, 'kgFood'), product: SEALED.product}}),
+      (spec.levers = {shelf: {byGroup: {}, left: 0, took: 0, first: null} as unknown as LeverValue});
     nodes.push(spec);
   }
   const ledger: AllotmentLedger = {since: hours, week: {}, grown: 0, eaten: 0, given: 0, saved: 0, last: null};
   const goal: LevelGoal = {history: emptyHistory(ALLOTMENT)};
   nodes.push({
     id: HOME, kind: 'household', name: 'The household', box: null, land: {built: 0},
-    stocks: {money: {unit: 'GBP', amount: qty(home.money, 'GBP')}},
-    levers: {members: home.members as unknown as LeverValue, ledger: ledger as unknown as LeverValue, goal: goal as unknown as LeverValue},
+    // its hours for the allotment this week (src/sim/season.ts): its garden hours less the plot's care
+    stocks: {money: {unit: 'GBP', amount: qty(home.money, 'GBP')}, [HOURS_LEFT]: {unit: 'h', amount: qty(Math.max(0, weekGardenHours({members: home.members}) - plan.care), 'h')}},
+    levers: {members: home.members as unknown as LeverValue, ledger: ledger as unknown as LeverValue, goal: goal as unknown as LeverValue, swap: 'off', seed},
   });
   nodes.push({id: ATMOSPHERE, kind: 'atmosphere', name: 'The air', box: null, levers: {weather: null, forecast: null}});
   for (let i = 0; i < PLOTS; i++) edges.push({id: `air-${plotId(i)}`, from: plotId(i), to: ATMOSPHERE, carries: ['kgCO2e']});
   edges.push({id: 'harvest-home', from: PLAYER_PLOT, to: HOME, carries: ['kgFood']});
   edges.push({id: 'trough-water', from: 'trough', to: PLAYER_PLOT, carries: ['L']});
+  // food to the swap shed from every plot, and the helper's take from the neglected plot to their home
+  for (let i = 0; i < PLOTS; i++) edges.push({id: `swap-${plotId(i)}`, from: plotId(i), to: SHEDS, carries: ['kgFood']});
+  edges.push({id: 'helper-take', from: season.neglected, to: season.helper, carries: ['kgFood']});
   const g = makeGraph(nodes, edges);
   // each plot shows its sealed numbers from the first hour, not after its first tick
   for (let i = 0; i < PLOTS; i++) {
@@ -223,7 +243,11 @@ export function stepUp(s: State): string | null {
   const garden = sealNode(totals, s.hours);
   const money = s.graph.nodes[s.home]?.stocks.money?.amount ?? 0, members = membersOf(s.graph).members;
   s.ladder = [...s.ladder, {level: 1, hours: s.hours, totals, graph: s.graph}];
+  const below = s.graph.nodes[ATMOSPHERE]?.levers;
   s.graph = allotmentGraph(s.seed, garden, {money, members}, s.hours);
+  // the same sky: the garden's weather and its run of dry days carry on over the allotment
+  const air = s.graph.nodes[ATMOSPHERE];
+  if (air && below) (air.levers.weather = below.weather ?? null), (air.levers.forecast = below.forecast ?? null);
   s.level = ALLOTMENT;
   s.home = HOME;
   s.flows = [];
@@ -274,7 +298,8 @@ function week(ctx: TickContext, home: GraphNode, l: AllotmentLedger) {
   const n = ctx.graph.nodes[PLAYER_PLOT], sealed = sealedOf(n), goal = home.levers.goal as unknown as LevelGoal | undefined;
   if (sealed && goal) {
     const t = sealed.totals;
-    const history = record(goal.history, sampleOf(l.week, {quality: 0, upkeep: qty(t.upkeep * 7, 'GBP'), carbon: qty(t.carbon * 7, 'kgCO2e'), health: {soil: t.health}}), t.land);
+    // the land: the plot's, and the second plot's as it's reclaimed (src/sim/season.ts)
+    const history = record(goal.history, sampleOf(l.week, {quality: 0, upkeep: qty(t.upkeep * 7, 'GBP'), carbon: qty(t.carbon * 7, 'kgCO2e'), health: {soil: t.health}}), playerLand(ctx.graph, t.land) as LadderTotals['land']);
     home.levers.goal = {history} as unknown as LeverValue;
   }
   home.levers.ledger = {...l, week: {}, eaten: l.eaten + eaten, given: l.given + Math.max(0, grown - eaten), saved: l.saved + saved,
@@ -295,6 +320,8 @@ export const allotment: System = {
       for (let i = 0; i < PLOTS; i++) {
         const n = ctx.graph.nodes[plotId(i)], sealed = sealedOf(n);
         if (!n || !sealed) continue;
+        // the second plot's food waits on it for the week, for the helper's share (src/sim/season.ts)
+        if (isSecond(n)) continue;
         // the player's plan onto their sealed node
         if (n.id === PLAYER_PLOT) {
           const plan = planOf(n);
@@ -310,7 +337,7 @@ export const allotment: System = {
             grown = kg;
           } else ctx.flow({what: 'a neighbour’s harvest', unit: 'kgFood', product: SEALED.product, amount: qty(kg, 'kgFood'), from: {node: n.id, stock: SEALED.food}, to: {boundary: 'eaten'}});
           // the plot's holder on it for their hours: after work on a weekday, late morning at the weekend
-          const hours = n.id === PLAYER_PLOT ? Number(n.levers[PLAN_LEVERS.care] ?? CARE.base) : holderOf(n)?.hours ?? 0;
+          const hours = n.id === PLAYER_PLOT ? Number(n.levers[PLAN_LEVERS.care] ?? CARE.base) : keptOf(n)?.hours ?? holderOf(n)?.hours ?? 0;
           const visits = Math.max(1, Math.round(hours / 1.5)), today = ctx.rng.next() < visits / 7;
           if (hours > 0 && today) visit(ctx, n.id === PLAYER_PLOT ? GARDENER : holderOf(n)!.id, n.id, ctx.hours + (weekend ? 4 : 11) + ctx.rng.next() * 2, Math.min(3, hours / visits));
         }

@@ -240,7 +240,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
             </button>
           )}
         </MapView>
-        {allot ? <AllotmentPanel nodes={nodes} hours={shown?.hour ?? 0} sheet={sheetShown} onSheet={onSheet} send={send} onExplain={explainAt}
+        {allot ? <AllotmentPanel nodes={nodes} seen={snap?.seen ?? []} all={all} hours={shown?.hour ?? 0} sheet={sheetShown} onSheet={onSheet} send={send} onExplain={explainAt}
           onSelect={(id) => { setSelected(id); if (sheet === 'peek') setSheet('half'); }} />
         : <Panel nodes={nodes} seen={snap?.seen ?? []} all={all} onDetails={(v) => send({type: 'setting', key: 'details', value: v})} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null} log={log}
           selected={selected} onSelect={setSelected} sheet={sheetShown} focus={focus} onSheet={onSheet} send={send} onExplain={explainAt} />}
