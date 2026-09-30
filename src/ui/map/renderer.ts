@@ -1,23 +1,27 @@
 // The map's renderer: PixiJS on WebGL, or Pixi's Canvas 2D renderer where WebGL is missing
-// (docs/decisions/ADR-2026-09-28-webgl-map.md). It draws the level's nodes in the flat, top-down, soft style
-// (src/ui/map/draw.ts), the people and things moving from the snapshot's activities at the view time the clock loop
-// gives it (one figure for each person, where their latest-started activity puts them, with what they carry, and none
-// while they're away at work beyond the gate), the
-// weather (a shower crossing the garden while the sim says it rains, a rime while it says there's frost), the crops in
-// the beds, the garden's pests and wildlife (src/ui/map/life.ts), the gardener's torch after dark, a ring pulsing at the
-// place an Explain card is about, and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours change; what
-// moves is a pool of particles placed each frame, so thousands stay cheap. Nothing drawn changes the game.
-// docs/systems/map.md.
-import {Application, Graphics, Particle, ParticleContainer, type Texture} from 'pixi.js';
+// (docs/decisions/ADR-2026-09-28-webgl-map.md). It draws the level's nodes in the flat, top-down, soft style with the
+// style kit (src/ui/map/draw.ts, kit.ts, plants.ts), the people and things moving from the snapshot's activities at the
+// view time the clock loop gives it (one figure for each person, where their latest-started activity puts them, stepping
+// through a three-frame walk as they move, with what they carry, and none while they're away at work beyond the gate),
+// the weather (a shower crossing the garden while the sim says it rains, as flakes in freezing air, a rime while it says
+// there's frost, puddles on the paths), the crops in the beds, the garden's pests, wildlife and delights
+// (src/ui/map/life.ts), the gardener's torch after dark, a ring pulsing at the place an Explain card is about, the warm
+// glow of dawn and dusk and the night falling. The layers, bottom up: the ground (drawn once and redrawn only when the
+// graph, the size or the colours change), the live soil (each frame), the tilth (once), what grows (once a snapshot),
+// what's over the plants (each frame), the life, the movers, what they carry, the rain, the night, the dawn, the torch
+// and the ring. What moves is a pool of particles placed each frame, so thousands stay cheap. Nothing drawn changes
+// the game. docs/systems/map.md.
+import {Application, Graphics, Particle, ParticleContainer, Rectangle, Texture} from 'pixi.js';
 import {placeAt, type Activity} from '../../sim/activity';
 import {calendar} from '../../sim/clock';
 import type {Box, GraphNode, NodeId} from '../../sim/graph';
 import type {View} from '../../app/clock-loop';
-import {darkness} from './daylight';
+import {darkness, warmth} from './daylight';
 import type {Stage} from '../../sim/models/crops';
-import {camera, drawItem, drawLive, drawNode, drawPerson, groundKey, itemOf, weatherAt, type Camera} from './draw';
+import {camera, drawGround, drawGrown, drawItem, drawLive, drawOver, drawPerson, drawTilth, groundKey, itemOf, weatherAt, type Camera} from './draw';
 import {drawLife, type Creature, type LifeStats} from './life';
 import type {Palette} from './palette';
+import type {Shape} from './plants';
 
 export interface MapRenderer {
   /** 'webgl', or 'canvas' where WebGL is missing. */
@@ -34,20 +38,25 @@ export interface MapRenderer {
   /** A ring pulsing at a place (the Explain card's), or none. */
   setPulse(at: NodeId | null): void;
   /** For the checks: the last frames' times in ms, where the first movers are drawn (in CSS pixels), the weather, each
-   *  dug bed's crop stage, and the gardener: what they're doing, where, and what they carry. */
+   *  dug bed's crop stage and the shape it's drawn in, and the gardener: what they're doing, where, and what they carry. */
   stats(): {
-    frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; gardener: GardenerStats | null;
-    life: LifeStats; creatures: Creature[]; torch: boolean; pulse: NodeId | null;
+    frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; shapes: Record<string, Shape>;
+    gardener: GardenerStats | null; life: LifeStats; creatures: Creature[]; torch: boolean; pulse: NodeId | null;
   };
   destroy(): void;
 }
 
-/** What the weather drawn last frame came to, for the checks: raindrops shown and the first few's places, the frost's
- *  opacity, and each dug bed's soil from -1 (dry) to 1 (soaked). */
+/** What the weather drawn last frame came to, for the checks: raindrops shown and the first few's places (as snow or
+ *  not), the frost's opacity, the dawn glow's, puddles on the paths, leaves on the lawn, and each dug bed's soil from -1
+ *  (dry) to 1 (soaked). */
 export interface WeatherStats {
   rain: number;
+  snow: boolean;
   drops: {x: number; y: number}[];
   frost: number;
+  dawn: number;
+  puddles: number;
+  leaves: number;
   soil: Record<string, number>;
 }
 
@@ -58,6 +67,7 @@ export interface GardenerStats {
   x: number;
   y: number;
   item: string | null;
+  frame: number;
 }
 
 /** Each person's activities, grouped once per snapshot, in order of starting. */
@@ -90,6 +100,11 @@ const MIN_PERSON_PX = 6;
 const CREATURE_PX = 12;
 /** Raindrops at the lightest and heaviest rain, and how long the shower's front takes to cross the garden, game hours. */
 const DROPS = {min: 30, perMm: 40, max: 160}, FRONT_HOURS = 0.3;
+/** Rain falls as snow at or below this air temperature, °C (the Met Office's rule of thumb; the model has no snow of
+ *  its own, so it's cosmetic). */
+const SNOW_C = 1;
+/** A figure's walk: a step every so many pixels moved, and the frames it cycles through. */
+const STRIDE_PX = 0.22, WALK: (0 | 1 | 2)[] = [1, 0, 2, 0];
 // a fixed scatter for the drops, from a hash of their index (cosmetic, and the same every frame): where each crosses,
 // where it starts falling and how fast, worked out once
 const SCATTER = new Float32Array(DROPS.max * 3).map((_, j) => {
@@ -103,43 +118,63 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     canvas, width: w, height: h, resolution: window.devicePixelRatio || 1, autoDensity: true, antialias: true, backgroundAlpha: 0,
     preference: ['webgl', 'canvas'], autoStart: false, sharedTicker: false,
   });
-  const ground = new Graphics(), live = new Graphics(), life = new Graphics(), night = new Graphics(), carried = new Graphics(), glow = new Graphics(), ring = new Graphics();
-  const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
+  const ground = new Graphics(), live = new Graphics(), tilth = new Graphics(), grown = new Graphics(), over = new Graphics(), life = new Graphics();
+  const night = new Graphics(), dawn = new Graphics(), carried = new Graphics(), glow = new Graphics(), ring = new Graphics();
+  const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: true, color: false}});
   const rain = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
-  app.stage.addChild(ground, live, life, movers, carried, rain, night, glow, ring);
-  let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null;
-  let person: Texture | null = null, drop: Texture | null = null, still = false, garden: Box | null = null;
+  app.stage.addChild(ground, live, tilth, grown, over, life, movers, carried, rain, night, dawn, glow, ring);
+  let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null, grownOf: GraphNode[] | null = null;
+  let atlas: Texture | null = null, frames: Texture[] = [], drop: Texture | null = null, flake: Texture | null = null, still = false, garden: Box | null = null, snowing = false;
   const drops: Particle[] = [];
-  let weather: WeatherStats = {rain: 0, drops: [], frost: 0, soil: {}};
-  let crops: Record<string, Stage> = {}, gardener: GardenerStats | null = null;
+  let weather: WeatherStats = {rain: 0, snow: false, drops: [], frost: 0, dawn: 0, puddles: 0, leaves: 0, soil: {}};
+  let crops: Record<string, Stage> = {}, shapes: Record<string, Shape> = {}, leaves = 0, gardener: GardenerStats | null = null;
   let boxes = new Map<NodeId, Box>(), drawn: GraphNode[] = [];
-  const pool: Particle[] = [], frames: number[] = [];
+  const pool: Particle[] = [], walked: {x: number; y: number; d: number}[] = [], frameTimes: number[] = [];
   let lastMovers: {id: string; x: number; y: number}[] = [];
-  let creatures: Creature[] = [], lifeStats: LifeStats = {slugs: 0, slime: 0, aphids: 0, bees: 0, ladybirds: 0, cat: false}, torch = false, pulse: NodeId | null = null;
+  let creatures: Creature[] = [], lifeStats: LifeStats = {slugs: 0, slime: 0, aphids: 0, bees: 0, ladybirds: 0, cat: false, butterfly: false, robin: false, steam: false}, torch = false, pulse: NodeId | null = null;
 
-  const rebuild = (nodes: GraphNode[]) => {
-    drawn = nodes.filter((n) => n.box);
+  const resolution = () => window.devicePixelRatio || 1;
+  const rebuild = (s: {nodes: GraphNode[]; seed: number}) => {
+    drawn = s.nodes.filter((n) => n.box);
     boxes = new Map(drawn.map((n) => [n.id, n.box!]));
     ends = new WeakMap();
     cam = camera(drawn, width, height);
     ground.clear();
-    ground.rect(0, 0, width, height).fill(pal.edge);
-    for (const n of drawn) drawNode(ground, n, cam, pal);
+    drawGround(ground, drawn, width, height, cam, pal, s.seed);
+    tilth.clear();
+    drawTilth(tilth, drawn, cam, pal, s.seed);
+    grownOf = null;
     night.clear().rect(0, 0, width, height).fill({color: pal.night.color, alpha: 1});
-    person?.destroy(true);
-    const g = new Graphics();
-    drawPerson(g, Math.max(MIN_PERSON_PX / 0.5, cam.s), pal);
-    person = app.renderer.generateTexture({target: g, resolution: window.devicePixelRatio || 1, antialias: true});
-    g.destroy();
-    movers.texture = person;
-    for (const p of pool) p.texture = person;
+    dawn.clear().rect(0, 0, width, height).fill({color: pal.dawn.color, alpha: 1});
+    // the figures: one atlas of six frames (the gardener and the household, standing and stepping either foot)
+    atlas?.destroy(true);
+    const ps = Math.max(MIN_PERSON_PX / 0.5, cam.s), cell = Math.ceil(0.6 * ps), g = new Graphics();
+    g.rect(0, 0, cell * 6, cell).fill({color: 0, alpha: 0});
+    (['gardener', 'household'] as const).forEach((who, k) =>
+      ([0, 1, 2] as const).forEach((f) => {
+        const i = k * 3 + f, fig = new Graphics();
+        drawPerson(fig, ps, pal, who, f);
+        fig.position.set(cell * (i + 0.5), cell * 0.5);
+        g.addChild(fig);
+      }));
+    atlas = app.renderer.generateTexture({target: g, resolution: resolution(), antialias: true});
+    g.destroy({children: true});
+    frames = [0, 1, 2, 3, 4, 5].map((i) => new Texture({source: atlas!.source, frame: new Rectangle(i * cell, 0, cell, cell)}));
+    movers.texture = frames[0]!;
+    for (const p of pool) p.texture = frames[0]!;
     movers.update();
-    // a raindrop: a short slanted streak, about 30 cm long at the garden's scale
+    // a raindrop: a short slanted streak, about 30 cm long at the garden's scale; a flake: a soft dot
     drop?.destroy(true);
+    flake?.destroy(true);
     const d = new Graphics(), len = Math.max(6, 0.3 * cam.s), wide = Math.max(1, 0.025 * cam.s), lean = len * 0.27;
     d.poly([lean, 0, lean + wide, 0, wide, len, 0, len]).fill({color: pal.rain.color, alpha: 1});
-    drop = app.renderer.generateTexture({target: d, resolution: window.devicePixelRatio || 1, antialias: true});
+    drop = app.renderer.generateTexture({target: d, resolution: resolution(), antialias: true});
     d.destroy();
+    const f = new Graphics();
+    f.circle(0, 0, Math.max(1.5, 0.06 * cam.s)).fill({color: pal.snow.color, alpha: 1});
+    flake = app.renderer.generateTexture({target: f, resolution: resolution(), antialias: true});
+    f.destroy();
+    snowing = false;
     rain.texture = drop;
     rain.alpha = pal.rain.alpha;
     for (const p of drops) p.texture = drop;
@@ -147,21 +182,28 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     garden = drawn.find((n) => n.kind === 'lawn')?.box ?? null;
   };
   // the shower: while the sim says it rains, streaks fall across the garden, as many as the rain is heavy, its front
-  // crossing from the west as it starts and leaving to the east as it stops; still, but shown, under reduced motion
+  // crossing from the west as it starts and leaving to the east as it stops; flakes, falling slower, in freezing air;
+  // still, but shown, under reduced motion
   const shower = (v: View, c: Camera, w: ReturnType<typeof weatherAt>) => {
     let n = 0;
-    const out: {x: number; y: number}[] = [];
+    const out: {x: number; y: number}[] = [], snow = !!w && w.hour.temp <= SNOW_C;
+    if (snow !== snowing) {
+      snowing = snow;
+      rain.texture = snow ? flake! : drop!;
+      rain.alpha = snow ? pal.snow.alpha : pal.rain.alpha;
+      for (const p of drops) p.texture = rain.texture;
+    }
     if (w && garden && w.day.rainHours > 0) {
       const {day, t} = w, x0 = c.x + garden.x * c.s, y0 = c.y + garden.y * c.s, gw = garden.w * c.s, gh = garden.h * c.s;
       const want = Math.min(DROPS.max, Math.round(DROPS.min + DROPS.perMm * (day.rain / day.rainHours)));
-      const time = still ? Math.floor(v.hours) * 0.37 : performance.now() / 1000, lean = 0.27 * (gh / gw);
+      const time = (still ? Math.floor(v.hours) * 0.37 : performance.now() / 1000) * (snow ? 0.3 : 1), lean = (snow ? 0.1 : 0.27) * (gh / gw);
       for (let i = 0; i < want; i++) {
         const across = SCATTER[3 * i]!, since = t - day.rainFrom - FRONT_HOURS * across;
         if (since < 0 || since >= day.rainHours) continue;
         const fall = (SCATTER[3 * i + 1]! + time * (1.2 + 0.4 * SCATTER[3 * i + 2]!)) % 1;
         let p = drops[n];
-        if (!p) drops.push((p = new Particle({texture: drop!})));
-        p.x = x0 + ((((across - fall * lean) % 1) + 1) % 1) * gw; // falling along its slant, down and to the left
+        if (!p) drops.push((p = new Particle({texture: rain.texture})));
+        p.x = x0 + ((((across - fall * lean + (snow ? Math.sin(fall * 9 + i) * 0.01 : 0)) % 1) + 1) % 1) * gw; // falling along its slant, down and to the left
         p.y = y0 + fall * gh;
         if (out.length < 6) out.push({x: p.x, y: p.y});
         n++;
@@ -173,7 +215,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       for (let i = 0; i < n; i++) shown.push(drops[i]!);
       rain.update();
     }
-    return {n, out};
+    return {n, out, snow};
   };
   // where an actor is, in CSS pixels: straight from start to end with its ends looked up once per activity, or along
   // the way through placeAt (people are drawn from above, the same whichever way they face)
@@ -223,23 +265,34 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       // the ground: redrawn when the graph changes, or a bed plot is dug (checked once a snapshot)
       const key = keyOf === cur.nodes ? drawnKey : groundKey(cur.nodes);
       if (cur.rev !== drawnRev || key !== drawnKey || !cam) {
-        rebuild(cur.nodes);
+        rebuild(cur);
         drawnRev = cur.rev;
       }
       drawnKey = key;
       keyOf = cur.nodes;
-      const c = cam!;
+      const c = cam!, w = weatherAt(v);
+      // what grows: redrawn once a snapshot
+      if (grownOf !== cur.nodes) {
+        grown.clear();
+        const g = drawGrown(grown, cur, c, pal);
+        crops = g.crops;
+        shapes = g.shapes;
+        leaves = g.leaves;
+        grownOf = cur.nodes;
+      }
       live.clear();
-      const w = weatherAt(v), {crops: grown, ...lived} = drawLive(live, v, c, pal, w), fell = shower(v, c, w);
-      weather = {rain: fell.n, drops: fell.out, ...lived};
-      crops = grown;
-      // the pests and wildlife, from the sim's populations
-      const dusk = darkness(calendar(v.hours));
+      const lived = drawLive(live, v, c, pal, w);
+      over.clear();
+      const frost = drawOver(over, v, c, pal, w, still);
+      const fell = shower(v, c, w), date = calendar(v.hours), dusk = darkness(date), warm = warmth(date) * pal.dawnMax;
+      weather = {rain: fell.n, snow: fell.snow, drops: fell.out, frost, dawn: warm, puddles: lived.puddles, leaves, soil: lived.soil};
+      // the pests, wildlife and delights, from the sim's populations
       life.clear();
-      const drawnLife = drawLife(life, v, c, pal, dusk, still ? Math.floor(v.hours) * 0.37 : performance.now() / 1000, still);
+      const now = still ? Math.floor(v.hours) * 0.37 : performance.now() / 1000;
+      const drawnLife = drawLife(life, v, c, pal, dusk, now, still, w);
       creatures = drawnLife.creatures;
       lifeStats = drawnLife.stats;
-      // the people and things moving, one figure each, from their activities at the view time
+      // the people and things moving, one figure each, from their activities at the view time, stepping as they go
       const out: {id: string; x: number; y: number}[] = [], shown = movers.particleChildren;
       let used = 0;
       carried.clear();
@@ -251,17 +304,28 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
         if (!place(a, v.hours, c)) continue;
         // out at work through the gate: not in the garden until they come home
         if (a.doing === 'away') {
-          if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item: null};
+          if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item: null, frame: 0};
           continue;
         }
         let p = pool[used];
-        if (!p) pool.push((p = new Particle({texture: person!, anchorX: 0.5, anchorY: 0.6})));
+        if (!p) {
+          pool.push((p = new Particle({texture: frames[0]!, anchorX: 0.5, anchorY: 0.5})));
+          walked.push({x: at.x, y: at.y, d: 0});
+        }
+        // the walk: a step every stride moved (the distance kept from frame to frame); standing still otherwise
+        const s = Math.max(MIN_PERSON_PX / 0.5, c.s), wk = walked[used]!, moved = Math.hypot(at.x - wk.x, at.y - wk.y);
+        if (moved > 0.05 && moved < s * 3 && !still) wk.d += moved;
+        else if (moved >= s * 3 || still) wk.d = 0;
+        wk.x = at.x;
+        wk.y = at.y;
+        const frame = moved > 0.05 && !still ? WALK[Math.floor(wk.d / (STRIDE_PX * s)) % WALK.length]! : 0;
+        p.texture = frames[(a.who === 'gardener' ? 0 : 3) + frame]!;
         p.x = at.x;
-        p.y = at.y;
+        p.y = at.y - (frame ? 0.02 * s : 0);
         if (out.length < 16) out.push({id: a.id, x: at.x, y: at.y});
-        const item = itemOf(a.carry), s = Math.max(MIN_PERSON_PX / 0.5, c.s);
+        const item = itemOf(a.carry);
         if (item) drawItem(carried, item, at.x + 0.2 * s, at.y + 0.02 * s, s, pal);
-        if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item};
+        if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item, frame};
         // out after dark with a torch: a pool of light on the ground ahead of them, over the night
         if (a.doing === 'torch') {
           glow.circle(at.x + 0.25 * s, at.y + 0.1 * s, 0.7 * s).fill({color: pal.torch.color, alpha: 0.28});
@@ -273,10 +337,11 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       if (shown.length !== used) {
         shown.length = 0;
         for (let i = 0; i < used; i++) shown.push(pool[i]!);
-        movers.update();
       }
+      movers.update();
       lastMovers = out;
       night.alpha = dusk * pal.nightMax;
+      dawn.alpha = warm;
       // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
       ring.clear();
       const box = pulse ? boxes.get(pulse) : undefined;
@@ -286,8 +351,8 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
           .stroke({width: t, color: pal.pulse.color, alpha: pal.pulse.alpha * (1 - k * 0.8)});
       }
       app.render();
-      frames.push(performance.now() - t0);
-      if (frames.length > 240) frames.shift();
+      frameTimes.push(performance.now() - t0);
+      if (frameTimes.length > 240) frameTimes.shift();
     },
     hit(x, y) {
       if (!cam) return null;
@@ -312,7 +377,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     setPulse(at) {
       pulse = at;
     },
-    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather, crops, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse}),
+    stats: () => ({frames: frameTimes.slice(), movers: lastMovers, cam, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
     },

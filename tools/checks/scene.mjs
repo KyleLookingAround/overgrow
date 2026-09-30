@@ -1,7 +1,8 @@
 // The map (src/ui/map/): it draws the garden in the owner's style on WebGL, and on Canvas 2D where WebGL is missing;
 // it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; the
 // weather is drawn from the sim's (rain crossing the garden only while it rains, still but shown under reduced motion,
-// frost on a frosty morning, the dug beds paling as they dry and darkening when soaked); a seeded, paused screenshot
+// frost on a frosty morning, the dug beds paling as they dry and darkening when soaked, puddles on the path, the dawn's glow); each
+// dug bed's crop drawn in its crop's silhouette; a seeded, paused screenshot
 // repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the speed budget's
 // figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
 import {join} from 'node:path';
@@ -48,6 +49,9 @@ export default async function({ok,open,out}){
     const v=await view(page),s=await shares(page,'.map',['--map-lawn','--map-bed-dug','--map-bed-grass']);
     await page.evaluate(()=>window.__sim.send({type:'speed',speed:1}));
     ok('scene: the map draws the garden on WebGL',v.renderer==='webgl'&&s['--map-lawn']>0.3&&s['--map-bed-dug']>0.01&&s['--map-bed-grass']>0.01&&!errs.length,`${v.renderer} ${JSON.stringify(s)} ${errs[0]||''}`);
+    // each dug bed's crop is drawn in its crop's silhouette (src/ui/map/plants.ts), named in the stats
+    const shapes=['rosette','blades','bush','climber','flower','sward'];
+    ok('scene: each dug bed’s crop is drawn with its crop’s silhouette',v.shapes&&Object.keys(v.crops).length>0&&Object.keys(v.crops).every(id=>shapes.includes(v.shapes[id])),JSON.stringify(v.shapes));
     // it interpolates: within one tick the view time takes several values between the snapshots either side of it
     // (sampled frame by frame, however slow the frames, for up to 5 s)
     const inTick=await page.evaluate(()=>new Promise(done=>{const by={},t0=performance.now();
@@ -92,6 +96,9 @@ export default async function({ok,open,out}){
     const cold=await findDay(page,w=>w.tmin<-1&&w.sun>2,400);let rime=null;
     if(cold){const rise=Math.floor(12-cold.length/2);await showHour(page,rise);rime=await drawn(page);await page.screenshot({path:join(out,'scene-frost-1440x900.png')})}
     ok('scene: frost lies on the garden on a frosty morning',cold&&rime.weather.frost>0&&!errs.length,cold?`day ${cold.day}, minimum ${cold.tmin.toFixed(1)} °C: frost ${rime.weather.frost.toFixed(2)}`:'no frosty day in 400');
+    // the light: a warm glow as the sun rises, none at midday or mid-afternoon; puddles on the path in the rain, none on a dry afternoon
+    ok('scene: the dawn glows warm at sunrise and not in the afternoon',cold&&rime.weather.dawn>0&&parched&&parched.weather.dawn===0,`dawn ${rime?.weather.dawn?.toFixed(2)} at sunrise, ${parched?.weather.dawn} at 15:00`);
+    ok('scene: puddles lie on the path in the rain and not on a dry afternoon',wet&&rain.weather.puddles>0&&parched&&parched.weather.puddles===0,`${rain?.weather.puddles} paths puddled in the rain, ${parched?.weather.puddles} on a dry afternoon`);
     await ctx.close()}
 
   // under reduced motion the rain is still shown, but stands still between ticks (at 1×, since a paused view under

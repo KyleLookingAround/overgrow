@@ -70,7 +70,7 @@ if (window.__seed !== undefined)
       const v = loop.view(), st = renderer?.stats();
       return {
         hours: v?.hours ?? null, alpha: v?.alpha ?? null, prev: v?.prev.hours ?? null, cur: v?.cur.hours ?? null, renderer: renderer?.kind ?? null,
-        frames: st?.frames ?? [], movers: st?.movers ?? [], cam: st?.cam ?? null, weather: st?.weather ?? null, crops: st?.crops ?? null,
+        frames: st?.frames ?? [], movers: st?.movers ?? [], cam: st?.cam ?? null, weather: st?.weather ?? null, crops: st?.crops ?? null, shapes: st?.shapes ?? null,
         gardener: st?.gardener ?? null, life: st?.life ?? null, creatures: st?.creatures ?? [], torch: st?.torch ?? false, pulse: st?.pulse ?? null,
       };
     },

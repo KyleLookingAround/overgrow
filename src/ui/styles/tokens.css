@@ -85,6 +85,45 @@
   --map-torch: #ffe9a8; /* the gardener's torch after dark */
   --map-marigold: #f08a1c; /* French marigolds in bloom */
   --map-pulse: #ffffff; /* the ring at the place an Explain card is about */
+  /* the art pass (docs/specs/map-art.md): the ground, the structures, the light, the seasons and the small life */
+  --map-hedge-leaf: #5c8c47; /* leaf dabs along the hedge */
+  --map-lawn-stripe: #ffffff12; /* alternate mowing stripes, a shade paler */
+  --map-lawn-tuft: #7db262; /* tufts on the lawn */
+  --map-lawn-wet: #2a5a3a40; /* the lawn darkening under rain */
+  --map-soil-rim: #5e3f24; /* the dug edge of a bed */
+  --map-tilth: #00000024; /* crumbs of tilth over dug soil */
+  --map-path-edge: #c2b28e; /* the path's soft edge */
+  --map-pebble: #ece3cc; /* pale pebbles in the gravel */
+  --map-puddle: #4f7a9bb0; /* standing water on the path */
+  --map-door: #3e6f5a; /* the back door */
+  --map-window: #cfe0e6; /* the kitchen's windows */
+  --map-step: #c5bba6; /* the stone step */
+  --map-fence: #a9835a; /* timber fence panels */
+  --map-fence-post: #7d5d3c;
+  --map-roof-lit: #ffffff38; /* the lit slope of a roof */
+  --map-butt-rim: #ffffff33; /* a rim highlight on the butt and the tap */
+  --map-heap-crumb: #3a2815; /* dark crumbs on the heap */
+  --map-leaf-ripe: #3c9a2a; /* a crop's fuller green when ready to pick */
+  --map-sheen: #ffffff8c; /* the small sheen on a ready plant */
+  --map-seedling: #a5d47e; /* seed leaves */
+  --map-cane: #b8946a; /* canes and wires */
+  --map-dawn: #ff9a3c; /* the warm glow of dawn and dusk */
+  --map-dawn-max: 0.16; /* how warm the light gets as the sun sits on the horizon */
+  --map-snow: #f4f8fbd9; /* a flake, when rain falls in freezing air */
+  --map-autumn-leaf: #b8651f; /* fallen leaves */
+  --map-autumn-leaf-2: #8c4a1c;
+  --map-blossom: #f6c9d6; /* blossom on the cordons in April */
+  --map-person-2: #a8583a; /* the household's shirts */
+  --map-hair: #4a3220;
+  --map-foot: #2e2a26;
+  --map-wing: #ffffff8c; /* a bee's or a butterfly's wings */
+  --map-eye: #1b1512;
+  --map-hen-tail: #6e3418;
+  --map-beak: #e0a02c;
+  --map-butterfly: #f0f0f0; /* a large white over the flowers in summer */
+  --map-robin: #7a5a3c;
+  --map-robin-breast: #e2622a;
+  --map-steam: #ffffffa0; /* steam off the heap on a cold morning */
 
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -207,5 +246,43 @@
     --map-torch: #ffe39a;
     --map-marigold: #d57818;
     --map-pulse: #f4efe3;
+    --map-hedge-leaf: #35512c;
+    --map-lawn-stripe: #ffffff0d;
+    --map-lawn-tuft: #55823f;
+    --map-lawn-wet: #10281a4d;
+    --map-soil-rim: #47301b;
+    --map-tilth: #0000002e;
+    --map-path-edge: #8c8267;
+    --map-pebble: #c2b89c;
+    --map-puddle: #365f7cb0;
+    --map-door: #30584a;
+    --map-window: #9fb5bd;
+    --map-step: #8f877a;
+    --map-fence: #7d6244;
+    --map-fence-post: #5a4430;
+    --map-roof-lit: #ffffff26;
+    --map-butt-rim: #ffffff26;
+    --map-heap-crumb: #2a1c0f;
+    --map-leaf-ripe: #3a8a2c;
+    --map-sheen: #ffffff66;
+    --map-seedling: #7fae62;
+    --map-cane: #8f7250;
+    --map-dawn: #e8842e;
+    --map-dawn-max: 0.14;
+    --map-snow: #d8e2eacc;
+    --map-autumn-leaf: #91501a;
+    --map-autumn-leaf-2: #6d3a16;
+    --map-blossom: #d9a9b8;
+    --map-person-2: #8a4a30;
+    --map-hair: #3a2718;
+    --map-foot: #1e1b18;
+    --map-wing: #ffffff66;
+    --map-eye: #0e0b09;
+    --map-hen-tail: #582a13;
+    --map-beak: #c08a24;
+    --map-butterfly: #d8d8d8;
+    --map-robin: #634832;
+    --map-robin-breast: #c25422;
+    --map-steam: #ffffff80;
   }
 }
