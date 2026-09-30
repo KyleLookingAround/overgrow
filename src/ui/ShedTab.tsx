@@ -58,8 +58,31 @@ export function ShedTab({nodes, seen, purse, see, send, focus}: {
   const tools = (nodes.find((n) => n.id === GARDENER)?.levers.tools as Tool[] | undefined) ?? [], kit = kitIn(nodes), offers = offersIn(nodes, seen);
   const covered = (id: string) => nodes.find((n) => n.kind === 'bed' && n.levers.cover === id);
   const purseShown = see('garden.money'), next = savingFor(offers);
-  // the shop's order: the next thing to save for first, then the rest as the catalogue lists them
-  const listed = next ? [next, ...offers.filter((id) => id !== next)] : offers;
+  // the shop's order (docs/specs/ui-overhaul.md, "Presenting a lot of information"): the next thing to save for, then
+  // what the purse can pay for now, and the rest behind one line, opened when the goal bar points into it
+  const rest = offers.filter((id) => id !== next && UPGRADES[id].price > purse);
+  const listed = [...(next ? [next] : []), ...offers.filter((id) => id !== next && UPGRADES[id].price <= purse)];
+  const restOpen = !!focus?.shed && rest.includes(focus.shed);
+  const offer = (id: UpgradeId) => {
+    const u = UPGRADES[id], short = u.price - purse;
+    return (
+      <div class={focus?.shed === id && Date.now() - focus.at < FOCUS_MS ? 'offer focus' : 'offer'} data-offer={id} key={id}>
+        <p class="offer-name job"><strong>{u.name}</strong></p>
+        <p class="offer-price">{money(u.price)}</p>
+        <p class="offer-does soft">{u.does}</p>
+        <dl class="offer-rows">
+          <dt>Saves</dt><dd class="soft">{u.saves}</dd>
+          <dt>But</dt><dd class="soft">{u.trade}</dd>
+        </dl>
+        <div class="offer-foot">
+          {short > 0 && u.big && purseShown && <meter class="saving" min={0} max={u.price} value={Math.max(0, purse)} aria-label={`Saved towards the ${u.name.toLowerCase()}`} />}
+          {short > 0 ? <p class="soft short">{purseShown ? `${money(short)} more in the purse to buy it` : 'Not enough in the purse yet'}</p> : (
+            <button type="button" class="primary buy" onClick={() => send({type: 'buy', id})}>Buy {u.name.toLowerCase()}</button>
+          )}
+        </div>
+      </div>
+    );
+  };
   // the goal bar's button: the offer it points at scrolled into view
   useEffect(() => {
     if (!focus?.shed) return;
@@ -77,26 +100,13 @@ export function ShedTab({nodes, seen, purse, see, send, focus}: {
           </p>
         )}
         {!offers.length && <p class="empty">Nothing to buy yet: the shed fills as the garden needs things.</p>}
-        {listed.map((id) => {
-          const u = UPGRADES[id], short = u.price - purse;
-          return (
-            <div class={focus?.shed === id && Date.now() - focus.at < FOCUS_MS ? 'offer focus' : 'offer'} data-offer={id} key={id}>
-              <p class="offer-name job"><strong>{u.name}</strong></p>
-              <p class="offer-price">{money(u.price)}</p>
-              <p class="offer-does soft">{u.does}</p>
-              <dl class="offer-rows">
-                <dt>Saves</dt><dd class="soft">{u.saves}</dd>
-                <dt>But</dt><dd class="soft">{u.trade}</dd>
-              </dl>
-              <div class="offer-foot">
-                {short > 0 && u.big && purseShown && <meter class="saving" min={0} max={u.price} value={Math.max(0, purse)} aria-label={`Saved towards the ${u.name.toLowerCase()}`} />}
-                {short > 0 ? <p class="soft short">{purseShown ? `${money(short)} more in the purse to buy it` : 'Not enough in the purse yet'}</p> : (
-                  <button type="button" class="primary buy" onClick={() => send({type: 'buy', id})}>Buy {u.name.toLowerCase()}</button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {listed.map(offer)}
+        {rest.length > 0 && (
+          <details class="shop-rest" open={restOpen}>
+            <summary class="soft">{rest.length === 1 ? 'One more to save for' : `${rest.length} more to save for`}</summary>
+            {rest.map(offer)}
+          </details>
+        )}
       </section>
       <section class="place">
         <h3>In the shed</h3>

@@ -2,6 +2,8 @@
 
 On 29 Sep at about 23:20 the owner asked for "a ui/ux overhaul … fullscreen mode and really make sure it's good on every device". This session does it.
 
+At 23:18 the owner added "especially mobile": the overhaul is mobile first, phone portrait designed first and the other layouts derived from it. At 23:55 the owner added that the game has "tonnes of information, so presentation is everything": the coordinator's notes on both are folded into the spec ("Mobile first" and "Presenting a lot of information").
+
 Where the page stands:
 - **Six parts and three playable rounds** each added their piece to the page: the top bar, the goal bar, the panel's tabs (Garden, Shed, Kitchen), cards, notices, badges, the Explain card, the year cards and the purse line.
 - **The `layout` check** keeps each piece inside the viewport at six sizes.

@@ -25,6 +25,23 @@ Seed 1 at days 1, 2, 120, 250 and 366, at the brief's 30 sizes in both schemes (
 - **Competition.** The goal bar hides under any notice; the bed card, the week's decision and the nudge are all notices at the top of the map while cards open at the bottom; at 320 px a card, a notice and the sheet's head leave no map.
 - **Fine as it is.** No overflow or errors at any size; the dark map; the focus ring; keyboard use; one card at a time.
 
+## Mobile first
+
+The owner's addition (23:18): phone portrait first, the other classes derived from it. Everything a player does often is in the bottom half of a phone's screen: the tabs in the sheet's head, the goal bar's button and the folded speed button at the map's foot, a card's answers in its foot. Nothing that matters sits behind the notch or the home indicator: the top bar pads the top inset, the sheet's foot the bottom. The sheet's heights are peek, half and tall, tapped through by its button (a drag by the handle is left for a later round); the map stays visible and usable at peek. The sheet scrolls inside itself with `overscroll-behavior: contain`, and the canvas takes `touch-action: none`, so neither drags the page. Body text is 16 px, so iOS never zooms on focus; targets are 44 px with 4 px between them; every control has a pressed state; nothing is hover-only. On a phone on its side the map takes the height and the panel is a narrow column beside it under one slim bar. The throttled phone frame is measured against `main` in the PR. The PR's screenshots lead with the phones. The fourth playtest's findings (the goal bar's verb wrapping on desktop; a flood of "New:" signs; the plan's repeated extras; the Shed as a wall of "£X more") are answered here by the goal bar's grid, one notice at a time with its count, and the Shed's order; the plan's extras and the rules for what the goal bar says are round four's.
+
+## Presenting a lot of information
+
+The owner's addition (23:55). The game carries a lot of numbers, so each surface shows one headline, then a glance, then the detail on demand, and the patterns are general so every level uses them:
+
+- **Stat.** One number, large and tabular, with its unit and a plain-word label after it (`.headline`: the gardener's hours left, the share of the day's ask met, a plot's output a day). Built here; used by the Garden, the Kitchen and the allotment's plot.
+- **Stat with a trend.** The same with a direction and a comparison ("↑ 12 % on last week", "£18 to go"). The allotment's Health carries its arrow; the sparkline behind it (the purse, output and soil over the last weeks, a few lines of SVG in token colours) is left for round four with the rules on what the goal bar says.
+- **Node card.** A place's or plot's section: its name, one line, its rows (label left, tabular value right, each opening its Explain card) and what happened there lately. The garden's places and the allotment's "Your plot".
+- **Node list.** The chips of the garden's places, and the allotment's plot rows with their holder and two numbers; a sortable header is round four's when the list needs it.
+- **Legend.** What the map's tints mean, once a level has tints to explain (the garden has none).
+- **Layers.** Each tab leads with its Stat; the supporting numbers come next, grouped by what a player decides (the plan, the pests, the shop) rather than by the sim's structure; the full breakdown sits behind a tap (a place's rows, the Explain card). Nothing important is only in the deepest layer, and on a phone at the sheet's half height the headline is above the fold. Long lists collapse to the few that matter now: the Shed leads with the next thing to save for, then what's affordable, and a `<details>` line holds the rest.
+- **Numbers people can read.** One formatter (`src/ui/format.ts`), tabular figures everywhere, the unit kept to its number by a narrow no-break space, a plain-word label before any jargon.
+- **Show, don't list.** The map first: tints, badges and small labels on beds and plots, with the panel as the detail. Meters for moisture and the day's hours, rings and bars for goals. Stacked bars for eaten, sold, preserved and wasted are left for round four.
+
 ## The mechanism
 
 None: the page's shell. The rules it keeps are the UI record's (`docs/decisions/ADR-2026-09-29-ui-from-final-call.md`); the ones it changes are in `docs/decisions/ADR-2026-09-29-ui-overhaul.md`.

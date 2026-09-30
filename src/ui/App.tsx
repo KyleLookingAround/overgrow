@@ -229,9 +229,14 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
               }
             }} />}
           {shown && !first && (
-            <button type="button" class="speed-pill" aria-label={`Speed: ${speedLabel(shown.speed)}. Next: ${nextSpeed(shown.speed) === 0 ? 'pause' : speedLabel(nextSpeed(shown.speed))}`}
+            <button type="button" class="speed-pill" aria-label={`Speed: ${speedLabel(shown.speed)}${shown.quiet ? ', quiet night: passing quickly' : ''}. Next: ${nextSpeed(shown.speed) === 0 ? 'pause' : speedLabel(nextSpeed(shown.speed))}`}
               onClick={() => speed(nextSpeed(shown.speed))}>
               {shown.speed === 0 ? <span aria-hidden="true" class="pause">❚❚</span> : speedLabel(shown.speed)}
+              {shown.quiet && (
+                <span class="quiet-night" title="Quiet night: passing quickly">
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M 10.5 2 A 6 6 0 1 0 14 11.5 A 5 5 0 0 1 10.5 2 Z" /></svg>
+                </span>
+              )}
             </button>
           )}
         </MapView>

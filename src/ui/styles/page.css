@@ -235,16 +235,16 @@ meter {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
-/* the moon while a quiet night passes quickly: a small badge on the pressed speed's corner, taking no room in the bar,
-   glowing softly (still under reduced motion) */
+/* the moon while a quiet night passes quickly: a small badge inside the pressed speed's corner (or the map's speed pill
+   on a phone), taking no room in the bar, glowing softly (still under reduced motion) */
 .speed,
 .speed-cycle {
   position: relative;
 }
 .quiet-night {
   position: absolute;
-  top: calc(var(--moon) * -0.4);
-  left: calc(var(--moon) * -0.4);
+  top: var(--gap-hair);
+  left: var(--gap-hair);
   display: grid;
   place-items: center;
   width: var(--moon);
@@ -281,8 +281,8 @@ meter {
   font-size: var(--text-sm);
   letter-spacing: var(--pause-squeeze);
 }
-/* the moon while a quiet night passes quickly: a small badge on the pressed speed's corner, taking no room in the bar,
-   glowing softly (still under reduced motion) */
+/* the moon while a quiet night passes quickly: a small badge inside the pressed speed's corner (or the map's speed pill
+   on a phone), taking no room in the bar, glowing softly (still under reduced motion) */
 .speed,
 .speed-cycle,
 .speed-pill {
@@ -290,8 +290,8 @@ meter {
 }
 .quiet-night {
   position: absolute;
-  top: calc(var(--moon) * -0.4);
-  left: calc(var(--moon) * -0.4);
+  top: var(--gap-hair);
+  left: var(--gap-hair);
   display: grid;
   place-items: center;
   width: var(--moon);
@@ -1396,4 +1396,14 @@ button.dig {
   .juice-burst i {
     transform: rotate(var(--a)) translateY(-1.5em);
   }
+}
+
+/* the shop's folded rest: the offers the purse can't pay for yet, behind one line */
+.shop-rest summary {
+  cursor: pointer;
+  min-height: var(--touch);
+  display: flex;
+  align-items: center;
+  font-size: var(--text-sm);
+  border-top: 1px solid var(--line);
 }

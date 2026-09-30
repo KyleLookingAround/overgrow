@@ -10,9 +10,10 @@ const send=(page,cmd)=>page.evaluate(c=>window.__sim.send(c),cmd);
 const view=page=>page.evaluate(()=>window.__sim.view());
 const quiet=(page,on,timeout=15000)=>page.waitForFunction(on=>window.__sim.view().quiet===on,on,{timeout}).then(()=>true,()=>false);
 // the moon that shows (one on the pressed speed's button), and whether it sits on that button's corner
-const moon=page=>page.evaluate(()=>{const m=[...document.querySelectorAll('.topbar .quiet-night')].find(e=>e.getClientRects().length);if(!m)return null;const b=m.closest('button');
+// the moon on the pressed speed in the bar, or on the map's speed pill where a sheet layout keeps the speed (the UI overhaul)
+const moon=page=>page.evaluate(()=>{const m=[...document.querySelectorAll('.topbar .quiet-night, .speed-pill .quiet-night')].find(e=>e.getClientRects().length);if(!m)return null;const b=m.closest('button');
   const r=m.getBoundingClientRect(),t=document.querySelector('.topbar').getBoundingClientRect();
-  return {inBar:r.y>=t.y-0.5&&r.x>=t.x-0.5&&r.right<=t.right+0.5,title:m.getAttribute('title'),anim:getComputedStyle(m).animationName,on:b?.getAttribute('aria-pressed')==='true'||b?.classList.contains('speed-cycle'),label:b?.getAttribute('aria-label')}});
+  const host=(b?.classList.contains('speed-pill')?document.querySelector('.map'):document.querySelector('.topbar')).getBoundingClientRect();return {inBar:r.y>=host.y-0.5&&r.x>=host.x-0.5&&r.right<=host.right+0.5&&r.bottom<=host.bottom+0.5,title:m.getAttribute('title'),anim:getComputedStyle(m).animationName,on:b?.getAttribute('aria-pressed')==='true'||b?.classList.contains('speed-cycle')||b?.classList.contains('speed-pill'),label:b?.getAttribute('aria-label')}});
 // game hours the view moves in a stretch of real time
 async function rate(page,ms=400){const a=(await view(page)).hours;await page.waitForTimeout(ms);return ((await view(page)).hours-a)/(ms/1000)}
 // dismiss every notice waiting (the week's decisions, a bed's card, the nudge), so nothing waits but the quiet night's own
