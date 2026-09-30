@@ -27,6 +27,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Parts
 
+- [The playable garden, round four (#83) · 30 Sep 2026](lessons/83-playable-garden-4.md)
 - [Part 8, the allotment's first season (#77, #79) · 30 Sep 2026](lessons/79-allotment-season.md)
 - [Part 7, sealing and the step up (#69, #70) · 30 Sep 2026](lessons/70-step-up.md)
 - [The UI and UX overhaul (#68) · 30 Sep 2026](lessons/68-ui-overhaul.md)
