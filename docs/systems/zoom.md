@@ -2,11 +2,11 @@
 
 Part 9 of the founding spec's roadmap, from `docs/briefs/zoom-back-in.md` with its spec in `docs/specs/zoom-back-in.md`: the first time the player goes back down a level. The rescue is `src/sim/zoom.ts`, tested in `src/sim/zoom.test.ts`, with its numbers in `src/data/zoom.ts`. The page's side is `src/ui/ZoomCard.tsx` (the card and the deadline strip), with the trace and the dive in `src/ui/map/renderer.ts` and the Rescued rosette in `src/ui/map/allotment.ts`. The browser check is `tools/checks/zoom.mjs`.
 
-- **The outbreak** (`zoomTick`, run by every tick command after the systems, `src/sim/commands.ts`):
+- **The outbreak** (`zoomTick`, run by a tick command after the systems, `src/sim/commands.ts`: at the allotment once a game day, when the command crosses one, since an allotment day's budget is tight; down in the garden every tick):
   - It comes once a game, at the allotment, on the first wet day from June to August once the plot has been held 28 days (the summer's last day if none is wet). Slugs move on wet nights, so the garden's tools have nights to work in.
   - It is a `GameEvent` on the player's sealed plot (kind `pests`, home level 1, size 0.4, 28 days): `eventFactor` takes its kg off the plot's output, and the tile shows it one level up.
   - It comes from `neglectedPlot(seed)`, its plot and holder unchanged.
-  - The zoom counts its kg as the clock runs (the plan's output × 0.4 × the days, down there too), and notes them as `slugs in your garden` at the plot, which unfolds `zoom.trace`.
+  - The zoom counts its kg as the clock runs: at the allotment the plan's output × 0.4 × the days, noted as `slugs in your garden` at the plot (which unfolds `zoom.trace`); down in the garden the kg its slugs actually eat.
 - **The trace** (the renderer): one line from the neglected plot to the player's, three slugs along it and the tile pulsing, while the event runs unfixed. Held still under reduced motion.
 - **Go down** (`goDown`, the `go-down` command, once `zoom.trace` has unfolded, and refused once sent, rescued or missed):
   - The garden kept in `State.ladder` becomes the level again (level 1, home `kitchen`).

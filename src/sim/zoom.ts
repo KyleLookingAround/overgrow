@@ -165,9 +165,12 @@ function applyRescue(s: State, z: Zoom): Effect[] {
   return [{kind: kindOf('rescued'), cause: 'rescued', at: n.id, amount: r.share, unit: 'share'}];
 }
 
-/** The zoom's part of each tick command, after the systems have run: the outbreak's start, its kg counted, a rescue
- *  seen in the garden, the deadline, and a rescue put on the plot back at the allotment. Returns its effects. */
-export function zoomTick(s: State): Effect[] {
+/** The zoom's part of each tick command, after the systems have run, given the game hour the command started at: the
+ *  outbreak's start, its kg counted, the deadline and a rescue put on the plot back at the allotment, once a game day
+ *  (the page and the bot tick an hour at a time, and the allotment's day budget is tight); and down in the garden, each
+ *  tick, a rescue seen and the kg its slugs ate. Returns its effects. */
+export function zoomTick(s: State, since: number): Effect[] {
+  if (!s.zoom?.down && Math.floor(since / H) === Math.floor(s.hours / H)) return [];
   if (!s.zoom) return due(s) ? begin(s) : [];
   let z = s.zoom;
   const out: Effect[] = [];
@@ -221,7 +224,9 @@ export function goDown(s: State, systems: readonly System[]): string | null {
     const f: Flow = {what: 'slugs from next door', unit: 'pests', product: 'slugs', amount: qty(lawn ? OUTBREAK.arrive.edge : OUTBREAK.arrive.perM2 * area, 'pests'), from: {boundary: 'wild'}, to: {node: b.id, stock: SLUG_KEY}};
     if (!applyFlow(g, f)) flows.push(f);
   }
-  s.zoom = {...z, down: {at: s.hours, level: s.level, home: s.home, graph: s.graph, goal}, peak: z.peak ?? bedSlugs(g)};
+  // the plot's kg counted up to the hour you went down (at the allotment they're counted once a day)
+  const upTo = Math.min(s.hours, endOf(z)), since = Math.max(z.counted, z.event.from), kg = upTo > since ? z.event.size * rateOf(s, z) * ((upTo - since) / H) : 0;
+  s.zoom = {...z, kg: z.kg + kg, counted: Math.max(z.counted, upTo), down: {at: s.hours, level: s.level, home: s.home, graph: s.graph, goal}, peak: z.peak ?? bedSlugs(g)};
   s.ladder = s.ladder.map((b, j) => (j === i ? {...b, at: s.hours} : b));
   s.graph = g;
   s.level = 1;

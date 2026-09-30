@@ -112,7 +112,7 @@ function ask(systems: readonly System[], s: State, cmd: Command): string | null 
 /** Runs whole steps of the clock, collecting the flows they moved, any that couldn't, and every effect with its cause and
  *  place (src/sim/effects.ts). */
 function tick(s: State, systems: readonly System[], hours: number) {
-  const step = levelClock(s.level).stepHours, steps = Math.floor(hours / step + 1e-9);
+  const from = s.hours, step = levelClock(s.level).stepHours, steps = Math.floor(hours / step + 1e-9);
   const flows: Flow[] = [], errors: string[] = [], effects = new Recorder();
   recordInto(s.graph, effects);
   const ctx = {
@@ -133,7 +133,7 @@ function tick(s: State, systems: readonly System[], hours: number) {
   recordInto(s.graph, null);
   s.flows = mergeFlows(flows);
   // the zoom back in: the outbreak's start, its kg, a rescue and the deadline (src/sim/zoom.ts)
-  const zoomed = zoomTick(s);
+  const zoomed = zoomTick(s, from);
   // the purse's week: what came in, and what the garden spent (src/sim/purse.ts)
   tally(s.graph, s.flows, s.hours);
   // each flow is an effect of its `what` at its place, and the systems' events besides
