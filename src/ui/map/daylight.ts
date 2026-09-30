@@ -1,5 +1,6 @@
 // How dark the map is at a game hour: the sun's day length at a southern-English latitude from the date, with an hour's
-// twilight either side. Cosmetic: nothing here changes the game, and part 2's weather owns the real sun.
+// twilight either side, and how warm the light is (the dawn and dusk glow, peaking as the sun crosses the horizon).
+// Cosmetic: nothing here changes the game, and part 2's weather owns the real sun.
 // Day length from the solar declination (Cooper 1969) and the sunrise hour angle, solar noon taken as 12:00.
 import {hoursPerSecond, type CalendarDate} from '../../sim/clock';
 import {QUIET_BOOST, QUIET_MOST, type Speed} from '../../data/ladder';
@@ -12,6 +13,18 @@ export function darkness(d: CalendarDate): number {
   const cos = -Math.tan(LAT) * Math.tan(decl), half = (Math.acos(Math.min(1, Math.max(-1, cos))) * 12) / Math.PI; // hours from noon to sunset
   const h = d.hour + d.minute / 60, fromNoon = Math.abs(h - 12);
   return Math.min(1, Math.max(0, fromNoon - half + 0.5)); // an hour of twilight centred on sunrise and sunset
+}
+
+/** How warm the light is, 0 by day and by night, 1 as the sun sits on the horizon: the glow of dawn and dusk, over
+ *  the hour of twilight and a little either side of it. */
+export function warmth(d: CalendarDate): number {
+  const dark = darkness(d);
+  // the twilight hour runs from 0 to 1 darkness: the glow peaks in its middle and fades out over half an hour more
+  // each side, read off the same slope
+  const decl = ((23.44 * Math.PI) / 180) * Math.sin((2 * Math.PI * (284 + d.dayOfYear)) / 365);
+  const cos = -Math.tan(LAT) * Math.tan(decl), half = (Math.acos(Math.min(1, Math.max(-1, cos))) * 12) / Math.PI;
+  const h = d.hour + d.minute / 60, fromHorizon = Math.abs(Math.abs(h - 12) - half);
+  return dark >= 1 || fromHorizon > 1 ? 0 : 1 - fromHorizon;
 }
 
 // The steady light: at speed a game day passes in a second or less, and a night layer following darkness() would flash
