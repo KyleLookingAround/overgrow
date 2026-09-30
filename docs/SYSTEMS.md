@@ -248,7 +248,7 @@ Part 8 (the allotment's first season) used, measured against a build of `main` i
 
 - **Playwright** is pinned to 1.56.1, whose Chromium (build 1194) the web image already has. If Chromium is missing, set `CHROMIUM_PATH` to an existing binary (the session-start hook does this for `/opt/pw-browsers/chromium`). Change the pin only together with the lock file. CI caches `~/.cache/ms-playwright`, keyed on the pin.
 - **Looking at UI changes.** Write a small Playwright script in `build/` (git-ignored) against `npm run dev` or the served `dist/`, at 320×568, 568×320, 390×844, 844×390 (`hasTouch`, `isMobile`), 768×1024 and 1440×900; screenshot and read the images. Measure before fixing a layout bug, not after each attempt.
-- **CI's limit.** The `check` job has `timeout-minutes: 25`, well over a local run.
+- **CI's limit.** The `check` job (Checks, and the one before each Pages publish) has `timeout-minutes: 40`. A full run took about 24 minutes on 30 Sep, when the UI overhaul and the map art were cancelled at 25; if a run passes about 30, split the browser groups across jobs rather than raising it again.
 
 <!-- joined:checks from tools/checks/, each file's opening comment by tools/join.mjs: don't edit between these lines -->
 - `brief`: docs/briefs/TEMPLATE.md and every session brief in docs/briefs/ have all their sections, filled in (tools/brief.mjs), and a brief without "How it fits and grows" fails unless it's one started before that section.
