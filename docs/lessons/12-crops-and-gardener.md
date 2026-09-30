@@ -1,3 +1,4 @@
+Theme: parts
 # Crops and the gardener, the first slice’s part 3 (#12) · 29 Sep 2026
 
 - **Numbers:** estimate $25; no cost figure had reached the session when the PR opened (read as unknown, not free). Session started 02:28 UTC, PR opened about 03:40 UTC. One `needs-owner` question (#11, the crop pace), asked while building with the real pace as the default; the owner answered in about 70 minutes with option 3, a head start, built into the PR before it merged. Three commits before opening, the last acting on the fresh review (three real bugs: a frost re-making a ripe potato crop, butt water spent by a job that didn’t fit, and a re-plan dropping half a job); CI rounds and merges from `main` are counted at the merge.
@@ -6,7 +7,5 @@
   - Keeping every piece of system state as a lever that's replaced, never changed in place (the crop, the gardener's day, the kitchen's ledger), let the worker's deltas, the save and the conservation test carry it with no new machinery.
   - Two new boundaries (`growth` and `decay`) kept food, waste, nitrogen and carbon each balancing in their own units while plants turn one into another.
 - **Lessons:**
-  - A browser check can't park a paused view on a fractional hour, and the gardener's jobs last minutes. Checking a job drawn needs a job that spans an hour (digging does), or running at 1× until the view reaches a time and pausing there (`runTo()` in `tools/checks/garden.mjs`); sampling frames at CI's 5–10 fps would miss a one-minute pour. Worth a line in `docs/SYSTEMS.md` ("Checks") at the next tidy.
-  - A paused view only jumps when the sim is more than four steps ahead: ticking one hour and waiting for the view times out quietly (8 s a call). Wait for the jump only after a tick of five hours or more.
-  - The `rules` check reads `window` in a `/** */` comment line as the DOM global. A data field or a doc comment in `src/sim/` or `src/data/` can't use the word; pick another ("picking lasts", "season").
+  - A browser check can't park a paused view on a fractional hour, and the gardener's jobs last minutes: check a job that spans an hour (digging), or run at 1× to a time and pause (`runTo()` in `tools/checks/garden.mjs`). → `feature` step 4.
   - With several activities per person, drawing every activity drew the gardener many times over. The renderer now draws one figure a person, where their latest-started activity puts them, so a system never needs to cut an activity short.

@@ -1,3 +1,4 @@
+Theme: parts
 # Part 8, the allotment's first season (#77, #79) · 30 Sep 2026
 
 - **Numbers:**
@@ -9,6 +10,6 @@
   - **The bot played the whole season on its first run**, with no errors, on seeds 1–3. It showed the design gaps early: a landslide vote, a daily "surplus" event counted as not quiet, and the garden's quiet measure picking up allotment days.
   - **Proving the garden unchanged was one command** against a build of `main` in a worktree. The only difference in `PLAY` was the save's version number.
 - **Lessons:**
-  - **`PLAY` fingerprints the save's version too.** Raising `SAVE_VERSION` changes `PLAY` everywhere, even where play is identical. → To prove "the garden unchanged", compare with the version held equal. The `balance` playbook's "identical `PLAY`" rule should say so; it's noted here for the next tidy.
+  - **`PLAY` fingerprints the save's version too**, so raising `SAVE_VERSION` changes it everywhere. → `balance` "identical `PLAY`" now says to hold the version equal.
   - **A stock topped up after the week's costs hides them.** The household's hours were refilled at the end of the week tick, after watching and reclaiming had spent them, so "watching costs time" cost nothing. The fresh review found it. → A budget stock refills at the start of its period, before anything spends it (`allotmentHours` is listed before the people's week).
-  - **Profiler self-time lied about a 2 µs function.** A sampled profile under vite-node blamed `troughDay` for a tenth of a millisecond a day; timed in place, it took 2 µs. The real cost was allocation: twelve flows a day where one would do, and plans rebuilt when they hadn't moved. → Time a suspect in place with a loop before optimising it, and count flows and allocations a day.
+  - **Profiler self-time lied about a 2 µs function**: the real cost was allocation, twelve flows a day where one would do. → `feature` step 4 "Speed".
