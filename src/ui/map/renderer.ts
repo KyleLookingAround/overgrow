@@ -14,7 +14,7 @@ import {placeAt, type Activity} from '../../sim/activity';
 import {calendar} from '../../sim/clock';
 import type {Box, GraphNode, NodeId} from '../../sim/graph';
 import type {View} from '../../app/clock-loop';
-import {darkness} from './daylight';
+import {darkness, daySeconds, steadyLight} from './daylight';
 import type {Stage} from '../../sim/models/crops';
 import {drawBarrow} from './season';
 import {camera, drawItem, drawLive, drawNode, drawPerson, groundKey, itemOf, weatherAt, type Camera} from './draw';
@@ -42,6 +42,8 @@ export interface MapRenderer {
   stats(): {
     frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; gardener: GardenerStats | null;
     life: LifeStats; creatures: Creature[]; torch: boolean; pulse: NodeId | null;
+    /** The night layer's opacity. */
+    night: number;
     /** The level drawn, and the step up's zoom-out: running, and how far through, 0–1. */
     level: number; zoom: number | null;
   };
@@ -118,6 +120,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   app.stage.addChild(world);
   let level = -1, zoom: {start: number; shot: Sprite | null} | null = null, highlight = 0;
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null;
+  const light = steadyLight(); // the night layer's opacity, never flashing (src/ui/map/daylight.ts)
   let person: Texture | null = null, drop: Texture | null = null, still = false, garden: Box | null = null;
   const drops: Particle[] = [];
   let weather: WeatherStats = {rain: 0, drops: [], frost: 0, soil: {}};
@@ -347,8 +350,8 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
         movers.update();
       }
       lastMovers = out;
-      // a quiet night passing quickly dims the map a little more (not under reduced motion: the moon alone shows it)
-      night.alpha = dusk * (pal.nightMax + (v.quiet && !still ? pal.nightQuiet : 0));
+      // the night falls with the sun, but at speed holds a steady light (a gentle dim through a quiet night), easing slowly
+      night.alpha = light(dusk * pal.nightMax, v.quiet ? pal.nightQuiet : 0, daySeconds(cur.level, cur.speed, v.quiet), t0);
       // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
       ring.clear();
       const ringAt = pulse ?? (performance.now() < highlight ? PLAYER_PLOT : null), box = ringAt ? boxes.get(ringAt) : undefined;
@@ -386,7 +389,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       pulse = at;
     },
     skipZoom: endZoom,
-    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather, crops, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level,
+    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather, crops, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
       zoom: zoom ? Math.min(1, (performance.now() - zoom.start) / ZOOM_MS) : null}),
     destroy() {
       app.destroy(false, {children: true, texture: true});

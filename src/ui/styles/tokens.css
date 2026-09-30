@@ -59,7 +59,7 @@
   --map-frost-max: 0.6; /* how white the hardest frost gets */
   --map-rain: #dbe7f0b3; /* a raindrop's streak */
   --map-night-max: 0.35; /* how dark the map gets at night */
-  --map-night-quiet: 0.2; /* how much darker again while a quiet night passes quickly */
+  --map-night-quiet: 0.3; /* the gentle dim the map holds while a quiet night passes quickly, lighter than a night's full dark */
   --map-drill: #5f4128; /* a sown drill before the shoots are up */
   --map-leaf: #4f9a3c; /* leaves: salad, beans, potatoes, tomatoes */
   --map-leaf-light: #8cc36a; /* lettuce and radish tops */
