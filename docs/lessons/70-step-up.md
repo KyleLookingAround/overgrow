@@ -1,0 +1,21 @@
+# Part 7, sealing and the step up (#69, #70) · 30 Sep 2026
+
+- **Numbers:**
+  - The estimate was $30.
+  - The session started at about 23:30 UTC on 29 Sep.
+  - The PR opened, as a draft, with the sim, the `carry` check and the bot at about 23:50. The UI was pushed after.
+- **Went well:**
+  - **The sealing maths was already written and tested** (`src/sim/ladder.ts`). The wiring was a few edits to it (the plan's `output`, `mix` and `upkeep`, and a `payer`) and one new file for the level.
+  - **A `levels` list on a system** rests the garden's fifteen systems at the allotment without touching any of them: one wrapper in `src/sim/systems.ts`.
+  - **The bot crossed the step up on the first run** on seeds 1–3, with no errors. So the long headless run crosses it too, by importing the bot's `play()`.
+- **Lessons:**
+  - **A tolerance on a spread needs its own sampling error in mind.**
+    - `INFLATE_TOLERANCE`'s 5 % holds Output, upkeep, carbon and Health easily over a rebuilt cycle.
+    - Reliability is a spread measured over one year of lognormal days. Its own error was 1–9 % on seeds 1–8, and weekly samples made it worse (about 17 %).
+    - The check now samples the rebuilt cycle daily and holds Reliability to 15 %. The coordinator is asked in the PR.
+    - → A brief that sets a tolerance on a statistic should say over how many samples.
+  - **The clock loop's paused view lags a step under reduced motion.**
+    - A command's reply at the same hour replaces the newest snapshot. But the reduced-motion view shows the one before until the clock reaches it.
+    - A player who paused and took the plot would still see the garden. A level change now starts the loop's view afresh, as a load does.
+    - The same lag remains after a load while paused under reduced motion. It's `src/app/clock-loop.ts`'s, which the shorter garden year owns; the `stepup` check steps round it and says so.
+  - **A JSDoc line starting `/**` is code to the rules check.** "window" in a comment's first line failed the build. → Keep "window" out of `/**` opening lines in `src/sim/`, or start the comment a line lower.

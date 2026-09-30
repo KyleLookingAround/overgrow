@@ -5,6 +5,7 @@ import {BUTT_LITRES, GARDEN, PLACES, START_MONEY, WAYS} from '../data/garden';
 import type {FoodGroup} from '../data/household';
 import type {Speed} from '../data/ladder';
 import type {Activity} from './activity';
+import type {Below} from './allotment';
 import type {Effect} from './effects';
 import {levelClock} from './clock';
 import {ALL, nodeList, copyNode, copyStock, makeGraph, qty, takeTouched, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
@@ -20,11 +21,6 @@ import {rng, type Rng} from './random';
 import {BED_PEST_LEVERS, LAWN_PEST_LEVERS, startingSlugs} from './models/pests';
 import {startingSoil} from './models/soil';
 
-/** A level the player has finished, sealed into one node of the next: its totals and its plan (part 7). */
-export interface SealedNode {
-  level: number;
-  node: GraphNode;
-}
 
 export interface State {
   seed: number;
@@ -41,8 +37,8 @@ export interface State {
   /** The flows of the last tick command, merged. */
   flows: Flow[];
   activities: Activity[];
-  /** The levels below, sealed. */
-  ladder: SealedNode[];
+  /** The levels below, sealed into a node of this one, each kept compactly for the zoom back in (src/sim/allotment.ts). */
+  ladder: Below[];
   upgrades: string[];
   laws: string[];
   goals: Record<string, LeverValue>;

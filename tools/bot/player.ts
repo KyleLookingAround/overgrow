@@ -22,6 +22,10 @@ import {YEAR_HOURS} from '../../src/sim/commands';
 import {decisionsOf} from '../../src/ui/decisions';
 import {PRESERVE} from '../../src/data/kitchen';
 import {cataloguePrice} from '../../src/sim/shed';
+import {MIX_IDS, PLAYER_PLOT, type Care, type Feed, type Mix} from '../../src/data/allotment';
+import {PRICE} from '../../src/data/household';
+import {baseOf, leverOpen, planFor, plotDays} from '../../src/sim/allotment';
+import {offered, goalOf} from '../../src/sim/goal';
 
 const graphOf = (snap: Snapshot) => ({nodes: Object.fromEntries(snap.nodes.map((n) => [n.id, n])), edges: [], rev: 0});
 
@@ -180,6 +184,28 @@ function yearCards(snap: Snapshot): Command[] {
   return snap.hours >= YEAR_HOURS && !snap.seen.includes(CARDS.year) && !snap.seen.includes(CARDS.firstYear) ? [{type: 'card', id: 'first-year', answer: 'ok'}] : [];
 }
 
+/** Takes the plot as soon as the committee offers it (the step-up card's "Take the plot"). */
+export const takePlot: Policy = ({snap}) => (snap.level === 1 && offered(goalOf(graphOf(snap) as never)) ? [{type: 'step-up'}] : []);
+
+/** The care the sensible player gives their plot, hours a week: a little more than the garden had, for its Health. */
+export const PLOT_CARE: Care = 3;
+/** The mix that saves the household most at the shop: every group is short, so the most kg at the shop's prices. */
+export function bestMix(base: NonNullable<ReturnType<typeof baseOf>>, care: Care, feed: Feed): Mix {
+  const worth = (m: Mix) => Object.entries(planFor(base, care, m, feed).mix ?? {}).reduce((s, [g, kg]) => s + (kg ?? 0) * (PRICE[g as keyof typeof PRICE] ?? 0), 0);
+  return MIX_IDS.reduce((best, m) => (worth(m) > worth(best) + 1e-9 ? m : best), 'as grown' as Mix);
+}
+/** The plot's plan at the allotment, each lever once it has unfolded: more care, the mix that saves most, and the heap's
+ *  compost kept (bought feed runs the ground down). */
+export const plotPlan: Policy = ({snap}) => {
+  const n = snap.nodes.find((x) => x.id === PLAYER_PLOT), base = baseOf(n);
+  if (snap.level !== 2 || !n || !base) return [];
+  const days = plotDays(graphOf(snap) as never), out: Command[] = [];
+  const want = {care: PLOT_CARE, mix: bestMix(base, PLOT_CARE, 'compost'), feed: 'compost'} as const;
+  for (const lever of ['care', 'mix', 'feed'] as const)
+    if (leverOpen(lever, days) && n.levers[lever] !== want[lever]) out.push({type: 'plan', node: PLAYER_PLOT, lever, value: want[lever]});
+  return out;
+};
+
 /** The slug policy once the beer traps are in: leave them to the traps and keep the gardener's evenings. */
 export const SLUGS_AFTER_TRAP: Policy = (v) => (kitOf(v.snap).owned.includes('beer-trap') ? pestPolicy({slugs: 'leave'})(v) : []);
 
@@ -200,4 +226,6 @@ export const PLAYERS: Record<string, Player> = {
 };
 
 /** The policies in the order the bot asks them each morning. */
-export const policiesOf = (p: Player): Policy[] => [p.plan, p.water, p.pests, p.shop, p.dig, p.winter, p.decide ?? null].filter((x): x is Policy => x !== null);
+export const policiesOf = (p: Player): Policy[] => [takePlot, p.plan, p.water, p.pests, p.shop, p.dig, p.winter, p.decide ?? null].filter((x): x is Policy => x !== null);
+/** The policies at the allotment (level 2): the plot's plan. Part 8 adds the trough, swaps and the committee. */
+export const allotmentPolicies = (_p: Player): Policy[] => [plotPlan];

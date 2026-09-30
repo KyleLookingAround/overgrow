@@ -101,12 +101,66 @@ export const CAUSES = {
   leaves: {kind: 'carbon', causes: ['raking leaves']},
   digOver: {kind: 'soil', causes: ['digging over']},
   bareRoot: {kind: 'crop', causes: ['bare-root season', 'planting']},
+  sealing: {kind: 'crop', causes: ['sealing', 'harvest']},
+  plotCare: {kind: 'work', causes: ['plot care']},
+  plotMix: {kind: 'crop', causes: ['plot mix', 'eaten from the plot']},
+  plotFeed: {kind: 'soil', causes: ['plot feed', 'upkeep']},
+  plotCarbon: {kind: 'carbon', causes: ['emissions', 'sink']},
+  neighbours: {kind: 'household', causes: ['a neighbour’s harvest']},
 } satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
 
 export type Entry = keyof typeof CAUSES;
 
 /** What each entry says. */
 export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>> = {
+  sealing: {
+    title: 'Your garden, as one plot',
+    says: 'This is your garden’s last year, as one plot: its food, its steadiness and its soil, carried up as numbers.',
+    mechanism: 'A level you’ve left keeps running on its last full year’s totals: Output each day, lumpy by its Reliability, and Health drifting at most a point a season toward the plan.',
+    fast: 'The plot gives about what the garden gave each day, some days more, some less.',
+    slow: 'Its Health follows its plan slowly; below 50 it costs a percent of Output a point.',
+    source: 'The founding spec’s carry-over rule; the household model’s time and the National Allotment Society’s plot sizes.',
+  },
+  plotCare: {
+    title: 'Care',
+    says: 'The hours a week the household gives the plot: weeding, mulching and keeping the soil covered.',
+    mechanism: 'About six hours a week keeps a ten-rod plot; fewer and the weeds and bare soil win, more and the ground builds up.',
+    fast: 'Nothing this week: care works on the ground, not the crop.',
+    slow: 'Health moves toward the care’s level, a point a season; more hours come out of the household’s time.',
+    source: 'National Allotment Society and RHS guidance on keeping a plot.',
+  },
+  plotMix: {
+    title: 'The mix',
+    says: 'What the plot grows more of, and what the household eats from it.',
+    mechanism: 'Potatoes give about 3–4 kg a m², salads and greens 1–2, tomatoes 2–3; the shop charges more a kg for salads and tomatoes than for potatoes.',
+    fast: 'Next day’s harvest comes in the new mix: more kg, or dearer kg saved at the shop.',
+    slow: 'None: the mix changes what the ground gives, not the ground.',
+    source: 'RHS and Garden Organic yield guides; DEFRA Family Food prices.',
+  },
+  plotFeed: {
+    title: 'Compost or bought feed',
+    says: 'What feeds the plot’s soil, and what the plot costs: its rent and any feed bought.',
+    mechanism: 'Bought feed puts nutrients straight in the crop’s reach; compost feeds the soil’s life and organic matter, which feed the crop slowly.',
+    fast: 'Bought feed gives about a tenth more now, for £ and carbon every day.',
+    slow: 'Without compost the soil’s organic matter runs down, and Health with it.',
+    source: 'Brentrup et al. (2016) on fertiliser’s carbon; RHS on organic matter; National Allotment Society rents.',
+  },
+  plotCarbon: {
+    title: 'The plot’s carbon',
+    says: 'What the plot puts into the air, less what its soil takes back.',
+    mechanism: 'A plot’s carbon is the garden’s year as sealed, plus what bought feed carries from the factory.',
+    fast: 'Each day’s kg CO₂e, on the allotment’s dial.',
+    slow: 'Compost keeps carbon in the soil; bought feed adds to the air every year.',
+    source: 'The heap’s and the soil’s models; Brentrup et al. (2016).',
+  },
+  neighbours: {
+    title: 'The neighbours',
+    says: 'Eleven households, each with a plot and the hours their lives leave for it.',
+    mechanism: 'A plot is kept as well as its household has time: a couple retired has hours, someone alone in full-time work hasn’t.',
+    fast: 'Each plot’s harvest goes home with its holder.',
+    slow: 'A tidy plot’s ground gets better and a lazy one’s worse; the one with least time goes to weeds.',
+    source: 'The household model’s time (ONS Time Use Survey); National Allotment Society guidance.',
+  },
   soilborne: {
     title: 'Soil-borne pests',
     says: 'A pest or disease in the bed’s soil held the crop back: clubroot, potato cyst nematode or root rot.',
@@ -714,6 +768,12 @@ export const HELPS: Record<Entry, string> = {
   leaves: 'Rake them up each autumn: they’re free.',
   digOver: 'No-dig: leave the beds and mulch them with compost instead.',
   bareRoot: 'Plant fruit in winter, when it’s cheapest and settles best.',
+  sealing: 'Set the plot’s plan: its care, its mix and its feed.',
+  plotCare: 'Give it the hours the household can spare.',
+  plotMix: 'Grow more of what the household buys dearest.',
+  plotFeed: 'Keep a heap: compost is free and builds the soil.',
+  plotCarbon: 'Compost, not bought feed.',
+  neighbours: 'Nothing yet: the neighbours come to the trough and the swap shed next season.',
 };
 
 /** The kind of each cause: all the sim needs of the table. */
