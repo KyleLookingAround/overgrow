@@ -46,8 +46,6 @@ export default async function({ok,open,out}){
     const note=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Quiet nights pass quickly/.test(n.textContent)));
     const fast=on?await rate(page,300):0;
     await page.screenshot({path:join(out,'night-quiet-1440x900.png')});
-    ok('night: a quiet night passes at four times 1× (8 game hours a second), with the moon on the pressed speed and one notice',
-      on&&fast>5&&fast<12&&m?.title==='Quiet night: passing quickly'&&m.on&&m.inBar&&/quiet night/.test(m.label)&&note,JSON.stringify({on,fast:+fast.toFixed(1),m,note}));
     // pause still pauses, from the start of the next quiet night (this one is nearly over by now, so the pause, which
     // lands a frame or two later, still lands in the night)
     await quiet(page,false,5000);
@@ -62,6 +60,11 @@ export default async function({ok,open,out}){
     await send(page,{type:'speed',speed:1});await page.waitForTimeout(300);
     const slow=await rate(page),held=!(await view(page)).quiet;
     ok('night: with an Explain card open the night runs at the chosen speed',card&&held&&slow<3.5&&!(await moon(page)),JSON.stringify({card,held,slow:+slow.toFixed(1)}));
+    // judged against the chosen 1× measured on this page, the card's night: a slow runner delivers both at the same
+    // fraction of their pace (8 read as 4.9 when 2 read as 1.2), so the ratio holds where a fixed 8 doesn't
+    const times=slow>0?fast/slow:0;
+    ok('night: a quiet night passes at four times 1× (8 game hours a second), with the moon on the pressed speed and one notice',
+      on&&card&&held&&times>2.5&&times<6&&fast<12&&m?.title==='Quiet night: passing quickly'&&m.on&&m.inBar&&/quiet night/.test(m.label)&&note,JSON.stringify({on,fast:+fast.toFixed(1),slow:+slow.toFixed(1),times:+times.toFixed(1),m,note}));
     await page.evaluate(()=>document.querySelector('.card-close')?.click());
     // dawn hands it back, whichever night it is by now
     const again=await quiet(page,true,15000),next=Math.floor((await view(page)).hours/24+1)*24;
