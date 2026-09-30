@@ -366,8 +366,11 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       if (changed) held.update(); // the count changed: the static buffers are rebuilt
       lastMovers = out;
       stepping = steps;
+      // the night and the dawn: full-screen layers, so skipped entirely while they'd be clear
       night.alpha = dusk * pal.nightMax;
+      night.visible = night.alpha > 0;
       dawn.alpha = warm;
+      dawn.visible = warm > 0;
       // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
       ring.clear();
       const box = pulse ? boxes.get(pulse) : undefined;
