@@ -59,6 +59,7 @@
   --map-frost-max: 0.6; /* how white the hardest frost gets */
   --map-rain: #dbe7f0b3; /* a raindrop's streak */
   --map-night-max: 0.35; /* how dark the map gets at night */
+  --map-night-quiet: 0.2; /* how much darker again while a quiet night passes quickly */
   --map-drill: #5f4128; /* a sown drill before the shoots are up */
   --map-leaf: #4f9a3c; /* leaves: salad, beans, potatoes, tomatoes */
   --map-leaf-light: #8cc36a; /* lettuce and radish tops */
@@ -142,6 +143,7 @@
   --pause-squeeze: -2px; /* draws the pause bars close together */
   --focus-offset: 1px;
   --touch: 40px; /* the smallest tap target on touch screens */
+  --moon-ms: 2400ms; /* the quiet night's moon glowing softly (still under reduced motion) */
   --pulse-ms: 1600ms; /* the one first-time pulse of an unfold sign (static under reduced motion) */
   --pulse-ring: 3px; /* its ring */
   --goal-ring: 1.6rem; /* the goal bar's progress ring */
@@ -155,6 +157,8 @@
   --sheet-max: 45vh; /* the sheet's most height on a portrait phone */
   --dial: 40px; /* the carbon dial */
   --bag: 12px; /* the shop's footprint under the dial's figure */
+  --moon: 16px; /* the quiet night's moon beside the speeds */
+  --moon-low: 0.55; /* the moon's glow at its faintest */
   --bag-handle: 1.5; /* its handle, in its 16-unit drawing */
   --focus-ring: 3px;
   --meter-w: 6rem; /* the gardener's hours and the kitchen's groups */

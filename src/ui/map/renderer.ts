@@ -435,7 +435,8 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       lastMovers = out;
       stepping = steps;
       // the night and the dawn: full-screen layers, so skipped entirely while they'd be clear
-      night.alpha = dusk * pal.nightMax;
+      // a quiet night passing quickly dims the map a little more (not under reduced motion: the moon alone shows it)
+      night.alpha = dusk * (pal.nightMax + (v.quiet && !still ? pal.nightQuiet : 0));
       night.visible = night.alpha > 0;
       dawn.alpha = warm;
       dawn.visible = warm > 0;
