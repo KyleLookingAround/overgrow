@@ -294,7 +294,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       lifeStats = drawnLife.stats;
       // the people and things moving, one figure each, from their activities at the view time, stepping as they go
       const out: {id: string; x: number; y: number}[] = [], shown = movers.particleChildren;
-      let used = 0;
+      let used = 0, changed = false;
       carried.clear();
       glow.clear();
       torch = false;
@@ -319,7 +319,11 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
         wk.x = at.x;
         wk.y = at.y;
         const frame = moved > 0.05 && !still ? WALK[Math.floor(wk.d / (STRIDE_PX * s)) % WALK.length]! : 0;
-        p.texture = frames[(a.who === 'gardener' ? 0 : 3) + frame]!;
+        const tex = frames[(a.who === 'gardener' ? 0 : 3) + frame]!;
+        if (p.texture !== tex) {
+          p.texture = tex;
+          changed = true;
+        }
         p.x = at.x;
         p.y = at.y - (frame ? 0.02 * s : 0);
         if (out.length < 16) out.push({id: a.id, x: at.x, y: at.y});
@@ -337,8 +341,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       if (shown.length !== used) {
         shown.length = 0;
         for (let i = 0; i < used; i++) shown.push(pool[i]!);
+        changed = true;
       }
-      movers.update();
+      if (changed) movers.update(); // a frame's texture or the count changed: the buffers are rebuilt, else only positions move
       lastMovers = out;
       night.alpha = dusk * pal.nightMax;
       dawn.alpha = warm;
