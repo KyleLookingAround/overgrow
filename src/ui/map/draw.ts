@@ -83,7 +83,14 @@ function dashes(g: Graphics, r: kit.Rect, c: Camera, pal: Palette) {
 export function drawGround(g: Graphics, nodes: readonly GraphNode[], w: number, h: number, c: Camera, pal: Palette, seed: number) {
   const lawn = nodes.find((n) => n.kind === 'lawn')?.box;
   if (lawn) kit.hedge(g, px(lawn, c), w, h, c.s, pal, seed);
-  else g.rect(0, 0, w, h).fill(pal.edge);
+  else {
+    // a level with no lawn of its own (the allotment): a hedge round everything drawn, and grass between the places
+    const site = bounds(nodes, c);
+    if (site) {
+      kit.hedge(g, site, w, h, c.s, pal, seed);
+      kit.lawn(g, site, c.s, pal, seed, 'site', false);
+    } else g.rect(0, 0, w, h).fill(pal.edge);
+  }
   for (const n of nodes) if (n.box) drawNode(g, n, c, pal, seed);
   if (lawn) {
     const r = px(lawn, c), wall = nodes.find((n) => n.kind === 'kitchen')?.box, top = wall ? c.y + (wall.y + wall.h) * c.s : r.y;
@@ -95,8 +102,22 @@ export function drawGround(g: Graphics, nodes: readonly GraphNode[], w: number, 
   }
 }
 
+/** The rectangle every drawn node fits in, in CSS pixels, or null with none. */
+function bounds(nodes: readonly GraphNode[], c: Camera): kit.Rect | null {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of nodes) {
+    if (!n.box) continue;
+    const r = px(n.box, c);
+    x0 = Math.min(x0, r.x);
+    y0 = Math.min(y0, r.y);
+    x1 = Math.max(x1, r.x + r.w);
+    y1 = Math.max(y1, r.y + r.h);
+  }
+  return Number.isFinite(x0) ? {x: x0, y: y0, w: x1 - x0, h: y1 - y0} : null;
+}
+
 export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette, seed = 0) {
-  if (drawAllotmentNode(g, n, c, pal)) return; // the allotment's plots, sheds and trough (part 7)
+  if (drawAllotmentNode(g, n, c, pal, seed)) return; // the allotment's plots, sheds and trough (part 7)
   const r = px(n.box!, c), round = 0.175 * c.s;
   switch (n.kind) {
     case 'lawn':
@@ -163,7 +184,7 @@ export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette, see
 
 /** The tilth over every dug bed, drawn once over the soil's live colour. */
 export function drawTilth(g: Graphics, nodes: readonly GraphNode[], c: Camera, pal: Palette, seed: number) {
-  for (const n of nodes) if (n.box && (n.kind === 'fruit' || (n.kind === 'bed' && isDug(n)))) kit.tilth(g, px(n.box, c), c.s, pal, seed, n.id);
+  for (const n of nodes) if (n.box && (n.kind === 'fruit' || n.kind === 'plot' || (n.kind === 'bed' && isDug(n)))) kit.tilth(g, px(n.box, c), c.s, pal, seed, n.id);
 }
 
 // the nodes the weather is drawn from, looked up once per snapshot rather than every frame

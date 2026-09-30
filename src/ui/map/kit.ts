@@ -40,17 +40,18 @@ export function shadow(g: Graphics, r: Rect, radius: number, s: number, pal: Pal
   g.roundRect(r.x + LIGHT.dx * s, r.y + LIGHT.dy * s, r.w, r.h, radius).fill(deep ? pal['shadow-deep'] : pal.shadow);
 }
 
-/** The lawn: grass with mowing stripes across it (alternate bands 0.6 m wide, a shade paler) and a sparse scatter of
- *  tufts, seeded. The stripes run the long way. */
-export function lawn(g: Graphics, r: Rect, s: number, pal: Palette, seed: number, id = 'lawn') {
+/** The lawn: grass with mowing stripes across it (alternate bands 0.6 m wide, a shade paler; none on rough grass) and a
+ *  sparse scatter of tufts, seeded. The stripes run the long way. */
+export function lawn(g: Graphics, r: Rect, s: number, pal: Palette, seed: number, id = 'lawn', stripes = true) {
   g.rect(r.x, r.y, r.w, r.h).fill(pal.lawn);
-  const band = 0.6 * s, along = r.w >= r.h;
-  const n = Math.ceil((along ? r.h : r.w) / band);
-  for (let i = 0; i < n; i += 2) {
-    if (along) g.rect(r.x, r.y + i * band, r.w, Math.min(band, r.h - i * band));
-    else g.rect(r.x + i * band, r.y, Math.min(band, r.w - i * band), r.h);
+  if (stripes) {
+    const band = 0.6 * s, along = r.w >= r.h, n = Math.ceil((along ? r.h : r.w) / band);
+    for (let i = 0; i < n; i += 2) {
+      if (along) g.rect(r.x, r.y + i * band, r.w, Math.min(band, r.h - i * band));
+      else g.rect(r.x + i * band, r.y, Math.min(band, r.w - i * band), r.h);
+    }
+    g.fill(pal['lawn-stripe']);
   }
-  g.fill(pal['lawn-stripe']);
   // tufts: a small dark blade or two every square metre or so
   const m2 = (r.w * r.h) / (s * s), tufts = Math.min(600, Math.round(m2 * 1.0)), len = Math.max(2, 0.09 * s), wide = Math.max(1, 0.03 * s);
   for (let i = 0; i < tufts; i++) {
