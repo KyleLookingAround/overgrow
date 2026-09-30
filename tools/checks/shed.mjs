@@ -23,7 +23,7 @@ export default async function({ok,open}){
   const card=await page.evaluate(()=>({text:document.querySelector('[data-offer="beer-trap"]')?.textContent??'',hose:!!document.querySelector('[data-offer="hose"]'),
     greyed:[...document.querySelectorAll('.offer button')].some(b=>b.disabled)}));
   ok('shed: once worth having, the offer shows its price, what it saves and what it costs besides, with a Buy button; one not yet worth having is hidden, not greyed',
-    at!==null&&offer&&/£4\.00/.test(card.text)&&/Saves:/.test(card.text)&&/But:/.test(card.text)&&!card.hose&&!card.greyed,JSON.stringify({at,offer,...card}));
+    at!==null&&offer&&/£4\.00/.test(card.text)&&/Saves/.test(card.text)&&/But/.test(card.text)&&!card.hose&&!card.greyed,JSON.stringify({at,offer,...card}));
   const before=await page.evaluate(()=>window.__sim.snapshot().money);
   await page.click('[data-offer="beer-trap"] button.buy');
   await page.waitForFunction(()=>window.__sim.snapshot().nodes.find(n=>n.id==='shed').levers.kit.owned.includes('beer-trap'),null,{timeout:4000}).catch(()=>{});

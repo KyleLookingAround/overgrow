@@ -1,4 +1,5 @@
-// The Kitchen tab: the day's ask by group and what met it at the last meal, the last week's share, the week's shop (the
+// The Kitchen tab, leading with one headline number, how much of the day's ask the garden met at the last meal (the
+// spec docs/specs/ui-overhaul.md): the day's ask by group and what met it at the last meal, the last week's share, the week's shop (the
 // pay, the shop and the rest of life, the groceries the garden saved, the days of food in the cupboard and the shop
 // food's footprint), what's in the kitchen and at the honesty box, and the running totals: picked, eaten, sold (and
 // what the box took), groceries saved and wasted. Each number opens its Explain card; the money shows once it has
@@ -9,13 +10,13 @@ import {MEAL_HOUR} from '../data/kitchen';
 import type {GraphNode} from '../sim/graph';
 import {cupboardDays, HOUSEHOLD, householdLedgerIn, membersIn, people} from '../sim/models/household';
 import {kitchenAsk, type Ledger} from '../sim/models/kitchen';
-import {days, grams, money, num} from './format';
+import {days, grams, money, num, UNIT_SPACE} from './format';
 import {Num} from './Num';
 
 const GROUP_NAME: Record<Group, string> = {potatoes: 'Potatoes', salads: 'Salads', tomatoes: 'Tomatoes', greens: 'Green veg'};
-const pct = (x: number) => `${Math.round(100 * x)} %`;
+const pct = (x: number) => `${Math.round(100 * x)}${UNIT_SPACE}%`;
 
-function Held({n, title}: {n: GraphNode | undefined; title: string}) {
+function Held({n, title, empty}: {n: GraphNode | undefined; title: string; empty: string}) {
   const food = n ? Object.values(CROPS).map((c) => [c.name, n.stocks[`food.${c.product}`]?.amount ?? 0] as const).filter(([, kg]) => kg > 0.005) : [];
   return (
     <div class="held">
@@ -30,7 +31,7 @@ function Held({n, title}: {n: GraphNode | undefined; title: string}) {
           ))}
         </dl>
       ) : (
-        <p class="soft">Nothing</p>
+        <p class="soft">{empty}</p>
       )}
     </div>
   );
@@ -74,11 +75,17 @@ export function KitchenTab({ledger, nodes, see, onExplain}: {ledger: Ledger; nod
   return (
     <>
       <section class="card" aria-labelledby="ask-title">
-        <h3 id="ask-title">The day’s ask: <Num v={grams(ledger.ask)} cause="eating" at="kitchen" onExplain={onExplain} label="The day’s ask" /></h3>
+        <h3 id="ask-title">The day’s ask</h3>
         {ledger.day < 0 ? (
-          <p class="soft">The household eats at {MEAL_HOUR}:00.</p>
+          <>
+            <p class="headline"><Num v={grams(ledger.ask)} cause="eating" at="kitchen" onExplain={onExplain} label="The day’s ask" /> <span class="headline-unit">of veg a day</span></p>
+            <p class="soft">The household eats at {MEAL_HOUR}:00.</p>
+          </>
         ) : (
-          <p class="job">Met {pct(ledger.met)} at the last meal, {pct(week)} over the last week.</p>
+          <>
+            <p class="headline"><Num v={pct(ledger.met)} cause="eating" at="kitchen" onExplain={onExplain} label="Met at the last meal" /> <span class="headline-unit">of {grams(ledger.ask)} met at the last meal</span></p>
+            <p class="job soft">{pct(week)} over the last week.</p>
+          </>
         )}
         <dl class="ask">
           {VEG.map((g) => {
@@ -96,8 +103,8 @@ export function KitchenTab({ledger, nodes, see, onExplain}: {ledger: Ledger; nod
       </section>
       <Week nodes={nodes} see={see} onExplain={onExplain} />
       <section class="place">
-        <Held n={nodes.find((n) => n.id === 'kitchen')} title="In the kitchen" />
-        <Held n={nodes.find((n) => n.id === 'gate')} title="In the honesty box" />
+        <Held n={nodes.find((n) => n.id === 'kitchen')} title="In the kitchen" empty="Nothing yet: the first pick goes here." />
+        <Held n={nodes.find((n) => n.id === 'gate')} title="In the honesty box" empty="Nothing: surplus goes to the box." />
         <h4>Since the start</h4>
         <Rows
           rows={[

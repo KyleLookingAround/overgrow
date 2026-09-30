@@ -72,7 +72,9 @@ export default async function({ok,open,out}){
     ok('explain: at 320×568 the badges sit inside the map, 40 px each, none overlapping, with slugs out after dark',slug&&apart&&inMap,JSON.stringify(l.map(b=>b.cause)));
     if(slug)await page.touchscreen.tap(slug.x+slug.w/2,slug.y+slug.h/2);
     const c=slug?await page.waitForFunction(()=>document.querySelector('.card-overlay .explain'),null,{timeout:3000}).then(()=>card(page),()=>null):null;
-    const cardIn=c&&c.box.x>=badges.map.x-0.5&&c.box.r<=badges.map.r+0.5&&c.box.y>=badges.map.y-0.5&&c.box.b<=badges.map.b+0.5;
+    // the map's box again: on a phone a card folds the sheet while it's up, so the map has grown (docs/specs/ui-overhaul.md)
+    const mapNow=c?await page.evaluate(()=>{const m=document.querySelector('.map').getBoundingClientRect();return {x:m.x,y:m.y,r:m.right,b:m.bottom}}):badges.map;
+    const cardIn=c&&c.box.x>=mapNow.x-0.5&&c.box.r<=mapNow.r+0.5&&c.box.y>=mapNow.y-0.5&&c.box.b<=mapNow.b+0.5;
     const pulse=await page.evaluate(()=>window.__sim.view().pulse);
     ok('explain: at 320×568 a tap on the slugs’ badge opens the slugs’ card inside the map, the map pulsing at the bed',c?.cause==='slugs'&&cardIn&&/^bed-/.test(pulse??'')&&!errs.length,
       `${c?.cause} ${JSON.stringify(c?.box)} pulse ${pulse} ${errs[0]||''}`);

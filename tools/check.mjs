@@ -16,7 +16,7 @@ const root=join(dirname(fileURLToPath(import.meta.url)),'..'),dist=join(root,'di
 mkdirSync(out,{recursive:true});
 const only=process.argv[2];
 const SAVE_KEY='overgrow-save-v1'; // the one localStorage key the game saves to (the project notes)
-const TYPES={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.map':'application/json','.svg':'image/svg+xml','.png':'image/png'};
+const TYPES={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.map':'application/json','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
 const server=createServer((req,res)=>{try{
     let p=join(dist,normalize(decodeURIComponent(req.url.split('?')[0])).replace(/^\/+/,'')||'index.html');
     if(existsSync(p)&&statSync(p).isDirectory())p=join(p,'index.html');
@@ -31,10 +31,10 @@ const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass]);console
 const ignorable=m=>/fonts\.(googleapis|gstatic)|ERR_TUNNEL|ERR_NAME_NOT_RESOLVED|net::/.test(m);
 
 // open the built page at a viewport. seed: the game's random seed; save: a save's JSON text, put in localStorage before
-// the page loads; touch: a phone (touch, mobile, 2x)
-async function open(vp={width:1280,height:800},{save=null,touch=false,seed=1}={}){
+// the page loads; touch: a phone (touch, mobile, 2x); dsf: its device scale factor (2 on touch, 1 otherwise)
+async function open(vp={width:1280,height:800},{save=null,touch=false,seed=1,dsf=touch?2:1}={}){
   const b=await getBrowser();
-  const ctx=await b.newContext({viewport:vp,deviceScaleFactor:touch?2:1,hasTouch:touch,isMobile:touch});
+  const ctx=await b.newContext({viewport:vp,deviceScaleFactor:dsf,hasTouch:touch,isMobile:touch});
   await ctx.addInitScript(seed=>{window.__seed=seed},seed);
   if(save)await ctx.addInitScript(([k,s])=>{if(!sessionStorage.getItem('seeded')){localStorage.setItem(k,s);sessionStorage.setItem('seeded','1')}},[SAVE_KEY,save]);
   const page=await ctx.newPage();const errs=[];
