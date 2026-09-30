@@ -2,7 +2,7 @@
 
 - **Numbers:**
   - The estimate was $30. The session reported no cost figure at its stopping points.
-  - The session started at about 05:50 UTC. The sim and bot were in at about 06:10, the panel, map and `season` check at about 06:25, and the PR opened at about 07:00.
+  - The session started at about 05:50 UTC. The sim and bot were in at about 06:10, the panel, map and `season` check at about 06:25, and the PR opened at about 06:50.
   - No merges from `main` yet: neither #68 nor #72 had landed when the PR opened.
 - **Went well:**
   - **The models were already written and tested** (`agency.ts`, `committee.ts`). Wiring them was one new file (`src/sim/season.ts`), the trough's and the spread's pure halves in the models, and a few hooks.
