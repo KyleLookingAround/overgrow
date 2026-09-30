@@ -61,7 +61,7 @@ Part 8 of the founding spec's roadmap, from `docs/briefs/allotment-season.md` wi
 
 ## What's left
 
-- **Part 9:** the neglected plot's slugs in the player's own garden (`neglectedPlot(seed)`, unchanged) and the catalogue's adviser.
+- **Part 9:** the neglected plot's slugs in the player's own garden, wired (`docs/systems/zoom.md`); the catalogue's adviser.
 - **Part 10:**
   - the bonfire and bee plot votes, proposing motions, the hosepipe ban and carbon choices moving goodwill;
   - the swap shed weighted by each habit's `give` (`shared()`);

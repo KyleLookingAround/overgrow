@@ -21,7 +21,7 @@ export const OUTBREAK = {
   days: 28,
   deadlineDays: 14,
   /** Slugs arriving in the garden: a m² of planted bed, and onto the lawn's edge. */
-  arrive: {perM2: 12, edge: 100},
+  arrive: {perM2: 14, edge: 100},
   /** Fixed: the slugs a m² of the growing beds down to this share of what they were once the slugs arrived (the outbreak
    *  broken, as a patrol in a wet spell, traps, pellets or nematodes do it in a week or two). */
   clear: 0.5,

@@ -28,8 +28,11 @@ export function trend(n: GraphNode): '↑' | '↓' | '→' {
   const s = sealedOf(n), gap = s ? s.plan.health - n.totals.health : 0;
   return gap > 0.5 ? '↑' : gap < -0.5 ? '↓' : '→';
 }
-/** A plot's headline, as its tile and its row lead with it: Output a day, and Health with its direction. */
-export const headline = (n: GraphNode) => `${num(n.totals.output * 1000)} g · ${Math.round(n.totals.health)}${trend(n)}`;
+/** A plot's Output a day as it stands: its sealed Output less what the events on it (slugs, a short day at the trough)
+ *  are taking while they last. */
+export const outputNow = (n: GraphNode) => n.totals.output * (sealedOf(n)?.events ?? []).reduce((f, e) => f * (1 - Math.min(1, Math.max(0, e.size))), 1);
+/** A plot's headline, as its tile and its row lead with it: Output a day as it stands, and Health with its direction. */
+export const headline = (n: GraphNode) => `${num(outputNow(n) * 1000)} g · ${Math.round(n.totals.health)}${trend(n)}`;
 type Explain = (cause: string, at: string | null) => void;
 
 /** The plan's levers in the panel: each option's words, and the Explain card behind the lever's name. */

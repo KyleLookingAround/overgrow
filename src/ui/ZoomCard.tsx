@@ -27,9 +27,9 @@ export function ZoomCard({z, hours, onDown, onSend, onExplain}: {z: ZoomView; ho
 
 /** The deadline strip while down in the garden: one line, and Back up. */
 export function ZoomStrip({z, hours, onUp}: {z: ZoomView; hours: number; onUp: () => void}) {
-  const text = z.rescued ? `Rescued in ${num((z.rescued.at - z.event.from) / H)} days: the beds are clear.`
-    : z.missed ? 'Too late: the slugs will run their course.'
-    : `${days((z.deadline - hours) / H)} left · plot ${num(z.kg)} kg short`;
+  const text = z.rescued ? `Rescued in ${days((z.rescued.at - z.event.from) / H)}`
+    : z.missed ? 'Missed the deadline'
+    : `${days((z.deadline - hours) / H)} left · ${num(z.kg)} kg short`;
   return (
     <section class={`zoom-strip${z.rescued ? ' done' : z.missed ? ' missed' : ''}`} aria-label="The rescue’s deadline" role="status">
       <p>{text}</p>
