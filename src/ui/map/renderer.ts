@@ -70,6 +70,10 @@ export interface GardenerStats {
   frame: number;
 }
 
+/** A figure's particle with its walk kept on it: whose it is, where it was last frame, and the distance walked since it
+ *  last stood. */
+type Walker = Particle & {walk?: {who: string; x: number; y: number; d: number}};
+
 /** Each person's activities, grouped once per snapshot, in order of starting. */
 const groups = new WeakMap<Activity[], Activity[][]>();
 function byWho(acts: Activity[]): Activity[][] {
@@ -103,8 +107,10 @@ const DROPS = {min: 30, perMm: 40, max: 160}, FRONT_HOURS = 0.3;
 /** Rain falls as snow at or below this air temperature, °C (the Met Office's rule of thumb; the model has no snow of
  *  its own, so it's cosmetic). */
 const SNOW_C = 1;
-/** A figure's walk: a step every so many pixels moved, and the frames it cycles through. */
-const STRIDE_PX = 0.22, WALK: (0 | 1 | 2)[] = [1, 0, 2, 0];
+/** A figure's walk: a step every so many metres moved, and the frames it cycles through. Up to this many people step;
+ *  a bigger crowd (the top levels' thousands) glides in one frame, its figures too small for a step to show, through a
+ *  container that uploads positions alone. */
+const STRIDE_M = 0.22, WALK: (0 | 1 | 2)[] = [1, 0, 2, 0], WALK_MAX = 200;
 // a fixed scatter for the drops, from a hash of their index (cosmetic, and the same every frame): where each crosses,
 // where it starts falling and how fast, worked out once
 const SCATTER = new Float32Array(DROPS.max * 3).map((_, j) => {
@@ -121,15 +127,16 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   const ground = new Graphics(), live = new Graphics(), tilth = new Graphics(), grown = new Graphics(), over = new Graphics(), life = new Graphics();
   const night = new Graphics(), dawn = new Graphics(), carried = new Graphics(), glow = new Graphics(), ring = new Graphics();
   const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: true, color: false}});
+  const crowd = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
   const rain = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
-  app.stage.addChild(ground, live, tilth, grown, over, life, movers, carried, rain, night, dawn, glow, ring);
+  app.stage.addChild(ground, live, tilth, grown, over, life, movers, crowd, carried, rain, night, dawn, glow, ring);
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null, grownOf: GraphNode[] | null = null;
   let atlas: Texture | null = null, frames: Texture[] = [], drop: Texture | null = null, flake: Texture | null = null, still = false, garden: Box | null = null, snowing = false;
   const drops: Particle[] = [];
   let weather: WeatherStats = {rain: 0, snow: false, drops: [], frost: 0, dawn: 0, puddles: 0, leaves: 0, soil: {}};
   let crops: Record<string, Stage> = {}, shapes: Record<string, Shape> = {}, leaves = 0, gardener: GardenerStats | null = null;
   let boxes = new Map<NodeId, Box>(), drawn: GraphNode[] = [];
-  const pool: Particle[] = [], walked = new Map<string, {x: number; y: number; d: number}>(), frameTimes: number[] = [];
+  const pool: Particle[] = [], crowdPool: Particle[] = [], frameTimes: number[] = [];
   let lastMovers: {id: string; x: number; y: number}[] = [], stepping = 0;
   let creatures: Creature[] = [], lifeStats: LifeStats = {slugs: 0, slime: 0, aphids: 0, bees: 0, ladybirds: 0, cat: false, butterfly: false, robin: false, steam: false}, torch = false, pulse: NodeId | null = null;
 
@@ -162,8 +169,11 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     g.destroy({children: true});
     frames = [0, 1, 2, 3, 4, 5].map((i) => new Texture({source: atlas!.source, frame: new Rectangle(i * cell, 0, cell, cell)}));
     movers.texture = frames[0]!;
+    crowd.texture = frames[0]!;
     for (const p of pool) p.texture = frames[0]!;
+    for (const p of crowdPool) p.texture = frames[0]!;
     movers.update();
+    crowd.update();
     // a raindrop: a short slanted streak, about 30 cm long at the garden's scale; a flake: a soft dot
     drop?.destroy(true);
     flake?.destroy(true);
@@ -295,13 +305,20 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       creatures = drawnLife.creatures;
       lifeStats = drawnLife.stats;
       // the people and things moving, one figure each, from their activities at the view time, stepping as they go
-      const out: {id: string; x: number; y: number}[] = [], shown = movers.particleChildren;
+      // (a crowd past WALK_MAX glides, in the position-only container)
+      const people = byWho(cur.activities), walking = people.length <= WALK_MAX, held = walking ? movers : crowd, taken = walking ? pool : crowdPool;
+      const other = walking ? crowd : movers;
+      if (other.particleChildren.length) {
+        other.particleChildren.length = 0;
+        other.update();
+      }
+      const out: {id: string; x: number; y: number}[] = [], shown = held.particleChildren;
       let used = 0, changed = false, steps = 0;
       carried.clear();
       glow.clear();
       torch = false;
       gardener = null;
-      for (const l of byWho(cur.activities)) {
+      for (const l of people) {
         const a = current(l, v.hours);
         if (!place(a, v.hours, c)) continue;
         // out at work through the gate: not in the garden until they come home
@@ -309,19 +326,24 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
           if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item: null, frame: 0};
           continue;
         }
-        let p = pool[used];
-        if (!p) pool.push((p = new Particle({texture: frames[0]!, anchorX: 0.5, anchorY: 0.5})));
-        // the walk: a step every stride moved (the distance kept from frame to frame, by person); standing still otherwise
-        let wk = walked.get(a.who);
-        if (!wk) walked.set(a.who, (wk = {x: at.x, y: at.y, d: 0}));
-        const s = Math.max(MIN_PERSON_PX / 0.5, c.s), moved = Math.hypot(at.x - wk.x, at.y - wk.y);
-        if (moved > 0.05 && moved < s * 3 && !still) wk.d += moved;
-        else if (moved >= s * 3 || still) wk.d = 0;
-        wk.x = at.x;
-        wk.y = at.y;
-        const frame = moved > 0.05 && !still ? WALK[Math.floor(wk.d / (STRIDE_PX * s)) % WALK.length]! : 0;
-        p.texture = frames[(a.who === 'gardener' ? 0 : 3) + frame]!; // the uvs are dynamic: a new frame uploads with the positions
-        if (frame) steps++;
+        let p = taken[used] as Walker | undefined;
+        if (!p) taken.push((p = new Particle({texture: frames[0]!, anchorX: 0.5, anchorY: 0.5})));
+        const s = Math.max(MIN_PERSON_PX / 0.5, c.s);
+        let frame: 0 | 1 | 2 = 0;
+        if (walking) {
+          // the walk: a step every stride moved (the distance kept from frame to frame on the figure, reset by a jump, so
+          // a figure taken over by another person starts afresh); standing still otherwise
+          const wk = (p.walk ??= {who: a.who, x: at.x, y: at.y, d: 0}), moved = Math.hypot(at.x - wk.x, at.y - wk.y);
+          if (wk.who !== a.who || moved >= s * 3 || still) {
+            wk.d = 0;
+            wk.who = a.who;
+          } else if (moved > 0.05) wk.d += moved;
+          wk.x = at.x;
+          wk.y = at.y;
+          frame = moved > 0.05 && !still && wk.d > 0 ? WALK[Math.floor(wk.d / (STRIDE_M * s)) % WALK.length]! : 0;
+          p.texture = frames[(a.who === 'gardener' ? 0 : 3) + frame]!; // the uvs are dynamic: a new frame uploads with the positions
+          if (frame) steps++;
+        }
         p.x = at.x;
         p.y = at.y - (frame ? 0.02 * s : 0);
         if (out.length < 16) out.push({id: a.id, x: at.x, y: at.y});
@@ -338,10 +360,10 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       }
       if (shown.length !== used) {
         shown.length = 0;
-        for (let i = 0; i < used; i++) shown.push(pool[i]!);
+        for (let i = 0; i < used; i++) shown.push(taken[i]!);
         changed = true;
       }
-      if (changed) movers.update(); // the count changed: the static buffers are rebuilt
+      if (changed) held.update(); // the count changed: the static buffers are rebuilt
       lastMovers = out;
       stepping = steps;
       night.alpha = dusk * pal.nightMax;

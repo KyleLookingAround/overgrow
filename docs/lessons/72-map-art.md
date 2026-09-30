@@ -17,3 +17,5 @@ The garden's art pass and the style kit (#72, from `docs/briefs/map-art.md`).
 ## Lessons
 
 - A paused view moves only on a tick of more than four steps: a screenshot script that steps an hour at a time shows the hour before. The `scene` check knew; the script had to learn it.
+- **Measure the crowd, not only the garden.** The walk cycle cost nothing on six people and half again on the phone bench's 5,000: per-figure work and re-uploaded texture frames scale with the count. A level-of-detail rule (a crowd past 200 glides through a position-only container) gave the budget back. Measure both figures the brief names before opening the PR, not after.
+- **A fresh review earns its cost on drawing code.** It found a texture swap that left the old quads, leaves drawn over roofs, and a delight that opened the wrong Explain card: none of them fail a check, all of them a player would see.
