@@ -10,6 +10,7 @@ import type {GraphNode, NodeId} from '../sim/graph';
 import type {Badge} from './badges';
 import {Badges} from './Badges';
 import {JuiceLayer} from './Juice';
+import {PlotLabels} from './PlotLabels';
 import type {Juice} from './juice';
 import {camera} from './map/draw';
 import {readPalette} from './map/palette';
@@ -60,6 +61,8 @@ export function MapView({loop, onSelect, onReady, onExplain, nodes, badges, puls
   }, [loop]);
   useEffect(() => renderer.current?.setPulse(pulse), [pulse, renderer.current]);
   const tap = (e: PointerEvent) => {
+    // a tap during the zoom-out skips it
+    if (renderer.current?.skipZoom()) return;
     const r = canvas.current!.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, life = renderer.current?.creatureAt(x, y);
     if (life) return onExplain(life.cause, life.at);
     const id = renderer.current?.hit(x, y);
@@ -69,10 +72,11 @@ export function MapView({loop, onSelect, onReady, onExplain, nodes, badges, puls
   const drawn = nodes.filter((n) => n.box), cam = size.w && drawn.length ? camera(drawn, size.w, size.h) : null;
   return (
     <div class="map" ref={box}>
-      <canvas ref={canvas} role="img" aria-label="The garden, from above" onPointerDown={tap} />
+      <canvas ref={canvas} role="img" aria-label={drawn.some((n) => n.kind === 'plot') ? 'The allotment, from above' : 'The garden, from above'} onPointerDown={tap} />
       <div class="map-over">
         <Badges badges={badges} nodes={drawn} cam={cam} w={size.w} h={size.h} onExplain={onExplain} />
         <JuiceLayer list={juice} nodes={drawn} cam={cam} />
+        <PlotLabels nodes={drawn} cam={cam} />
         {children}
       </div>
     </div>

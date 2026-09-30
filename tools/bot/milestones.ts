@@ -43,6 +43,8 @@ export const MILESTONES: readonly Milestone[] = [
   }},
   // the offer's three requirements met over the garden's year (src/sim/goal.ts): the level's-end card
   {id: 'allotment-offer', label: 'The allotment offer', part: 7, reached: ({snap}) => gardenStatus(goalOf({nodes: Object.fromEntries(snap.nodes.map((n) => [n.id, n]))} as never)).ready},
+  // the plot taken (src/sim/allotment.ts): the bot takes it the morning after the offer latches
+  {id: 'step-up', label: 'The step up', part: 7, reached: ({snap}) => snap.level >= 2},
   {id: 'first-swap', label: 'First swap', part: 8},
   {id: 'second-plot', label: 'The second plot', part: 8},
 ];

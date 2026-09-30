@@ -9,6 +9,7 @@
 // and what changes every frame (drawLive: each dug bed's soil colour from its water, the wet lawn, puddles on the paths,
 // the butt's water; drawOver: the frost's rime and the hens). Nothing drawn changes the game.
 import type {Graphics} from 'pixi.js';
+import {allotmentKey, drawAllotmentNode} from './allotment';
 import {START} from '../../data/ladder';
 import {calendar} from '../../sim/clock';
 import type {CropId} from '../../data/crops';
@@ -57,7 +58,7 @@ export const isDug = (n: GraphNode) => {
 export function groundKey(nodes: readonly GraphNode[]): string {
   let k = '';
   for (const n of nodes) if (n.kind === 'bed') k += isDug(n) ? '1' : '0';
-  return k;
+  return k + allotmentKey(nodes);
 }
 
 export const px = (b: Box, c: Camera): kit.Rect => ({x: c.x + b.x * c.s, y: c.y + b.y * c.s, w: b.w * c.s, h: b.h * c.s});
@@ -95,6 +96,7 @@ export function drawGround(g: Graphics, nodes: readonly GraphNode[], w: number, 
 }
 
 export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette, seed = 0) {
+  if (drawAllotmentNode(g, n, c, pal)) return; // the allotment's plots, sheds and trough (part 7)
   const r = px(n.box!, c), round = 0.175 * c.s;
   switch (n.kind) {
     case 'lawn':
