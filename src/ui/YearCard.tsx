@@ -1,7 +1,5 @@
-// The garden's year done (the level's end until part 7 builds the step-up): once the allotment offer's three
-// requirements are met over the garden's year (src/sim/goal.ts's gardenStatus()), a card celebrates it with the
-// garden's totals and what the year taught, and says the allotment is coming. "Carry on" answers it (a `card` command,
-// once a save) and play carries on. It's a card over the map like the others (win W5): one at a time. When the offer
+// The garden's year: what it taught and what it saved, for the step-up card (src/ui/StepUpCard.tsx, part 7), which
+// comes once the offer is latched. It's a card over the map like the others (win W5): one at a time. When the offer
 // isn't won by the garden's first anniversary, "Your first year" comes instead (round three): what the garden picked,
 // ate, sold, gave and wasted, what it saved at the shop and what was bought, and which of the offer's requirements is
 // short, by how much, with the goal bar's next step for it; year two carries on with the bar pointing there.
@@ -11,7 +9,7 @@ import {kitIn} from './ShedTab';
 import type {Snapshot} from '../sim/state';
 import {Card} from './Card';
 import {money, num} from './format';
-import {nextStep, PRIZE, RAISE, statusOf, valueText} from './goal';
+import {nextStep, RAISE, statusOf, valueText} from './goal';
 import type {RequirementStatus} from '../sim/ladder';
 
 const dug = (n: GraphNode) => n.kind === 'bed' && (n.stocks['land.crops']?.amount ?? 0) > 0 && !((n.stocks['land.grass']?.amount ?? 0) > 1e-6);
@@ -73,29 +71,6 @@ export function FirstYearCard({snap, onDone}: {snap: Snapshot; onDone: () => voi
           {short.map(({r, tips}) => <li data-short={r.key}>{valueText(r)}: {shortBy(r)}. {tips.join('; or ')}.</li>)}
         </ul>
         <p class="soft">The committee looks at the garden’s last whole year: carry on, and it looks again every week.</p>
-      </div>
-    </Card>
-  );
-}
-
-export function YearCard({snap, onDone}: {snap: Snapshot; onDone: () => void}) {
-  const k = snap.kitchen, saved = savedAtShop(snap);
-  const st = statusOf(snap), beds = snap.nodes.filter(dug).length;
-  return (
-    <Card title="A year worth a plot" kicker="The garden’s year" label="The garden’s year" onClose={onDone}
-      footer={<div class="card-actions"><button type="button" class="primary" onClick={onDone}>Carry on</button></div>}>
-      <div class="year-card">
-        <p>The allotment committee has seen your garden’s year: {st.requirements.map((r) => valueText(r)).join(', ')}. A plot is coming.</p>
-        <dl>
-          <div class="row"><dt>Picked</dt><dd>{num(k?.picked ?? 0)} kg</dd></div>
-          <div class="row"><dt>Eaten at home</dt><dd>{num(k?.eaten ?? 0)} kg</dd></div>
-          <div class="row"><dt>Sold at the gate</dt><dd>{num(k?.sold ?? 0)} kg, {money(k?.earned ?? 0)}</dd></div>
-          <div class="row"><dt>Saved at the shop</dt><dd>{money(saved)}</dd></div>
-          <div class="row"><dt>Beds</dt><dd>{beds}</dd></div>
-        </dl>
-        <h4>What the year taught</h4>
-        <ul class="lessons">{lessons(snap).map((l) => <li>{l}</li>)}</ul>
-        <p class="soft">{PRIZE}.</p>
       </div>
     </Card>
   );

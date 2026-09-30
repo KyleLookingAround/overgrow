@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {churn} from './churn';
 import {createSim} from './index';
 import {SYSTEMS} from './systems';
+import {parseGameTime, play} from '../../tools/bot/play';
 
 describe('sim', () => {
   it('plays a long headless run without errors and repeats it from the seed', () => {
@@ -17,6 +18,17 @@ describe('sim', () => {
     expect(a.kitchen!.picked).toBeGreaterThan(40);
     expect(a.kitchen!.eaten).toBeGreaterThan(20);
     expect(a.kitchen!.sold).toBeGreaterThan(0);
+  });
+
+  it('crosses the step up with a player and plays the allotment on, without errors, repeating from the seed', () => {
+    const run = () => play({seed: 7, hours: parseGameTime('3y')});
+    const a = run(), b = run();
+    expect(a.err).toEqual([]);
+    expect(a.reached['step-up']).toBeGreaterThan(300);
+    expect(a.allotment!.days).toBeGreaterThan(300);
+    expect(a.allotment!.output).toBeGreaterThan(0.1);
+    expect(b.play).toBe(a.play);
+    expect(b.allotment).toEqual(a.allotment);
   });
 
   it('plays on exactly as it would have after a save and load mid-run', () => {

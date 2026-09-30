@@ -37,6 +37,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Not sorted yet
 
 - [The rotation and field-soil model, ahead of part 11 (#43) · 29 Sep 2026](lessons/2026-09-29-10-rotation-and-fields-model.md)
+- [Part 7, sealing and the step up (#69, #70) · 30 Sep 2026](lessons/70-step-up.md)
 - [The playable garden, round three (#62) · 29 Sep 2026](lessons/62-playable-garden-3.md)
 - [Headroom for the garden day, again (#61) · 29 Sep 2026](lessons/61-garden-day-headroom.md)
 - [The playable garden, round two (#58) · 29 Sep 2026](lessons/58-playable-garden-2.md)
