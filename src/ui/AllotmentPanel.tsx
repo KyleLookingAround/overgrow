@@ -14,6 +14,7 @@ import {baseOf, holderOf, leverOpen, planFor, sealedOf, type AllotmentLedger} fr
 import {membersIn, weekGardenHours} from '../sim/models/household';
 import {money, num} from './format';
 import {Num} from './Num';
+import {SheetHead, type Sheet} from './Panel';
 import {COMING, Neighbours, SeasonSections} from './SeasonPanel';
 import {keptOf} from '../sim/season';
 import './styles/allotment.css';
@@ -64,9 +65,9 @@ function PlotTab({nodes, hours, send, onExplain, seen, all}: {nodes: GraphNode[]
     <>
       <section class="place" aria-labelledby="plot-title">
         <h3 id="plot-title">Your plot</h3>
+        <p class="headline"><Num v={`${num(t.output * 1000)} g`} cause="harvest" at={n.id} onExplain={onExplain} label="Output" /> <span class="headline-unit">a day from your plot</span></p>
         <p class="soft">Your garden’s last year, as one plot. You can’t tend its beds from here, only plan it.</p>
         <dl>
-          <div class="row"><dt>Output</dt><dd><Num v={`${num(t.output * 1000)} g a day`} cause="harvest" at={n.id} onExplain={onExplain} label="Output" /></dd></div>
           <div class="row"><dt>Health</dt><dd><Num v={`${Math.round(t.health)} / 100 ${trend(n)}`} cause="plot care" at={n.id} onExplain={onExplain} label="Health" /></dd></div>
           <div class="row"><dt>Reliability</dt><dd><Num v={`${Math.round(t.reliability)} / 100`} cause="sealing" at={n.id} onExplain={onExplain} label="Reliability" /></dd></div>
           <div class="row"><dt>Upkeep</dt><dd><Num v={`${money(t.upkeep)} a day`} cause="upkeep" at={n.id} onExplain={onExplain} label="Upkeep" /></dd></div>
@@ -139,34 +140,23 @@ function AllotmentTab({nodes, onExplain, onSelect, seen, all: details}: {nodes: 
 }
 
 export function AllotmentPanel(props: {
-  nodes: GraphNode[]; hours: number; open: boolean; onToggle: () => void; send: (cmd: Command) => void; onExplain: Explain; onSelect: (id: string) => void;
+  nodes: GraphNode[]; hours: number; sheet: Sheet; onSheet: (s: Sheet) => void; send: (cmd: Command) => void; onExplain: Explain; onSelect: (id: string) => void;
   seen?: readonly string[]; all?: boolean;
 }) {
   const seen = props.seen ?? [], all = props.all ?? false;
   const [tab, setTab] = useState<Tab>('plot');
   const tabs: [Tab, string][] = [['plot', 'Your plot'], ['allotment', 'The allotment']];
   return (
-    <aside class={props.open ? 'panel allotment-panel' : 'panel allotment-panel folded'} aria-labelledby="panel-title">
-      <div class="panel-head">
-        <h2 id="panel-title" class="visually-hidden">{tabs.find(([t]) => t === tab)![1]}</h2>
-        <div class="tabs" role="group" aria-label="Panels">
-          {tabs.map(([t, label]) => (
-            <button type="button" id={`tab-${t}`} aria-pressed={t === tab} aria-controls="panel-body" class="tab" onClick={() => {
-              setTab(t);
-              if (!props.open) props.onToggle();
-            }}>{label}</button>
-          ))}
-        </div>
-        <button type="button" class="sheet-toggle" aria-expanded={props.open} aria-controls="panel-body" onClick={props.onToggle}>
-          {props.open ? 'Hide' : 'Show'}
-        </button>
-      </div>
+    <aside class="panel allotment-panel" data-sheet={props.sheet} aria-labelledby="panel-title">
+      <SheetHead tabs={tabs} current={tab} sheet={props.sheet} onSheet={props.onSheet} onTab={(t) => setTab(t as Tab)} />
       <div class="panel-body" id="panel-body">
-        {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} seen={seen} all={all} />
-          : <AllotmentTab nodes={props.nodes} onExplain={props.onExplain} seen={seen} all={all} onSelect={(id) => {
-            props.onSelect(id);
-            if (id === PLAYER_PLOT) setTab('plot');
-          }} />}
+        <div class="panel-content" key={tab}>
+          {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} seen={seen} all={all} />
+            : <AllotmentTab nodes={props.nodes} onExplain={props.onExplain} seen={seen} all={all} onSelect={(id) => {
+              props.onSelect(id);
+              if (id === PLAYER_PLOT) setTab('plot');
+            }} />}
+        </div>
       </div>
     </aside>
   );
