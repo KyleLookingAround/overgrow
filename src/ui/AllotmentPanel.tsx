@@ -64,7 +64,7 @@ function consequence(n: GraphNode, lever: Lever, value: string | number): string
 function PlotTab({nodes, hours, send, onExplain, seen, all, zoom}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain; seen: readonly string[]; all: boolean; zoom: ZoomView | null}) {
   const n = nodes.find((x) => x.id === PLAYER_PLOT), home = nodes.find((x) => x.id === 'household');
   if (!n) return null;
-  const outcome = zoom ? zoomOutcome(zoom) : null;
+  const outcome = zoom ? zoomOutcome(zoom, hours) : null;
   const t = n.totals, l = home?.levers.ledger as unknown as AllotmentLedger | undefined;
   // days by the plot's last tick, as the sim counts them for what has unfolded
   const days = l ? ((sealedOf(n)?.at ?? hours) - l.since) / 24 : 0, spare = weekGardenHours(membersIn(home));

@@ -11,12 +11,11 @@
 // - The adviser: a slug-savvy neighbour with a pack of nematodes (Nemaslug, about £13–£20 a pack for 40 m², working in
 //   three to seven days) and beer traps, for their time and the pack.
 
-/** The outbreak: when it comes (the first summer day, June to August, at least `afterDays` after the plot is taken), what
+/** The outbreak: when it comes (the first wet day from June to August at least `afterDays` after the plot is taken), what
  *  it takes from the sealed garden while it lasts, and the deadline to fix it in, in garden days. */
 export const OUTBREAK = {
   months: [6, 7, 8] as readonly number[],
   afterDays: 28,
-  hour: 7,
   size: 0.4,
   days: 28,
   deadlineDays: 14,

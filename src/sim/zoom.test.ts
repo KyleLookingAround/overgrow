@@ -82,8 +82,8 @@ describe('going down', () => {
     expect(s.home).toBe('kitchen');
     expect(s.graph).toBe(s.ladder[0]!.graph);
     expect(s.graph.nodes.kitchen!.stocks.money!.amount).toBeCloseTo(money, 9);
-    expect(s.zoom!.down!.peak).toBeGreaterThan(OUTBREAK.arrive.perM2);
-    expect(bedSlugs(s.graph)).toBeCloseTo(s.zoom!.down!.peak, 9);
+    expect(s.zoom!.peak!).toBeGreaterThan(OUTBREAK.arrive.perM2);
+    expect(bedSlugs(s.graph)).toBeCloseTo(s.zoom!.peak!, 9);
     // one clock, at the garden's rate, and no second plot from down here
     expect(applyCommand(s, {type: 'step-up'}, SYSTEMS).rejected).toMatch(/already yours/);
     expect(applyCommand(s, {type: 'policy', node: 'gardener', lever: 'slugs', value: 'pick'}, SYSTEMS).rejected).toBeNull();
@@ -94,7 +94,7 @@ describe('going down', () => {
     const z = s.zoom!;
     expect(z.rescued?.by).toBe('you');
     expect(z.rescued!.at).toBeLessThan(z.deadline);
-    expect(bedSlugs(s.graph)).toBeLessThanOrEqual(OUTBREAK.clear * z.down!.peak);
+    expect(bedSlugs(s.graph)).toBeLessThanOrEqual(OUTBREAK.clear * z.peak!);
     expect(applyCommand(s, {type: 'back-up'}, SYSTEMS).rejected).toBeNull();
     expect(s.level).toBe(2);
     const n = s.graph.nodes[PLAYER_PLOT]!, sealed = sealedOf(n)!;
@@ -109,6 +109,17 @@ describe('going down', () => {
     expect(carry.output.off).toBeLessThan(0.01);
     expect(carry.rebuilt.ok).toBe(true);
     expect(s.errors).toEqual([]);
+  }, 60_000);
+
+  it('brings the slugs once, however often the player goes down', () => {
+    const s = load(save);
+    applyCommand(s, {type: 'go-down'}, SYSTEMS);
+    const peak = s.zoom!.peak!;
+    applyCommand(s, {type: 'back-up'}, SYSTEMS);
+    const before = bedSlugs(s.ladder[0]!.graph);
+    expect(applyCommand(s, {type: 'go-down'}, SYSTEMS).rejected).toBeNull();
+    expect(s.zoom!.peak).toBe(peak);
+    expect(bedSlugs(s.graph)).toBeLessThanOrEqual(before + 1e-9);
   }, 60_000);
 
   it('carries on exactly from a save taken down in the garden', () => {
@@ -132,6 +143,12 @@ describe('sending someone', () => {
     expect(z.rescued!.share).toBeCloseTo(shareAt(z, z.rescued!.at) * a.reward, 9);
     tick(s, 24 * (a.days + 1));
     expect(s.graph.nodes[PLAYER_PLOT]!.levers.rescued).toMatchObject({by: 'adviser'});
+  });
+
+  it('is refused too near the deadline to finish', () => {
+    const s = load(save);
+    s.hours = s.zoom!.deadline - 24;
+    expect(applyCommand(s, {type: 'send-someone', adviser: 'slugs'}, SYSTEMS).rejected).toMatch(/before the deadline/);
   });
 
   it('is refused when the purse is short', () => {

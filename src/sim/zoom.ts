@@ -12,7 +12,8 @@
 //   its days), and the garden's own slug model (src/sim/models/pests.ts).
 // Simplifies: the one scripted outbreak, in the allotment's first summer (unscripted ones are part 10's); the garden
 //   run on unseen to today when the player goes down, its weeks since kept out of its sealed year; the household's purse
-//   carried down and back up whole; the allotment standing still while the player is down, then run on over those
+//   carried down and back up whole, set on the level the player goes to rather than moved by a flow (what the garden's
+//   run-on earned or spent is dropped: the allotment's purse was the real one meanwhile); the allotment standing still while the player is down, then run on over those
 //   hours at once on the way back up (the player's plot's food came through the garden's kitchen meanwhile).
 //   Fast effect: the plot's output falling 40 % while the slugs last. Slow effect: the Rescued mark and the goodwill it
 //   earned, carried on the plot.
@@ -41,8 +42,6 @@ export interface Down {
   graph: Graph;
   /** The garden's year as sealed (its goal's ring): the weeks down there don't count towards it. */
   goal: LeverValue | null;
-  /** Slugs a m² of the growing beds once they'd arrived: fixed at `OUTBREAK.clear` of it. */
-  peak: number;
 }
 
 /** A rescue: by the player or an adviser, the game hour the slugs were back to normal, and the share of the reward. */
@@ -70,6 +69,9 @@ export interface Zoom {
   sent: {adviser: string; at: number; fee: number} | null;
   rescued: Rescue | null;
   missed: boolean;
+  /** Slugs a m² of the dug beds once they'd arrived, on the first trip down (null before it): fixed at `OUTBREAK.clear`
+   *  of it. The slugs arrive once, however often the player goes down. */
+  peak: number | null;
 }
 
 /** What the page is shown of it: all but the allotment kept below while down. */
@@ -91,15 +93,17 @@ export const zoomOpen = (z: Pick<Zoom, 'rescued' | 'missed' | 'sent'> | null) =>
 export const shareAt = (z: Pick<Zoom, 'event' | 'deadline'>, at: number) =>
   RESCUE.most - (RESCUE.most - RESCUE.least) * clamp01((at - z.event.from) / Math.max(1, z.deadline - z.event.from));
 
-/** A bed with a crop growing in it: where the slugs from next door go, and what they eat. */
-const growing = (b: GraphNode) => b.kind === 'bed' && (b.stocks['land.crops']?.amount ?? 0) > 0 && !!b.stocks[SLUG_KEY] && !!cropOf(b) && !cropOf(b)!.dead;
+/** A dug bed, where slugs live; and one with a crop growing in it, where the slugs from next door go to eat. */
+const dug = (b: GraphNode) => b.kind === 'bed' && (b.stocks['land.crops']?.amount ?? 0) > 0 && !!b.stocks[SLUG_KEY];
+const growing = (b: GraphNode) => dug(b) && !!cropOf(b) && !cropOf(b)!.dead;
 
-/** Slugs a m² of the garden's beds with a crop growing (0 with none growing). */
+/** Slugs a m² of the garden's dug beds (0 with none), whatever is growing in them: a harvest or a crop lost moves no
+ *  slugs out, so only catching or killing them brings the figure down. */
 export function bedSlugs(g: Graph): number {
   let n = 0, m2 = 0;
   for (const b of Object.values(g.nodes)) {
     const area = b.stocks['land.crops']?.amount ?? 0;
-    if (!growing(b)) continue;
+    if (!dug(b)) continue;
     n += slugsOn(b);
     m2 += area;
   }
@@ -123,7 +127,7 @@ function begin(s: State): Effect[] {
   const event: GameEvent = {id: 'slugs-outbreak', kind: 'pests', label: 'slugs in your garden', product: 'veg', homeLevel: 1, size: OUTBREAK.size, from: s.hours, days: OUTBREAK.days};
   n.levers[SEALED.lever] = {...sealed, events: [...sealed.events, event]} as unknown as LeverValue;
   touch(s.graph, n.id);
-  s.zoom = {node: n.id, from: plot, holder: s.graph.nodes[who]?.name ?? 'a neighbour', event, deadline: s.hours + OUTBREAK.deadlineDays * H, kg: 0, counted: s.hours, down: null, sent: null, rescued: null, missed: false};
+  s.zoom = {node: n.id, from: plot, holder: s.graph.nodes[who]?.name ?? 'a neighbour', event, deadline: s.hours + OUTBREAK.deadlineDays * H, kg: 0, counted: s.hours, down: null, sent: null, rescued: null, missed: false, peak: null};
   return [{kind: kindOf('slugs in your garden'), cause: 'slugs in your garden', at: n.id, amount: 0, unit: 'kgFood'}];
 }
 
@@ -167,16 +171,18 @@ export function zoomTick(s: State): Effect[] {
   if (!s.zoom) return due(s) ? begin(s) : [];
   let z = s.zoom;
   const out: Effect[] = [];
-  // the kg the slugs take from the plot's output while they last, counted as the clock goes (down there too: the
-  // allotment's shortfall still counting)
+  // the kg the slugs take while they last, counted as the clock goes: from the plot's output at the allotment (the event
+  // on its sealed node), and down in the garden the kg its slugs actually ate (the plot's shortfall still counting)
   const to = Math.min(s.hours, endOf(z)), from = Math.max(z.counted, z.event.from);
   if (to > from) {
-    const kg = z.event.size * rateOf(s, z) * ((to - from) / H);
+    let kg = 0;
+    if (z.down) for (const f of s.flows) kg += f.what === 'slugs' && f.unit === 'kgFood' ? f.amount : 0;
+    else kg = z.event.size * rateOf(s, z) * ((to - from) / H);
     z = s.zoom = {...z, kg: z.kg + kg, counted: to};
     if (!z.down) out.push({kind: kindOf('slugs in your garden'), cause: 'slugs in your garden', at: z.node, amount: kg, unit: 'kgFood'});
   }
-  // down in the garden: fixed once the growing beds' slugs are down to a share of what arrived (the outbreak broken)
-  if (z.down && !z.rescued && !z.missed && bedSlugs(s.graph) <= OUTBREAK.clear * z.down.peak) {
+  // down in the garden: fixed once the dug beds' slugs are down to a share of what arrived (the outbreak broken)
+  if (z.down && !z.rescued && !z.missed && z.peak && bedSlugs(s.graph) <= OUTBREAK.clear * z.peak) {
     z = s.zoom = {...z, rescued: {by: 'you', at: s.hours, share: shareAt(z, s.hours), applied: false}};
     out.push({kind: kindOf('slugs back to normal'), cause: 'slugs back to normal', at: 'lawn', amount: 1, unit: 'share'});
   }
@@ -205,15 +211,17 @@ export function goDown(s: State, systems: readonly System[]): string | null {
   if (money && kept) (kept.amount = qty(money.amount, 'GBP')), touch(g, KITCHEN);
   const air = g.nodes[ATMOSPHERE], sky = s.graph.nodes[ATMOSPHERE];
   if (air && sky) (air.levers.weather = sky.levers.weather ?? null), (air.levers.forecast = sky.levers.forecast ?? null);
-  // the slugs from next door, into the planted beds and onto the lawn's edge
-  const flows: Flow[] = [];
-  for (const b of Object.values(g.nodes)) {
+  // while down the garden is both the level and the ladder's entry (one object; a save writes it twice, and a load's two
+  // copies are joined again on the way back up, where the level's copy becomes the ladder's)
+  // the slugs from next door, on the first trip down only: into the beds with a crop growing (every dug bed if none
+  // is) and onto the lawn's edge
+  const flows: Flow[] = [], beds = Object.values(g.nodes).filter(growing), into = beds.length ? beds : Object.values(g.nodes).filter(dug);
+  for (const b of z.peak === null ? [...into, ...(g.nodes.lawn?.stocks[SLUG_KEY] ? [g.nodes.lawn] : [])] : []) {
     const area = b.stocks['land.crops']?.amount ?? 0, lawn = b.id === 'lawn';
-    if (lawn ? !b.stocks[SLUG_KEY] : !growing(b)) continue;
     const f: Flow = {what: 'slugs from next door', unit: 'pests', product: 'slugs', amount: qty(lawn ? OUTBREAK.arrive.edge : OUTBREAK.arrive.perM2 * area, 'pests'), from: {boundary: 'wild'}, to: {node: b.id, stock: SLUG_KEY}};
     if (!applyFlow(g, f)) flows.push(f);
   }
-  s.zoom = {...z, down: {at: s.hours, level: s.level, home: s.home, graph: s.graph, goal, peak: bedSlugs(g)}};
+  s.zoom = {...z, down: {at: s.hours, level: s.level, home: s.home, graph: s.graph, goal}, peak: z.peak ?? bedSlugs(g)};
   s.ladder = s.ladder.map((b, j) => (j === i ? {...b, at: s.hours} : b));
   s.graph = g;
   s.level = 1;
@@ -263,6 +271,7 @@ export function sendSomeone(s: State, id: string): string | null {
   if (z.rescued || z.sent) return 'it’s sorted';
   if (!unfolded(s.seen, TRACE)) return 'that hasn’t come up at the allotment yet';
   if (z.missed) return 'too late: the slugs are running their course';
+  if (s.hours + a.days * H > z.deadline) return `${a.name} can’t be done before the deadline`;
   const home = s.graph.nodes[HOME];
   if ((home?.stocks.money?.amount ?? 0) < a.fee) return `${a.name} charges £${a.fee}, and the purse is short`;
   const f: Flow = {what: 'an adviser’s fee', unit: 'GBP', amount: qty(a.fee, 'GBP'), from: {node: HOME, stock: 'money'}, to: {boundary: 'bought'}};

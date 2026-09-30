@@ -382,7 +382,8 @@ export interface CarryReport {
 
 /** The carry-over rule held to account: a sealed garden's Output against its last full year (within 1 %), its land and
  *  carbon carried exactly, and a first cycle rebuilt from the sealed node inside `INFLATE_TOLERANCE` of the totals it was
- *  sealed with. Until part 9 rebuilds the garden in detail, the rebuilt cycle is the sealed node's own daily ticks. Null before the step up. */
+ *  sealed with. The rebuilt cycle is the sealed node's own daily ticks (part 9's zoom back in runs the garden's own graph on
+ *  instead, and keeps its sealed year, docs/systems/zoom.md). Null before the step up. */
 export function carryReport(s: Pick<State, 'ladder' | 'graph' | 'seed'>): CarryReport | null {
   const below = s.ladder.find((b) => b.level === 1), base = baseOf(s.graph.nodes[PLAYER_PLOT]), goal = below ? goalOf(below.graph) : null;
   if (!below || !base || !goal || !goal.history.samples.length) return null;

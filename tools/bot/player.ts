@@ -268,7 +268,7 @@ export const seasonPlay: Policy = ({snap}) => {
 export const zoomPlay: Policy = ({snap}) => {
   const z = snap.zoom;
   if (!z) return [];
-  if (z.down === null) return snap.level === 2 && !z.rescued && !z.missed && !z.sent ? [{type: 'go-down'}] : [];
+  if (z.down === null) return snap.level === 2 && !z.rescued && !z.missed && !z.sent && snap.seen.includes('zoom.trace') ? [{type: 'go-down'}] : [];
   if (z.rescued || z.missed) return [{type: 'back-up'}];
   const person = snap.nodes.find((n) => n.kind === 'person' && 'slugs' in n.levers), out: Command[] = [];
   if (person && person.levers.slugs !== 'pick') out.push({type: 'policy', node: person.id, lever: 'slugs', value: 'pick'});

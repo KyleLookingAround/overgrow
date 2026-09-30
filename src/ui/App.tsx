@@ -227,7 +227,7 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
             : year ? <StepUpCard snap={snap!} onTake={() => send({type: 'step-up'})} onStay={() => send({type: 'card', id: 'year', answer: 'ok'})} />
             : explain ? <Explain what={explain} nodes={nodes} log={log} onClose={() => setExplain(null)} />
             : firstYear ? <FirstYearCard snap={snap!} onDone={() => send({type: 'card', id: 'first-year', answer: 'ok'})} />
-            : allot ? (rescue ? <ZoomCard z={zoom!} hours={shown!.hour} onDown={() => send({type: 'go-down'})} onSend={(adviser) => send({type: 'send-someone', adviser})}
+            : allot ? (rescue ? <ZoomCard z={zoom!} hours={shown!.hour} money={snap!.money} onDown={() => send({type: 'go-down'})} onSend={(adviser) => send({type: 'send-someone', adviser})}
               onExplain={() => explainAt('slugs in your garden', zoom!.node)} /> : null)
             : down ? null
             : stay ? <StayBar onTake={() => send({type: 'step-up'})} />
