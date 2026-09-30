@@ -1,3 +1,4 @@
+Theme: parts
 # The household, the first slice's part 6b (#49) · 29 Sep 2026
 
 - **Numbers:** estimate $20. The session's cost read 0 (not reported) throughout. The session started at 10:43 UTC and the PR (#53) opened at 11:49 UTC. It then waited about 45 minutes for the owner's answer on the ask's size (#50), which took the default. There were five pushes and one red CI run (the garden-day speed test, 2.13 ms against 2 ms, on a head that had passed once). There was one merge from `main` by hand (the nutrients fix, #48, which took `SAVE_VERSION` 6, so this part took 7), with conflicts in the brief, the saving notes, the Explain table and the speed-budget paragraph.

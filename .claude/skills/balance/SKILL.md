@@ -27,7 +27,7 @@ Make the change and run the same three seeds into `build/after.log`.
 - Against `tools/baseline.json`: `ok` is inside the range, `near` is within 15% of it, `off` is beyond. Aim for `ok`; `near` needs a reason; `off` needs the owner's agreement.
 - `ERR` must be empty on every seed.
 - **Strategic and long; never boring** (the owner, 29 Sep 2026). The game should be strategic and long: a milestone later than its range needs no agreement as long as the player always has something to do or change: no long stretch without a decision, an unlock, a harvest to place or an event to answer. The number that matters is the longest quiet stretch, not the total. Until the bot reports it (part 6's work), read it from the bot's log and say it in the PR. Earlier than the range, or a long quiet stretch, still needs a reason. A strategy the bot finds that beats every other on every seed is a design gap to report (as #24 was for rotation), not a win.
-- A change meant to leave the game as it is (a refactor, a speed-up) must leave `PLAY` identical on seeds 1–3 against a build of `main` (`git worktree add`).
+- A change meant to leave the game as it is (a refactor, a speed-up) must leave `PLAY` identical on seeds 1–3 against a build of `main` (`git worktree add`, never stash or check out around a build). `PLAY` fingerprints the save's version, so raising `SAVE_VERSION` changes it everywhere: compare with the version held equal (#79).
 - Report the table in the PR description.
 
 ## 4. When the owner wants the pacing to change

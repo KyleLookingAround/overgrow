@@ -12,6 +12,7 @@ description: Drive an Overgrow pull request to green and merged - reading CI fai
 - Fix the cause. Never skip, weaken or delete a check to get green, and never push an empty commit to re-run CI.
 - A run that installs Chromium from scratch (a cache miss, or the first run after a version bump) is slower, not failed.
 - GitHub runs no `pull_request` workflow at all while a PR's `mergeable_state` is `dirty`: a push with zero runs, not even queued, after a few minutes is a merge conflict with `main`. Check `mergeable_state` before waiting on CI.
+- Push, wait for that push's run to show, and only then mark a draft ready: a push seconds before leaving draft starts a Checks run that skips (it saw a draft) and, sharing the PR's concurrency group, cancels the ready run (#10).
 - Read a PR's live checks from the PR itself (`pull_request_read` with method `get_check_runs`), not a separate runs listing, which can lag by minutes.
 
 ## Check-ins, not polling
