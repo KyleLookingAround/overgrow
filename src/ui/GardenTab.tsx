@@ -1,5 +1,6 @@
-// The Garden tab: the gardener's card (the day's hours ticking down, the job in hand, and their work's days and hours
-// once the commute has unfolded) and the plan (what to sow in
+// The Garden tab, leading with one headline number, the gardener's hours left today (the spec
+// docs/specs/ui-overhaul.md): the gardener's card (the day's hours ticking down, the job in hand, and their work's days
+// and hours once the commute has unfolded) and the plan (what to sow in
 // each dug bed and from when, or the rotation, a border of flowers along its edge, the moisture below which the gardener
 // waters, and the pest policy for each pest the garden's crops draw: leave, pick, trap or treat). The pest lines and
 // the flowers, and the watering line, appear only once they've come up in the garden (src/data/unfold.ts): they're
@@ -124,11 +125,11 @@ function GardenerCard({nodes, acts, hours, job, onExplain}: {nodes: GraphNode[];
   return (
     <section class="card" aria-label="The gardener">
       <h3>The gardener</h3>
-      <p class="job">{describe(jobInHand(acts, hours), nodes)}</p>
+      <p class="headline"><Num v={hm(left)} cause="work" at={GARDENER} onExplain={onExplain} label="Hours left today" /> <span class="headline-unit">left today</span></p>
       <div class="hours">
-        <meter min={0} max={day} value={Math.min(day, left)} aria-label="Hours left today" />
-        <span><Num v={hm(left)} cause="work" at={GARDENER} onExplain={onExplain} label="Hours left today" /> left today</span>
+        <meter min={0} max={day} value={Math.min(day, left)} aria-label="The day’s hours, how much is left" />
       </div>
+      <p class="job">{describe(jobInHand(acts, hours), nodes)}</p>
       {job && <JobLine nodes={nodes} onExplain={onExplain} />}
     </section>
   );
