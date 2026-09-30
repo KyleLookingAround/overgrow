@@ -52,7 +52,7 @@ Readability first: the beds' tints and the badges that carry information (the UI
 
 ## Before and after
 
-`docs/specs/map-art/before.png` and `after.png`: the same seeded scene (seed 1, 18 July, 13:00, 1440 × 900, light) from `main` and from this PR.
+`docs/specs/map-art/before.png` and `after.png`: the same seeded scene (seed 1, 18 July, 13:00, 1440 × 900, light) from `main` and from this PR; `seasons.png` is the garden after, across the seasons, hours and weather, and on a phone in light and dark.
 
 ## Saved state
 
