@@ -5,7 +5,7 @@ The step up that seals the garden into a plot, and the allotment it opens. The p
 - **Where it lives:**
   - `src/sim/allotment.ts`, tested in `src/sim/allotment.test.ts`;
   - its numbers in `src/data/allotment.ts`;
-  - the page's side in `src/ui/StepUpCard.tsx`, `src/ui/AllotmentPanel.tsx` and `src/ui/map/allotment.ts`.
+  - the page's side in `src/ui/StepUpCard.tsx`, `src/ui/AllotmentPanel.tsx` and `src/ui/map/allotment.ts` (drawn with the map's style kit, `docs/systems/map.md`: soil tinted by Health, rows of plants for Output, grass over the neglected plot).
 - **Where it comes from:** part 7 of the founding spec, from `docs/briefs/step-up.md`, with its spec in `docs/specs/step-up.md`.
 
 - **The latch** (`Goal.offered` in `src/sim/goal.ts`):

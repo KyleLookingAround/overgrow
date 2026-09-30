@@ -1,9 +1,10 @@
 // The map (src/ui/map/): it draws the garden in the owner's style on WebGL, and on Canvas 2D where WebGL is missing;
 // it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; the
 // weather is drawn from the sim's (rain crossing the garden only while it rains, still but shown under reduced motion,
-// frost on a frosty morning, the dug beds paling as they dry and darkening when soaked); the steady light (at 16× the
-// night layer holds a steady daylight across two game days, with and without reduced motion, changing no faster than
-// its limit, and at 1× the night still falls); a seeded, paused screenshot
+// frost on a frosty morning, the dug beds paling as they dry and darkening when soaked, puddles on the path, the dawn's glow);
+// each dug bed's crop drawn in its crop's silhouette; the steady light (at 16× the night layer holds a steady daylight across
+// two game days, with and without reduced motion, changing no faster than its limit, and at 1× the night still falls); a
+// seeded, paused screenshot
 // repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the speed budget's
 // figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
 import {readFileSync} from 'node:fs';
@@ -51,6 +52,9 @@ export default async function({ok,open,out}){
     const v=await view(page),s=await shares(page,'.map',['--map-lawn','--map-bed-dug','--map-bed-grass']);
     await page.evaluate(()=>window.__sim.send({type:'speed',speed:1}));
     ok('scene: the map draws the garden on WebGL',v.renderer==='webgl'&&s['--map-lawn']>0.3&&s['--map-bed-dug']>0.01&&s['--map-bed-grass']>0.01&&!errs.length,`${v.renderer} ${JSON.stringify(s)} ${errs[0]||''}`);
+    // each dug bed's crop is drawn in its crop's silhouette (src/ui/map/plants.ts), named in the stats
+    const shapes=['rosette','blades','bush','climber','flower','sward'];
+    ok('scene: each dug bed’s crop is drawn with its crop’s silhouette',v.shapes&&Object.keys(v.crops).length>0&&Object.keys(v.crops).every(id=>shapes.includes(v.shapes[id])),JSON.stringify(v.shapes));
     // it interpolates: within one tick the view time takes several values between the snapshots either side of it
     // (sampled frame by frame, however slow the frames, for up to 5 s)
     const inTick=await page.evaluate(()=>new Promise(done=>{const by={},t0=performance.now();
@@ -64,6 +68,9 @@ export default async function({ok,open,out}){
         if(performance.now()-t0>5000)done([a,v]);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
     const [a,b]=pair,moved=a.movers.filter(m=>{const n=b.movers.find(x=>x.id===m.id);return n&&Math.hypot(n.x-m.x,n.y-m.y)>0.05}).length;
     ok('scene: people drawn from activities move smoothly between ticks',a.movers.length>=10&&moved>=5&&a.cur===b.cur,`${moved} of ${a.movers.length} moved within tick ${a.cur}→${b.cur}`);
+    // and they step as they walk: over a few frames, some figure is drawn mid-step
+    const stepped=await page.evaluate(()=>new Promise(done=>{let best=0,n=0;const f=()=>{best=Math.max(best,window.__sim.view().stepping);if(++n>=30||best>0)done(best);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
+    ok('scene: people step through a walk cycle as they move',stepped>0,`${stepped} figures mid-step`);
     await page.screenshot({path:join(out,'scene-1440x900.png')});await ctx.close()}
 
   // prefers-reduced-motion: the view jumps from tick to tick
@@ -71,8 +78,8 @@ export default async function({ok,open,out}){
     await page.evaluate(()=>window.__sim.bench(20));await page.waitForTimeout(600);
     const seen=[];for(let i=0;i<30;i++){seen.push(await view(page));await page.waitForTimeout(50)}
     const whole=seen.every(x=>Number.isInteger(x.hours)),ticks=new Set(seen.map(x=>x.hours)).size;
-    const still=seen.every((x,i)=>!i||x.hours!==seen[i-1].hours||JSON.stringify(x.movers)===JSON.stringify(seen[i-1].movers));
-    ok('scene: under reduced motion the map jumps per tick instead of gliding',whole&&ticks>=2&&still&&!errs.length,`whole hours ${whole}, ${ticks} ticks seen, movers still between ticks ${still}`);
+    const still=seen.every((x,i)=>!i||x.hours!==seen[i-1].hours||JSON.stringify(x.movers)===JSON.stringify(seen[i-1].movers)),standing=seen.every(x=>x.stepping===0);
+    ok('scene: under reduced motion the map jumps per tick instead of gliding',whole&&ticks>=2&&still&&standing&&!errs.length,`whole hours ${whole}, ${ticks} ticks seen, movers still between ticks ${still}, no figure mid-step ${standing}`);
     await ctx.close()}
 
   // the steady light (src/ui/map/daylight.ts): at 16× the night layer holds a steady daylight across two game days, never
@@ -133,6 +140,9 @@ export default async function({ok,open,out}){
     const cold=await findDay(page,w=>w.tmin<-1&&w.sun>2,400);let rime=null;
     if(cold){const rise=Math.floor(12-cold.length/2);await showHour(page,rise);rime=await drawn(page);await page.screenshot({path:join(out,'scene-frost-1440x900.png')})}
     ok('scene: frost lies on the garden on a frosty morning',cold&&rime.weather.frost>0&&!errs.length,cold?`day ${cold.day}, minimum ${cold.tmin.toFixed(1)} °C: frost ${rime.weather.frost.toFixed(2)}`:'no frosty day in 400');
+    // the light: a warm glow as the sun rises, none at midday or mid-afternoon; puddles on the path in the rain, none on a dry afternoon
+    ok('scene: the dawn glows warm at sunrise and not in the afternoon',cold&&rime.weather.dawn>0&&parched&&parched.weather.dawn===0,`dawn ${rime?.weather.dawn?.toFixed(2)} at sunrise, ${parched?.weather.dawn} at 15:00`);
+    ok('scene: puddles lie on the path in the rain and not on a dry afternoon',wet&&rain.weather.puddles>0&&parched&&parched.weather.puddles===0,`${rain?.weather.puddles} paths puddled in the rain, ${parched?.weather.puddles} on a dry afternoon`);
     await ctx.close()}
 
   // under reduced motion the rain is still shown, but stands still between ticks (at 1×, since a paused view under

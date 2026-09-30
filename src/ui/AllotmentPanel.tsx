@@ -74,7 +74,7 @@ function PlotTab({nodes, hours, send, onExplain, seen, all, zoom}: {nodes: Graph
     <>
       <section class="place" aria-labelledby="plot-title">
         <h3 id="plot-title">Your plot</h3>
-        <p class="headline"><Num v={`${num(t.output * 1000)} g`} cause="harvest" at={n.id} onExplain={onExplain} label="Output" /> <span class="headline-unit">a day from your plot</span></p>
+        <p class="headline"><Num v={`${num(outputNow(n) * 1000)} g`} cause={outputNow(n) < t.output - 1e-9 ? (zoom && !zoom.rescued && !zoom.missed ? "slugs in your garden" : "harvest") : "harvest"} at={n.id} onExplain={onExplain} label="Output" /> <span class="headline-unit">a day from your plot</span></p>
         <p class="soft">Your garden’s last year, as one plot. You can’t tend its beds from here, only plan it.</p>
         {n.levers.rescued ? <p class="rescued-mark"><span aria-hidden="true">✦</span> Rescued</p> : null}
         {outcome ? <p class="soft zoom-outcome">{outcome}</p> : null}

@@ -61,4 +61,5 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 - [The playable garden, round five · 30 Sep 2026](lessons/86-playable-garden-5.md)
 - [Steady the light check and split CI (#85) · 30 Sep 2026](lessons/85-steady-ci.md)
 - [A steady light at speed (#81) · 30 Sep 2026](lessons/81-steady-light.md)
+- [A beautiful map · 30 Sep 2026](lessons/72-map-art.md)
 <!-- /joined:lessons -->
