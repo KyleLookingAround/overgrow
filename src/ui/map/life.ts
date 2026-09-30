@@ -125,8 +125,7 @@ export function drawLife(g: Graphics, v: View, c: Camera, pal: Palette, dark: nu
       const leg = hours / 2, k = wrap(leg), n = over[Math.floor(leg) % over.length]!, m = over[(Math.floor(leg) + 1) % over.length]!, r0 = px(n.box!, c), r1 = px(m.box!, c);
       const x = r0.x + r0.w / 2 + (r1.x + r1.w / 2 - r0.x - r0.w / 2) * k + Math.sin(now * 2.1) * 0.25 * s, y = r0.y + r0.h / 2 + (r1.y + r1.h / 2 - r0.y - r0.h / 2) * k + Math.cos(now * 1.7) * 0.2 * s;
       kit.butterfly(g, x, y, Math.max(3, 0.07 * s), pal, still ? 0.3 : 0.5 + 0.5 * Math.sin(now * 9));
-      creatures.push({cause: 'bees', at: n.id, x, y});
-      stats.butterfly = true;
+      stats.butterfly = true; // a delight: no card of its own, so a tap goes through to the bed
     }
     // the cat, on a dry day: along the lawn, pausing, a crossing every three hours or so
     if (wild.cat && lawn?.box) {
@@ -140,10 +139,9 @@ export function drawLife(g: Graphics, v: View, c: Camera, pal: Palette, dark: nu
     }
     // a robin on the lawn by the fence on a winter's day, hopping along every few seconds
     if ((date.dayOfYear >= 335 || date.dayOfYear <= 59) && !raining && lawn?.box) {
-      const r = px(lawn.box, c), hop = Math.floor(hours * 6 + scatter(seed, 'robin', 0) * 10), x = r.x + r.w * (0.12 + 0.05 * (hop % 7)), y = r.y + r.h * 0.94 - 0.05 * s * (hop % 2);
+      const r = px(lawn.box, c), hop = Math.floor(hours * 1.5 + scatter(seed, 'robin', 0) * 10), x = r.x + r.w * (0.12 + 0.05 * (hop % 7)), y = r.y + r.h * 0.94 - 0.05 * s * (hop % 2);
       kit.robin(g, x, y, Math.max(2.5, 0.05 * s), pal, 0);
-      creatures.push({cause: 'cat', at: 'lawn', x, y});
-      stats.robin = true;
+      stats.robin = true; // a delight: no card of its own
     }
   }
   // steam off the heap on a cold morning while it holds fresh waste: a working heap is warm inside

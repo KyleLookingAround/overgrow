@@ -65,6 +65,9 @@ export default async function({ok,open,out}){
         if(performance.now()-t0>5000)done([a,v]);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
     const [a,b]=pair,moved=a.movers.filter(m=>{const n=b.movers.find(x=>x.id===m.id);return n&&Math.hypot(n.x-m.x,n.y-m.y)>0.05}).length;
     ok('scene: people drawn from activities move smoothly between ticks',a.movers.length>=10&&moved>=5&&a.cur===b.cur,`${moved} of ${a.movers.length} moved within tick ${a.cur}→${b.cur}`);
+    // and they step as they walk: over a few frames, some figure is drawn mid-step
+    const stepped=await page.evaluate(()=>new Promise(done=>{let best=0,n=0;const f=()=>{best=Math.max(best,window.__sim.view().stepping);if(++n>=30||best>0)done(best);else requestAnimationFrame(f)};requestAnimationFrame(f)}));
+    ok('scene: people step through a walk cycle as they move',stepped>0,`${stepped} figures mid-step`);
     await page.screenshot({path:join(out,'scene-1440x900.png')});await ctx.close()}
 
   // prefers-reduced-motion: the view jumps from tick to tick
@@ -72,8 +75,8 @@ export default async function({ok,open,out}){
     await page.evaluate(()=>window.__sim.bench(20));await page.waitForTimeout(600);
     const seen=[];for(let i=0;i<30;i++){seen.push(await view(page));await page.waitForTimeout(50)}
     const whole=seen.every(x=>Number.isInteger(x.hours)),ticks=new Set(seen.map(x=>x.hours)).size;
-    const still=seen.every((x,i)=>!i||x.hours!==seen[i-1].hours||JSON.stringify(x.movers)===JSON.stringify(seen[i-1].movers));
-    ok('scene: under reduced motion the map jumps per tick instead of gliding',whole&&ticks>=2&&still&&!errs.length,`whole hours ${whole}, ${ticks} ticks seen, movers still between ticks ${still}`);
+    const still=seen.every((x,i)=>!i||x.hours!==seen[i-1].hours||JSON.stringify(x.movers)===JSON.stringify(seen[i-1].movers)),standing=seen.every(x=>x.stepping===0);
+    ok('scene: under reduced motion the map jumps per tick instead of gliding',whole&&ticks>=2&&still&&standing&&!errs.length,`whole hours ${whole}, ${ticks} ticks seen, movers still between ticks ${still}, no figure mid-step ${standing}`);
     await ctx.close()}
 
   // the weather, drawn from the sim's: rain while it rains and not after, moving between frames even while paused; the

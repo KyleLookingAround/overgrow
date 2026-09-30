@@ -252,7 +252,7 @@ function drawCrop(g: Graphics, n: GraphNode, hours: number, c: Camera, pal: Pale
   if (shape === 'climber') for (let i = 0; i < rows; i++) kit.cane(g, r.x + pad * 0.5, r.y + pad + ch * (i + 0.5), r.x + r.w - pad * 0.5, r.y + pad + ch * (i + 0.5), c.s, pal);
   const bloom = s.id === 'marigolds' && stage !== 'growing' && !s.dead;
   for (let i = 0; i < rows; i++)
-    for (let j = 0; j < cols; j++) plant(g, shape, ...at(i, j), rad, c.s, pal, colours, {ready, droop: stress, phase: ((i * 7 + j * 3) % 6) * 0.5, bloom});
+    for (let j = 0; j < cols; j++) plant(g, shape, ...at(i, j), rad, pal, colours, {ready, droop: stress, phase: ((i * 7 + j * 3) % 6) * 0.5, bloom});
   // nibbled leaves: bites out of the plants' edges, more the more the pests have taken
   if (s.lost > 0.03 && !s.dead) {
     const bites = Math.min(rows * cols, Math.ceil(rows * cols * Math.min(1, s.lost * 2)));
@@ -285,7 +285,10 @@ export function drawGrown(g: Graphics, s: Snapshot, c: Camera, pal: Palette): {c
   // fallen leaves on the grass from mid-October, thickest in mid-November, gone by mid-December (cosmetic, from the
   // calendar: the leaves card's season, src/sim/shed.ts)
   const leaves = at.lawn?.box ? Math.round(80 * Math.max(0, 1 - Math.abs(d.dayOfYear - 318) / 30)) : 0;
-  if (leaves > 0) kit.fallenLeaves(g, px(at.lawn!.box!, c), c.s, pal, s.seed, 'lawn', leaves);
+  if (leaves > 0) {
+    const over = s.nodes.filter((n) => n.box && n.kind !== 'lawn').map((n) => px(n.box!, c));
+    kit.fallenLeaves(g, px(at.lawn!.box!, c), c.s, pal, s.seed, 'lawn', leaves, (x, y) => over.some((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h));
+  }
   for (const n of at.dug) {
     const r = px(n.box!, c), drawn = drawCrop(g, n, s.hours, c, pal);
     if (drawn) {

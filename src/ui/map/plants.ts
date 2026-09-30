@@ -66,7 +66,7 @@ function outline(shape: Shape, x: number, y: number, rad: number, phase: number,
  * One plant at (x, y) with a radius in pixels, at a scale s (px a metre): the shaded shape, then its lit top offset up
  * and left, a sheen when ready, and the flower's head. A plant smaller than a pixel or so is a dot.
  */
-export function plant(g: Graphics, shape: Shape, x: number, y: number, rad: number, s: number, pal: Palette, colours: Leaves, opts: {ready: boolean; droop: number; phase: number; bloom?: boolean}) {
+export function plant(g: Graphics, shape: Shape, x: number, y: number, rad: number, pal: Palette, colours: Leaves, opts: {ready: boolean; droop: number; phase: number; bloom?: boolean}) {
   if (rad < 1.2) {
     g.circle(x, y, Math.max(0.8, rad)).fill(colours.top);
     return;

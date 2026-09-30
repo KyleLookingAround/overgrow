@@ -37,10 +37,10 @@ export interface MapRenderer {
   creatureAt(x: number, y: number): Creature | null;
   /** A ring pulsing at a place (the Explain card's), or none. */
   setPulse(at: NodeId | null): void;
-  /** For the checks: the last frames' times in ms, where the first movers are drawn (in CSS pixels), the weather, each
+  /** For the checks: the last frames' times in ms, where the first movers are drawn (in CSS pixels) and how many are mid-step, the weather, each
    *  dug bed's crop stage and the shape it's drawn in, and the gardener: what they're doing, where, and what they carry. */
   stats(): {
-    frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; shapes: Record<string, Shape>;
+    frames: number[]; movers: {id: string; x: number; y: number}[]; stepping: number; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; shapes: Record<string, Shape>;
     gardener: GardenerStats | null; life: LifeStats; creatures: Creature[]; torch: boolean; pulse: NodeId | null;
   };
   destroy(): void;
@@ -129,8 +129,8 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   let weather: WeatherStats = {rain: 0, snow: false, drops: [], frost: 0, dawn: 0, puddles: 0, leaves: 0, soil: {}};
   let crops: Record<string, Stage> = {}, shapes: Record<string, Shape> = {}, leaves = 0, gardener: GardenerStats | null = null;
   let boxes = new Map<NodeId, Box>(), drawn: GraphNode[] = [];
-  const pool: Particle[] = [], walked: {x: number; y: number; d: number}[] = [], frameTimes: number[] = [];
-  let lastMovers: {id: string; x: number; y: number}[] = [];
+  const pool: Particle[] = [], walked = new Map<string, {x: number; y: number; d: number}>(), frameTimes: number[] = [];
+  let lastMovers: {id: string; x: number; y: number}[] = [], stepping = 0;
   let creatures: Creature[] = [], lifeStats: LifeStats = {slugs: 0, slime: 0, aphids: 0, bees: 0, ladybirds: 0, cat: false, butterfly: false, robin: false, steam: false}, torch = false, pulse: NodeId | null = null;
 
   const resolution = () => window.devicePixelRatio || 1;
@@ -147,6 +147,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     night.clear().rect(0, 0, width, height).fill({color: pal.night.color, alpha: 1});
     dawn.clear().rect(0, 0, width, height).fill({color: pal.dawn.color, alpha: 1});
     // the figures: one atlas of six frames (the gardener and the household, standing and stepping either foot)
+    for (const f of frames) f.destroy(false);
     atlas?.destroy(true);
     const ps = Math.max(MIN_PERSON_PX / 0.5, cam.s), cell = Math.ceil(0.6 * ps), g = new Graphics();
     g.rect(0, 0, cell * 6, cell).fill({color: 0, alpha: 0});
@@ -192,6 +193,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       rain.texture = snow ? flake! : drop!;
       rain.alpha = snow ? pal.snow.alpha : pal.rain.alpha;
       for (const p of drops) p.texture = rain.texture;
+      rain.update(); // the quads take the new texture's size
     }
     if (w && garden && w.day.rainHours > 0) {
       const {day, t} = w, x0 = c.x + garden.x * c.s, y0 = c.y + garden.y * c.s, gw = garden.w * c.s, gh = garden.h * c.s;
@@ -294,7 +296,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       lifeStats = drawnLife.stats;
       // the people and things moving, one figure each, from their activities at the view time, stepping as they go
       const out: {id: string; x: number; y: number}[] = [], shown = movers.particleChildren;
-      let used = 0, changed = false;
+      let used = 0, changed = false, steps = 0;
       carried.clear();
       glow.clear();
       torch = false;
@@ -308,22 +310,18 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
           continue;
         }
         let p = pool[used];
-        if (!p) {
-          pool.push((p = new Particle({texture: frames[0]!, anchorX: 0.5, anchorY: 0.5})));
-          walked.push({x: at.x, y: at.y, d: 0});
-        }
-        // the walk: a step every stride moved (the distance kept from frame to frame); standing still otherwise
-        const s = Math.max(MIN_PERSON_PX / 0.5, c.s), wk = walked[used]!, moved = Math.hypot(at.x - wk.x, at.y - wk.y);
+        if (!p) pool.push((p = new Particle({texture: frames[0]!, anchorX: 0.5, anchorY: 0.5})));
+        // the walk: a step every stride moved (the distance kept from frame to frame, by person); standing still otherwise
+        let wk = walked.get(a.who);
+        if (!wk) walked.set(a.who, (wk = {x: at.x, y: at.y, d: 0}));
+        const s = Math.max(MIN_PERSON_PX / 0.5, c.s), moved = Math.hypot(at.x - wk.x, at.y - wk.y);
         if (moved > 0.05 && moved < s * 3 && !still) wk.d += moved;
         else if (moved >= s * 3 || still) wk.d = 0;
         wk.x = at.x;
         wk.y = at.y;
         const frame = moved > 0.05 && !still ? WALK[Math.floor(wk.d / (STRIDE_PX * s)) % WALK.length]! : 0;
-        const tex = frames[(a.who === 'gardener' ? 0 : 3) + frame]!;
-        if (p.texture !== tex) {
-          p.texture = tex;
-          changed = true;
-        }
+        p.texture = frames[(a.who === 'gardener' ? 0 : 3) + frame]!; // the uvs are dynamic: a new frame uploads with the positions
+        if (frame) steps++;
         p.x = at.x;
         p.y = at.y - (frame ? 0.02 * s : 0);
         if (out.length < 16) out.push({id: a.id, x: at.x, y: at.y});
@@ -343,8 +341,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
         for (let i = 0; i < used; i++) shown.push(pool[i]!);
         changed = true;
       }
-      if (changed) movers.update(); // a frame's texture or the count changed: the buffers are rebuilt, else only positions move
+      if (changed) movers.update(); // the count changed: the static buffers are rebuilt
       lastMovers = out;
+      stepping = steps;
       night.alpha = dusk * pal.nightMax;
       dawn.alpha = warm;
       // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
@@ -382,7 +381,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     setPulse(at) {
       pulse = at;
     },
-    stats: () => ({frames: frameTimes.slice(), movers: lastMovers, cam, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse}),
+    stats: () => ({frames: frameTimes.slice(), movers: lastMovers, stepping, cam, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
     },

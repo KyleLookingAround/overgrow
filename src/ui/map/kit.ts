@@ -52,7 +52,7 @@ export function lawn(g: Graphics, r: Rect, s: number, pal: Palette, seed: number
   }
   g.fill(pal['lawn-stripe']);
   // tufts: a small dark blade or two every square metre or so
-  const m2 = (r.w * r.h) / (s * s), tufts = Math.round(m2 * 1.0), len = Math.max(2, 0.09 * s), wide = Math.max(1, 0.03 * s);
+  const m2 = (r.w * r.h) / (s * s), tufts = Math.min(600, Math.round(m2 * 1.0)), len = Math.max(2, 0.09 * s), wide = Math.max(1, 0.03 * s);
   for (let i = 0; i < tufts; i++) {
     const x = r.x + scatter(seed, id, i) * r.w, y = r.y + scatter(seed, id, 500 + i) * r.h, a = (scatter(seed, id, 1000 + i) - 0.5) * 1.2;
     g.poly([x - wide, y + len * 0.3, x + wide, y + len * 0.3, x + Math.sin(a) * len, y - Math.cos(a) * len]);
@@ -87,7 +87,9 @@ export function hedge(g: Graphics, garden: Rect, w: number, h: number, s: number
 /** A fence of timber panels along a line of posts, from (x0, y0) to (x1, y1), with a gap (a gate) between two distances
  *  along it in metres, if any. Posts every 1.8 m. */
 export function fence(g: Graphics, x0: number, y0: number, x1: number, y1: number, s: number, pal: Palette, gap?: [number, number]) {
-  const len = Math.hypot(x1 - x0, y1 - y0) / s, ux = (x1 - x0) / (len * s), uy = (y1 - y0) / (len * s), t = Math.max(2, 0.12 * s);
+  const len = Math.hypot(x1 - x0, y1 - y0) / s;
+  if (!(len > 0)) return;
+  const ux = (x1 - x0) / (len * s), uy = (y1 - y0) / (len * s), t = Math.max(2, 0.12 * s);
   const seg = (a: number, b: number) => {
     const ax = x0 + ux * a * s, ay = y0 + uy * a * s, bx = x0 + ux * b * s, by = y0 + uy * b * s;
     g.moveTo(ax, ay).lineTo(bx, by).stroke({width: t, color: pal.fence.color, alpha: pal.fence.alpha, cap: 'round'});
@@ -113,7 +115,7 @@ export function soil(g: Graphics, r: Rect, s: number, pal: Palette, colour: Pain
 
 /** Crumbs of tilth over dug soil, seeded: drawn once over the soil's colour, which changes under them. */
 export function tilth(g: Graphics, r: Rect, s: number, pal: Palette, seed: number, id: string) {
-  const m2 = (r.w * r.h) / (s * s), n = Math.round(m2 * 12), pad = 0.1 * s, dot = Math.max(1, 0.028 * s);
+  const m2 = (r.w * r.h) / (s * s), n = Math.min(400, Math.round(m2 * 12)), pad = 0.1 * s, dot = Math.max(1, 0.028 * s);
   for (let i = 0; i < n; i++) {
     const x = r.x + pad + scatter(seed, id, 2000 + i) * (r.w - 2 * pad), y = r.y + pad + scatter(seed, id, 3000 + i) * (r.h - 2 * pad);
     g.ellipse(x, y, dot * (0.8 + 0.6 * scatter(seed, id, 4000 + i)), dot * 0.7);
@@ -126,7 +128,7 @@ export function path(g: Graphics, r: Rect, s: number, pal: Palette, seed: number
   const round = 0.2 * s, edge = Math.max(1, 0.05 * s);
   g.roundRect(r.x, r.y, r.w, r.h, round).fill(pal['path-edge']);
   g.roundRect(r.x + edge, r.y + edge, r.w - 2 * edge, r.h - 2 * edge, round - edge).fill(pal.path);
-  const m2 = (r.w * r.h) / (s * s), n = Math.round(m2 * 3), dot = Math.max(1, 0.03 * s);
+  const m2 = (r.w * r.h) / (s * s), n = Math.min(200, Math.round(m2 * 3)), dot = Math.max(1, 0.03 * s);
   for (let i = 0; i < n; i++) g.circle(r.x + edge * 2 + scatter(seed, id, 5000 + i) * (r.w - 4 * edge), r.y + edge * 2 + scatter(seed, id, 6000 + i) * (r.h - 4 * edge), dot * (0.7 + 0.6 * scatter(seed, id, 7000 + i)));
   g.fill(pal.pebble);
 }
@@ -134,7 +136,7 @@ export function path(g: Graphics, r: Rect, s: number, pal: Palette, seed: number
 /** Puddles lying on a path, k of the way to full (0 none): a few ellipses of standing water. */
 export function puddles(g: Graphics, r: Rect, s: number, pal: Palette, seed: number, id: string, k: number) {
   if (k <= 0.02) return;
-  const m2 = (r.w * r.h) / (s * s), n = Math.max(1, Math.round(m2 * 0.7)), inset = 0.12 * s;
+  const m2 = (r.w * r.h) / (s * s), n = Math.min(40, Math.max(1, Math.round(m2 * 0.7))), inset = 0.12 * s;
   for (let i = 0; i < n; i++) {
     const x = r.x + inset + scatter(seed, id, 8000 + i) * (r.w - 2 * inset), y = r.y + inset + scatter(seed, id, 9000 + i) * (r.h - 2 * inset);
     const a = (0.12 + 0.12 * scatter(seed, id, 9500 + i)) * s * k, b = Math.min(a * 0.6, (r.h - 2 * inset) / 2);
@@ -195,11 +197,12 @@ export function tap(g: Graphics, r: Rect, s: number, pal: Palette) {
 }
 
 /** Fallen leaves lying on the grass, n of them, seeded: two browns, each leaf a small pointed ellipse. */
-export function fallenLeaves(g: Graphics, r: Rect, s: number, pal: Palette, seed: number, id: string, n: number) {
+export function fallenLeaves(g: Graphics, r: Rect, s: number, pal: Palette, seed: number, id: string, n: number, covered?: (x: number, y: number) => boolean) {
   const len = Math.max(2, 0.12 * s), wide = Math.max(1, 0.06 * s);
   for (const [tone, from] of [[pal['autumn-leaf'], 0], [pal['autumn-leaf-2'], 1]] as const) {
     for (let i = from; i < n; i += 2) {
       const x = r.x + scatter(seed, id, 10000 + i) * r.w, y = r.y + scatter(seed, id, 11000 + i) * r.h, a = scatter(seed, id, 12000 + i) * Math.PI;
+      if (covered?.(x, y)) continue; // on a bed, a path or a roof, not the grass
       const c = Math.cos(a), sn = Math.sin(a);
       g.poly([x + c * len, y + sn * len, x - sn * wide, y + c * wide, x - c * len, y - sn * len, x + sn * wide, y - c * wide]);
     }
