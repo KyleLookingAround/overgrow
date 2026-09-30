@@ -1,6 +1,6 @@
 # A beautiful map: the garden's art pass
 
-Issue: #71 · Status: Approved (the owner’s brief for the map, committed with #66, approves it in advance) · PRs: #72
+Issue: #71 · Status: Approved (the owner’s brief, `docs/briefs/map-art.md`, approves it in advance) · PRs: #72
 
 ## What the player gets
 
