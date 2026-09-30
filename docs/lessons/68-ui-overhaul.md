@@ -1,10 +1,10 @@
 # The UI and UX overhaul (#68) · 30 Sep 2026
 
 - **Numbers:**
-  - The estimate was $35. `get_session` reported no cost at any of the four readings (the field was absent, not 0), so the session's cost is unknown here; the coordinator's view has it.
-  - The session started at 23:16 UTC on 29 Sep. The draft PR with the audit and the spec opened at 23:42; phase 2's push came at about 01:10 on 30 Sep.
-  - Two full `npm run check` runs before the push (one caught my own test's wrong expectation and three checks matching the old words; the second the fullscreen button unmounting itself), then the affected groups alone.
-  - One merge from `main` by hand (#66), no conflicts. No hours waiting on the owner: the brief approved the spec in advance.
+  - The estimate was $35; `get_session` read $29.27 at the last reading that carried a cost (the first four readings had no cost field at all). Context used: about 515,000 tokens of the million.
+  - The session started at 23:16 UTC on 29 Sep. The draft PR with the audit and the spec opened at 23:42; the usage limit stopped the session at about 01:25 with phase 2 unpushed, and it carried on at 04:36 after the reset. The push with phase 2 came at about 05:05.
+  - Four full `npm run check` runs (one caught my own test's wrong expectation and three checks matching the old words; one the fullscreen button unmounting itself; one the merge's `night` group before the moon went on the pill), then the affected groups alone.
+  - Three merges from `main`: #66 by hand, then #70 and #67 together by hand (nine conflicts, seven of them in files this PR rewrote), and the Catch up workflow's own merge pulled in after two rejected pushes. No hours waiting on the owner: the brief approved the spec in advance; the owner's two additions came through the coordinator as the work went.
   - The before-and-after screenshots: 112 frames of `main` at the brief's thirty sizes and six moments, then the same at the seven sizes worth looking at.
 - **Went well:**
   - **Measuring before designing.** The audit script (`build/shots.mjs`) recorded every box, font size, small target and overflow at each size in one JSON, and a contact sheet (`build/sheet.mjs`) put thirty frames in one image. The notice wider than the map (x = −48 at 320 px) and the goal bar hidden under the "try faster" nudge were numbers before they were opinions.
@@ -16,4 +16,6 @@
   - **A media-query-driven component must read its condition once.** The fullscreen button hid itself the moment the page went fullscreen (`display-mode: fullscreen` matched) and the check's second click timed out. Read at mount.
   - **44 px targets move a fold.** The four speeds at 44 px each no longer fit a 640 px bar; the fold moved to 700 px. A tap-target change is a row change too (the UI record's rule 3).
   - **Check the tap's coordinates after the layout moves.** The sheet's button moved when the sheet grew, and the second tap at the old spot landed on the map. → the `layout` check re-measures the button before each tap.
+  - **Pull before you push, every time.** Two pushes were rejected because the Catch up workflow had merged `main` into the branch on GitHub while the local branch merged the same `main` itself. The steward playbook already says so; the cost was one aborted merge and one clean re-merge.
+  - **A parallel part that rewrites the same files costs a second resolution.** Part 7 and the shorter year landed while this PR rewrote the stylesheet, the app and the layout check: nine conflicts, resolved by taking this branch's version and folding the other's additions in by hand (the moon, the six speeds, the allotment's panel). A shell rewrite is best merged before the parts that sit on it, or briefed with them.
   - **WebKit isn't here.** Only Chromium is installed and the brief says not to download browsers, so the home-screen install, the status bar style and the notch's insets wait for a real iPhone or iPad; the PR lists them.
