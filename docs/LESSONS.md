@@ -13,6 +13,10 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 - [The bot and the first baselines, the first slice's part 4 (#10) · 29 Sep 2026](lessons/10-bot-and-baselines.md)
 
+### Build
+
+- [The one map's spike: one camera, the zoom as the speed, and skips (#94, #96) · 30 Sep 2026](lessons/96-one-map-spike.md)
+
 ### Checks
 
 - [Headroom for the garden day, again (#61) · 29 Sep 2026](lessons/61-garden-day-headroom.md)
