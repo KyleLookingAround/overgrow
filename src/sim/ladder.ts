@@ -270,6 +270,12 @@ export function sumTotals(children: readonly SumChild[]): LadderTotals {
 /** What the player last set for a sealed node: the Health it drifts to, and optionally the carbon and land it follows. */
 export interface SealPlan {
   health: number;
+  /** kg a day the node's Output runs at before Health, events and luck; the sealed figure if left out (the allotment's mix and feed, part 7). */
+  output?: number;
+  /** kg a day by product group, adding up to `output`; the sealed mix if left out. */
+  mix?: ByGroup;
+  /** £ a day it costs; the sealed figure if left out. */
+  upkeep?: number;
   /** kg CO₂e a day the node emits less sinks; the sealed figure if left out. */
   carbon?: number;
   /** m² by use; the sealed land if left out. */
@@ -375,20 +381,23 @@ export function sealedTick(node: SealedNode, hours: number, rng: Rng, price?: nu
   const drifted = t.health + clamp(health, -step, step);
   const cv = (100 - clamp(t.reliability, 0, 100)) / 100 / Math.sqrt(days);
   const events = eventFactor(node.events, node.at, hours);
-  const base = t.output * days * healthFactor(drifted) * noiseFactor(rng, cv);
+  const rate = node.plan.output ?? t.output, upkeep = node.plan.upkeep ?? t.upkeep, planned = node.plan.mix ?? t.outputByGroup;
+  const base = rate * days * healthFactor(drifted) * noiseFactor(rng, cv);
   const carbon = node.plan.carbon ?? t.carbon;
+  const totals: LadderTotals = {...t, output: rate, upkeep, health: drifted, carbon, land: {...(node.plan.land ?? t.land)}};
+  if (planned) totals.outputByGroup = {...planned};
   const next: SealedNode = {
-    totals: {...t, health: drifted, carbon, land: {...(node.plan.land ?? t.land)}},
+    totals,
     plan: node.plan,
     events: node.events.filter((e) => e.from + e.days * DAY_HOURS > hours),
     at: hours,
   };
-  const mix = t.outputByGroup, total = mix ? sumOf(mix) : 0;
+  const mix = planned, total = mix ? sumOf(mix) : 0;
   const byGroup = total > 0 ? scaled(mix!, (base * events) / total) : {}, lostByGroup = total > 0 ? scaled(mix!, (base * (1 - events)) / total) : {};
   const lost = base * (1 - events);
   const lostGBP = typeof price === 'number' ? lost * price : PRODUCT_GROUPS.reduce((s, g) => s + (lostByGroup[g] ?? 0) * (price?.[g] ?? 0), 0);
   return {
-    node: next, output: qty(base * events, 'kgFood'), lost: qty(lost, 'kgFood'), upkeep: qty(t.upkeep * days, 'GBP'), carbon: qty(carbon * days, 'kgCO2e'),
+    node: next, output: qty(base * events, 'kgFood'), lost: qty(lost, 'kgFood'), upkeep: qty(upkeep * days, 'GBP'), carbon: qty(carbon * days, 'kgCO2e'),
     byGroup, lostByGroup, lostGBP,
   };
 }
@@ -398,7 +407,7 @@ export function sealedTick(node: SealedNode, hours: number, rng: Rng, price?: nu
  * (product 'produce', from the `growth` boundary) and the money its upkeep is paid from, if the node has a `money` stock.
  * docs/systems/ladder.md says what the wiring part adds.
  */
-export const SEALED = {lever: 'sealed', food: 'food', product: 'produce', money: 'money'} as const;
+export const SEALED = {lever: 'sealed', food: 'food', product: 'produce', money: 'money', payer: 'payer'} as const;
 
 /** Runs every sealed node on the graph on the day tick; part 7 lists it in src/sim/systems.ts with one line. */
 export const sealedSystem: System = {
@@ -410,7 +419,10 @@ export const sealedSystem: System = {
         if (!sealed || typeof sealed !== 'object') continue;
         const r = sealedTick(sealed, ctx.hours, ctx.rng);
         if (r.output > 0) ctx.flow({what: 'harvest', unit: 'kgFood', product: SEALED.product, amount: r.output, from: {boundary: 'growth'}, to: {node: n.id, stock: SEALED.food}});
-        if (r.upkeep > 0 && n.stocks[SEALED.money]) ctx.flow({what: 'upkeep', unit: 'GBP', amount: r.upkeep, from: {node: n.id, stock: SEALED.money}, to: {boundary: 'bought'}});
+        // upkeep comes from the node's own money, or from the node its `payer` lever names (the player's household), while
+        // there's enough to pay it
+        const payer = typeof n.levers[SEALED.payer] === 'string' ? (n.levers[SEALED.payer] as string) : n.id;
+        if (r.upkeep > 0 && (ctx.graph.nodes[payer]?.stocks[SEALED.money]?.amount ?? 0) >= r.upkeep) ctx.flow({what: 'upkeep', unit: 'GBP', amount: r.upkeep, from: {node: payer, stock: SEALED.money}, to: {boundary: 'bought'}});
         if (r.carbon > 0) ctx.flow({what: 'emissions', unit: 'kgCO2e', amount: r.carbon, from: {boundary: 'bought'}, to: {node: ATMOSPHERE, stock: 'carbon'}});
         else if (r.carbon < 0) ctx.flow({what: 'sink', unit: 'kgCO2e', amount: qty(-r.carbon, 'kgCO2e'), from: {node: ATMOSPHERE, stock: 'carbon'}, to: {node: n.id, stock: 'carbon'}});
         n.levers[SEALED.lever] = r.node as unknown as LeverValue;

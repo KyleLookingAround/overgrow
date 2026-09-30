@@ -235,18 +235,100 @@ meter {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
+/* the moon while a quiet night passes quickly: a small badge on the pressed speed's corner, taking no room in the bar,
+   glowing softly (still under reduced motion) */
+.speed,
+.speed-cycle {
+  position: relative;
+}
+.quiet-night {
+  position: absolute;
+  top: calc(var(--moon) * -0.4);
+  left: calc(var(--moon) * -0.4);
+  display: grid;
+  place-items: center;
+  width: var(--moon);
+  height: var(--moon);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--ink);
+  pointer-events: none;
+  animation: moon-glow var(--moon-ms) ease-in-out infinite alternate;
+}
+.quiet-night svg {
+  width: calc(var(--moon) * 0.75);
+  height: calc(var(--moon) * 0.75);
+  fill: currentColor;
+}
+@keyframes moon-glow {
+  from {
+    opacity: var(--moon-low);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quiet-night {
+    animation: none;
+  }
+}
 .speed-cycle {
   display: none;
   margin-left: auto;
+}
+.speed-fast {
+  display: none;
 }
 .pause {
   font-size: var(--text-sm);
   letter-spacing: var(--pause-squeeze);
 }
-/* the bar's steps by its own width (the owner's wins W2 and W11): the temperature goes first, then the speeds fold */
+/* the moon while a quiet night passes quickly: a small badge on the pressed speed's corner, taking no room in the bar,
+   glowing softly (still under reduced motion) */
+.speed,
+.speed-cycle,
+.speed-pill {
+  position: relative;
+}
+.quiet-night {
+  position: absolute;
+  top: calc(var(--moon) * -0.4);
+  left: calc(var(--moon) * -0.4);
+  display: grid;
+  place-items: center;
+  width: var(--moon);
+  height: var(--moon);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--ink);
+  pointer-events: none;
+  animation: moon-glow var(--moon-ms) ease-in-out infinite alternate;
+}
+.quiet-night svg {
+  width: calc(var(--moon) * 0.75);
+  height: calc(var(--moon) * 0.75);
+  fill: currentColor;
+}
+@keyframes moon-glow {
+  from {
+    opacity: var(--moon-low);
+  }
+}
+.speed-fast {
+  display: none;
+}
+/* the bar's steps by its own width (the owner's wins W2 and W11): the temperature goes first; then 4×, 8× and 16× fold
+   into one button that cycles them (six 44 px speeds want about 1,000 px with December's money and dial); then pause
+   and the speeds fold into one button */
 @container topbar (max-width: 599px) {
   .temp {
     display: none;
+  }
+}
+@container topbar (max-width: 1023px) {
+  .speeds .speed.fast {
+    display: none;
+  }
+  .speeds .speed-fast {
+    display: inline-block;
   }
 }
 @container topbar (max-width: 699px) {

@@ -184,6 +184,34 @@ export type Sheet = 'peek' | 'half' | 'tall';
 export const nextSheet = (s: Sheet): Sheet => (s === 'half' ? 'tall' : s === 'tall' ? 'peek' : 'half');
 const SHEET_LABEL: Record<Sheet, string> = {peek: 'Open the panel', half: 'Open the panel fully', tall: 'Fold the panel down'};
 
+/** A panel's head, the garden's and every level's (src/ui/AllotmentPanel.tsx): the tabs as pressed buttons, and on a sheet
+ *  the button that cycles its resting heights; a tab tap opens a folded sheet. */
+export function SheetHead({tabs, current, sheet, onSheet, onTab}: {
+  tabs: readonly (readonly [string, string])[]; current: string; sheet: Sheet; onSheet: (s: Sheet) => void; onTab: (t: string) => void;
+}) {
+  return (
+    <div class="panel-head">
+      <h2 id="panel-title" class="visually-hidden">{tabs.find(([t]) => t === current)?.[1]}</h2>
+      <div class="tabs" role="group" aria-label="Panels">
+        {tabs.map(([t, label]) => (
+          <button type="button" id={`tab-${t}`} aria-pressed={t === current} aria-controls="panel-body" class="tab" onClick={() => {
+            onTab(t);
+            if (sheet === 'peek') onSheet('half');
+          }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <button type="button" class="sheet-toggle" aria-expanded={sheet !== 'peek'} aria-controls="panel-body" aria-label={SHEET_LABEL[sheet]}
+        title={SHEET_LABEL[sheet]} onClick={() => onSheet(nextSheet(sheet))}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          {sheet === 'tall' ? <path d="M6 9l6 6 6-6" /> : <path d="M6 15l6-6 6 6" />}
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 /** The tabs, and the key each shows with (null: from the start). */
 const TABS: [Tab, string, string | null][] = [['garden', 'Garden', null], ['shed', 'Shed', 'garden.shed'], ['kitchen', 'Kitchen', 'garden.kitchen']];
 
@@ -204,25 +232,7 @@ export function Panel(props: {
   const current = shown.some(([t]) => t === tab) ? tab : 'garden';
   return (
     <aside class="panel" data-sheet={props.sheet} aria-labelledby="panel-title">
-      <div class="panel-head">
-        <h2 id="panel-title" class="visually-hidden">{shown.find(([t]) => t === current)![1]}</h2>
-        <div class="tabs" role="group" aria-label="Panels">
-          {shown.map(([t, label]) => (
-            <button type="button" id={`tab-${t}`} aria-pressed={t === current} aria-controls="panel-body" class="tab" onClick={() => {
-              setTab(t);
-              if (props.sheet === 'peek') props.onSheet('half');
-            }}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <button type="button" class="sheet-toggle" aria-expanded={props.sheet !== 'peek'} aria-controls="panel-body" aria-label={SHEET_LABEL[props.sheet]}
-          title={SHEET_LABEL[props.sheet]} onClick={() => props.onSheet(nextSheet(props.sheet))}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            {props.sheet === 'tall' ? <path d="M6 9l6 6 6-6" /> : <path d="M6 15l6-6 6 6" />}
-          </svg>
-        </button>
-      </div>
+      <SheetHead tabs={shown.map(([t, label]) => [t, label] as const)} current={current} sheet={props.sheet} onSheet={props.onSheet} onTab={(t) => setTab(t as Tab)} />
       <div class="panel-body" id="panel-body">
         <div class="panel-content" key={current}>
           {current === 'kitchen' && props.ledger ? (

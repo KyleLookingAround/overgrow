@@ -124,18 +124,20 @@ export default async function({ok,open,out}){
   // over 5,000 nodes at 1440×900, and on a phone-sized page at 4× CPU throttling, and 50 people over the same nodes
   // there, with each tick's copy across the worker boundary. The perf check (part 15) will assert them; this only
   // proves the scene runs.
-  const measure=async(vp,touch,throttle,n,m=n)=>{
+  const measure=async(vp,touch,throttle,n,m=n,speed=1)=>{
     const {ctx,page,errs}=await open(vp,{touch});await ready(page);
     const cdp=await ctx.newCDPSession(page);if(throttle)await cdp.send('Emulation.setCPUThrottlingRate',{rate:throttle});
     if(n)await page.evaluate(([n,m])=>window.__sim.bench(n,m),[n,m]);
     // the garden's own game opens paused on the first plan's card: answering it starts the clock
-    else await page.evaluate(()=>window.__sim.send({type:'card',id:'first-plan',answer:'accept'}));
+    else await page.evaluate(async s=>{await window.__sim.send({type:'card',id:'first-plan',answer:'accept'});if(s!==1)await window.__sim.send({type:'speed',speed:s})},speed);
     await page.waitForTimeout(1500);
-    const c0=(await page.evaluate(()=>window.__sim.copyTimes())).read.length,f0=await page.evaluate(()=>{window.__fps=0;const f=()=>{window.__fps++;requestAnimationFrame(f)};requestAnimationFrame(f);return performance.now()});
+    const h0=(await page.evaluate(()=>window.__sim.view())).hours,c0=(await page.evaluate(()=>window.__sim.copyTimes())).read.length,f0=await page.evaluate(()=>{window.__fps=0;const f=()=>{window.__fps++;requestAnimationFrame(f)};requestAnimationFrame(f);return performance.now()});
     await page.waitForTimeout(3000);
-    const r=await page.evaluate(([c0,f0])=>{const c=window.__sim.copyTimes();return {v:window.__sim.view(),read:c.read.slice(c0),patched:c.patched.slice(c0),written:c.written.slice(c0),fps:window.__fps/((performance.now()-f0)/1000)}},[c0,f0]);
+    const r=await page.evaluate(([c0,f0])=>{const c=window.__sim.copyTimes();return {v:window.__sim.view(),read:c.read.slice(c0),patched:c.patched.slice(c0),written:c.written.slice(c0),fps:window.__fps/((performance.now()-f0)/1000),secs:(performance.now()-f0)/1000}},[c0,f0]);
+    // the most the worker gives: eight-hour ticks back to back, as fast as it answers (the game only; a bench isn't ticked)
+    const most=n?0:await page.evaluate(async()=>{const t=performance.now();for(let i=0;i<20;i++)await window.__sim.send({type:'tick',hours:8});return 160/((performance.now()-t)/1000)});
     await ctx.close();
-    return {movers:r.v.movers.length,frame:median(r.v.frames),frame95:p95(r.v.frames),read:median(r.read.map((x,i)=>x+r.patched[i])),read95:p95(r.read.map((x,i)=>x+r.patched[i])),reading:median(r.read),patching:median(r.patched),written:median(r.written),ticks:r.read.length,fps:r.fps,errs};
+    return {movers:r.v.movers.length,frame:median(r.v.frames),frame95:p95(r.v.frames),read:median(r.read.map((x,i)=>x+r.patched[i])),read95:p95(r.read.map((x,i)=>x+r.patched[i])),reading:median(r.read),patching:median(r.patched),written:median(r.written),ticks:r.read.length,fps:r.fps,rate:(r.v.hours-h0)/r.secs,most,errs};
   };
   const fmt=m=>`draw ${m.frame.toFixed(2)} ms a frame (p95 ${m.frame95.toFixed(2)}), ${m.fps.toFixed(0)} fps here; copy on the page ${m.read.toFixed(2)} ms a tick (p95 ${m.read95.toFixed(2)}; reading ${m.reading.toFixed(2)}, patching ${m.patching.toFixed(2)}), written in the worker ${m.written.toFixed(2)} ms, over ${m.ticks} ticks`;
   const garden=await measure({width:1440,height:900},false,0,0);
@@ -146,4 +148,7 @@ export default async function({ok,open,out}){
   ok('scene: speed, 5,000 people over 5,000 nodes on a phone at 4× CPU throttling',phone.movers>=16&&!phone.errs.length,fmt(phone));
   const nodes=await measure({width:390,height:844},true,4,5000,50);
   ok('scene: speed, 50 people over 5,000 nodes on a phone at 4× CPU throttling',nodes.movers>=16&&!nodes.errs.length,fmt(nodes));
+  // the garden at 16×, its fastest speed (32 game hours a second), on the throttled phone: the worker keeps up
+  const top=await measure({width:390,height:844},true,4,0,0,16);
+  ok('scene: speed, the garden at 16× on a phone at 4× CPU throttling keeps up (32 game hours a second)',top.rate>=28&&!top.errs.length,`${fmt(top)}; the view ran ${top.rate.toFixed(1)} game hours a second, and the worker gives up to ${top.most.toFixed(0)}`);
 }

@@ -105,7 +105,7 @@ export default async function({ok,open,out}){
     const early=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)));
     // once the first minute is over and the first cut is in, before the wait for the spring sowings: the nudge once at 1×,
     // gone when answered, never back (other choices, a frost's or a bed's, may wait in the queue beside it)
-    await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null&&s.hours>60)break}});
+    await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null&&s.hours>120)break}});
     await send(page,{type:'speed',speed:1});
     // the nudge waits its turn in the queue behind the fortnight's signs
     const nudgeSel='button.notice-action:text-is("Try 2×")';

@@ -130,6 +130,8 @@ export interface TickContext {
 /** A system: its own file, listed in src/sim/systems.ts, subscribing to the ticks it needs. */
 export interface System {
   name: string;
+  /** The levels it runs at (the garden's systems at level 1, the allotment's at 2); every level if left out. */
+  levels?: readonly number[];
   on: Partial<Record<Tick, (ctx: TickContext) => void>>;
   /**
    * The commands it owns (src/sim/commands.ts): return undefined if it's not this system's, null once it has carried it
@@ -192,6 +194,7 @@ export function runStep(
   const to = from + base.dt, date = calendar(to);
   for (const tick of ticksCrossed(from, to))
     for (const s of systems) {
+      if (s.levels && !s.levels.includes(base.level)) continue;
       const fn = s.on[tick];
       if (fn) fn(new Context(base, tick, to, date, seed, s.name));
     }

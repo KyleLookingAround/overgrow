@@ -5,6 +5,7 @@
 // from each bed's crop (its stage, its water stress, frost, the leaves pests have nibbled and blight has browned) and the
 // produce waiting on it; flowers in bloom and a border of them along a bed's edge; and what the gardener carries from
 // their activity.
+import {allotmentKey, drawAllotmentNode} from './allotment';
 import type {Graphics} from 'pixi.js';
 import {START} from '../../data/ladder';
 import {calendar} from '../../sim/clock';
@@ -52,7 +53,7 @@ export const isDug = (n: GraphNode) => {
 export function groundKey(nodes: readonly GraphNode[]): string {
   let k = '';
   for (const n of nodes) if (n.kind === 'bed') k += isDug(n) ? '1' : '0';
-  return k;
+  return k + allotmentKey(nodes);
 }
 
 const px = (b: Box, c: Camera) => ({x: c.x + b.x * c.s, y: c.y + b.y * c.s, w: b.w * c.s, h: b.h * c.s});
@@ -78,6 +79,7 @@ function dashes(g: Graphics, r: {x: number; y: number; w: number; h: number}, c:
 }
 
 export function drawNode(g: Graphics, n: GraphNode, c: Camera, pal: Palette) {
+  if (drawAllotmentNode(g, n, c, pal)) return;
   const r = px(n.box!, c), round = 0.175 * c.s;
   switch (n.kind) {
     case 'lawn':

@@ -2,8 +2,9 @@
 // 360×640, 375×667, 390×844, 414×896 and 430×932 upright and on their side, the tablets 768×1024, 1024×768, 820×1180 and
 // 1024×1366, and 1280×800, 1440×900, 1920×1080, 2560×1440 and 3440×1440, phones and tablets with touch, isMobile and a
 // device scale factor of 3 or 2. At each: the top bar, the map and the panel inside the viewport with no overflow or
-// errors; the top bar one row (at most 60 px) with the date, the money, the dial and exactly one speed control (the four
-// speeds, the folded button, or on a sheet layout the pill at the map's foot); the panel as a sheet below the map on
+// errors; the top bar one row (at most 60 px) with the date, the money, the dial and exactly one speed control (the six
+// speeds, four with 4×, 8× and 16× sharing one below 1024 px, the folded button below 700 px, or on a sheet layout the
+// pill at the map's foot); the panel as a sheet below the map on
 // phones and tablets held upright and beside it otherwise; the map's share of the screen above its class's floor (42 %
 // on a phone with the sheet at rest, 50 % on a phone on its side or a tablet held upright, 60 % beside a side panel, 70 %
 // from 1920 px and 78 % from 2560 px); every tap target at least 44 px on touch (the UI record's 40 px on a mouse); the
@@ -55,8 +56,10 @@ export default async function({ok,open:bare,out}){
     ok(`layout: at ${w}×${h} (${cls.name}) the top bar, map and ${cls.sheet?'sheet below':'panel beside'} are in view, with no overflow or errors`,!bad.length,bad.join('; '));
     ok(`layout: at ${w}×${h} the map takes ${Math.round(100*share)} % of the screen, at least ${Math.round(100*cls.floor)} %`,share>=cls.floor,m.map&&`${Math.round(m.map.w)}×${Math.round(m.map.h)}`);
     // the top bar: one row, its parts, and exactly one speed control where the layout puts it
-    const controls=(m.speeds===4?1:0)+(m.cycle?1:0)+(m.pillOn?1:0),want=cls.sheet?'the pill at the map\'s foot':m.top.w-24<700?'the folded button':'the four speeds';
-    const right=cls.sheet?m.pillOn&&!m.cycle&&m.speeds===0:m.top.w-24<700?m.cycle&&!m.pillOn&&m.speeds===0:m.speeds===4&&!m.cycle&&!m.pillOn;
+    // the speeds: six buttons on a wide bar, four with 4×, 8× and 16× sharing one below 1024 px, one folded button below 700 px, the pill on a sheet
+    const bar=m.top.w-24,full=bar>=1024?6:4;
+    const controls=(m.speeds>0?1:0)+(m.cycle?1:0)+(m.pillOn?1:0),want=cls.sheet?'the pill at the map\'s foot':bar<700?'the folded button':full===6?'the six speeds':'four buttons, the fast speeds sharing one';
+    const right=cls.sheet?m.pillOn&&!m.cycle&&m.speeds===0:bar<700?m.cycle&&!m.pillOn&&m.speeds===0:m.speeds===full&&!m.cycle&&!m.pillOn;
     ok(`layout: at ${w}×${h} the top bar is one row with the date, the money and the dial, and the speed is ${want}`,m.top&&m.top.h<=60&&m.date&&m.money&&m.dial&&controls===1&&right,
       JSON.stringify({h:m.top&&Math.round(m.top.h),date:m.date,money:m.money,dial:m.dial,speeds:m.speeds,cycle:m.cycle,pill:m.pillOn}));
     // the goal bar at the map's foot, clear of the speed pill

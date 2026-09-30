@@ -18,7 +18,13 @@ export interface Goal {
   mark: {delivered: number; carbon: number};
   /** Each week's share of the household's veg ask the garden met at its meals, 0–1, as many weeks as the ring holds. */
   fed: number[];
+  /** The game hour the offer was first met, or null: latched, so progress that falls back doesn't take it away (the
+   *  step-up command waits for it, src/sim/allotment.ts). */
+  offered: number | null;
 }
+
+/** Whether the garden's offer has been met and latched: the step-up card comes, and the plot can be taken. */
+export const offered = (g: Goal | null) => g?.offered != null;
 
 /** The garden's step-up offer over its goal (the founding spec, "What makes the jump feel earned"): the ring's Output and
  *  Health, and Reliability as 100 × the mean of the weeks' shares of the veg ask met, so a garden that feeds the
@@ -32,7 +38,7 @@ export function gardenStatus(g: Goal | null): StepUpStatus {
 
 /** A new game's goal: an empty ring from the first day, so its first sample (the first Monday's) takes in the days
  *  before it, and a garden that does well can meet the offer inside its first year. */
-export const startGoal = (): Goal => ({history: emptyHistory(1), mark: {delivered: 0, carbon: 0}, fed: []});
+export const startGoal = (): Goal => ({history: emptyHistory(1), mark: {delivered: 0, carbon: 0}, fed: [], offered: null});
 
 export const GOAL = 'goal';
 export const goalOf = (g: Graph): Goal | null => (g.nodes[KITCHEN]?.levers[GOAL] as unknown as Goal | null | undefined) ?? null;
@@ -51,13 +57,15 @@ export const goal: System = {
       if (!k || !(GOAL in k.levers)) return;
       const had = goalOf(c.graph), l = ledgerOf(c.graph), delivered = l.eaten + l.sold, carbon = c.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0;
       // a graph with no goal yet (a test's own) starts its ring at the first Monday
-      if (!had) return void (k.levers[GOAL] = {history: emptyHistory(c.level), mark: {delivered, carbon}, fed: []} as unknown as LeverValue);
+      if (!had) return void (k.levers[GOAL] = {history: emptyHistory(c.level), mark: {delivered, carbon}, fed: [], offered: null} as unknown as LeverValue);
       const met = l.week.length ? l.week.reduce((a, x) => a + Math.min(1, x), 0) / l.week.length : 0;
       const history = record(had.history, {
         output: qty(Math.max(0, delivered - had.mark.delivered), 'kgFood'), quality: 0, upkeep: qty(0, 'GBP'),
         carbon: qty(carbon - had.mark.carbon, 'kgCO2e'), health: {soil: soilHealth(c.graph)},
       });
-      k.levers[GOAL] = {history, mark: {delivered, carbon}, fed: [...had.fed, met].slice(-history.cap)} as unknown as LeverValue;
+      const next: Goal = {history, mark: {delivered, carbon}, fed: [...had.fed, met].slice(-history.cap), offered: had.offered ?? null};
+      if (next.offered === null && gardenStatus(next).ready) next.offered = c.hours;
+      k.levers[GOAL] = next as unknown as LeverValue;
     },
   },
   command(cmd) {
