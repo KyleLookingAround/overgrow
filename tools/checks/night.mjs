@@ -14,8 +14,11 @@ const quiet=(page,on,timeout=15000)=>page.waitForFunction(on=>window.__sim.view(
 const moon=page=>page.evaluate(()=>{const m=[...document.querySelectorAll('.topbar .quiet-night, .speed-pill .quiet-night')].find(e=>e.getClientRects().length);if(!m)return null;const b=m.closest('button');
   const r=m.getBoundingClientRect(),t=document.querySelector('.topbar').getBoundingClientRect();
   const host=(b?.classList.contains('speed-pill')?document.querySelector('.map'):document.querySelector('.topbar')).getBoundingClientRect();return {inBar:r.y>=host.y-0.5&&r.x>=host.x-0.5&&r.right<=host.right+0.5&&r.bottom<=host.bottom+0.5,title:m.getAttribute('title'),anim:getComputedStyle(m).animationName,on:b?.getAttribute('aria-pressed')==='true'||b?.classList.contains('speed-cycle')||b?.classList.contains('speed-pill'),label:b?.getAttribute('aria-label')}});
-// game hours the view moves in a stretch of real time
-async function rate(page,ms=400){const a=(await view(page)).hours;await page.waitForTimeout(ms);return ((await view(page)).hours-a)/(ms/1000)}
+// game hours the view moves a real second, measured in the page over a stretch of real time and divided by the time that
+// really passed: timed from outside, the two reads' round trips on a slow runner stretch the stretch, and a pace of 8
+// read as 13
+async function rate(page,ms=400){return page.evaluate(ms=>new Promise(done=>{const h0=window.__sim.view().hours,t0=performance.now();
+  setTimeout(()=>done((window.__sim.view().hours-h0)/((performance.now()-t0)/1000)),ms)}),ms)}
 // dismiss every notice waiting (the week's decisions, a bed's card, the nudge), so nothing waits but the quiet night's own
 async function clear(page){for(let i=0;i<12;i++){const b=await page.$('.notice:not(:has-text("Quiet nights")) .notice-close');if(!b)return;await b.click().catch(()=>{});await page.waitForTimeout(250)}}
 // 18:00 on day 279, in December: a night with no frost and no slug out all through, on seed 1
