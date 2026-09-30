@@ -15,13 +15,16 @@ import {membersIn, weekGardenHours} from '../sim/models/household';
 import {money, num} from './format';
 import {Num} from './Num';
 import {SheetHead, type Sheet} from './Panel';
-import {COMING, Neighbours, SeasonSections} from './SeasonPanel';
+import {Neighbours, SeasonSections} from './SeasonPanel';
 import {keptOf} from '../sim/season';
 import type {ZoomView} from '../sim/zoom';
 import {zoomOutcome} from './ZoomCard';
 import './styles/allotment.css';
 
 type Tab = 'plot' | 'allotment';
+
+/** What's left for part 10, in a line (the slugs in your old garden came with part 9). */
+const COMING = 'Coming soon at the allotment: more votes, and the allotment’s own offer.';
 
 /** Which way a plot's Health is heading: toward its plan's target, a point a season at most. */
 export function trend(n: GraphNode): '↑' | '↓' | '→' {
