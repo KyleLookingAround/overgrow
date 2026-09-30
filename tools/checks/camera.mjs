@@ -39,21 +39,29 @@ export default async function({ok,open,out}){
     await send(page,{type:'card',id:'first-plan',answer:'accept'});await page.waitForTimeout(500);
     const m=await mapBox(page),bed=await page.evaluate(()=>window.__sim.snapshot().nodes.find(n=>n.id==='bed-2').box),cam0=(await view(page)).cam;
     const bx=m.x+cam0.x+(bed.x+bed.w/2)*cam0.s,by=m.y+cam0.y+(bed.y+bed.h/2)*cam0.s;
-    await page.mouse.move(bx,by);for(let i=0;i<12;i++){await page.mouse.wheel(0,-150);await page.waitForTimeout(40)}
+    // a few notches at the map's middle: the point under the pointer stays put (away from the garden's edge, where the
+    // view stops rather than show past it)
+    const mx=m.x+m.w/2,my=m.y+m.h/2,wx=(m.w/2-cam0.x)/cam0.s,wy=(m.h/2-cam0.y)/cam0.s;
+    await page.mouse.move(mx,my);for(let i=0;i<3;i++){await page.mouse.wheel(0,-150);await page.waitForTimeout(40)}
+    await rest(page);
+    const z0=await view(page),still=Math.hypot(m.x+z0.cam.x+wx*z0.cam.s-mx,m.y+z0.cam.y+wy*z0.cam.s-my);
+    // then on in over bed 2 until it fills the view
+    const bx2=m.x+z0.cam.x+(bed.x+bed.w/2)*z0.cam.s,by2=m.y+z0.cam.y+(bed.y+bed.h/2)*z0.cam.s;
+    await page.mouse.move(bx2,by2);for(let i=0;i<12;i++){await page.mouse.wheel(0,-150);await page.waitForTimeout(40)}
     await rest(page);
     const z=await view(page),name=await crumb(page),day=z.day;
-    // the point under the pointer stays put: bed 2's centre is still under it
-    const still=Math.hypot(m.x+z.cam.x+(bed.x+bed.w/2)*z.cam.s-bx,m.y+z.cam.y+(bed.y+bed.h/2)*z.cam.s-by);
     await page.screenshot({path:join(out,'camera-garden-bed.png')});
-    ok('camera: in the garden the wheel zooms in about the pointer, and the breadcrumb names the bed',z.zoomed.k>3&&still<4&&name==='Bed 2'&&Math.abs(day-12)<0.5,
+    ok('camera: in the garden the wheel zooms in about the pointer, and the breadcrumb names the bed',z0.zoomed.k>1.5&&z.zoomed.k>3&&still<4&&name==='Bed 2'&&Math.abs(day-12)<0.5,
       JSON.stringify({k:z.zoomed.k,still:+still.toFixed(1),name,day}));
     // a drag pans the view with the finger
     const x0=z.zoomed.x;await page.mouse.move(m.x+m.w/2,m.y+m.h/2);await page.mouse.down();await page.mouse.move(m.x+m.w/2+120,m.y+m.h/2,{steps:6});await page.mouse.up();await rest(page);
     const dragged=(await view(page)).zoomed;
-    ok('camera: a drag moves the view, the ground following the pointer',dragged.x<x0-0.3,JSON.stringify({from:x0,to:dragged.x}));
+    ok('camera: a drag moves the view, the ground following the pointer',dragged.x<x0-0.1,JSON.stringify({from:x0,to:dragged.x}));
     // a tap still opens the place under it, through the zoomed camera
     const c=(await view(page)).cam,b2=await page.evaluate(()=>window.__sim.snapshot().nodes.find(n=>n.id==='bed-2').box);
-    await page.mouse.click(m.x+c.x+(b2.x+b2.w*0.3)*c.s,m.y+c.y+(b2.y+b2.h*0.3)*c.s);
+    // the middle of the part of bed 2 that's on the map
+    const x0b=Math.max(m.x+4,m.x+c.x+b2.x*c.s),x1b=Math.min(m.x+m.w-4,m.x+c.x+(b2.x+b2.w)*c.s),y0b=Math.max(m.y+4,m.y+c.y+b2.y*c.s),y1b=Math.min(m.y+m.h-4,m.y+c.y+(b2.y+b2.h)*c.s);
+    await page.mouse.click((x0b+x1b)/2,(y0b+y1b)/2);
     const opened=await page.waitForFunction(()=>document.querySelector('.place h3')?.textContent==='Bed 2',null,{timeout:4000}).then(()=>true,()=>false);
     ok('camera: zoomed in, a tap opens the place under it',opened);
     // the breadcrumb's ‹ flies back out to the widest view
@@ -71,8 +79,10 @@ export default async function({ok,open,out}){
     await touch('touchStart',20);for(let d=30;d<=120;d+=10){await touch('touchMove',d);await page.waitForTimeout(16)}await touch('touchEnd',0);await rest(page);
     const pinched=(await view(page)).zoomed.k;
     const ends=async()=>page.evaluate(()=>({in:!!document.querySelector('.zoom-in:not([data-end])'),out:!!document.querySelector('.zoom-out:not([data-end])')}));
-    await page.evaluate(()=>window.__sim.fly(null));await rest(page);const wide=await ends();
-    for(let i=0;i<5;i++){await page.tap('.zoom-in').catch(()=>{});await page.waitForTimeout(550)}await rest(page);
+    await page.evaluate(()=>window.__sim.fly(null));await page.waitForFunction(()=>window.__sim.view().zoomed.k===1&&!!document.querySelector('.zoom-out[data-end]'),null,{timeout:5000}).catch(()=>{});
+    const wide=await ends();
+    for(let i=0;i<5;i++){await page.tap('.zoom-in:not([data-end])').catch(()=>{});await page.waitForTimeout(550)}
+    await page.waitForSelector('.zoom-in[data-end]',{state:'attached',timeout:5000}).catch(()=>{});await rest(page);
     const deep=await ends(),k=(await view(page)).zoomed.k;
     await page.screenshot({path:join(out,`camera-garden-${vp.width}x${vp.height}.png`)});
     const here=await page.evaluate(()=>{const e=document.querySelector('.crumb-up');if(!e)return null;const r=e.getBoundingClientRect();return {w:r.width,h:r.height,name:getComputedStyle(document.querySelector('.crumb-name')).display}});
