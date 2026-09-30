@@ -7,10 +7,10 @@
 // leaves raked onto the heap from mid-October, a cordon redcurrant in bare-root season (November to March, every three
 // weeks while the fence has room), and in December and January the empty beds dug over or left no-dig; and midwinter's
 // jobs (round four), each from its own date so they come days apart: the hens' winter care, the currants pruned, the pots
-// washed, seed potatoes by post and salad on the windowsill; and when the purse is short of the money ladder's next
-// rung, the honesty box kept stocked. The glut card says what each choice gives, selling first when money's short. Pure, so a Vitest test holds it; App.tsx queues the first one due as a notice, and the
+// washed or the chicory forced (the pots serve one or the other), seed potatoes by post and salad on the windowsill; and, once
+// a surplus has been seen, the honesty box kept stocked. The glut card says what each choice gives, selling first when money's short. Pure, so a Vitest test holds it; App.tsx queues the first one due as a notice, and the
 // bot answers them (tools/bot/player.ts).
-import {CLEAN, FLEECE, HEN_CARE, inWinter, PRUNE, SETS, SILL, UPGRADES} from '../data/shed';
+import {CLEAN, FLEECE, FORCE, HEN_CARE, inWinter, PRUNE, SETS, SILL, UPGRADES} from '../data/shed';
 import {BOX, PRESERVE} from '../data/kitchen';
 import {PRICE} from '../data/household';
 import {unfolded} from '../data/unfold';
@@ -23,12 +23,12 @@ import {kitOf} from '../sim/kit';
 import {boxPolicy, KITCHEN, surplusOf} from '../sim/models/kitchen';
 import {nextRung} from './goal';
 import {forecastOf, tonight, type WeatherDay} from '../sim/models/weather';
-import {cataloguePrice, catalogueOpen, chitOpen, digOverBeds, frostBeds, henCareOpen, leavesOpen, pruneCount, pruneOpen, refuseBuy, setsOpen, sillOpen, warmBeds} from '../sim/shed';
+import {cataloguePrice, catalogueOpen, chitOpen, digOverBeds, forceOpen, frostBeds, henCareOpen, leavesOpen, pruneCount, pruneOpen, refuseBuy, setsOpen, sillOpen, warmBeds} from '../sim/shed';
 import type {Snapshot} from '../sim/state';
 import {money} from './format';
 
 export interface Decision {
-  id: 'frost' | 'glut' | 'dry' | 'catalogue' | 'chit' | 'mulch' | 'warm' | 'leaves' | 'bare-root' | 'dig-over' | 'prune' | 'sets' | 'clean' | 'sill' | 'hen-care' | 'box';
+  id: 'frost' | 'glut' | 'dry' | 'catalogue' | 'chit' | 'mulch' | 'warm' | 'leaves' | 'bare-root' | 'dig-over' | 'prune' | 'sets' | 'clean' | 'sill' | 'hen-care' | 'force' | 'box';
   text: string;
   /** Where on the map it's about. */
   at: string;
@@ -142,6 +142,10 @@ export function decisionsOf(snap: Snapshot): Decision[] {
     out.push({id: 'clean', at: 'shed', text: 'A midwinter job: wash the pots, the trays and the glass, where slugs hide through the winter?',
       actions: [{label: 'Wash them', cmd: card('clean', 'clean')}], dismiss: card('clean', 'no')});
   }
+  if (forceOpen(g, date) && asked('force') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.shed')) {
+    out.push({id: 'force', at: 'shed', text: `Pale chicory: force a dozen roots under the pots in the dark, about ${(FORCE.kg * FORCE.days).toFixed(1)} kg of leaves, cut from three weeks on (${FORCE.minutes} minutes)? The pots then can’t be washed for slugs this winter.`,
+      actions: [{label: 'Force them', cmd: card('force', 'force')}], dismiss: card('force', 'no')});
+  }
   if (setsOpen(g, date) && asked('sets') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.money') && purse >= SETS.gbp) {
     out.push({id: 'sets', at: 'shed', text: `Seed potatoes by post: a bag of first earlies for ${money(SETS.gbp)}, cheaper than the spring’s packs, in time to chit?`,
       actions: [{label: `Order them (${money(SETS.gbp)})`, cmd: card('sets', 'order')}], dismiss: card('sets', 'no')});
@@ -151,10 +155,11 @@ export function decisionsOf(snap: Snapshot): Decision[] {
     out.push({id: 'sill', at: KITCHEN, text: `A winter sowing: salad leaves in trays${warm} on the windowsill, to cut from in a fortnight (${money(SILL.gbp)})?`,
       actions: [{label: `Sow them (${money(SILL.gbp)})`, cmd: card('sill', 'sow')}], dismiss: card('sill', 'no')});
   }
-  // the purse short of the next rung for a while: the honesty box kept stocked for money now
+  // a surplus seen (a glut, or the box has sold): the honesty box kept stocked for money now, whatever the purse
   const rung = nextRung(snap);
-  if (rung && boxPolicy(g) === 'spare' && purse < UPGRADES[rung].price / 2 && asked('box') < snap.hours - BOX_AGAIN && unfolded(snap.seen, 'garden.money') && (l?.firstHarvest ?? null) !== null) {
-    out.push({id: 'box', at: 'gate', text: `${UPGRADES[rung].name} is ${money(UPGRADES[rung].price - purse)} away: keep the honesty box stocked with some of what the garden has, eggs and jars too?`,
+  if (boxPolicy(g) === 'spare' && (l?.glutFrom != null || (l?.sold ?? 0) > 0) && asked('box') < snap.hours - BOX_AGAIN && unfolded(snap.seen, 'garden.money') && (l?.firstHarvest ?? null) !== null) {
+    const why = rung && purse < UPGRADES[rung].price ? `${UPGRADES[rung].name} is ${money(UPGRADES[rung].price - purse)} away: ` : '';
+    out.push({id: 'box', at: 'gate', text: `${why}keep the honesty box stocked with some of what the garden has, eggs and jars too? It earns a little, about £1 a week in winter.`,
       actions: [{label: 'Keep it stocked', cmd: card('box', 'stock')}], dismiss: card('box', 'spare')});
   }
   // seed potatoes to chit in February and March, once a spring

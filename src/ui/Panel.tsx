@@ -236,7 +236,7 @@ export function Panel(props: {
       <div class="panel-body" id="panel-body">
         <div class="panel-content" key={current}>
           {current === 'kitchen' && props.ledger ? (
-            <KitchenTab ledger={props.ledger} nodes={props.nodes} see={see} onExplain={props.onExplain} send={props.send} />
+            <KitchenTab hours={props.hours} ledger={props.ledger} nodes={props.nodes} see={see} onExplain={props.onExplain} send={props.send} />
           ) : current === 'shed' ? (
             <ShedTab nodes={props.nodes} seen={props.seen} purse={props.nodes.find((n) => n.id === KITCHEN)?.stocks.money?.amount ?? 0} see={see} send={props.send}
               focus={props.focus?.tab === 'shed' ? props.focus : null} />
