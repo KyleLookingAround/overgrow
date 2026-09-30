@@ -15,7 +15,6 @@ import {applyCommand} from './commands';
 import {stepUp} from './allotment';
 import {HELPING, takingsOf, type Helping} from './models/agency';
 import {COMMITTEE, rulesOf} from './models/committee';
-import {HOURS_LEFT} from './models/labour';
 import {pestSource, spreadPressure} from './models/pests';
 import {plotNeed, troughDay} from './models/water';
 import {hoursLeft, keptOf, meetingOf, personNode, pressureOf, secondOf, secondPlot, shelfOf} from './season';
@@ -125,8 +124,11 @@ describe('the first season on the graph', () => {
     expect(barrow!.carry!.of).toBeLessThanOrEqual(barrow!.carry!.amount + 1e-9);
     expect(Object.keys(secondOf(secondPlot(s.graph)!)!)).not.toContain('hidden');
     expect(t.hoursWatched).toBeGreaterThan(0);
-    expect(before).toBeGreaterThan(0);
-    expect(s.graph.nodes.household!.stocks[HOURS_LEFT]).toBeDefined();
+    // the week's audit comes out of this week's hours: the panel's "hours left" shows it
+    expect(before).toBeGreaterThan(10);
+    expect(hoursLeft(s.graph)).toBeCloseTo(before - 2, 6);
+    // the household's own levers aren't the player's to set
+    expect(send(s, {type: 'policy', node: 'household', lever: 'seed', value: 7}).rejected).toMatch(/not set/);
   });
 
   it('reclaims the second plot over the seasons, and cuts the pests it sends next door', () => {

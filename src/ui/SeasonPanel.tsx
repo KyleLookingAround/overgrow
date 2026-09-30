@@ -5,6 +5,7 @@
 // buttons, and the room's hands once it has voted; the swap shed; and the household's hours this week. Everything the
 // player does here is a command; nothing reaches into the sim.
 import {useState} from 'preact/hooks';
+import {PLAYER_PLOT} from '../data/allotment';
 import {HABITS, WATCH, type Watching} from '../data/agency';
 import {MOTIONS} from '../data/committee';
 import {MEETING, SECOND} from '../data/season';
@@ -119,7 +120,7 @@ function SecondPlot({nodes, send, onExplain, seen, all}: Props) {
 function Trough({nodes, seen, all, onExplain}: Omit<Props, 'send'>) {
   const g = graphOf(nodes), t = troughOf(g), trough = nodes.find((n) => n.id === 'trough');
   if (!t || !trough || !shows(seen, 'allotment.trough', all)) return null;
-  const rota = rulesOf(g.nodes[COMMITTEE]).rota, mine = t.short.includes('plot-1'), water = trough.stocks.water;
+  const rota = rulesOf(g.nodes[COMMITTEE]).rota, mine = t.short.includes(PLAYER_PLOT) || t.short.some((id) => !!secondOf(g.nodes[id])?.taken), water = trough.stocks.water;
   return (
     <section class="place trough" aria-labelledby="trough-title">
       <h3 id="trough-title"><Num v="The trough" cause="trough short" at="trough" onExplain={onExplain} label="The trough" /></h3>
@@ -139,19 +140,20 @@ function Motion({nodes, seen, all, send, onExplain}: Props) {
   const mo = MOTIONS[m.motion], by = agentOf(g.nodes[m.by] ?? ({levers: {}} as GraphNode))?.name ?? 'A neighbour';
   // talking: an hour each with the three members who like you least (the ones a vote could turn)
   const members = nodes.filter((n) => agentOf(n)?.plot).sort((a, b) => relationOf(a).goodwill - relationOf(b).goodwill).slice(0, 3);
-  const hours = talk ? members.length : 0, can = hoursLeft(g) >= hours;
-  const vote = (answer: Vote) => send({type: 'vote', answer, ...(talk ? {talk: Object.fromEntries(members.map((p) => [p.id, 1]))} : {})});
+  // talking is offered only while the household has the hours for it
+  const can = hoursLeft(g) >= members.length, talking = talk && can;
+  const vote = (answer: Vote) => send({type: 'vote', answer, ...(talking ? {talk: Object.fromEntries(members.map((p) => [p.id, 1]))} : {})});
   return (
     <section class="place motion" aria-labelledby="motion-title" data-held={m.tally ? 'yes' : 'no'}>
       <h3 id="motion-title"><Num v="The committee" cause="motion put" at="sheds" onExplain={onExplain} label="The committee" /></h3>
       <p><strong>{mo.name}.</strong> {mo.what}. Put by {by}.</p>
       {!m.tally ? (
         <>
-          <label class="talk"><input type="checkbox" checked={talk} onChange={() => setTalk(!talk)} /> Talk to {members.length} members first ({members.length} h)</label>
+          {can && <label class="talk"><input type="checkbox" checked={talk} onChange={() => setTalk(!talk)} /> Talk to {members.length} members first ({members.length} h)</label>}
           <div class="card-actions">
-            <button type="button" class="primary" disabled={!can} onClick={() => vote('yes')}>For</button>
-            <button type="button" disabled={!can} onClick={() => vote('no')}>Against</button>
-            <button type="button" class="plain" disabled={!can} onClick={() => vote('abstain')}>Abstain</button>
+            <button type="button" class="primary" onClick={() => vote('yes')}>For</button>
+            <button type="button" onClick={() => vote('no')}>Against</button>
+            <button type="button" class="plain" onClick={() => vote('abstain')}>Abstain</button>
           </div>
           <p class="soft">The meeting votes within {MEETING.days} days; if you don’t, the room decides.</p>
         </>

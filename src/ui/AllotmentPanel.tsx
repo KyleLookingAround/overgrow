@@ -15,6 +15,7 @@ import {membersIn, weekGardenHours} from '../sim/models/household';
 import {money, num} from './format';
 import {Num} from './Num';
 import {COMING, Neighbours, SeasonSections} from './SeasonPanel';
+import {keptOf} from '../sim/season';
 import './styles/allotment.css';
 
 type Tab = 'plot' | 'allotment';
@@ -119,11 +120,12 @@ function AllotmentTab({nodes, onExplain, onSelect, seen, all: details}: {nodes: 
       <p class="soft">Twelve plots, {num(all)} kg a day between them. Each is kept as well as its household has time.</p>
       <ul class="plot-list" aria-label="The plots">
         {plots.map((n) => {
-          const h = holderOf(n), mine = n.id === PLAYER_PLOT;
+          // overgrown by how kept its holder's week leaves it (src/sim/season.ts), not only as drawn at the step up
+          const h = holderOf(n), mine = n.id === PLAYER_PLOT, k = keptOf(n), overgrown = k ? k.kept < 0.6 : !!h?.neglected;
           return (
-            <li class={mine ? 'plot-row mine' : 'plot-row'} data-plot={n.id} data-neglected={h?.neglected ? 'yes' : undefined}>
+            <li class={mine ? 'plot-row mine' : 'plot-row'} data-plot={n.id} data-neglected={overgrown ? 'yes' : undefined}>
               <button type="button" class="plain plot-name" onClick={() => onSelect(n.id)}>{mine ? 'Your plot' : n.name}</button>
-              <span class="soft plot-who">{mine ? 'you' : h ? `${HABITS[h.habit].name.toLowerCase()}, ${num(h.hours)} h a week${h.neglected ? ', overgrown' : ''}` : ''}</span>
+              <span class="soft plot-who">{mine ? 'you' : h ? `${HABITS[h.habit].name.toLowerCase()}, ${num(k?.hours ?? h.hours)} h a week${overgrown ? ', overgrown' : ''}` : ''}</span>
               <span class="plot-num"><Num v={`${num(n.totals.output * 1000)} g`} cause={mine ? 'harvest' : 'a neighbour’s harvest'} at={n.id} onExplain={onExplain} label={`${n.name}’s Output`} /></span>
               <span class="plot-num soft">Health {Math.round(n.totals.health)}{trend(n)}</span>
             </li>

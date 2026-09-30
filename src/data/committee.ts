@@ -1,4 +1,4 @@
-// The allotment committee's numbers: its four motions and what each does for each want, how goodwill and persuasion
+// The allotment committee's numbers: its five motions and what each does for each want, how goodwill and persuasion
 // tip a vote, political capital, and the rules a passed motion sets and what they cost the plots. Rough, numbers with their sources; src/sim/models/committee.ts uses them and docs/systems/committee.md says how.
 //
 // Licences: nothing copied. Rota and hosepipe rules follow the shape of allotment site rules and water companies'

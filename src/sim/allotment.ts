@@ -32,7 +32,7 @@ import {
 import {allotment as people, plotHours} from './models/agency';
 import {CAPITAL_STOCK, COMMITTEE, GOODWILL_STOCK, RULES} from './models/committee';
 import {HOURS_LEFT} from './models/labour';
-import {isSecond, keptOf, seasonNodes, SHEDS} from './season';
+import {isSecond, keptOf, playerLand, seasonNodes, SHEDS} from './season';
 import {basket, householdWage, keptness, membersOf, restSpend, people as heads, weekGardenHours, type Household, type Member} from './models/household';
 import {rng} from './random';
 import {ATMOSPHERE, type State} from './state';
@@ -298,7 +298,8 @@ function week(ctx: TickContext, home: GraphNode, l: AllotmentLedger) {
   const n = ctx.graph.nodes[PLAYER_PLOT], sealed = sealedOf(n), goal = home.levers.goal as unknown as LevelGoal | undefined;
   if (sealed && goal) {
     const t = sealed.totals;
-    const history = record(goal.history, sampleOf(l.week, {quality: 0, upkeep: qty(t.upkeep * 7, 'GBP'), carbon: qty(t.carbon * 7, 'kgCO2e'), health: {soil: t.health}}), t.land);
+    // the land: the plot's, and the second plot's as it's reclaimed (src/sim/season.ts)
+    const history = record(goal.history, sampleOf(l.week, {quality: 0, upkeep: qty(t.upkeep * 7, 'GBP'), carbon: qty(t.carbon * 7, 'kgCO2e'), health: {soil: t.health}}), playerLand(ctx.graph, t.land) as LadderTotals['land']);
     home.levers.goal = {history} as unknown as LeverValue;
   }
   home.levers.ledger = {...l, week: {}, eaten: l.eaten + eaten, given: l.given + Math.max(0, grown - eaten), saved: l.saved + saved,

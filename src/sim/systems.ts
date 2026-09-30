@@ -13,7 +13,7 @@ import type {System} from './clock';
 import {allotment} from './allotment';
 import {agency} from './models/agency';
 import {committee} from './models/committee';
-import {season, swapShed} from './season';
+import {allotmentHours, season, swapShed} from './season';
 import {gardener} from './gardener';
 import {goal} from './goal';
 import {biodiversity} from './models/biodiversity';
@@ -39,5 +39,5 @@ const SHARED: readonly System[] = [weather];
 
 export const SYSTEMS: readonly System[] = [
   ...GARDEN.map((s) => ({...s, levels: SHARED.includes(s) ? [1, 2] : [1]})),
-  swapShed, allotment, {...agency, levels: [2]}, season, sealedSystem, {...committee, levels: [2]},
+  swapShed, allotment, allotmentHours, {...agency, levels: [2]}, season, sealedSystem, {...committee, levels: [2]},
 ];

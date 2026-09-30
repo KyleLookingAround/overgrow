@@ -206,8 +206,14 @@ function troughDayTick(c: TickContext) {
   const day = troughDay({water: stock.amount, cap: stock.cap ?? 1000, refill: TROUGH.refill, needs, rota: rules.rota, limit: effects(rules, dryness).litresPerPlotDay});
   if (day.refill > 1e-9) c.flow({what: 'the mains', unit: 'L', amount: qty(day.refill, 'L'), from: {boundary: 'mains'}, to: {node: TROUGH_NODE, stock: 'water'}});
   const short: string[] = [];
-  // the day's cans in one flow (each plot's share is its `water` lever)
-  const out = Math.min(stock.amount, Object.values(day.given).reduce((a, x) => a + x, 0));
+  // the day's cans: the player's along the trough's edge to their plot, where the crops use it, and the neighbours' in one
+  // flow (each plot's share is its `water` lever)
+  const mine = Math.min(stock.amount, day.given[PLAYER_PLOT] ?? 0), plot = g.nodes[PLAYER_PLOT];
+  if (mine > 1e-9 && plot) {
+    c.flow({what: 'watering from the trough', unit: 'L', amount: qty(mine, 'L'), from: {node: TROUGH_NODE, stock: 'water'}, to: {node: PLAYER_PLOT, stock: 'water'}});
+    c.flow({what: 'evapotranspiration', unit: 'L', amount: qty(mine, 'L'), from: {node: PLAYER_PLOT, stock: 'water'}, to: {boundary: 'evapotranspiration'}});
+  }
+  const out = Math.min(stock.amount, Object.values(day.given).reduce((a, x) => a + x, 0) - mine);
   if (out > 1e-9) c.flow({what: 'watering from the trough', unit: 'L', amount: qty(out, 'L'), from: {node: TROUGH_NODE, stock: 'water'}, to: {boundary: 'evapotranspiration'}});
   for (const p of needs) {
     const n = g.nodes[p.id]!, got = day.given[p.id] ?? 0, was = waterOf(n);
@@ -355,9 +361,23 @@ function secondWeek(c: TickContext) {
   if (job?.watching === 'audit') note(c, 'audit', n.id, 1, 'week');
 }
 
+// ---- the land ----
+
+/** The player's land at the allotment: their plot's, and the second plot's crops as far as it's reclaimed (the rest is
+ *  still the neighbour's weeds, not yet the household's to count). */
+export function playerLand(g: Graph, land: Partial<Record<string, number>>): Partial<Record<string, number>> {
+  const n = secondPlot(g), sp = secondOf(n ?? undefined);
+  if (!n || sp?.taken == null) return land;
+  const out = {...land}, s = sealedOf(n)?.totals.land ?? {};
+  for (const [k, m2] of Object.entries(s)) out[k] = (out[k] ?? 0) + (m2 ?? 0) * sp.reclaimed;
+  return out;
+}
+
 // ---- the household's hours ----
 
-/** The household's hours for the allotment each week: its garden hours less the plot's care, topped up from its time. */
+/** The household's week at the allotment starts: last week's queueing at the trough comes out of what's left of last
+ *  week's hours, and then the hours are topped up to its garden hours less the plot's care, from its time. Listed before
+ *  the people's week, so watching the helper, reclaiming and talking all spend this week's hours. */
 function hoursWeek(c: TickContext) {
   const g = c.graph, home = g.nodes[HOME], stock = home?.stocks[HOURS_LEFT];
   if (!home || !stock) return;
@@ -473,6 +493,9 @@ function shedWeek(c: TickContext) {
 
 // ---- the systems ----
 
+/** The household's hours at the allotment, listed before the people's week (`hoursWeek`). */
+export const allotmentHours: System = {name: 'allotment hours', levels: [2], on: {week: hoursWeek}};
+
 /** The swap shed, listed before the allotment: it takes its share of the plots' food before they go home. */
 export const swapShed: System = {
   name: 'swap shed',
@@ -500,12 +523,12 @@ export const season: System = {
       keptWeek(c.graph);
       secondWeek(c);
       spread(c);
-      hoursWeek(c);
     },
   },
   command(cmd, g, level) {
     if (level !== 2) return undefined;
-    if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && ['kept', 'water', 'second', 'pressure', 'today', 'shelf', 'motion', 'week', HELPING].includes(cmd.lever) && g.nodes[cmd.node])
+    if ((cmd.type === 'plan' || cmd.type === 'policy' || cmd.type === 'law') && g.nodes[cmd.node] &&
+      (['kept', 'water', 'second', 'pressure', 'today', 'shelf', 'motion', 'week', HELPING].includes(cmd.lever) || (cmd.node === HOME && ['seed', 'ledger', 'goal'].includes(cmd.lever))))
       return 'that’s the allotment’s to keep, not set';
     return undefined;
   },
