@@ -59,7 +59,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 ## 7. One check-in, and helpers only review
 
-- The coordinator keeps a single `send_later`; parts don't book their own. PR events and that check-in wake it, not polling.
+- The coordinator keeps a single `send_later` for itself. A part waiting on CI books its own `send_later` about 15 minutes out: an idle session isn't woken by its PR's checks, and on 30 Sep three parts sat idle after pushing until the coordinator messaged them. Its brief says so.
 - Helper agents (`Agent`, the `code-review` skill) review and read only; they never write code or push. Only the coordinator starts sessions, and only from a brief.
 - An audit's reviewers are split by device or concern, run on the cheaper model, and each gets the same one-page primer (how to open a page, fast-forward, switch tabs and open cards, what to skip, the row format). They return their report as their final message, not as a file, with a "checked and fine" list beside the findings.
 
