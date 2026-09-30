@@ -9,8 +9,8 @@
 // vote is scored (goals as weights, veto and coalition thresholds) is the founding spec's own model. Sizes are the game's.
 import type {Habit, Want} from './agency';
 
-export type MotionId = 'waterRota' | 'bonfireBan' | 'plotToBees' | 'hosepipe';
-export const MOTION_IDS: readonly MotionId[] = ['waterRota', 'bonfireBan', 'plotToBees', 'hosepipe'];
+export type MotionId = 'waterRota' | 'waterNeed' | 'bonfireBan' | 'plotToBees' | 'hosepipe';
+export const MOTION_IDS: readonly MotionId[] = ['waterRota', 'waterNeed', 'bonfireBan', 'plotToBees', 'hosepipe'];
 
 /**
  * A motion: what it changes, what it costs its proposer in political capital, and how well it serves each want (−1
@@ -29,6 +29,11 @@ export const MOTIONS: Record<MotionId, Motion> = {
   waterRota: {
     name: 'The water rota', what: 'Fixed slots at the trough instead of first come first served', cost: 3,
     appeal: {harvest: 0.25, rest: 0.1, standing: -0.2, money: 0}, habits: {competitive: -0.15}, dryness: 0.2,
+  },
+  // part 8's other rota: the trough shared by what each plot is short of (Ostrom's allocation by need), put by a generous neighbour
+  waterNeed: {
+    name: 'Water by need', what: 'The trough shared by what each plot needs instead of first come first served', cost: 3,
+    appeal: {harvest: 0.2, rest: 0.05, standing: -0.1, money: 0}, habits: {generous: 0.1, competitive: -0.2}, dryness: 0.25,
   },
   bonfireBan: {
     name: 'The bonfire ban', what: 'No burning garden waste on site: a heap for it instead', cost: 4,
@@ -61,7 +66,8 @@ export const AFTERMATH = {with: 0.01, against: -0.03, proposer: -0.02};
 
 /** The rules a plot lives under. */
 export interface Rules {
-  rota: 'open' | 'slots';
+  /** First come first served, fixed slots (an equal share each), or shared by need. */
+  rota: 'open' | 'slots' | 'need';
   bonfires: 'allowed' | 'banned';
   /** Plots let go to bees. */
   bees: number;

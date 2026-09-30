@@ -409,3 +409,25 @@ export const pests: System = {
     return undefined;
   },
 };
+
+// ---- pests from next door (part 8) ----
+// Sources: RHS, "Slugs and snails" and "Weeds": untended ground is a reservoir of slugs and weed-borne pests that move a
+//   few metres a night into the ground beside it. Simplifies: each plot is one source, as strong as it is untended
+//   (a plot half untended harbours as much as one gone wild), and the pressure on a plot is the sources
+//   about it falling off exponentially with the distance between the plots' centres; no season of its own (the allotment
+//   applies it in the damp months). Fast effect: a week's harvest nibbled next to a neglected plot. Slow effect: the
+//   plots about it losing Health until it's kept or reclaimed.
+
+/** How strongly a plot harbours pests, 0 to 1, from how kept it is: `wild` untended is as bad as it gets. */
+export const pestSource = (kept: number, wild = 0.5) => Math.min(1, (1 - Math.min(1, Math.max(0, kept))) / wild);
+
+/** The pressure on each plot from the sources about it (not its own), by distance: `Σ source × e^(−d / reach)`, capped at 1. */
+export function spreadPressure(plots: readonly {id: string; x: number; y: number; source: number}[], reach: number): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const p of plots) {
+    let s = 0;
+    for (const q of plots) if (q !== p && q.source > 0) s += q.source * Math.exp(-Math.hypot(p.x - q.x, p.y - q.y) / reach);
+    out[p.id] = Math.min(1, s);
+  }
+  return out;
+}

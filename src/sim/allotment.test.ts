@@ -143,7 +143,8 @@ describe('the allotment', () => {
     for (const s of [straight, resumed]) for (let h = 0; h < 24 * 530; h++) expect(tick(s, 1).errors).toEqual([]);
     expect(snapshotOf(resumed)).toEqual(snapshotOf(straight));
     const l = ledgerAt(straight.graph)!, money = straight.graph.nodes.household!.stocks.money!.amount;
-    expect(l.grown).toBeGreaterThan(0.5 * 730 * 0.5);
+    // about a quarter of a kilo a day, less what a short trough and pests from next door cost it (src/sim/season.ts)
+    expect(l.grown).toBeGreaterThan(0.2 * 730);
     expect(l.saved).toBeGreaterThan(0);
     expect(money).toBeGreaterThan(0);
     // the level's own history, a year of weeks, for its own offer later

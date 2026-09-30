@@ -26,6 +26,8 @@ import {MIX_IDS, PLAYER_PLOT, type Care, type Feed, type Mix} from '../../src/da
 import {PRICE} from '../../src/data/household';
 import {baseOf, leverOpen, planFor, plotDays} from '../../src/sim/allotment';
 import {offered, goalOf} from '../../src/sim/goal';
+import {meetingOf, personNode, secondOf, secondPlot} from '../../src/sim/season';
+import {HELPING, takingsOf, type Helping} from '../../src/sim/models/agency';
 
 const graphOf = (snap: Snapshot) => ({nodes: Object.fromEntries(snap.nodes.map((n) => [n.id, n])), edges: [], rev: 0});
 
@@ -227,5 +229,26 @@ export const PLAYERS: Record<string, Player> = {
 
 /** The policies in the order the bot asks them each morning. */
 export const policiesOf = (p: Player): Policy[] => [takePlot, p.plan, p.water, p.pests, p.shop, p.dig, p.winter, p.decide ?? null].filter((x): x is Policy => x !== null);
-/** The policies at the allotment (level 2): the plot's plan. Part 8 adds the trough, swaps and the committee. */
-export const allotmentPolicies = (_p: Player): Policy[] => [plotPlan];
+/** The weeks the sensible player audits a new helper before trusting their reports enough for a glance. */
+export const AUDIT_WEEKS = 4;
+/** The allotment's first season (src/sim/season.ts), as a sensible player plays it: takes the second plot on once it's
+ *  offered, accepts the helper, audits them for a month and then glances, votes for the rota put (with no talk), and
+ *  leaves surplus at the swap shed once it has unfolded. */
+export const seasonPlay: Policy = ({snap}) => {
+  if (snap.level !== 2) return [];
+  const g = graphOf(snap) as never, out: Command[] = [], n = secondPlot(g), sp = secondOf(n ?? undefined);
+  if (sp && sp.taken == null && unfolded(snap.seen, 'agency.helper')) out.push({type: 'second-plot', answer: 'take'});
+  else if (sp && sp.taken != null && !sp.helper && !sp.refused) out.push({type: 'helper', answer: 'accept'});
+  else if (sp?.helper) {
+    const p = personNode(g, sp.helper), job = p?.levers[HELPING] as unknown as Helping | undefined, want = takingsOf(p!).weeks < AUDIT_WEEKS ? 'audit' : 'glance';
+    if (job && job.watching !== want) out.push({type: 'watch', watching: want});
+  }
+  const m = meetingOf(g);
+  if (m && !m.tally && unfolded(snap.seen, 'committee.panel')) out.push({type: 'vote', answer: 'yes'});
+  const home = snap.nodes.find((x) => x.id === 'household');
+  if (home && home.levers.swap !== 'on' && unfolded(snap.seen, 'allotment.shed')) out.push({type: 'policy', node: 'household', lever: 'swap', value: 'on'});
+  return out;
+};
+
+/** The policies at the allotment (level 2): the plot's plan and its first season. */
+export const allotmentPolicies = (_p: Player): Policy[] => [plotPlan, seasonPlay];

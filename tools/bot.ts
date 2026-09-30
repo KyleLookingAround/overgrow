@@ -52,7 +52,14 @@ export function block(run: Run): string {
 function allotmentLine(a: NonNullable<Run['allotment']>): string {
   const n = a.neighbours;
   return `ALLOTMENT {step-up: day ${a.day}, days: ${Math.round(a.days)}, plan: ${a.plan}, plot kg/day: ${a.output.toFixed(3)}, health: ${a.health.toFixed(1)}, upkeep £/day: ${a.upkeep.toFixed(2)}, saved £: ${a.saved.toFixed(2)}, ` +
-    `neighbours kg/day: ${n.output.toFixed(3)}, health: ${n.health.toFixed(1)}, neglected health: ${n.neglected.toFixed(1)}}`;
+    `neighbours kg/day: ${n.output.toFixed(3)}, health: ${n.health.toFixed(1)}, neglected health: ${n.neglected.toFixed(1)}}\n` + seasonLine(a.season);
+}
+
+/** The first season's line (src/sim/season.ts): the second plot's day, the first swap's, the vote, the helper's hidden take, and the quiet. */
+function seasonLine(s: NonNullable<Run['allotment']>['season']): string {
+  const day = (d: number | null) => (d === null ? '—' : `day ${d}`), v = s.vote;
+  return `SEASON {second plot: ${day(s.second)}, reclaimed: ${(s.reclaimed * 100).toFixed(0)} %, second kg/day home: ${s.secondKg.toFixed(3)}, helper hidden kg: ${s.hidden.toFixed(2)} (reported ${s.reported.toFixed(2)}), ` +
+    `first swap: ${day(s.swap)}, vote: ${v ? `day ${v.day}, ${v.motion} ${v.passed ? 'passed' : 'lost'} ${v.yes}–${v.no}` : '—'}, quiet at the allotment: ${s.quiet.days} days from day ${s.quiet.from}}`;
 }
 
 function main() {

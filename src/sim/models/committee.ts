@@ -127,10 +127,11 @@ export function aftermath(c: Committee, t: Tally, you: Vote, proposedByYou: bool
   return out;
 }
 
-/** A rule after a motion has passed: the rota goes to fixed slots, bonfires are banned, one more plot goes to the bees, a hosepipe rule comes on. */
+/** A rule after a motion has passed: the rota goes to fixed slots (or to shares by need), bonfires are banned, one more plot goes to the bees, a hosepipe rule comes on. */
 export function applyMotion(r: Rules, motion: MotionId): Rules {
   switch (motion) {
     case 'waterRota': return {...r, rota: 'slots'};
+    case 'waterNeed': return {...r, rota: 'need'};
     case 'bonfireBan': return {...r, bonfires: 'banned'};
     case 'plotToBees': return {...r, bees: Math.min(MAX_BEES, r.bees + 1)};
     case 'hosepipe': return {...r, hosepipe: 'on'};
@@ -181,7 +182,7 @@ export interface Effects {
   plots: number;
   pollination: number;
 }
-/** What the rules in force do to the plots, at a dryness of the season. Open first-come queues cost nothing in a wet week and most in the driest; fixed slots cost a flat half hour. */
+/** What the rules in force do to the plots, at a dryness of the season. Open first-come queues cost nothing in a wet week and most in the driest; fixed slots, or shares by need, cost a flat half hour. */
 export function effects(r: Rules, dryness = 0): Effects {
   return {
     queueHours: r.rota === 'open' ? RULE.queueBase + RULE.queue * clamp(dryness, 0, 1) : RULE.slot,

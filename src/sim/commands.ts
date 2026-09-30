@@ -8,6 +8,9 @@ import {CARDS, gateOf, revealed, unfolded} from '../data/unfold';
 import {kindOf} from './effects';
 import {goalOf, offered} from './goal';
 import {stepUp} from './allotment';
+import {helperCommand, secondPlotCommand, voteCommand, watchCommand} from './season';
+import type {Watching} from '../data/agency';
+import type {Vote} from './models/committee';
 import {buyFlow, chit, digOver, fleece, orderSeeds, placeOf, rakeLeaves, warmSoil} from './shed';
 import {GLUT_POLICIES, type GlutPolicy} from '../data/kitchen';
 import type {Variety} from '../data/shed';
@@ -66,6 +69,13 @@ export type Command =
   | {type: 'card'; id: 'dig-over'; answer: 'dig' | 'no-dig'}
   /** The garden's first year done, whether or not the offer's requirements are met: 'ok' carries on into the second. */
   | {type: 'card'; id: 'first-year'; answer: 'ok'}
+  /** The allotment's first season (src/sim/season.ts): take the neglected second plot on, or not yet; the helper's offer
+   *  accepted, refused, or the helper let go; how closely the helper is watched; and the player's vote on the motion put
+   *  to the committee, after talking to members (hours each, by id). */
+  | {type: 'second-plot'; answer: 'take' | 'no'}
+  | {type: 'helper'; answer: 'accept' | 'refuse' | 'let go'}
+  | {type: 'watch'; watching: Watching}
+  | {type: 'vote'; answer: Vote; talk?: Record<string, number>}
   /** A setting of the page's that's saved with the game ('details': show every number early). It changes no play. */
   | {type: 'setting'; key: string; value: LeverValue};
 
@@ -167,6 +177,16 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       s.rejected = stepUp(s);
       if (!s.rejected) seeOnce(s, CARDS.year);
       return s;
+    case 'second-plot':
+    case 'helper':
+    case 'watch':
+    case 'vote': {
+      s.rejected = cmd.type === 'second-plot' ? secondPlotCommand(s, cmd.answer) : cmd.type === 'helper' ? helperCommand(s, cmd.answer)
+        : cmd.type === 'watch' ? watchCommand(s, cmd.watching) : voteCommand(s, cmd.answer, cmd.talk);
+      // what the command did is its effect: an instrument it reveals unfolds (src/data/unfold.ts)
+      if (!s.rejected) reveal(s, s.effects.map((e) => e.cause));
+      return s;
+    }
     case 'setting':
       if (!(cmd.key in SETTINGS)) s.rejected = `no setting ${cmd.key}`;
       else if (!SETTINGS[cmd.key]!.includes(cmd.value)) s.rejected = `${cmd.key} is ${SETTINGS[cmd.key]!.join(' or ')}`;

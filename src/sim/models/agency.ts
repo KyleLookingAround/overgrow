@@ -326,7 +326,8 @@ export interface Helping {
   payer?: string;
 }
 
-const foods = (n: GraphNode) => Object.entries(n.stocks).filter(([k, s]) => k.startsWith('food.') && s.amount > 1e-9);
+/** A node's food stocks: `food.<product>`, or a sealed plot's `food` (src/sim/ladder.ts's SEALED.food). */
+const foods = (n: GraphNode) => Object.entries(n.stocks).filter(([k, s]) => (k === 'food' || k.startsWith('food.')) && s.amount > 1e-9);
 
 /** Moves what a helper took off the plot's shelves to their own, in proportion to what's there, a flow a product; returns kg moved. */
 function takeOff(c: TickContext, plot: GraphNode, to: GraphNode, kg: number): number {
