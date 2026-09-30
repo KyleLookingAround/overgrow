@@ -69,7 +69,14 @@ export function purseLines(run: Run): string[] {
 function allotmentLine(a: NonNullable<Run['allotment']>): string {
   const n = a.neighbours;
   return `ALLOTMENT {step-up: day ${a.day}, days: ${Math.round(a.days)}, plan: ${a.plan}, plot kg/day: ${a.output.toFixed(3)}, health: ${a.health.toFixed(1)}, upkeep £/day: ${a.upkeep.toFixed(2)}, saved £: ${a.saved.toFixed(2)}, ` +
-    `neighbours kg/day: ${n.output.toFixed(3)}, health: ${n.health.toFixed(1)}, neglected health: ${n.neglected.toFixed(1)}}\n` + seasonLine(a.season);
+    `neighbours kg/day: ${n.output.toFixed(3)}, health: ${n.health.toFixed(1)}, neglected health: ${n.neglected.toFixed(1)}}\n` + seasonLine(a.season) + (a.zoom ? `\n${zoomLine(a.zoom)}` : '');
+}
+
+/** The zoom back in's line (src/sim/zoom.ts): the outbreak's day, how it was met, the rescue's garden days against the
+ *  deadline, the kg it cost the plot, and the plot's kg a day before it and from it. */
+function zoomLine(z: NonNullable<NonNullable<Run['allotment']>['zoom']>): string {
+  return `ZOOM {outbreak: day ${z.day}, ${z.how === 'down' ? 'went down' : z.how === 'sent' ? 'sent someone' : 'left it'}, rescue: ${z.days === null ? 'missed' : `${z.days.toFixed(1)} garden days`} of ${z.deadline}, ` +
+    `kg lost: ${z.kg.toFixed(2)}, plot kg/day: ${z.before.toFixed(3)} before, ${z.during.toFixed(3)} from it}`;
 }
 
 /** The first season's line (src/sim/season.ts): the second plot's day, the first swap's, the vote, the helper's hidden take, and the quiet. */

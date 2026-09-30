@@ -226,7 +226,9 @@ export type Event =
   | {type: 'help'; hours: number}
   | {type: 'carbon'; choice: string}
   | {type: 'watch'; watching: Watching}
-  | {type: 'found'; gap: number};
+  | {type: 'found'; gap: number}
+  /** A rescue of your own plot's outbreak (part 9, src/sim/zoom.ts): `share` of the rescue's step, 1 for one done at once. */
+  | {type: 'rescued'; share: number};
 
 /** What an event is worth to goodwill, before the shrinking step. Watching costs its `goodwill` a week; being found out costs a step at least, and a step for each kg it found beyond the first. */
 export function worth(e: Event): number {
@@ -238,6 +240,7 @@ export function worth(e: Event): number {
     case 'carbon': return CARBON_CHOICE[e.choice] ?? 0;
     case 'watch': return -WATCH[e.watching].goodwill;
     case 'found': return Math.min(TRUST.events.gap!, e.gap * TRUST.events.gap!);
+    case 'rescued': return e.share * TRUST.events.rescued!;
   }
 }
 /** A relationship with its goodwill moved by a raw amount (a vote's aftermath). */

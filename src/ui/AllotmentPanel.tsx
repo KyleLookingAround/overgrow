@@ -17,6 +17,8 @@ import {Num} from './Num';
 import {SheetHead, type Sheet} from './Panel';
 import {COMING, Neighbours, SeasonSections} from './SeasonPanel';
 import {keptOf} from '../sim/season';
+import type {ZoomView} from '../sim/zoom';
+import {zoomOutcome} from './ZoomCard';
 import './styles/allotment.css';
 
 type Tab = 'plot' | 'allotment';
@@ -53,9 +55,10 @@ function consequence(n: GraphNode, lever: Lever, value: string | number): string
   return `${num(then.output * 1000)} g a day, ${money(then.upkeep)} a day, Health heads for ${Math.round(then.health)}${then.carbon > now.carbon + 1e-9 ? ', more carbon' : ''}.`;
 }
 
-function PlotTab({nodes, hours, send, onExplain, seen, all}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain; seen: readonly string[]; all: boolean}) {
+function PlotTab({nodes, hours, send, onExplain, seen, all, zoom}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain; seen: readonly string[]; all: boolean; zoom: ZoomView | null}) {
   const n = nodes.find((x) => x.id === PLAYER_PLOT), home = nodes.find((x) => x.id === 'household');
   if (!n) return null;
+  const outcome = zoom ? zoomOutcome(zoom) : null;
   const t = n.totals, l = home?.levers.ledger as unknown as AllotmentLedger | undefined;
   // days by the plot's last tick, as the sim counts them for what has unfolded
   const days = l ? ((sealedOf(n)?.at ?? hours) - l.since) / 24 : 0, spare = weekGardenHours(membersIn(home));
@@ -67,6 +70,8 @@ function PlotTab({nodes, hours, send, onExplain, seen, all}: {nodes: GraphNode[]
         <h3 id="plot-title">Your plot</h3>
         <p class="headline"><Num v={`${num(t.output * 1000)} g`} cause="harvest" at={n.id} onExplain={onExplain} label="Output" /> <span class="headline-unit">a day from your plot</span></p>
         <p class="soft">Your garden’s last year, as one plot. You can’t tend its beds from here, only plan it.</p>
+        {n.levers.rescued ? <p class="rescued-mark"><span aria-hidden="true">✦</span> Rescued</p> : null}
+        {outcome ? <p class="soft zoom-outcome">{outcome}</p> : null}
         <dl>
           <div class="row"><dt>Health</dt><dd><Num v={`${Math.round(t.health)} / 100 ${trend(n)}`} cause="plot care" at={n.id} onExplain={onExplain} label="Health" /></dd></div>
           <div class="row"><dt>Reliability</dt><dd><Num v={`${Math.round(t.reliability)} / 100`} cause="sealing" at={n.id} onExplain={onExplain} label="Reliability" /></dd></div>
@@ -141,7 +146,7 @@ function AllotmentTab({nodes, onExplain, onSelect, seen, all: details}: {nodes: 
 
 export function AllotmentPanel(props: {
   nodes: GraphNode[]; hours: number; sheet: Sheet; onSheet: (s: Sheet) => void; send: (cmd: Command) => void; onExplain: Explain; onSelect: (id: string) => void;
-  seen?: readonly string[]; all?: boolean;
+  seen?: readonly string[]; all?: boolean; zoom?: ZoomView | null;
 }) {
   const seen = props.seen ?? [], all = props.all ?? false;
   const [tab, setTab] = useState<Tab>('plot');
@@ -151,7 +156,7 @@ export function AllotmentPanel(props: {
       <SheetHead tabs={tabs} current={tab} sheet={props.sheet} onSheet={props.onSheet} onTab={(t) => setTab(t as Tab)} />
       <div class="panel-body" id="panel-body">
         <div class="panel-content" key={tab}>
-          {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} seen={seen} all={all} />
+          {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} seen={seen} all={all} zoom={props.zoom ?? null} />
             : <AllotmentTab nodes={props.nodes} onExplain={props.onExplain} seen={seen} all={all} onSelect={(id) => {
               props.onSelect(id);
               if (id === PLAYER_PLOT) setTab('plot');

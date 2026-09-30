@@ -27,7 +27,7 @@ export const UNFOLD: Record<string, Unfold> = {
     causes: ['watering', 'drought', 'water stress']},
   // the slugs at dusk on the first damp evening (the founding spec's first minute)
   'garden.slugs': {what: 'the slugs’ policy line, their numbers and badges', why: 'Slugs came out on the damp beds: choose what the gardener does about them.',
-    causes: ['slugs', 'hand-picking']},
+    causes: ['slugs', 'hand-picking', 'slugs from next door']},
   // the first time slugs cost the gardener time or money, a tool that saves it is worth having
   'garden.shed': {what: 'the Shed tab', why: 'Slugs are costing the gardener time: the shed has something for that.',
     causes: ['hand-picking', 'trapping', 'slug pellets']},
@@ -116,6 +116,10 @@ export const UNFOLD: Record<string, Unfold> = {
   'agency.trust': {what: 'how far you trust the helper’s report', why: 'An audit compares what they said with what you saw.', causes: ['audit']},
   'allotment.shed': {what: 'the swap shed', why: 'The plot gave more of something than the household needs: swap it.', causes: ['surplus']},
   'agency.goodwill': {what: 'each neighbour’s goodwill', why: 'A swap is a favour: the neighbours notice.', causes: ['from the swap shed']},
+  // the zoom back in (part 9): the outbreak's trace, with Go down and Send someone; the deadline strip with the dive
+  'zoom.trace': {what: 'the trace to your plot, Go down and Send someone', why: 'Your plot’s output has fallen: the trouble is in your own garden, below.',
+    causes: ['slugs in your garden']},
+  'zoom.dive': {what: 'the deadline strip and Back up', why: 'You’re down in your garden: fix it before the deadline, then go back up.', causes: ['going down']},
 };
 
 /** Cards answered once a save (src/sim/commands.ts): the first plan, the one "try faster" nudge, the garden's year done

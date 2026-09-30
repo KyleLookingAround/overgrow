@@ -85,3 +85,81 @@
     transition: none;
   }
 }
+
+/* the zoom back in (part 9): Go down or Send someone over the map, the deadline strip across its top while down, and a
+   rescued plot's mark in the panel */
+.zoom-card {
+  grid-template-columns: minmax(0, 1fr);
+  padding: var(--s-2) var(--s-3);
+}
+.zoom-card p {
+  margin: 0;
+}
+.zoom-text .link {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.zoom-terms {
+  font-size: var(--text-xs);
+}
+.zoom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+.zoom-actions button {
+  border-radius: var(--r-pill);
+  padding: 0 var(--s-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.zoom-strip {
+  position: absolute;
+  top: var(--s-2);
+  left: var(--s-2);
+  right: var(--s-2);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  max-width: var(--card-w);
+  margin: 0 auto;
+  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-3);
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-2);
+  font-size: var(--text-sm);
+  pointer-events: auto;
+}
+.zoom-strip p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zoom-strip.missed {
+  background: var(--warn);
+}
+.zoom-strip button {
+  flex: none;
+  border-radius: var(--r-pill);
+  padding: 0 var(--s-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.rescued-mark {
+  margin: var(--s-1) 0;
+  color: var(--accent);
+  font-weight: 600;
+}

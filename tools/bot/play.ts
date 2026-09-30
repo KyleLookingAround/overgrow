@@ -20,7 +20,7 @@ function offerOf(snap: Snapshot): Run['offer'] {
   const st = gardenStatus(goalOf({nodes: Object.fromEntries(snap.nodes.map((n) => [n.id, n]))} as never)), v = (k: string) => st.requirements.find((r) => r.key === k)?.value ?? 0;
   return {output: v('output'), reliability: v('reliability'), health: v('health'), weeks: Math.round(st.days / 7)};
 }
-import {allotmentPolicies, PLAYERS, policiesOf, type Player} from './player';
+import {allotmentPolicies, downPolicies, PLAYERS, policiesOf, type Player} from './player';
 import {PLAYER_PLOT} from '../../src/data/allotment';
 
 /** The hour of the morning the player looks at the garden and changes the plan. */
@@ -74,11 +74,15 @@ export interface AllotmentRun {
    *  reclaimed, and the longest quiet stretch at the allotment. */
   season: {second: number | null; swap: number | null; vote: {day: number; motion: string; passed: boolean; yes: number; no: number} | null;
     hidden: number; reported: number; secondKg: number; reclaimed: number; quiet: {days: number; from: number}};
+  /** The zoom back in (src/sim/zoom.ts): the outbreak's day, how it was met (down, sent or neither), the garden days to
+   *  the rescue against the deadline's, the kg it cost the plot, and the plot's kg a day over the four weeks before it and
+   *  from it (the dive's days counted at the garden's own). Null before the outbreak. */
+  zoom: {day: number; how: 'down' | 'sent' | 'none'; days: number | null; deadline: number; kg: number; before: number; during: number} | null;
 }
 const dayAt = (hours: number | null | undefined) => (hours == null ? null : calendar(hours).dayIndex + 1);
 
 /** The allotment's numbers at the end of a run. */
-function allotmentOf(snap: Snapshot, day: number | null, kg: number, days: number, secondKg: number, quiet: Quiet['longest']): AllotmentRun | null {
+function allotmentOf(snap: Snapshot, day: number | null, kg: number, days: number, secondKg: number, quiet: Quiet['longest'], daily: Map<number, number>, went: boolean): AllotmentRun | null {
   if (day === null || snap.level < 2) return null;
   const plots = snap.nodes.filter((n) => n.kind === 'plot'), mine = plots.find((n) => n.id === PLAYER_PLOT)!, others = plots.filter((n) => n !== mine);
   const held = (n: Snapshot['nodes'][number]) => n.levers.holder as unknown as {neglected: boolean};
@@ -94,7 +98,22 @@ function allotmentOf(snap: Snapshot, day: number | null, kg: number, days: numbe
     day, days, output: days ? kg / days : 0, health: mine.totals.health, upkeep: mine.totals.upkeep, saved: ledger?.saved ?? 0,
     plan: `care ${String(mine.levers.care)} h, ${String(mine.levers.mix)}, ${String(mine.levers.feed)}`,
     neighbours: {output: mean(others.map((n) => n.totals.output)), health: mean(others.map((n) => n.totals.health)), neglected: (others.find((n) => held(n)?.neglected) ?? secondPlot(g))?.totals.health ?? 0},
-    season,
+    season, zoom: zoomOf(snap, daily, went),
+  };
+}
+
+/** The zoom back in's line from the run's plot kg by game day. */
+function zoomOf(snap: Snapshot, daily: Map<number, number>, went: boolean): AllotmentRun['zoom'] {
+  const z = snap.zoom;
+  if (!z) return null;
+  const d0 = calendar(z.event.from).dayIndex + 1, mean = (a: number, b: number) => {
+    let s = 0;
+    for (let d = a; d < b; d++) s += daily.get(d) ?? 0;
+    return s / (b - a);
+  };
+  return {
+    day: d0, how: z.sent ? 'sent' : went ? 'down' : 'none', days: z.rescued ? (z.rescued.at - z.event.from) / 24 : null, deadline: (z.deadline - z.event.from) / 24,
+    kg: z.kg, before: mean(d0 - 28, d0), during: mean(d0, d0 + 28),
   };
 }
 
@@ -145,43 +164,53 @@ export function play({seed, hours, player = PLAYERS.sensible!, systems = SYSTEMS
   const policies = policiesOf(player), watching = MILESTONES.filter((m) => m.reached);
   let snap = sim.snapshot();
   const send = (cmd: Command, day: number) => {
-    const garden = snap.level === 1;
+    const garden = snap.level === 1 && snap.zoom?.down == null;
     snap = sim.apply(cmd);
     if (snap.rejected) err.push(`day ${day}: ${cmd.type} ${JSON.stringify(cmd)} refused: ${snap.rejected}`);
     else {
       // a decision: the day isn't quiet (the garden's measure stops at the step up; the allotment's starts there)
       if (garden) quiet.mark(day);
       else quiet2?.mark(day);
-      if (cmd.type === 'buy') bought.push({id: cmd.id, day});
+      if (cmd.type === 'buy' && garden) bought.push({id: cmd.id, day});
       // a cordon planted from bare-root season's card is a purchase too
       if (cmd.type === 'card' && cmd.id === 'bare-root' && cmd.answer === 'plant') bought.push({id: 'cordon', day});
     }
   };
-  const allot = allotmentPolicies(player);
+  const allot = allotmentPolicies(player), below = downPolicies(player);
+  // the plot's kg by game day (the garden's eaten and sold while down), and whether the player went down
+  const daily = new Map<number, number>();
+  let went = false;
   let steppedUp: number | null = null, plotKg = 0, secondKg = 0, plotDays = 0, gardenOffer = offerOf(snap), quiet2: Quiet | null = null;
   while (snap.hours < hours) {
     const date = calendar(snap.hours), day = date.dayIndex + 1, level = snap.level;
     // each morning the level's policies; a policy that takes the plot ends the garden's for the day
     if (date.hour === MORNING)
-      for (const policy of level >= 2 ? allot : policies) {
+      for (const policy of snap.zoom?.down != null ? below : level >= 2 ? allot : policies) {
         if (snap.level !== level) break;
         for (const cmd of policy({snap, day, date})) send(cmd, day);
       }
     if (snap.level >= 2 && steppedUp === null) (steppedUp = day), (quiet2 = new Quiet(ALLOTMENT_ANSWER, day));
-    if (snap.level === 1) gardenOffer = offerOf(snap);
+    const down = snap.zoom?.down != null;
+    if (down) went = true;
+    if (snap.level === 1 && !down) gardenOffer = offerOf(snap);
     const before = snap;
     snap = sim.apply({type: 'tick', hours: snap.step});
     for (const e of snap.errors) err.push(`day ${day}: ${e}`);
     // the garden's diary keeps the garden's days; the allotment's are counted from the player's plot
-    if (snap.level === 1) diary.add(snap);
+    if (down) {
+      // down in the garden: its kitchen's harvest stands in for the plot's, and the allotment's quiet measure goes on
+      for (const f of snap.flows) if (f.what === 'harvest' && !('boundary' in f.to)) daily.set(day, (daily.get(day) ?? 0) + f.amount);
+      quiet2?.watch(before, snap);
+    } else if (snap.level === 1) diary.add(snap);
     else {
+      for (const f of snap.flows) if (f.what === 'harvest' && !('boundary' in f.to) && f.to.node === PLAYER_PLOT) daily.set(day, (daily.get(day) ?? 0) + f.amount);
       for (const f of snap.flows) if (f.what === 'harvest' && !('boundary' in f.to) && f.to.node === PLAYER_PLOT) plotKg += f.amount;
       // the second plot's kg that came home (after the helper's share)
       for (const f of snap.flows) if (f.what === 'eaten from the second plot') secondKg += f.amount;
       quiet2?.watch(before, snap);
       plotDays += (snap.hours - before.hours) / 24;
     }
-    if (before.level === 1) quiet.watch(before, snap);
+    if (before.level === 1 && steppedUp === null) quiet.watch(before, snap);
     for (const m of watching) if (!(m.id in reached) && m.reached!({snap, diary})) reached[m.id] = diary.current!.day;
   }
   diary.close();
@@ -191,6 +220,6 @@ export function play({seed, hours, player = PLAYERS.sensible!, systems = SYSTEMS
   return {
     seed, player: player.name, hours: snap.hours, reached, days, sealed: sealed(days),
     wasted: days.reduce((a, d) => a + d.wasted, 0), preserved: snap.kitchen?.preserved ?? 0, given: snap.kitchen?.given ?? 0, carbon: snap.carbon, quiet: quiet.longest, stretches: quiet.stretches, bought, offer: snap.level === 1 ? offerOf(snap) : gardenOffer, beds: snap.nodes.filter(isDug).length,
-    play: fingerprint(playState(sim.save())), err, allotment: allotmentOf(snap, steppedUp, plotKg, plotDays, secondKg, quiet2?.longest ?? {days: 0, from: 0}), ...(keepSave ? {save: sim.save()} : {}),
+    play: fingerprint(playState(sim.save())), err, allotment: allotmentOf(snap, steppedUp, plotKg, plotDays, secondKg, quiet2?.longest ?? {days: 0, from: 0}, daily, went), ...(keepSave ? {save: sim.save()} : {}),
   };
 }

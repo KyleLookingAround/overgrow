@@ -7,6 +7,7 @@ import type {Speed} from '../data/ladder';
 import type {Activity} from './activity';
 import type {Below} from './allotment';
 import type {Effect} from './effects';
+import {zoomView, type Zoom, type ZoomView} from './zoom';
 import {levelClock} from './clock';
 import {ALL, nodeList, copyNode, copyStock, makeGraph, qty, takeTouched, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
 import {GARDENER, GARDENER_LEVERS} from './gardener';
@@ -39,6 +40,8 @@ export interface State {
   activities: Activity[];
   /** The levels below, sealed into a node of this one, each kept compactly for the zoom back in (src/sim/allotment.ts). */
   ladder: Below[];
+  /** The zoom back in (part 9, src/sim/zoom.ts): the slug outbreak on the player's plot and its rescue, once it has come. */
+  zoom: Zoom | null;
   upgrades: string[];
   laws: string[];
   goals: Record<string, LeverValue>;
@@ -117,7 +120,7 @@ function cupboard(): Record<string, Stock> {
 
 export function newState(seed: number, speed: Speed = 1): State {
   return {
-    seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], ladder: [],
+    seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], ladder: [], zoom: null,
     // the gardener stands by the shed on the first morning
     activities: [{id: 'g-start', who: GARDENER, kind: 'person', doing: 'rest', from: 'shed', to: 'shed', start: 0, end: 0.5}],
     upgrades: [], laws: [], goals: {}, settings: {}, seen: [], unfolding: {day: -1, waiting: []}, answered: {}, rejected: null, errors: [], effects: [],
@@ -152,6 +155,8 @@ export interface Snapshot {
   /** The game hour each decision card was last answered (State's `answered`). */
   answered: Record<string, number>;
   activities: Activity[];
+  /** The zoom back in: the outbreak, the deadline and the rescue, while down in the garden too (null until it comes). */
+  zoom: ZoomView | null;
   /** The kitchen's ledger: the day's ask and what met it, and what's been picked, eaten, wasted, sold and earned. */
   kitchen: Ledger | null;
   rejected: string | null;
@@ -163,6 +168,8 @@ export interface Snapshot {
  *  stocks flows moved since (src/sim/graph.ts's `takeTouched`), reusing its last copy of the rest, and a node nothing
  *  touched whose levers are the same values and whose totals are the same numbers is its last copy. Runtime only. */
 const copies = new WeakMap<State, Map<NodeId, GraphNode>>();
+/** The graph each state's copies were taken from: a level changed (the step up, going down and back up) copies afresh. */
+const copiedFrom = new WeakMap<State, Graph>();
 
 /** Whether a node's levers are the same values as its last copy's (levers are replaced, never changed in place). */
 function sameLevers(a: GraphNode['levers'], b: GraphNode['levers']): boolean {
@@ -199,7 +206,7 @@ function recopy(n: GraphNode, c: GraphNode, moved: Set<string> | undefined): Gra
 
 /** The nodes, copied: again where they changed, the last copy where they didn't. */
 function nodeCopies(s: State): GraphNode[] {
-  const had = copies.get(s), changed = takeTouched(s.graph), now = had && changed ? had : new Map<NodeId, GraphNode>(), out: GraphNode[] = [];
+  const same = copiedFrom.get(s) === s.graph, had = same ? copies.get(s) : undefined, touched = takeTouched(s.graph), changed = same ? touched : undefined, now = had && changed ? had : new Map<NodeId, GraphNode>(), out: GraphNode[] = [];
   for (const n of nodeList(s.graph)) {
     const id = n.id, c = had?.get(id), moved = changed?.get(id);
     const copy = !c || !changed || moved?.has(ALL) ? copyNode(n) : recopy(n, c, moved);
@@ -209,6 +216,7 @@ function nodeCopies(s: State): GraphNode[] {
   // nodes gone from the graph leave the kept copies too
   if (now.size > out.length) for (const id of now.keys()) if (!(id in s.graph.nodes)) now.delete(id);
   copies.set(s, now);
+  copiedFrom.set(s, s.graph);
   return out;
 }
 
@@ -228,7 +236,7 @@ export function snapshotOf(s: State): Snapshot {
     seed: s.seed, hours: s.hours, level: s.level, step: levelClock(s.level).stepHours, speed: s.speed,
     money: s.graph.nodes[s.home]?.stocks.money?.amount ?? 0,
     carbon: s.graph.nodes[ATMOSPHERE]?.stocks.carbon?.amount ?? 0,
-    rev: s.graph.rev, nodes, edges: edgesOf(s.graph), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings, answered: s.answered,
+    rev: s.graph.rev, nodes, edges: edgesOf(s.graph), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings, answered: s.answered, zoom: zoomView(s.zoom),
     // an activity never changes once started (src/sim/activity.ts): the list is copied, the activities shared
     activities: s.activities.slice(),
     kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,
