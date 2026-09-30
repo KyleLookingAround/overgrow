@@ -3,7 +3,7 @@
 // overflow, the panel's tab strip fitting its row with the sheet's toggle, every button and menu at least 40 px on
 // touch, the sheet still showing a useful panel under the fixed chrome, the sheet folding to its heading, the dark
 // scheme, and the top bar and panel working by keyboard alone. The top bar as a row (the owner's wins W2 and W11): one
-// row where it's 640 px or wider inside its padding, with pause and the four speeds, and below that at most two rows with the speeds folded into one
+// row where it's 640 px or wider inside its padding, with pause and every speed (4×, 8× and 16× sharing one button below 960 px), and below that at most two rows with the speeds folded into one
 // button that cycles them, tapped on a touch page; safe areas kept clear on every side; and a tap on the map landing
 // through the layer over it (W12). Notices (the playable garden) never bury a phone's map: three at once show one, in a
 // line, over less than a quarter of the map at 390×844 and 320×568. Each page answers the first plan's card and shows every detail, the fullest the
@@ -26,7 +26,7 @@ export default async function({ok,open:bare,out}){
     const [top,map,panel,head]=await Promise.all(['.topbar','.map','.panel','.panel-head'].map(s=>box(page,s)));
     const parts=await page.evaluate(()=>[...document.querySelectorAll('.topbar .level,.topbar .date,.topbar .money,.topbar .dial,.topbar .speed,.topbar .speed-cycle')].filter(e=>e.getClientRects().length).map(e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}}));
     const bar=await page.evaluate(()=>{const t=document.querySelector('.topbar');if(!t)return 0;const cs=getComputedStyle(t);return Math.round(t.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight))});
-    const folded=bar<640,want=folded?5:9;
+    const folded=bar<640,mid=!folded&&bar<960,want=folded?5:mid?8:10;
     const flow=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,sh:document.documentElement.scrollHeight,ch:document.documentElement.clientHeight}));
     const sheet=w<700&&!(h<=500&&w>=500);
     const placed=sheet?panel&&map&&panel.y>=map.b-1&&panel.b<=h+0.5:panel&&map&&panel.x>=map.r-1&&panel.y>=top.b-1;
@@ -38,16 +38,26 @@ export default async function({ok,open:bare,out}){
     // the row, not only each control: the parts' rows counted by where they sit, and the speeds folded below 640 px
     const rows=parts.length?[...new Set(parts.map(p=>Math.round((p.y+p.h/2)/12)))].length:0;
     const fold=await page.evaluate(()=>({four:[...document.querySelectorAll('.topbar .speed')].filter(e=>e.getClientRects().length).length,one:!!document.querySelector('.topbar .speed-cycle')?.getClientRects().length}));
-    ok(`layout: at ${w}×${h} the top bar (${bar} px) is ${folded?'at most two rows, its speeds folded into one button':'one row with pause and its four speeds'}`,
-      folded?rows<=2&&fold.one&&fold.four===0:rows===1&&!fold.one&&fold.four===5,`${rows} rows, ${fold.four} speeds, cycle ${fold.one}`);
+    ok(`layout: at ${w}×${h} the top bar (${bar} px) is ${folded?'at most two rows, its speeds folded into one button':`one row with pause and ${mid?'its speeds, 4×, 8× and 16× sharing a button':'every speed'}`}`,
+      folded?rows<=2&&fold.one&&fold.four===0:rows===1&&!fold.one&&fold.four===(mid?4:6),`${rows} rows, ${fold.four} speeds, cycle ${fold.one}`);
     if(folded&&touch){
-      const before=await page.evaluate(()=>window.__sim.snapshot()?.speed);
-      const c=await box(page,'.topbar .speed-cycle');
-      await page.touchscreen.tap(c.x+c.w/2,c.y+c.h/2);
-      const after=await page.waitForFunction(b=>{const s=window.__sim.snapshot()?.speed;return s!==b&&s},before,{timeout:5000}).then(r=>r.jsonValue(),()=>null);
-      await page.touchscreen.tap(c.x+c.w/2,c.y+c.h/2);
-      const again=await page.waitForFunction(a=>{const s=window.__sim.snapshot()?.speed;return s!==a&&s!==undefined?String(s):false},after,{timeout:5000}).then(r=>r.jsonValue(),()=>null);
-      ok(`layout: at ${w}×${h} a tap on the folded speed button cycles the speed`,before===1&&after===2&&again==='4',`${before} → ${after} → ${again}`);
+      // the folded button cycles every speed: 1× → 2× → 4× → 8× → 16× → pause → 1×
+      const seen=[await page.evaluate(()=>window.__sim.snapshot()?.speed)];
+      for(let i=0;i<6;i++){
+        // measured each time: the button widens at 16×, and it sits at the bar's right end
+        const c=await box(page,'.topbar .speed-cycle');
+        await page.touchscreen.tap(c.x+c.w/2,c.y+c.h/2);
+        await page.waitForFunction(b=>{const s=window.__sim.snapshot()?.speed;return s!==undefined&&s!==b},seen[seen.length-1],{timeout:5000}).catch(()=>{});
+        seen.push(await page.evaluate(()=>window.__sim.snapshot()?.speed));
+      }
+      ok(`layout: at ${w}×${h} a tap on the folded speed button cycles every speed`,seen.join()==='1,2,4,8,16,0,1',seen.join(' → '));
+    }
+    if(mid){
+      // a bar a little narrow: 4×, 8× and 16× fold into one button that cycles them
+      const seen=[];
+      for(let i=0;i<3;i++){await page.click('.topbar .speed-fast');await page.waitForTimeout(400);seen.push(await page.evaluate(()=>window.__sim.snapshot()?.speed))}
+      await page.click('.topbar .speed[aria-label="Speed 1×"]');await page.waitForTimeout(300);
+      ok(`layout: at ${w}×${h} 4×, 8× and 16× share one button that cycles them`,seen.join()==='4,8,16',seen.join(' → '));
     }
     // the tab strip and the sheet's toggle share the panel's head: both inside it, side by side, with nothing overflowing
     const strip=await page.evaluate(()=>{const h=document.querySelector('.panel-head'),t=document.querySelector('.tabs'),g=document.querySelector('.sheet-toggle');

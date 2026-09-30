@@ -1,11 +1,13 @@
 // The real-time loop: turns real seconds into the sim's fixed steps at the level's rate and the chosen speed (the
 // ladder, src/data/ladder.ts), and gives the map a view time between two snapshots to interpolate at. The sim is kept up
-// to two steps ahead of what's shown, so the map never waits on it; pausing freezes the view at once. The game only runs
-// while the page is open and showing: a hidden tab gets no frames, and a long gap between frames counts as a short one.
-// A quiet night the page names (src/ui/quiet-night.ts) passes QUIET_BOOST times faster, up to its dawn: the same steps.
+// to two steps ahead of what's shown (two frames' worth at a fast pace), so the map never waits on it; pausing freezes
+// the view at once. The game only runs while the page is open and showing: a hidden tab gets no frames, and a long gap
+// between frames counts as a short one.
+// A quiet night the page names (src/ui/quiet-night.ts) passes QUIET_BOOST times faster (at most QUIET_MOST game hours a
+// second), up to its dawn: the same steps.
 // docs/systems/clock.md says how it works.
 import {hoursPerSecond} from '../sim/clock';
-import {QUIET_BOOST, type Speed} from '../data/ladder';
+import {QUIET_BOOST, QUIET_MOST, type Speed} from '../data/ladder';
 import type {Snapshot} from '../sim/state';
 import type {SimClient} from './sim-client';
 
@@ -42,7 +44,7 @@ const AHEAD = 2, MAX_STEPS = 8, MAX_GAP = 0.25, JUMP = 4;
 
 export function createLoop(sim: SimClient): Loop {
   let queue: Snapshot[] = [], target = 0, inFlight = false, last = 0, reduced = false, benchN = 0, benchM = 0, benchRate = 4;
-  let quiet: number | null = null, fast = false; // the quiet night's dawn, and whether it's passing quickly now
+  let quiet: number | null = null, fast = false, asked = 0; // asked: the furthest hour the loop has asked the sim for // the quiet night's dawn, and whether it's passing quickly now
   let game: Snapshot | null = null; // the game's latest, kept while a bench runs
   const frames: ((v: View, now: number) => void)[] = [];
 
@@ -51,6 +53,7 @@ export function createLoop(sim: SimClient): Loop {
     if (!top || s.hours < top.hours || s.seed !== top.seed) {
       queue = [s]; // a new game, a load, or the bench starting: start the view here
       target = s.hours;
+      asked = s.hours;
     } else if (s.hours === top.hours) queue[queue.length - 1] = s;
     else queue.push(s);
   };
@@ -59,11 +62,14 @@ export function createLoop(sim: SimClient): Loop {
     else take(s);
   });
 
-  const request = (top: Snapshot) => {
-    const steps = Math.min(MAX_STEPS, Math.ceil((target + AHEAD * top.step - top.hours) / top.step));
+  const request = (top: Snapshot, rate: number, dt: number) => {
+    // two steps ahead, or two frames' worth of game hours at a fast pace on a slow page
+    const lead = Math.min(MAX_STEPS * top.step, Math.max(AHEAD * top.step, AHEAD * rate * dt));
+    const steps = Math.min(MAX_STEPS, Math.ceil((target + lead - top.hours) / top.step));
     if (steps < 1) return;
     inFlight = true;
     const done = () => void (inFlight = false);
+    asked = Math.max(asked, top.hours + (benchN ? 1 : steps) * top.step);
     if (benchN) {
       const n = benchN, m = benchM;
       sim.bench(n, m, top.hours + top.step).then((s) => {
@@ -93,12 +99,13 @@ export function createLoop(sim: SimClient): Loop {
     const base = benchN ? benchRate : hoursPerSecond(top.level, top.speed);
     // a quiet night passes faster, handing back at its dawn
     fast = !benchN && base > 0 && quiet !== null && target < quiet;
-    const rate = fast ? base * QUIET_BOOST : base;
+    const rate = fast ? Math.max(base, Math.min(base * QUIET_BOOST, QUIET_MOST)) : base;
     target = Math.min(target + dt * rate, fast ? quiet! : Infinity, top.hours);
-    if (top.hours - target > JUMP * top.step) target = top.hours - top.step; // moved far ahead by a command: catch up at once
+    // moved far ahead by a command, past what the loop asked for itself: catch up at once
+    if (top.hours - target > JUMP * top.step && top.hours > asked + 1e-9) target = top.hours - top.step;
     // drop what's behind the view, keeping the one just before it to interpolate from
     while (queue.length > 2 && queue[1]!.hours <= target) queue.shift();
-    if (!inFlight && rate > 0) request(top);
+    if (!inFlight && rate > 0) request(top, rate, dt);
     const v = view();
     if (v) for (const fn of frames) fn(v, now);
   };

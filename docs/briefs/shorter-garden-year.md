@@ -8,6 +8,7 @@ The coordinator chose, under decision 15:
 - **Keep the full year.** The soil, the rotation, winter and the first-year card are built round it, and a shorter window would break the offer's measure.
 - **Make it pass much faster in real time.**
 - **Target:** a garden year in about 50–60 minutes at 1×, and about 15 at 4×.
+- **Speeds:** the owner asked for both an 8× and a 16× speed at 23:15.
 
 ## Goal and what it may touch
 
@@ -27,7 +28,9 @@ The coordinator chose, under decision 15:
 
      Hand it back at dawn (about 06:00), or the moment something happens. Show it: a dimmer map and a small moon or "night" mark by the speeds. Under reduced motion, show the still mark only. This is page-side pacing in the real-time loop, not the sim: the sim's steps and `PLAY` must stay identical.
      - **Target:** a year in about 50–60 minutes at 1×. Measure it on seed 1 with the sensible bot's choices replayed on the page, or estimate from the share of quiet night hours, and report the figure.
-  3. **An 8× speed,** if the layout checks show it fits the top bar at 320 px (the folded speed button cycles it on a phone). Skip it if it doesn't fit cleanly.
+  3. **8× and 16× speeds,** so the speeds are pause, 1×, 2×, 4×, 8× and 16×.
+     - Make them fit the top bar. On a phone (below 640 px) the folded speed button cycles through all of them. On wider screens, show every button if they fit the one-row bar, or put 8× and 16× in the fold if they don't. The `layout` check must still pass at 320 px portrait and landscape.
+     - At 16× a garden day takes 0.75 s, about 32 hourly ticks a second. Check that the worker keeps up on the `scene` check's throttled phone, and report the frame time and the tick copy at 16×. If it can't, say so in the PR and cap the quiet-night boost so that 16× never runs faster than the sim can.
   4. **The notes:**
      - Update `docs/decisions/ADR-2026-09-29-strategic-and-long.md`'s last consequence line, and add a short dated amendment naming the owner's remark and the new figures.
      - Update `docs/systems/clock.md`, the founding spec's ladder line for the garden (`docs/specs/overgrow.md`) and the What's new fragment.
@@ -53,7 +56,7 @@ Its row in the systems web (`docs/specs/overgrow/systems-web.md`) is "Calendar a
 2. **Across the ladder.** Every level keeps its rate. The quiet-night rule belongs to the hourly-step levels (1 and 2). From level 3 the step is a day, so a night passes inside one tick. The allotment inherits the rule as it is.
 3. **Loops.** None directly. Faster real time means the slow effects (the soil, fruit) are seen in one sitting.
 4. **People.** The gardener's day is unchanged. Their night is shown passing quickly.
-5. **The lever.** The speeds, with 8× if it fits. Quiet nights are automatic, and pausing always wins.
+5. **The lever.** The speeds, with 8× and 16×. Quiet nights are automatic, and pausing always wins.
 6. **The map.** The night dims, and the moon mark shows it's passing fast. Reduced motion shows the still mark.
 7. **Explain.** Nothing new to explain: the night mark's tooltip says "Quiet night: passing quickly".
 8. **Economy and balance.** No change in game days: `PLAY` is identical. A year takes about 50–60 minutes at 1× in real time.
@@ -91,8 +94,8 @@ KyleLookingAround <KyleMck10@hotmail.com> (the session-start hook sets it; check
 
 ## Cost budget
 
-- **Estimate:** about $12. It covers one number, the page's night pacing and its mark, an 8× speed if it fits, the checks that move, the notes, and one or two CI rounds.
+- **Estimate:** about $12. It covers one number, the page's night pacing and its mark, the 8× and 16× speeds, the checks that move, the notes, and one or two CI rounds.
 - **Stopping points:** at each one, read `get_session`: `usage.cost_usd` against the estimate (a 0 means not yet known, not free), and `rate_limit_info`. If status is "rejected" or `isUsingOverage` is true, schedule a `send_later` for a minute after `resetsAt` and end the turn.
 - **Keep context down:** don't end a turn after planning: build straight on. Don't end a turn except with a PR open and subscribed, or on a real blocker.
 - **Other sessions:** don't start any.
-- **Past twice the estimate:** say why in the PR and in its lesson, and drop the 8× speed first.
+- **Past twice the estimate:** say why in the PR and in its lesson.

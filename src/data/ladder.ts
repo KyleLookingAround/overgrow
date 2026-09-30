@@ -27,13 +27,16 @@ export const LEVELS: readonly LevelClock[] = [
   {n: 8, name: 'The Planet', node: 'country', secondsPerDay: 1 / 300, stepHours: MONTH},
 ];
 
-/** Pause, 1×, 2×, 4× and 8×, at every level. */
-export const SPEEDS = [0, 1, 2, 4, 8] as const;
+/** Pause, 1×, 2×, 4×, 8× and 16×, at every level. */
+export const SPEEDS = [0, 1, 2, 4, 8, 16] as const;
 export type Speed = (typeof SPEEDS)[number];
 
 /** How many times faster than the chosen speed a quiet night passes on the page, at the levels that step by the hour
  *  (src/ui/quiet-night.ts): pacing in the real-time loop only, never the sim's steps. */
 export const QUIET_BOOST = 4;
+/** The fastest a quiet night passes, game hours a real second: under what the worker gives on a phone at 4× CPU
+ *  throttling (about 77, the `scene` check), so 16× at night passes at twice its speed, not four times. */
+export const QUIET_MOST = 64;
 
 /**
  * Day 1 of every game: 06:00 on Monday 15 March, early spring, as a UTC calendar (no clock change) so every date

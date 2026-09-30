@@ -1,6 +1,6 @@
 # A shorter garden year (#65) · 29 Sep 2026
 
-- **Numbers:** estimate $12; no cost figure had reached the session when the PR opened (read as unknown, not free). Session started 23:11 UTC, PR opened about 23:45 UTC, no waiting on the owner. One commit before opening, after the fresh review; CI rounds are counted at the merge.
+- **Numbers:** estimate $12; no cost figure had reached the session when the PR opened (read as unknown, not free). Session started 23:11 UTC, PR opened about 23:45 UTC, no waiting on the owner. One commit before opening, after the fresh review. A change to the brief from the owner (8× and 16×) came through the coordinator's routine after the PR opened and went in as a second commit; CI rounds are counted at the merge.
 - **Went well:**
   - Writing the quiet-night rule as a pure function (`src/ui/quiet-night.ts`) let one Node script replay the sensible bot for a year on seeds 1–3 and give the real-time figure (about 53 minutes at 1×) before any browser check ran.
   - `PLAY` on seeds 1–3 was taken before the first edit, so the proof that play is unchanged needed no worktree.
@@ -9,3 +9,6 @@
   - A browser check that plays a real-time window (a night at 8 game hours a second is under two seconds) should pick a window it has checked is clean in Node first: the first December night chosen had a frost at 04:00 that handed the pace back, which is the rule working and the check flaking.
   - Counting a top bar's rows by each part's top edge miscounts a small icon centred on the row: count by overlapping vertical extents instead (`tools/checks/night.mjs`).
   - How quiet the nights are depends on the player: the sensible bot's beer traps keep the slugs in, about 8½ quiet hours a night; with no choices at all the fresh review measured about 3½, and a year of about 65 minutes. The figure to report is the one with a player's choices, and the other belongs beside it.
+  - A top bar that fits at the start of a game can wrap by December: the money, the dial's second line and the temperature all grow. Measure the bar with a late-game save, not only a new game: the fifth and sixth speed buttons fitted the `layout` check's new game at 768 px but not a December night, so 4×, 8× and 16× share a button below 960 px. A mark that must not move the layout goes on a control as a badge, not beside it.
+  - A check that taps a control more than once measures it again before each tap if its label can change width: the folded speed button widens at 16×, and the second tap missed it.
+  - "The worker keeps up" was the loop's look-ahead, not the worker: two steps ahead covers a frame at 60 fps but not at the headless browser's 8, so 16× ran at 18 game hours a second while the worker could give about 80. The loop now keeps two frames' worth ahead at a fast pace, and jumps the view only when a command moved the sim past what the loop itself asked for.
