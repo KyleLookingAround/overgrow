@@ -17,7 +17,7 @@ import {placeAt, type Activity} from '../../sim/activity';
 import {calendar} from '../../sim/clock';
 import type {Box, GraphNode, NodeId} from '../../sim/graph';
 import type {View} from '../../app/clock-loop';
-import {darkness, warmth} from './daylight';
+import {darkness, daySeconds, steadyLight, warmth} from './daylight';
 import type {Stage} from '../../sim/models/crops';
 import {camera, drawGround, drawGrown, drawItem, drawLive, drawOver, drawPerson, drawTilth, groundKey, itemOf, weatherAt, type Camera} from './draw';
 import {drawLife, type Creature, type LifeStats} from './life';
@@ -46,6 +46,8 @@ export interface MapRenderer {
   stats(): {
     frames: number[]; movers: {id: string; x: number; y: number}[]; stepping: number; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; shapes: Record<string, Shape>;
     gardener: GardenerStats | null; life: LifeStats; creatures: Creature[]; torch: boolean; pulse: NodeId | null;
+    /** The night layer's opacity. */
+    night: number;
     /** The level drawn, and the step up's zoom-out: running, and how far through, 0–1. */
     level: number; zoom: number | null;
   };
@@ -142,6 +144,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   world.addChild(ground, live, tilth, grown, over, life, movers, crowd, carried, rain, night, dawn, glow, ring);
   app.stage.addChild(world);
   let level = -1, zoom: {start: number; shot: Sprite | null} | null = null, highlight = 0, grownAt = 0, grownRev = -1;
+  const light = steadyLight(), dawnLight = steadyLight(); // the night's and the dawn's opacity, never flashing (src/ui/map/daylight.ts)
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null, grownOf: GraphNode[] | null = null;
   let atlas: Texture | null = null, frames: Texture[] = [], drop: Texture | null = null, flake: Texture | null = null, still = false, garden: Box | null = null, snowing = false;
   const drops: Particle[] = [];
@@ -443,12 +446,13 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       if (changed) held.update(); // the count changed: the static buffers are rebuilt
       lastMovers = out;
       stepping = steps;
-      // the night and the dawn: full-screen layers, so skipped entirely while they'd be clear
-      // a quiet night passing quickly dims the map a little more (not under reduced motion: the moon alone shows it)
-      night.alpha = dusk * (pal.nightMax + (v.quiet && !still ? pal.nightQuiet : 0));
+      // the night falls with the sun, but at speed holds a steady light (a gentle dim through a quiet night), easing slowly;
+      // the dawn's glow eases the same way and is held off at speed; both full-screen layers are skipped while clear
+      const day = daySeconds(cur.level, cur.speed, v.quiet);
+      night.alpha = light(dusk * pal.nightMax, v.quiet ? pal.nightQuiet : 0, day, t0);
       night.visible = night.alpha > 0;
-      dawn.alpha = warm;
-      dawn.visible = warm > 0;
+      dawn.alpha = dawnLight(warm, 0, day, t0);
+      dawn.visible = dawn.alpha > 0;
       // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
       ring.clear();
       const ringAt = pulse ?? (performance.now() < highlight ? PLAYER_PLOT : null), box = ringAt ? boxes.get(ringAt) : undefined;
@@ -486,7 +490,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       pulse = at;
     },
     skipZoom: endZoom,
-    stats: () => ({frames: frameTimes.slice(), movers: lastMovers, stepping, cam, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level,
+    stats: () => ({frames: frameTimes.slice(), movers: lastMovers, stepping, cam, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
       zoom: zoom ? Math.min(1, (performance.now() - zoom.start) / ZOOM_MS) : null}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
