@@ -3,7 +3,7 @@
 // Cosmetic: nothing here changes the game, and part 2's weather owns the real sun.
 // Day length from the solar declination (Cooper 1969) and the sunrise hour angle, solar noon taken as 12:00.
 import {hoursPerSecond, type CalendarDate} from '../../sim/clock';
-import {QUIET_BOOST, QUIET_MOST, type Speed} from '../../data/ladder';
+import {QUIET_BOOST, QUIET_MOST} from '../../data/ladder';
 
 const LAT = (51.5 * Math.PI) / 180;
 
@@ -44,10 +44,11 @@ export const LIGHT_MOST = 0.2;
  *  to 16× lasts under a real second (a fifth of one at 8× and 16×), too short to dim for and back. */
 export const SETTLE_S = 1;
 
-/** Real seconds a game day takes at a level and speed, a quiet night at its pace as the clock loop runs it
+/** Real seconds a game day takes, from a day's length at the camera's zoom (src/data/ladder.ts's secondsPerDayAt),
+ *  running (1; the checks' fast clock more) or paused (0), and a quiet night at its pace as the clock loop runs it
  *  (src/app/clock-loop.ts); a paused day never ends. */
-export function daySeconds(level: number, speed: Speed, quiet: boolean): number {
-  const base = hoursPerSecond(level, speed), rate = quiet ? Math.max(base, Math.min(base * QUIET_BOOST, QUIET_MOST)) : base;
+export function daySeconds(secondsPerDay: number, run: number, quiet: boolean): number {
+  const base = hoursPerSecond(1, run, secondsPerDay), rate = quiet ? Math.max(base, Math.min(base * QUIET_BOOST, QUIET_MOST)) : base;
   return rate > 0 ? 24 / rate : Infinity;
 }
 

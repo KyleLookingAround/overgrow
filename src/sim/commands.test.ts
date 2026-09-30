@@ -3,11 +3,11 @@ import type {System} from './clock';
 import {createSim} from './index';
 
 describe('commands', () => {
-  it('sets the speed, and refuses one that isn’t on the dial', () => {
+  it('pauses and runs, and refuses a speed: the zoom sets how fast the game goes', () => {
     const sim = createSim(1);
-    expect(sim.apply({type: 'speed', speed: 4}).speed).toBe(4);
     expect(sim.apply({type: 'speed', speed: 0}).speed).toBe(0);
-    expect(sim.apply({type: 'speed', speed: 3 as 4}).rejected).toMatch(/no speed/);
+    expect(sim.apply({type: 'speed', speed: 1}).speed).toBe(1);
+    expect(sim.apply({type: 'speed', speed: 4 as 1}).rejected).toMatch(/no speed/);
   });
 
   it('ticks whole steps only', () => {
@@ -83,17 +83,6 @@ describe('unfolding and the cards', () => {
     const d = createSim(1);
     d.apply({type: 'tick', hours: 1});
     expect(d.apply({type: 'card', id: 'first-plan', answer: 'choose'}).rejected).toMatch(/under way/);
-  });
-
-  it('answers the try-faster nudge once, by its buttons or by any faster speed', () => {
-    const a = createSim(1);
-    expect(a.apply({type: 'card', id: 'try-faster', answer: 'yes'}).speed).toBe(2);
-    expect(a.snapshot().seen).toContain('card.try-faster');
-    const b = createSim(1);
-    b.apply({type: 'tick', hours: 1});
-    b.apply({type: 'speed', speed: 4});
-    expect(b.snapshot().seen).toContain('card.try-faster');
-    expect(b.apply({type: 'card', id: 'try-faster', answer: 'no'}).rejected).toMatch(/answered/);
   });
 
   it('unfolds the keys a tick reaches together in one batch', () => {

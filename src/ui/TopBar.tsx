@@ -1,14 +1,15 @@
-// The top bar: the level, the date and time with the air's temperature, the money, the carbon dial with the shop food's
-// footprint beside it (a consumption figure, never added to the dial: the founding spec's two carbon numbers), and pause
-// with the five speeds, a moon on the pressed one while a quiet night passes quickly (src/ui/quiet-night.ts). The
+// The top bar: where you are (the level, and the place the camera has zoomed into as a breadcrumb step back out), the
+// date and time with the air's temperature, the money, the carbon dial with the shop food's footprint beside it (a
+// consumption figure, never added to the dial: the founding spec's two carbon numbers), and pause, a moon on it while a
+// quiet night passes quickly (src/ui/quiet-night.ts). There are no speeds: the zoom sets the pace
+// (docs/decisions/ADR-2026-09-30-zoom-is-the-speed.md). The
 // temperature, the money, the dial and the footprint each show once they've unfolded
 // (src/data/unfold.ts: the first frost on a crop, the first payday, sale or purchase, the first carbon choice), or all
-// at once with "Show all details". The speed is a command through the sim like any other change to the game. The money
-// and the dial open their Explain cards. Where the bar is a little narrow, 4×, 8× and 16× fold into one button that
-// cycles them; when it's narrow (a container query on its own width, the owner's wins W2 and W11) pause and the speeds fold
-// into one button that shows the speed and cycles it, a tap on a paused game resuming it.
+// at once with "Show all details". Pause is a command through the sim like any other change to the game. The money
+// and the dial open their Explain cards. On a phone pause leaves the bar for the map's corner (src/ui/App.tsx), and the
+// breadcrumb keeps only its step back out and the place you're looking at.
 // The money flashes once at the first sale (src/ui/moments.ts).
-import {LEVELS, SPEEDS, START, type Speed} from '../data/ladder';
+import {LEVELS, START, type Speed} from '../data/ladder';
 import {shows} from '../data/unfold';
 import {calendar} from '../sim/clock';
 import {HOUSEHOLD} from '../sim/models/kitchen';
@@ -47,17 +48,14 @@ function CarbonDial({kg, shop, onExplain}: {kg: number; shop: number | null; onE
   );
 }
 
-const SPEED_LABEL: Record<Speed, string> = {0: 'Pause', 1: '1×', 2: '2×', 4: '4×', 8: '8×', 16: '16×'};
-/** The fast speeds (4×, 8× and 16×), folded into one button that cycles them where the bar is too narrow for every
- *  button. */
-const FAST = 4;
-const fastNext = (s: Speed): Speed => (s === 4 ? 8 : s === 8 ? 16 : 4);
-/** The folded speed button's next speed: pause to 1× (a tap resumes), then up through the speeds and back to pause. */
-export const nextSpeed = (s: Speed): Speed => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length]!;
+/** Pause's other state: a paused game runs, a running one pauses. */
+export const nextSpeed = (s: Speed): Speed => (s === 0 ? 1 : 0);
 
-/** The snapshot the map is showing, its hour, and the speed last set (which can be a step ahead of the map). */
-export function TopBar({snap, hours, speed, flash = false, quiet = false, onSpeed, onExplain}: {
-  snap: Snapshot; hours: number; speed: Speed; flash?: boolean; quiet?: boolean; onSpeed: (s: Speed) => void; onExplain: (cause: string, at: string | null) => void;
+/** The snapshot the map is showing, its hour, the speed last set (which can be a step ahead of the map), and the place the
+ *  camera has zoomed into, if any, with the step back out to the level's widest view. */
+export function TopBar({snap, hours, speed, flash = false, quiet = false, place = null, onSpeed, onOut, onExplain}: {
+  snap: Snapshot; hours: number; speed: Speed; flash?: boolean; quiet?: boolean; place?: string | null; onSpeed: (s: Speed) => void; onOut?: () => void;
+  onExplain: (cause: string, at: string | null) => void;
 }) {
   const d = calendar(hours), level = LEVELS[snap.level - 1]!;
   const day = snap.nodes.find((n) => n.kind === 'atmosphere')?.levers.weather as unknown as WeatherDay | null | undefined;
@@ -72,7 +70,17 @@ export function TopBar({snap, hours, speed, flash = false, quiet = false, onSpee
   const temp = see('garden.weather') && day && day.day === d.dayIndex ? Math.round(hourOf(day, (hours + START.hour) % 24).temp) : null;
   return (
     <header class="topbar">
-      <span class="level">{level.name}</span>
+      <span class="level">
+        {place ? (
+          <>
+            <button type="button" class="crumb-up plain" aria-label={`Out to the whole ${level.name.toLowerCase()}`} onClick={onOut}>
+              <span aria-hidden="true" class="crumb-back">‹</span><span class="crumb-name">{level.name}</span>
+            </button>
+            <span class="crumb-sep" aria-hidden="true">›</span>
+            <span class="crumb-here">{place}</span>
+          </>
+        ) : level.name}
+      </span>
       <span class="date" data-hours={Math.floor(hours)}>
         <time>{dayName(d)}</time> <span class="time">{clockTime(d)}</span>
         {temp !== null && <span class="temp" title="Air temperature"> {temp < 0 ? '−' : ''}{Math.abs(temp)} °C</span>}
@@ -82,24 +90,12 @@ export function TopBar({snap, hours, speed, flash = false, quiet = false, onSpee
       {see('garden.carbon') && (
         <CarbonDial kg={snap.carbon} shop={see('household.footprint') ? snap.nodes.find((n) => n.id === HOUSEHOLD)?.stocks.carbon?.amount ?? 0 : null} onExplain={() => onExplain('carbon', 'heap')} />
       )}
-      <span class="speeds" role="group" aria-label="Speed">
-        {SPEEDS.map((s) => (
-          <button type="button" class={s === 0 ? 'speed pause' : s >= FAST ? 'speed fast' : 'speed'} aria-pressed={speed === s} aria-label={s === 0 ? 'Pause' : `Speed ${s}×${night(speed === s)}`} onClick={() => onSpeed(s)}>
-            {s === 0 ? <span aria-hidden="true">❚❚</span> : SPEED_LABEL[s]}
-            {speed === s && moon}
-          </button>
-        ))}
-        <button type="button" class="speed speed-fast" aria-pressed={speed >= FAST} aria-label={`Speed: ${speed >= FAST ? SPEED_LABEL[speed] : 'not fast'}${night(speed >= FAST)}. Tap for ${SPEED_LABEL[fastNext(speed)]}`}
-          onClick={() => onSpeed(fastNext(speed))}>
-          {SPEED_LABEL[speed >= FAST ? speed : FAST]}
-          {speed >= FAST && moon}
+      <span class="speeds">
+        <button type="button" class="speed pause" aria-pressed={speed === 0} aria-label={`Pause${night(speed > 0)}`} onClick={() => onSpeed(nextSpeed(speed))}>
+          <span aria-hidden="true">{speed === 0 ? '▶' : '❚❚'}</span>
+          {moon}
         </button>
       </span>
-      <button type="button" class="speed-cycle" aria-label={`Speed: ${speed === 0 ? 'paused' : SPEED_LABEL[speed]}${night(true)}. Tap for ${nextSpeed(speed) === 0 ? 'pause' : SPEED_LABEL[nextSpeed(speed)]}`}
-        onClick={() => onSpeed(nextSpeed(speed))}>
-        {speed === 0 ? <span aria-hidden="true" class="pause">❚❚</span> : SPEED_LABEL[speed]}
-        {moon}
-      </button>
     </header>
   );
 }

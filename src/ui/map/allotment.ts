@@ -1,13 +1,13 @@
 // The allotment on the map (level 2), drawn with the style kit (src/ui/map/kit.ts, plants.ts; docs/specs/map-art.md), the
 // kit's first second level: each plot a tile of dug soil tinted by its Health (from the dry soil of a poor one to the
 // dark loam of a good one) with rows of plants as many as its Output fills, their leaves yellowing as Health falls, the
-// neglected plot gone to grass and weeds, the player's plot outlined, a rescued plot's rosette; the sheds with their roofs, and the trough with its
-// water. The paths are the kit's gravel, the grass between the plots the kit's lawn, and a hedge runs round the whole
-// site (drawGround in draw.ts). The plots' numbers are the page's labels over the map (src/ui/PlotLabels.tsx); the
-// people walking to their plots are the renderer's movers, from the allotment's activities. Nothing drawn changes the
-// game.
+// neglected plot gone to grass and weeds, a rescued plot's rosette; the sheds with their roofs, and the trough with its
+// water; and the player's plot's small golden tag (never an outline: docs/specs/one-map.md), which the renderer draws
+// over the garden it keeps inside the plot. The paths are the kit's gravel, the grass between the plots the kit's lawn,
+// and a hedge runs round the whole site (drawGround in draw.ts). The plots' numbers are the page's labels over the map
+// (src/ui/PlotLabels.tsx); the people walking to their plots are the renderer's movers, from the allotment's activities.
+// Nothing drawn changes the game.
 import type {Graphics} from 'pixi.js';
-import {PLAYER_PLOT} from '../../data/allotment';
 import type {GraphNode} from '../../sim/graph';
 import type {Camera} from './draw';
 import * as kit from './kit';
@@ -29,6 +29,15 @@ export function allotmentKey(nodes: readonly GraphNode[]): string {
   let k = '';
   for (const n of nodes) if (n.kind === 'plot') k += `${Math.round(n.totals.health / 4)}.${Math.round((n.totals.output / FULL_KG) * 8)}${n.levers.rescued ? 'r' : ''},`;
   return k + seasonKey(nodes);
+}
+
+/** Your plot's tag: a small luggage label in gold hanging over the tile's top-left corner, its size on screen kept
+ *  between a thumbnail's and a thumb's whatever the zoom, so it's findable from the widest view. */
+export function tag(g: Graphics, x: number, y: number, s: number, pal: Palette) {
+  const h = Math.min(22, Math.max(12, 0.9 * s)), w = h * 1.5, x0 = x + h * 0.3, y0 = y - h * 0.35, notch = h * 0.32;
+  g.poly([x0 + notch, y0, x0 + w, y0, x0 + w, y0 + h, x0 + notch, y0 + h, x0, y0 + h / 2]).fill({color: pal.shadow.color, alpha: pal.shadow.alpha});
+  g.poly([x0 + notch - 1, y0 - 1, x0 + w - 1, y0 - 1, x0 + w - 1, y0 + h - 1, x0 + notch - 1, y0 + h - 1, x0 - 1, y0 + h / 2 - 1]).fill(pal.tag);
+  g.circle(x0 + notch * 0.9, y0 + h / 2 - 1, Math.max(1.5, h * 0.12)).fill(pal['tag-edge']);
 }
 
 /** Draws an allotment node if it is one, and says whether it did. */
@@ -82,6 +91,5 @@ export function drawAllotmentNode(g: Graphics, n: GraphNode, c: Camera, pal: Pal
     g.star(cx, cy, 8, R, R * 0.72).fill(pal.rescued);
     g.circle(cx, cy, R * 0.45).fill(pal['shed-roof']);
   }
-  if (n.id === PLAYER_PLOT) g.roundRect(r.x - 0.15 * s, r.y - 0.15 * s, r.w + 0.3 * s, r.h + 0.3 * s, round + 0.15 * s).stroke({width: Math.max(2, 0.2 * s), color: pal.pulse.color, alpha: 1});
   return true;
 }

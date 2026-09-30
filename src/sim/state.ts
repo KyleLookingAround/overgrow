@@ -8,6 +8,7 @@ import type {Activity} from './activity';
 import type {Below} from './allotment';
 import type {Effect} from './effects';
 import {zoomView, type Zoom, type ZoomView} from './zoom';
+import {dueOf, type Due} from './skip';
 import {levelClock} from './clock';
 import {ALL, nodeList, copyNode, copyStock, makeGraph, qty, takeTouched, type Edge, type Flow, type Graph, type GraphNode, type LeverValue, type NodeId, type NodeSpec, type Stock} from './graph';
 import {GARDENER, GARDENER_LEVERS} from './gardener';
@@ -54,6 +55,12 @@ export interface State {
   /** The game hour each of the week's decision cards was last answered (the glut, the catalogue, a frost, a dry spell),
    *  so each asks once for what it's about (src/sim/commands.ts). */
   answered: Record<string, number>;
+  /** A skip under way (src/sim/skip.ts): the hour it runs to and why, until the tick reaches it or the first wake. Not
+   *  saved: a save taken during one keeps the hour reached. */
+  skip: {until: number; why: string} | null;
+  /** What woke a skip in the last tick, ending it before its hour (a cause, 'frost forecast' or 'something new'), or
+   *  null. Not saved. */
+  woke: string | null;
   /** Why the last command was refused, or null. Not saved. */
   rejected: string | null;
   /** Flows a system tried that couldn't move, in the last tick. Not saved; the long run asserts there are none. */
@@ -123,7 +130,7 @@ export function newState(seed: number, speed: Speed = 1): State {
     seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], ladder: [], zoom: null,
     // the gardener stands by the shed on the first morning
     activities: [{id: 'g-start', who: GARDENER, kind: 'person', doing: 'rest', from: 'shed', to: 'shed', start: 0, end: 0.5}],
-    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], unfolding: {day: -1, waiting: []}, answered: {}, rejected: null, errors: [], effects: [],
+    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], unfolding: {day: -1, waiting: []}, answered: {}, skip: null, woke: null, rejected: null, errors: [], effects: [],
   };
 }
 
@@ -159,8 +166,38 @@ export interface Snapshot {
   zoom: ZoomView | null;
   /** The kitchen's ledger: the day's ask and what met it, and what's been picked, eaten, wasted, sold and earned. */
   kitchen: Ledger | null;
+  /** What's next that needs the player, where a skip can be offered (src/sim/skip.ts), or null. */
+  due: Due | null;
+  /** The skip under way, or null: the clock loop runs it as a time-lapse. */
+  skip: {until: number; why: string} | null;
+  /** What woke a skip in the last tick, or null. */
+  woke: string | null;
+  /** The garden kept below the allotment, as the camera draws it inside the player's plot (docs/specs/one-map.md): its
+   *  nodes, copied once for each time it changes. Null at level 1. */
+  below: BelowView | null;
   rejected: string | null;
   errors: string[];
+}
+
+/** A level kept below, for the camera: its graph's revision and hour, and its nodes. */
+export interface BelowView {
+  level: number;
+  rev: number;
+  hours: number;
+  nodes: GraphNode[];
+}
+
+/** Each kept graph's copy for the camera, taken again only when its revision or hour moves (going down runs it on). */
+const belowCopies = new WeakMap<Graph, BelowView>();
+function belowOf(s: State): BelowView | null {
+  if (s.level === 1) return null;
+  const b = s.ladder.find((l) => l.level === s.level - 1);
+  if (!b) return null;
+  const hours = b.at ?? b.hours, had = belowCopies.get(b.graph);
+  if (had && had.rev === b.graph.rev && had.hours === hours) return had;
+  const view = {level: b.level, rev: b.graph.rev, hours, nodes: nodeList(b.graph).map(copyNode)};
+  belowCopies.set(b.graph, view);
+  return view;
 }
 
 /** Each state's copies of its nodes at the last snapshot. The snapshot copied every stock of every node every hour,
@@ -239,6 +276,7 @@ export function snapshotOf(s: State): Snapshot {
     rev: s.graph.rev, nodes, edges: edgesOf(s.graph), flows: s.flows, effects: s.effects, seen: s.seen, settings: s.settings, answered: s.answered, zoom: zoomView(s.zoom),
     // an activity never changes once started (src/sim/activity.ts): the list is copied, the activities shared
     activities: s.activities.slice(),
-    kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, rejected: s.rejected, errors: s.errors,
+    kitchen: (s.graph.nodes.kitchen?.levers.ledger as unknown as Ledger | undefined) ?? null, due: dueOf(s), skip: s.skip, woke: s.woke, below: belowOf(s),
+    rejected: s.rejected, errors: s.errors,
   };
 }

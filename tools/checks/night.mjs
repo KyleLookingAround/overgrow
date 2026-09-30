@@ -1,39 +1,39 @@
 // The quiet night (src/ui/quiet-night.ts), on seed 1 in December: once the gardener has gone to bed with nothing live on
-// the map and no card or notice waiting, the night passes four times faster than the chosen speed, with the moon on the
-// pressed speed and one "Quiet nights pass quickly" notice the first time; pause still pauses; an Explain card open hands the
-// pace back at once; dawn hands it back at 06:00. On a phone under reduced motion the moon shows still, and the top bar
-// keeps to two rows with it; on a tablet, where 4×, 8× and 16× share a button, to one.
+// the map and no card or notice waiting, the night passes four times faster than the zoom's pace, with the moon on Pause
+// and one "Quiet nights pass quickly" notice the first time; pause still pauses; an Explain card open hands the pace back
+// at once; dawn hands it back at 06:00. On a phone under reduced motion the moon shows still, and the top bar keeps to
+// two rows with it; on a tablet, to one.
 import {join} from 'node:path';
 
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
 const send=(page,cmd)=>page.evaluate(c=>window.__sim.send(c),cmd);
 const view=page=>page.evaluate(()=>window.__sim.view());
 const quiet=(page,on,timeout=15000)=>page.waitForFunction(on=>window.__sim.view().quiet===on,on,{timeout}).then(()=>true,()=>false);
-// the moon that shows (one on the pressed speed's button), and whether it sits on that button's corner
-// the moon on the pressed speed in the bar, or on the map's speed pill where a sheet layout keeps the speed (the UI overhaul)
-const moon=page=>page.evaluate(()=>{const m=[...document.querySelectorAll('.topbar .quiet-night, .speed-pill .quiet-night')].find(e=>e.getClientRects().length);if(!m)return null;const b=m.closest('button');
+// the moon that shows, on Pause in the bar or on the map's Pause where a sheet layout keeps it (the UI overhaul), and
+// whether it sits on that button's corner
+const moon=page=>page.evaluate(()=>{const m=[...document.querySelectorAll('.topbar .quiet-night, .pause-pill .quiet-night')].find(e=>e.getClientRects().length);if(!m)return null;const b=m.closest('button');
   const r=m.getBoundingClientRect(),t=document.querySelector('.topbar').getBoundingClientRect();
-  const host=(b?.classList.contains('speed-pill')?document.querySelector('.map'):document.querySelector('.topbar')).getBoundingClientRect();return {inBar:r.y>=host.y-0.5&&r.x>=host.x-0.5&&r.right<=host.right+0.5&&r.bottom<=host.bottom+0.5,title:m.getAttribute('title'),anim:getComputedStyle(m).animationName,on:b?.getAttribute('aria-pressed')==='true'||b?.classList.contains('speed-cycle')||b?.classList.contains('speed-pill'),label:b?.getAttribute('aria-label')}});
+  const host=(b?.classList.contains('pause-pill')?document.querySelector('.map'):document.querySelector('.topbar')).getBoundingClientRect();return {inBar:r.y>=host.y-0.5&&r.x>=host.x-0.5&&r.right<=host.right+0.5&&r.bottom<=host.bottom+0.5,title:m.getAttribute('title'),anim:getComputedStyle(m).animationName,on:!!b&&(b.classList.contains('pause')||b.classList.contains('pause-pill')),label:b?.getAttribute('aria-label')}});
 // game hours the view moves a real second, measured in the page over a stretch of real time and divided by the time that
 // really passed: timed from outside, the two reads' round trips on a slow runner stretch the stretch, and a pace of 8
 // read as 13
 async function rate(page,ms=400){return page.evaluate(ms=>new Promise(done=>{const h0=window.__sim.view().hours,t0=performance.now();
   setTimeout(()=>done((window.__sim.view().hours-h0)/((performance.now()-t0)/1000)),ms)}),ms)}
-// dismiss every notice waiting (the week's decisions, a bed's card, the nudge), so nothing waits but the quiet night's own
+// dismiss every notice waiting (the week's decisions, a bed's card), so nothing waits but the quiet night's own
 async function clear(page){for(let i=0;i<12;i++){const b=await page.$('.notice:not(:has-text("Quiet nights")) .notice-close');if(!b)return;await b.click().catch(()=>{});await page.waitForTimeout(250)}}
 // 18:00 on day 279, in December: a night with no frost and no slug out all through, on seed 1
 const EVENING=278*24+12;
 // the top bar's parts, their rows counted by overlapping extents (a small icon centred on a row is on it), and whether any
 // is outside the bar or overlaps another
-const rowsOf=page=>page.evaluate(()=>{const t=document.querySelector('.topbar').getBoundingClientRect(),parts=[...document.querySelectorAll('.topbar .level,.topbar .date,.topbar .money,.topbar .dial,.topbar .speed,.topbar .speed-cycle')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect())
+const rowsOf=page=>page.evaluate(()=>{const t=document.querySelector('.topbar').getBoundingClientRect(),parts=[...document.querySelectorAll('.topbar .level,.topbar .date,.topbar .money,.topbar .dial,.topbar .speed')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect())
       let rows=0,bottom=-1;for(const b of parts.slice().sort((a,b)=>a.y-b.y)){if(b.y>=bottom-0.5)rows++;bottom=Math.max(bottom,b.bottom)}return {rows,inside:parts.every(b=>b.right<=t.right+0.5&&b.x>=t.x-0.5),overlap:parts.some((a,i)=>parts.some((b,j)=>j>i&&a.x<b.right-0.5&&b.x<a.right-0.5&&a.y<b.bottom-0.5&&b.y<a.bottom-0.5))}});
 
 export default async function({ok,open,out}){
   let save=null;
   {const {ctx,page,errs}=await open({width:1440,height:900});await ready(page);
     await send(page,{type:'new-game',seed:1,speed:0});
-    // the first plan kept and the "try faster" nudge answered, as a player would have by December
-    await send(page,{type:'card',id:'first-plan',answer:'accept'});await send(page,{type:'card',id:'try-faster',answer:'no'});await send(page,{type:'speed',speed:0});
+    // the first plan kept, as a player would have by December
+    await send(page,{type:'card',id:'first-plan',answer:'accept'});await send(page,{type:'speed',speed:0});
     await page.evaluate(async h=>{while(window.__sim.snapshot().hours<h)await window.__sim.send({type:'tick',hours:Math.min(240,h-window.__sim.snapshot().hours)})},EVENING);
     await page.waitForFunction(h=>window.__sim.view().cur>=h,EVENING,{timeout:8000}).catch(()=>{});
     save=await page.evaluate(()=>window.__sim.save());
@@ -59,11 +59,11 @@ export default async function({ok,open,out}){
     const card=await page.waitForSelector('.card-overlay .explain',{timeout:4000}).then(()=>true,()=>false);
     await send(page,{type:'speed',speed:1});await page.waitForTimeout(300);
     const slow=await rate(page),held=!(await view(page)).quiet;
-    ok('night: with an Explain card open the night runs at the chosen speed',card&&held&&slow<3.5&&!(await moon(page)),JSON.stringify({card,held,slow:+slow.toFixed(1)}));
-    // judged against the chosen 1× measured on this page, the card's night: a slow runner delivers both at the same
+    ok('night: with an Explain card open the night runs at the zoom\'s pace',card&&held&&slow<3.5&&!(await moon(page)),JSON.stringify({card,held,slow:+slow.toFixed(1)}));
+    // judged against the garden's pace measured on this page, the card's night: a slow runner delivers both at the same
     // fraction of their pace (8 read as 4.9 when 2 read as 1.2), so the ratio holds where a fixed 8 doesn't
     const times=slow>0?fast/slow:0;
-    ok('night: a quiet night passes at four times 1× (8 game hours a second), with the moon on the pressed speed and one notice',
+    ok('night: a quiet night passes at four times the garden\'s pace (8 game hours a second), with the moon on Pause and one notice',
       on&&card&&held&&times>2.5&&times<6&&fast<12&&m?.title==='Quiet night: passing quickly'&&m.on&&m.inBar&&/quiet night/.test(m.label)&&note,JSON.stringify({on,fast:+fast.toFixed(1),slow:+slow.toFixed(1),times:+times.toFixed(1),m,note}));
     await page.evaluate(()=>document.querySelector('.card-close')?.click());
     // dawn hands it back, whichever night it is by now
@@ -73,7 +73,7 @@ export default async function({ok,open,out}){
     ok('night: dawn hands the pace back at 06:00, and the moon goes',again&&dawn&&!after.quiet&&day<3.5&&!(await moon(page))&&!errs.length,JSON.stringify({again,dawn,quiet:after.quiet,day:+day.toFixed(1),err:errs[0]}));
     await ctx.close()}
 
-  // a tablet, where 4×, 8× and 16× share a button: the top bar keeps to one row with the moon
+  // a tablet: the top bar keeps to one row with the moon
   {const {ctx,page,errs}=await open({width:768,height:1024},{save});await ready(page);
     await send(page,{type:'speed',speed:0});await page.waitForTimeout(300);await clear(page);
     await send(page,{type:'speed',speed:1});await clear(page);
