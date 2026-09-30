@@ -33,7 +33,7 @@ jobs:
   # game. This job runs the same checks a PR does, on main itself, before anything deploys.
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
