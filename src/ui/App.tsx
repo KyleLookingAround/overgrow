@@ -22,8 +22,9 @@ import {Explain, type Explaining} from './Explain';
 import {FirstPlan} from './FirstPlan';
 import {GoalBar} from './GoalBar';
 import {juiceOf, JUICE_MS, type Juice} from './juice';
-import {statusOf} from './goal';
-import {FirstYearCard, YearCard} from './YearCard';
+import {FirstYearCard} from './YearCard';
+import {latched, StayBar, StepUpCard} from './StepUpCard';
+import {AllotmentPanel} from './AllotmentPanel';
 import {YEAR_HOURS} from '../sim/commands';
 import type {MapRenderer} from './map/renderer';
 import {MapView} from './MapView';
@@ -103,6 +104,12 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
     const m = fresh ? {moments: [], mark: markOf(s)} : momentsOf(before!.snap, s, before!.mark);
     was.current = {seed: s.seed, seen: s.seen, snap: s, mark: m.mark};
     if (fresh) return;
+    // the step up: the garden is a plot now, and the garden's moments and rewards stay behind with it
+    if (before!.snap.level === 1 && s.level === 2) {
+      setNotices((l) => push(l, {id: ++noticeId, text: 'This is your plot now: your garden’s year, as one tile among twelve.', moment: 'season', at: Date.now(), day: calendar(s.hours).dayIndex}));
+      return;
+    }
+    if (s.level !== 1) return;
     const got = juiceOf(before!.snap, s, () => ++noticeId);
     if (got.length) setJuice((l) => [...l, ...got].slice(-8));
     // each notice is about its game day: one not shown by the day's end is dropped, never shown on a later day
@@ -119,26 +126,30 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   }, [flash]);
   const snap = shown?.snap, all = snap?.settings.details === true;
   const first = !!snap && firstPlanDue(snap);
+  // the allotment (level 2): its own panel, and none of the garden's cards
+  const allot = !!snap && snap.level === 2;
   // the garden's year done: the level's end, once a save
-  const year = !!snap && !first && !snap.seen.includes(CARDS.year) && statusOf(snap).ready;
+  const year = !!snap && !first && !snap.seen.includes(CARDS.year) && latched(snap);
+  // the offer kept after "Stay in the garden a while": the stay bar in the goal bar's place
+  const stay = !!snap && !first && snap.seen.includes(CARDS.year) && latched(snap);
   // the garden's first year, on its anniversary, when the offer isn't won yet: once a save
-  const firstYear = !!snap && !first && !year && snap.hours >= YEAR_HOURS && !snap.seen.includes(CARDS.year) && !snap.seen.includes(CARDS.firstYear);
+  const firstYear = !!snap && !first && !year && !allot && snap.hours >= YEAR_HOURS && !snap.seen.includes(CARDS.year) && !snap.seen.includes(CARDS.firstYear);
   // the one "try faster" nudge: once the first minute is over (the first cut is in by then), before the wait for the
   // spring sowings, at 1×, once a save
-  const nudge = !!snap && !first && snap.hours > FIRST_MINUTE && shown!.speed === 1 && snap.seen.includes(CARDS.firstPlan) &&
+  const nudge = !!snap && !first && !allot && snap.hours > FIRST_MINUTE && shown!.speed === 1 && snap.seen.includes(CARDS.firstPlan) &&
     !snap.seen.includes(CARDS.tryFaster);
   const faster: Notice | null = nudge ? {
     id: -1, at: 0, choice: true, text: 'The spring sowings take weeks to grow. Try 2× to watch the season go by faster.',
     actions: [{label: 'Try 2×', run: () => send({type: 'card', id: 'try-faster', answer: 'yes'})}],
   } : null;
   // the bed card: an empty bed without the player's say asks what's next, in the queue like the rest
-  const bed = snap && !first ? bedCardOf(snap) : null;
+  const bed = snap && !first && !allot ? bedCardOf(snap) : null;
   const bedNotice: Notice | null = bed ? {
     id: -2, at: 0, choice: true, text: bed.text,
     actions: bed.actions.map((a) => ({label: a.label, run: () => a.cmds.forEach(send)})),
   } : null;
   // the week's decisions: the most pressing one due, in the queue like the rest
-  const due = snap && !first ? decisionsOf(snap)[0] ?? null : null;
+  const due = snap && !first && !allot ? decisionsOf(snap)[0] ?? null : null;
   const dueNotice: Notice | null = due ? {id: -3, at: 0, choice: true, text: due.text, actions: due.actions.map((a) => ({label: a.label, run: () => send(a.cmd)}))} : null;
   const nodes = snap?.nodes ?? [];
   const badges = snap ? badgesOf(nodes, hourNow(snap, shown!.hour), snap.seen, all) : [];
@@ -158,9 +169,11 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
             else setNotices((l) => l.filter((n) => n.id !== id));
           }} />
           {first ? <FirstPlan onAnswer={(answer) => send({type: 'card', id: 'first-plan', answer})} />
-            : year ? <YearCard snap={snap!} onDone={() => send({type: 'card', id: 'year', answer: 'ok'})} />
+            : year ? <StepUpCard snap={snap!} onTake={() => send({type: 'step-up'})} onStay={() => send({type: 'card', id: 'year', answer: 'ok'})} />
             : explain ? <Explain what={explain} nodes={nodes} log={log} onClose={() => setExplain(null)} />
             : firstYear ? <FirstYearCard snap={snap!} onDone={() => send({type: 'card', id: 'first-year', answer: 'ok'})} />
+            : allot ? null
+            : stay ? !shownNotices.length && <StayBar onTake={() => send({type: 'step-up'})} />
             : snap && !shownNotices.length && <GoalBar snap={snap} onGo={(go) => {
               go.cmds.forEach(send);
               if (go.tab) {
@@ -169,8 +182,10 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
               }
             }} />}
         </MapView>
-        <Panel nodes={nodes} seen={snap?.seen ?? []} all={all} onDetails={(v) => send({type: 'setting', key: 'details', value: v})} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null} log={log}
-          selected={selected} onSelect={setSelected} open={open} focus={focus} onToggle={() => setOpen(!open)} send={send} onExplain={explainAt} />
+        {allot ? <AllotmentPanel nodes={nodes} hours={shown?.hour ?? 0} open={open} onToggle={() => setOpen(!open)} send={send} onExplain={explainAt}
+          onSelect={(id) => { setSelected(id); setOpen(true); }} />
+        : <Panel nodes={nodes} seen={snap?.seen ?? []} all={all} onDetails={(v) => send({type: 'setting', key: 'details', value: v})} acts={shown?.snap.activities ?? []} hours={shown?.hour ?? 0} ledger={shown?.snap.kitchen ?? null} log={log}
+          selected={selected} onSelect={setSelected} open={open} focus={focus} onToggle={() => setOpen(!open)} send={send} onExplain={explainAt} />}
       </main>
     </div>
   );

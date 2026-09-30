@@ -204,7 +204,13 @@ export function allotmentGraph(seed: number, garden: SealedNode, home: {money: n
   for (let i = 0; i < PLOTS; i++) edges.push({id: `air-${plotId(i)}`, from: plotId(i), to: ATMOSPHERE, carries: ['kgCO2e']});
   edges.push({id: 'harvest-home', from: PLAYER_PLOT, to: HOME, carries: ['kgFood']});
   edges.push({id: 'trough-water', from: 'trough', to: PLAYER_PLOT, carries: ['L']});
-  return makeGraph(nodes, edges);
+  const g = makeGraph(nodes, edges);
+  // each plot shows its sealed numbers from the first hour, not after its first tick
+  for (let i = 0; i < PLOTS; i++) {
+    const n = g.nodes[plotId(i)]!, sealed = sealedOf(n)!;
+    n.totals = {...sealed.totals, land: {...sealed.totals.land}};
+  }
+  return g;
 }
 
 /** Takes the plot: seals the garden with its year's totals, keeps its graph below, and builds the allotment. Refused
