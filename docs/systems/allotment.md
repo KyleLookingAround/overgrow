@@ -80,3 +80,7 @@ The step up that seals the garden into a plot, and the allotment it opens. The p
 - **The trough:** the `trough` node's water and the `trough-water` edge are the rota's.
 - **The committee:** `docs/systems/committee.md` reads the neighbours' `holder` and the plots' Health.
 - **The panel:** its "Coming soon at the allotment" line is the place to unfold part 8's problems.
+
+## On the page
+
+Each plot's tile and row lead with its headline (`headline()` in `src/ui/AllotmentPanel.tsx`): Output a day, and Health with the way it's heading, toward the plan's target (`trend()`). The panel and the plot list are kept thin and data-driven, so they can move onto the UI overhaul's stat, trend and node-list components when those land.

@@ -16,6 +16,14 @@ import {Num} from './Num';
 import './styles/allotment.css';
 
 type Tab = 'plot' | 'allotment';
+
+/** Which way a plot's Health is heading: toward its plan's target, a point a season at most. */
+export function trend(n: GraphNode): '↑' | '↓' | '→' {
+  const s = sealedOf(n), gap = s ? s.plan.health - n.totals.health : 0;
+  return gap > 0.5 ? '↑' : gap < -0.5 ? '↓' : '→';
+}
+/** A plot's headline, as its tile and its row lead with it: Output a day, and Health with its direction. */
+export const headline = (n: GraphNode) => `${num(n.totals.output * 1000)} g · ${Math.round(n.totals.health)}${trend(n)}`;
 type Explain = (cause: string, at: string | null) => void;
 
 /** The plan's levers in the panel: each option's words, and the Explain card behind the lever's name. */
@@ -56,7 +64,7 @@ function PlotTab({nodes, hours, send, onExplain}: {nodes: GraphNode[]; hours: nu
         <p class="soft">Your garden’s last year, as one plot. You can’t tend its beds from here, only plan it.</p>
         <dl>
           <div class="row"><dt>Output</dt><dd><Num v={`${num(t.output * 1000)} g a day`} cause="harvest" at={n.id} onExplain={onExplain} label="Output" /></dd></div>
-          <div class="row"><dt>Health</dt><dd><Num v={`${Math.round(t.health)} / 100`} cause="plot care" at={n.id} onExplain={onExplain} label="Health" /></dd></div>
+          <div class="row"><dt>Health</dt><dd><Num v={`${Math.round(t.health)} / 100 ${trend(n)}`} cause="plot care" at={n.id} onExplain={onExplain} label="Health" /></dd></div>
           <div class="row"><dt>Reliability</dt><dd><Num v={`${Math.round(t.reliability)} / 100`} cause="sealing" at={n.id} onExplain={onExplain} label="Reliability" /></dd></div>
           <div class="row"><dt>Upkeep</dt><dd><Num v={`${money(t.upkeep)} a day`} cause="upkeep" at={n.id} onExplain={onExplain} label="Upkeep" /></dd></div>
           <div class="row"><dt>Carbon</dt><dd><Num v={`${num(t.carbon)} kg CO₂e a day`} cause={t.carbon < 0 ? 'sink' : 'emissions'} at={n.id} onExplain={onExplain} label="Carbon" /></dd></div>
@@ -114,7 +122,7 @@ function AllotmentTab({nodes, onExplain, onSelect}: {nodes: GraphNode[]; onExpla
               <button type="button" class="plain plot-name" onClick={() => onSelect(n.id)}>{mine ? 'Your plot' : n.name}</button>
               <span class="soft plot-who">{mine ? 'you' : h ? `${HABITS[h.habit].name.toLowerCase()}, ${num(h.hours)} h a week${h.neglected ? ', overgrown' : ''}` : ''}</span>
               <span class="plot-num"><Num v={`${num(n.totals.output * 1000)} g`} cause={mine ? 'harvest' : 'a neighbour’s harvest'} at={n.id} onExplain={onExplain} label={`${n.name}’s Output`} /></span>
-              <span class="plot-num soft">Health {Math.round(n.totals.health)}</span>
+              <span class="plot-num soft">Health {Math.round(n.totals.health)}{trend(n)}</span>
             </li>
           );
         })}

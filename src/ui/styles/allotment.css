@@ -56,6 +56,11 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.plot-label-line {
+  display: block;
+  text-align: center;
+  line-height: 1.2;
+}
 .plot-label.mine {
   background: var(--accent);
   color: var(--accent-ink);
