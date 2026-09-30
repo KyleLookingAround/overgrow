@@ -1,0 +1,2 @@
+Section: now
+- **Part 8, the allotment's first season** (its brief in `docs/briefs/allotment-season.md`; #77): the allotment has people in it. Eleven neighbours garden by their week, and an untended plot goes to weeds and sends pests next door. The neglected plot comes up for the taking, with a helper whose report is never quite the truth. The trough runs short in a dry spell and a neighbour puts the water rota to the committee's first vote. Surplus goes to the swap shed. "Coming soon" points at parts 9 and 10.

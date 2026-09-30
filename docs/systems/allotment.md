@@ -37,7 +37,7 @@ The step up that seals the garden into a plot, and the allotment it opens. The p
     - Health is 38 to 72 by keptness, ±7.5.
     - Reliability, upkeep and carbon are the garden's ±15 %.
   - **The neglected plot's** Health is held at 35 or less.
-  - **Their plans:** tidy plots aim 8 points higher, lazy ones 8 lower, and competitive ones 4 higher; the neglected one aims 10 lower. So they drift apart slowly by the sealing rules.
+  - **Their plans:** from part 8, where each plot's Health heads and what it yields come from its holder's week (`kept`, `docs/systems/season.md`), not the habit.
 - **The plan** (`planFor()`), recomputed onto the sealed node each day before it ticks:
   - **Care:** 1–4 h a week. Health's target moves 30 points across the whole range of `keptness(h, 250 m²)` against the garden's 2 h. Hours beyond what the household has are a trade in its time.
   - **Mix:**
@@ -73,13 +73,9 @@ The step up that seals the garden into a plot, and the allotment it opens. The p
   - The long headless run crosses the step up (`src/sim/index.test.ts`).
 - **Speed:** an allotment day is well under 0.1 ms headless (the test asserts under 0.5 ms). The garden's day is unchanged, since the garden's systems carry one more `levels` test each.
 
-## For part 8
+## Part 8
 
-- **The neighbours:** `holder` becomes the full agent. Add `agent`, `relation`, `takings` and `week` on a node per neighbour, as `docs/systems/agency.md` says, and list `agency` in `src/sim/systems.ts` with `levels: [2]`.
-- **The plots:** each plot's `kept` should drive its sealed plan's Health instead of the habit's lean here.
-- **The trough:** the `trough` node's water and the `trough-water` edge are the rota's.
-- **The committee:** `docs/systems/committee.md` reads the neighbours' `holder` and the plots' Health.
-- **The panel:** its "Coming soon at the allotment" line is the place to unfold part 8's problems.
+The first season is wired (`docs/systems/season.md`): a node per neighbour beside the plots' `holder` (kept as their name and habit for the plot list), each plot's `kept`, the trough's water and rota, pests from next door, the second plot, the committee's first vote and the swap shed. The allotment's day leaves the second plot's food on it for the week, and walks a neighbour to their plot for their week's hours. The panel's "Coming soon at the allotment" line now names only what's left for parts 9 and 10.
 
 ## On the page
 

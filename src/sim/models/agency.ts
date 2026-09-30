@@ -1,7 +1,7 @@
 // Other people as agents: a household, skills, weighted goals, a habit and a hidden integrity; what they do each week from
 // their time and habit; a helper's take against what they report and what watching narrows; goodwill and trust as slow
 // stocks per relationship; and an adviser with an interest (the seed catalogue). Pure functions over the graph's typed
-// quantities, and an `agency` system, not yet listed in src/sim/systems.ts (part 8 adds it). docs/systems/agency.md says
+// quantities, and an `agency` system, listed in src/sim/systems.ts at the allotment (part 8). docs/systems/agency.md says
 // how it works.
 //
 // Sources: the principal–agent problem (Jensen & Meckling 1976; Holmström 1979: an agent with goals of their own, hidden
@@ -342,7 +342,7 @@ function takeOff(c: TickContext, plot: GraphNode, to: GraphNode, kg: number): nu
  * The agency system: each week every person with an `agent` lever plans their week (its `week` lever), their goodwill
  * drifts back to neutral, and a helper (a `helping` lever) works the plot they were given: what they took moves from the
  * plot's shelves to theirs, a watch costs the player's hours, trust and goodwill move, and the running account records the truth beside
- * the report. Not yet listed in src/sim/systems.ts.
+ * the report. Listed in src/sim/systems.ts at level 2 (src/sim/season.ts wires the second plot's helper).
  */
 export const agency: System = {
   name: 'agency',

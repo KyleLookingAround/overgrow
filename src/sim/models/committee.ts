@@ -1,7 +1,7 @@
 // The allotment committee: motions, each member's vote from their goals, habit and goodwill towards the proposer,
 // persuasion by hours spent talking, political capital spent on proposing and replenished by goodwill, the rules a passed
 // motion sets and what they cost the plots, and burning garden waste against composting it. Pure functions over the
-// graph's typed quantities, and a `committee` system, not yet listed in src/sim/systems.ts (part 10 adds it).
+// graph's typed quantities, and a `committee` system, listed in src/sim/systems.ts at the allotment (part 8's first vote).
 // docs/systems/committee.md says how it works.
 //
 // Sources: the founding spec's coalition and veto-player models (a vote is members' goals as weights on a motion's effects,
@@ -240,8 +240,8 @@ export function proposeOn(g: Graph, motion: MotionId, o: Hold, rng: Rng): Tally 
 
 /**
  * The committee system: each week its political capital comes back with the site's goodwill, and the goodwill stock shows
- * the mean of its members' relationships. Nothing here is a vote: a vote is a command (`proposeOn`). Not yet listed in
- * src/sim/systems.ts.
+ * the mean of its members' relationships. Nothing here is a vote: a vote is a command (`proposeOn`, or src/sim/season.ts's
+ * `vote` on a motion a member put). Listed in src/sim/systems.ts at level 2.
  */
 export const committee: System = {
   name: 'committee',

@@ -40,6 +40,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const setLever = (n: GraphNode, k: string, v: unknown) => void (n.levers[k] = v as LeverValue);
 const sumOf = (g: ByGroup) => PRODUCT_GROUPS.reduce((s, k) => s + (g[k] ?? 0), 0);
 const VEG = ['potatoes', 'salads', 'tomatoes', 'greens'] as const;
+/** The people walked through the queue each dry evening. */
+const QUEUE_SHOWN = 5;
 
 /** The shed's node: the swap shed is the sheds (src/data/allotment.ts's SHARED). */
 export const SHEDS = 'sheds';
@@ -204,12 +206,14 @@ function troughDayTick(c: TickContext) {
   const day = troughDay({water: stock.amount, cap: stock.cap ?? 1000, refill: TROUGH.refill, needs, rota: rules.rota, limit: effects(rules, dryness).litresPerPlotDay});
   if (day.refill > 1e-9) c.flow({what: 'the mains', unit: 'L', amount: qty(day.refill, 'L'), from: {boundary: 'mains'}, to: {node: TROUGH_NODE, stock: 'water'}});
   const short: string[] = [];
+  // the day's cans in one flow (each plot's share is its `water` lever)
+  const out = Math.min(stock.amount, Object.values(day.given).reduce((a, x) => a + x, 0));
+  if (out > 1e-9) c.flow({what: 'watering from the trough', unit: 'L', amount: qty(out, 'L'), from: {node: TROUGH_NODE, stock: 'water'}, to: {boundary: 'evapotranspiration'}});
   for (const p of needs) {
     const n = g.nodes[p.id]!, got = day.given[p.id] ?? 0, was = waterOf(n);
-    if (got > 1e-9) c.flow({what: 'watering from the trough', unit: 'L', amount: qty(Math.min(got, stock.amount), 'L'), from: {node: TROUGH_NODE, stock: 'water'}, to: {boundary: 'evapotranspiration'}});
     const gap = p.need > 1e-9 ? 1 - got / p.need : 0;
     if (p.need > 1e-9 && got < TROUGH.short * p.need) short.push(p.id);
-    setLever(n, 'water', {need: p.need, given: got, week: (was?.week ?? 0) + gap} satisfies PlotWater);
+    if (!was || was.need !== p.need || was.given !== got || gap > 0) setLever(n, 'water', {need: p.need, given: got, week: (was?.week ?? 0) + gap} satisfies PlotWater);
     // a short day costs that day's harvest a share (the crops wilt), a fast effect the sealed tick takes
     if (gap > 0.05) addEvent(n, {id: `dry-${c.hours}`, kind: 'drought', label: 'short of water', homeLevel: 2, size: TROUGH.yield * gap, from: c.hours, days: 1});
   }
@@ -241,10 +245,11 @@ function proposer(g: Graph, short: string[]): Agent | null {
   }
   return best?.a ?? null;
 }
-/** The evening's queue: each holder waits their turn at the trough, then carries their can to their plot. */
+/** The evening's queue: the first few holders wait their turn at the trough, then carry their cans to their plots (the
+ *  rest of the queue is drawn standing beside it, src/ui/map/season.ts). */
 function watering(c: TickContext, order: string[], given: Record<string, number>) {
   const t0 = c.hours + 18;
-  order.forEach((id, i) => {
+  order.slice(0, QUEUE_SHOWN).forEach((id, i) => {
     const n = c.graph.nodes[id]!, who = id === PLAYER_PLOT || isSecond(n) ? 'gardener' : (n.levers.holder as {id?: string} | undefined)?.id;
     if (!who || (who === 'gardener' && id !== PLAYER_PLOT)) return;
     const start = t0 + i * 0.12;
@@ -269,8 +274,10 @@ function plans(c: TickContext) {
     const n = g.nodes[plotId(i)], s = sealedOf(n);
     if (!n || !s) continue;
     const p = planned(n), water = waterOf(n), pressure = pressureOf(n);
-    const health = (p?.health ?? s.plan.health) - TROUGH.health * clamp((water?.week ?? 0) / 7, 0, 1) - (damp ? SPREAD.health * pressure : 0);
-    n.levers[SEALED.lever] = {...s, plan: {...s.plan, ...(p ? {output: p.output} : {}), health: clamp(health, 0, 100)}} as unknown as LeverValue;
+    const health = clamp((p?.health ?? s.plan.health) - TROUGH.health * clamp((water?.week ?? 0) / 7, 0, 1) - (damp ? SPREAD.health * pressure : 0), 0, 100);
+    // rewritten only when it moved: most days a neighbour's plan is as it was
+    if (Math.abs(health - s.plan.health) > 1e-9 || (p && Math.abs(p.output - (s.plan.output ?? NaN)) > 1e-12) || (p && s.plan.output === undefined))
+      n.levers[SEALED.lever] = {...s, plan: {...s.plan, ...(p ? {output: p.output} : {}), health}} as unknown as LeverValue;
   }
 }
 
@@ -407,10 +414,10 @@ function hold(g: Graph, m: Meeting, you: Vote, talked: Record<string, number>, d
 function shedDay(c: TickContext) {
   const g = c.graph, sheds = g.nodes[SHEDS], shelf = shelfOf(g), home = g.nodes[HOME], l = ledgerAt(g);
   if (!sheds || !shelf || !home || !l) return;
-  const season = calendar(c.hours).season, by: ByGroup = {...shelf.byGroup}, groups = SHED.groups[season];
-  // the neighbours' gluts, by the season
-  for (let i = 1; i < PLOTS; i++) {
-    const n = g.nodes[plotId(i)], kg = n?.stocks[SEALED.food]?.amount ?? 0, glut = kg * SHED.glut[season];
+  const date = calendar(c.hours), season = date.season, by: ByGroup = {...shelf.byGroup}, groups = SHED.groups[season];
+  // the neighbours' gluts, by the season, left at the shed on a Saturday: the week's share of the day's harvest
+  for (let i = 1; i < PLOTS && date.weekday === 5; i++) {
+    const n = g.nodes[plotId(i)], kg = n?.stocks[SEALED.food]?.amount ?? 0, glut = Math.min(kg, kg * SHED.glut[season] * 7);
     if (!n || isSecond(n) || glut <= 1e-6) continue;
     c.flow({what: 'left at the swap shed', unit: 'kgFood', product: SEALED.product, amount: qty(glut, 'kgFood'), from: {node: n.id, stock: SEALED.food}, to: {node: SHEDS, stock: SEALED.food}});
     for (const k of groups) by[k] = (by[k] ?? 0) + glut / groups.length;

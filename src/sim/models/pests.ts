@@ -32,7 +32,7 @@
 //   a share of the stand, to grown crops grams of what's ripe; aphids as one population a bed with no winged or wingless
 //   forms, their damage a share of the day's growth; blight as the share of the tops infected, growing logistically,
 //   with no strains, no spread between beds and no tuber blight in store; the garden's own populations only, with
-//   none arriving from the neighbours' gardens yet (the allotment's slugs from a neglected plot are part 8's); slugs
+//   none arriving from the neighbours' gardens (the allotment's pests from next door are below, and its slugs in the garden part 9's); slugs
 //   are hourly at the garden's hour step and skipped at longer ones (their nights need hours); a soil-borne pest is one
 //   number a bed for its family, doubling as each crop of it finishes and halving over its years without one.
 //   Fast effect: a seedling bed nibbled on one wet night, aphids thick on the bean tips in a warm week, and a potato bed's

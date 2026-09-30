@@ -3,11 +3,11 @@
 // `allotment` system that runs the level each day and week: the plan onto the sealed node, the plots' food to their
 // households, the people on their plots, the household's week and the level's own history. The sealed nodes themselves
 // tick by `sealedSystem` (src/sim/ladder.ts). The founding spec's "The carry-over rule" and "The allotment";
-// docs/systems/allotment.md says how it works and what part 8 adds.
+// docs/systems/allotment.md says how it works; part 8's first season is src/sim/season.ts.
 //
 // Sources: as src/data/allotment.ts's (the National Allotment Society and RHS on plots, care, rent and yields; the
 //   fertiliser literature on bought feed's carbon), and the household model's time (src/sim/models/household.ts).
-// Simplifies: a plot is one sealed node (no beds, no weather, no pests until part 8); the neighbours' plots are drawn
+// Simplifies: a plot is one sealed node (no beds; the weather, water and pests reach it through src/sim/season.ts); the neighbours' plots are drawn
 //   once from the seed and then only tick; the household eats what the plot gives up to its week's veg and the rest
 //   leaves as given away; the people on the map walk to their plots on the days their plots gave food, for the hours
 //   their households have.
@@ -52,7 +52,7 @@ export interface Below {
   graph: Graph;
 }
 
-/** Who holds a neighbour's plot: the household model's person, in brief (part 8 adds the full agent). */
+/** Who holds a neighbour's plot, in brief, for the plot list: the full agent is their own node (src/sim/season.ts). */
 export interface Holder {
   id: string;
   name: string;

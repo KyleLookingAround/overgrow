@@ -14,3 +14,7 @@ Slugs, aphids and potato and tomato blight in the garden, and the gardener's pes
 ## The playable garden (#54)
 
 A bed carrying more than 12 slugs a m² (three times the start) notes `slugs thriving`, which unfolds nematodes in the shed. The beer traps and nematodes that kill slugs are the shed's (`docs/systems/shed.md`).
+
+## Pests from next door (part 8)
+
+`pestSource()` and `spreadPressure()` are the allotment's half (`docs/systems/season.md`): each plot a source as it goes untended, and the pressure on a plot the sources about it falling off with distance (`e^(−d / 11 m)`), costing a share of the week's harvest in the damp months. RHS, "Slugs and snails" and "Weeds".

@@ -2,7 +2,8 @@
 // a sheet on portrait phones, as the garden's is. Two tabs: "Your plot", with the plot's numbers and its plan's three
 // levers (care, the mix, the feed), each unfolding in turn over the first weeks and each with its Explain card, and what
 // the plot has saved the household; and "The allotment", every plot with its holder and its numbers, the neglected one
-// marked. A short "Coming soon at the allotment" line says what part 8 brings, so the level isn't a dead end. The plan is
+// marked. The first season's sections (src/ui/SeasonPanel.tsx) sit in each tab, and a short "Coming soon" line says what's
+// left for parts 9 and 10. The plan is
 // sent as commands; nothing here reaches into the sim.
 import {useState} from 'preact/hooks';
 import {CARE, FEEDS, LEVER_DAYS, MIXES, PLAYER_PLOT, type Care, type Feed, type Mix} from '../data/allotment';
