@@ -113,8 +113,10 @@ export default async function({ok,open,out}){
     await page.evaluate(()=>window.__sim.clock(1));
     const line=await page.evaluate(()=>document.querySelector('.skip-chip .skip-line')?.textContent??null),pre=await snap(page);
     await page.screenshot({path:join(out,'first-minute-skip.png')});
+    // every frame watched from before the tap: a skip woken at once runs for a frame or two
+    await page.evaluate(()=>{window.__ran=false;const f=()=>{if(window.__sim.view().skip)window.__ran=true;else requestAnimationFrame(f)};requestAnimationFrame(f)});
     if(chip)await chip.click().catch(()=>{});
-    const ran=await page.waitForFunction(()=>window.__sim.view().skip,null,{timeout:4000}).then(()=>true,()=>false);
+    const ran=await page.waitForFunction(()=>window.__ran,null,{timeout:4000}).then(()=>true,()=>false);
     const done=await page.waitForFunction(()=>!window.__sim.view().skip,null,{timeout:20000}).then(()=>true,()=>false);
     const s3=await snap(page),again=await page.evaluate(()=>!!document.querySelector('.skip-chip .skip-line'));
     ok('first minute: once nothing is waiting, a chip offers a skip to what’s next with one line; a tap runs it as a time-lapse, and the line goes',
