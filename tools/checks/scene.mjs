@@ -79,28 +79,29 @@ export default async function({ok,open,out}){
   // changing faster than LIGHT_MOST a second between frames nor swinging between day and night more than once in 3 s, and
   // the same under reduced motion; at 1× the night still falls, as gently
   {const {ctx,page,errs}=await open({width:1440,height:900});await ready(page);
-    const most=+readFileSync('src/ui/map/daylight.ts','utf8').match(/LIGHT_MOST = ([\d.]+)/)[1],full=await page.evaluate(()=>parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--map-night-max')));
+    const most=+readFileSync(new URL('../../src/ui/map/daylight.ts',import.meta.url),'utf8').match(/LIGHT_MOST = ([\d.]+)/)[1],full=await page.evaluate(()=>parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--map-night-max')));
     // the night layer and the view's hours each frame for a while, from a new game shown paused at an hour until its light
-    // settles, then at a speed: the fastest change a real second between frames (timed here, a frame apart from the
-    // renderer's own clock, so within a quarter of the limit), and the swings between day (under a quarter of the night)
-    // and night (over three quarters)
+    // settles, then at a speed: the fastest change a real second over any stretch of at least 0.3 s (timed here, a little
+    // apart from the renderer's own clock, so a stretch rather than one frame; a snap of the night in one frame still
+    // reads at over five times the limit), whether it showed day, and the swings between day (under a quarter of the
+    // night) and night (over three quarters)
     const watch=(speed,hour,ms,until)=>page.evaluate(async([speed,hour,ms,until,full])=>{
       await window.__sim.send({type:'new-game',seed:1,speed:0});if(hour>6)await window.__sim.send({type:'tick',hours:hour-6});
       await new Promise(r=>setTimeout(r,2500));await window.__sim.send({type:'speed',speed});
       return new Promise(done=>{const seen=[],t0=performance.now();const f=t=>{const v=window.__sim.view();seen.push({t,night:v.night,hours:v.hours});
         if(t-t0<ms&&!(until&&v.night>=until*full))requestAnimationFrame(f);else{
           let fastest=0,swings=0,side=null,first=seen[0],last=seen[seen.length-1];
-          for(let i=1;i<seen.length;i++){const dt=Math.min(0.25,(seen[i].t-seen[i-1].t)/1000);fastest=Math.max(fastest,Math.abs(seen[i].night-seen[i-1].night)/Math.max(dt,1/240))}
+          for(let i=0,j=0;i<seen.length;i++){while(j<seen.length&&seen[j].t-seen[i].t<300)j++;if(j<seen.length)fastest=Math.max(fastest,Math.abs(seen[j].night-seen[i].night)/((seen[j].t-seen[i].t)/1000))}
           for(const x of seen){const s=x.night<0.25*full?'day':x.night>0.75*full?'night':side;if(side&&s!==side)swings++;side=s}
-          done({fastest,swings,start:first.night,top:Math.max(...seen.map(x=>x.night)),hours:last.hours-first.hours,secs:(last.t-first.t)/1000,end:last.night})}};requestAnimationFrame(f)})},[speed,hour,ms,until,full]);
+          done({fastest,swings,day:seen.some(x=>x.night<0.25*full),top:Math.max(...seen.map(x=>x.night)),hours:last.hours-first.hours,secs:(last.t-first.t)/1000,end:last.night})}};requestAnimationFrame(f)})},[speed,hour,ms,until,full]);
     const fast=await watch(16,12,3500),fmt=r=>`${r.hours.toFixed(0)} game hours in ${r.secs.toFixed(1)} s, darkest ${r.top.toFixed(3)} of ${full}, fastest change ${r.fastest.toFixed(3)} a second (at most ${most}), ${r.swings} swings`;
-    ok('scene: at 16× the map holds a steady light across two game days from noon, changing no faster than the limit',fast.hours>=48&&fast.fastest<=most*1.25&&fast.swings<=fast.secs/3&&fast.top<0.25*full&&!errs.length,fmt(fast));
+    ok('scene: at 16× the map holds a steady light across two game days from noon, changing no faster than the limit',fast.hours>=48&&fast.fastest<=most*1.15&&fast.swings<=fast.secs/3&&fast.top<0.25*full&&!errs.length,fmt(fast));
     await page.emulateMedia({reducedMotion:'reduce'});
     const still=await watch(16,12,3500);
-    ok('scene: under reduced motion at 16× the light is as steady',still.hours>=48&&still.fastest<=most*1.25&&still.swings<=still.secs/3&&still.top<0.25*full&&!errs.length,fmt(still));
+    ok('scene: under reduced motion at 16× the light is as steady',still.hours>=48&&still.fastest<=most*1.15&&still.swings<=still.secs/3&&still.top<0.25*full&&!errs.length,fmt(still));
     await page.emulateMedia({reducedMotion:'no-preference'});
-    const dusk=await watch(1,16,12000,0.75);
-    ok('scene: at 1× the night still falls, no faster than the limit',dusk.start<0.25*full&&dusk.end>=0.75*full&&dusk.fastest<=most*1.25&&!errs.length,`from 16:00 (${dusk.start.toFixed(3)}) the night reached ${dusk.end.toFixed(3)} of ${full} in ${dusk.secs.toFixed(1)} s, fastest change ${dusk.fastest.toFixed(3)} a second (at most ${most})`);
+    const dusk=await watch(1,12,15000,0.75);
+    ok('scene: at 1× the night still falls, no faster than the limit',dusk.day&&dusk.end>=0.75*full&&dusk.fastest<=most*1.15&&!errs.length,`from a day (${dusk.day}) the night reached ${dusk.end.toFixed(3)} of ${full} in ${dusk.secs.toFixed(1)} s, fastest change ${dusk.fastest.toFixed(3)} a second (at most ${most})`);
     await ctx.close()}
 
   // the weather, drawn from the sim's: rain while it rains and not after, moving between frames even while paused; the
