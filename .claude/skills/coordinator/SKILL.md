@@ -10,6 +10,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 - A coordinator starts fresh for each feature or wave, from a brief, never carrying over a finished one's conversation: a long conversation re-reads its whole history every turn (Final Call's coordinator of 27 Sep had cost $176 and used 642k of context over 25 hours).
 - Context runs out before cost: hand over to a fresh coordinator, with a brief carrying everything it knows, at about 500k of context or at its cost estimate, whichever comes first (the first slice's first coordinator handed over at 628k and $21 against $20).
 - When a new coordinator takes over, it retires the old one: `list_triggers`, `delete_trigger` its heartbeat (§9) and any other Routine bound to it, then `archive_session`.
+- Each session started by another sits one step deeper in a lineage, and at depth 8 a session can't `create_trigger`, `send_later` or `create_session` ("lineage depth 8 (limit 8)"). The seventh coordinator of the first slice, started by the sixth, was at depth 8: no heartbeat, no check-ins, no parts, and the parts the sixth started (also depth 8) couldn't book their own wakes. So the owner starts each new coordinator from claude.ai, never a coordinator: the outgoing one commits the next brief and asks the owner, and stays (heartbeat and all) until the new one retires it. Check `create_trigger` works in a coordinator's first minute; if it doesn't, don't retire the old one.
 
 ## 2. The sweep, at each check-in
 
@@ -59,7 +60,7 @@ description: Run the other Overgrow sessions - the sweep at each check-in, start
 
 ## 7. One check-in, and helpers only review
 
-- The coordinator keeps a single `send_later` for itself. A part waiting on CI books its own `send_later` about 15 minutes out: an idle session isn't woken by its PR's checks, and on 30 Sep three parts sat idle after pushing until the coordinator messaged them. Its brief says so.
+- The coordinator keeps a single `send_later` for itself. A part waiting on CI books its own `send_later` about 15 minutes out (a part at lineage depth 8 can't, §1, so the coordinator books it): an idle session isn't woken by its PR's checks, and on 30 Sep three parts sat idle after pushing until the coordinator messaged them. Its brief says so.
 - Helper agents (`Agent`, the `code-review` skill) review and read only; they never write code or push. Only the coordinator starts sessions, and only from a brief.
 - An audit's reviewers are split by device or concern, run on the cheaper model, and each gets the same one-page primer (how to open a page, fast-forward, switch tabs and open cards, what to skip, the row format). They return their report as their final message, not as a file, with a "checked and fine" list beside the findings.
 
