@@ -1,0 +1,87 @@
+/* The allotment's page parts (part 7): the plot list in the panel, the plots' labels over the map, and the step-up card's
+   list. Colours and sizes from the tokens (tokens.css) only. */
+.plot-list {
+  list-style: none;
+  margin: 0 0 var(--gap);
+  padding: 0;
+}
+.plot-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 var(--gap-small);
+  padding: var(--gap-tiny) 0;
+  border-bottom: 1px solid var(--line);
+}
+.plot-row.mine .plot-name {
+  font-weight: 600;
+  color: var(--accent);
+}
+.plot-row .plot-name {
+  text-align: left;
+  min-height: var(--touch);
+}
+.plot-row .plot-who {
+  grid-column: 1;
+  font-size: var(--text-small);
+}
+.plot-row .plot-num {
+  grid-column: 2;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.plot-row .plot-num:nth-of-type(2) {
+  grid-row: 1;
+}
+.plot-row[data-neglected] .plot-who {
+  color: var(--warn);
+}
+.coming-soon {
+  margin: var(--gap) 0;
+  padding-top: var(--gap-small);
+  border-top: 1px solid var(--line);
+}
+.plot-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.plot-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0 var(--gap-tiny);
+  border-radius: var(--radius);
+  background: var(--badge-bg);
+  color: var(--badge-ink);
+  font-size: var(--text-tiny);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.plot-label-line {
+  display: block;
+  text-align: center;
+  line-height: 1.2;
+}
+.plot-label.mine {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.step-up-opens {
+  margin: var(--gap-tiny) 0 var(--gap-small);
+  padding-left: 1.2em;
+}
+.stay-bar p {
+  flex: 1;
+  margin: 0;
+}
+.map[data-zooming] .plot-labels {
+  opacity: 0;
+}
+.plot-labels {
+  transition: opacity 0.4s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .plot-labels {
+    transition: none;
+  }
+}

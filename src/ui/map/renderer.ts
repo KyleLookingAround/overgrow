@@ -8,7 +8,8 @@
 // place an Explain card is about, and the night falling. The ground is drawn once and redrawn only when the graph, the size or the colours change; what
 // moves is a pool of particles placed each frame, so thousands stay cheap. Nothing drawn changes the game.
 // docs/systems/map.md.
-import {Application, Graphics, Particle, ParticleContainer, type Texture} from 'pixi.js';
+import {Application, Container, Graphics, Particle, ParticleContainer, Rectangle, Sprite, type Texture} from 'pixi.js';
+import {PLAYER_PLOT} from '../../data/allotment';
 import {placeAt, type Activity} from '../../sim/activity';
 import {calendar} from '../../sim/clock';
 import type {Box, GraphNode, NodeId} from '../../sim/graph';
@@ -33,11 +34,15 @@ export interface MapRenderer {
   creatureAt(x: number, y: number): Creature | null;
   /** A ring pulsing at a place (the Explain card's), or none. */
   setPulse(at: NodeId | null): void;
+  /** Skips the step up's zoom-out if it's running; says whether it was. */
+  skipZoom(): boolean;
   /** For the checks: the last frames' times in ms, where the first movers are drawn (in CSS pixels), the weather, each
    *  dug bed's crop stage, and the gardener: what they're doing, where, and what they carry. */
   stats(): {
     frames: number[]; movers: {id: string; x: number; y: number}[]; cam: Camera | null; weather: WeatherStats; crops: Record<string, Stage>; gardener: GardenerStats | null;
     life: LifeStats; creatures: Creature[]; torch: boolean; pulse: NodeId | null;
+    /** The level drawn, and the step up's zoom-out: running, and how far through, 0–1. */
+    level: number; zoom: number | null;
   };
   destroy(): void;
 }
@@ -106,7 +111,11 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   const ground = new Graphics(), live = new Graphics(), life = new Graphics(), night = new Graphics(), carried = new Graphics(), glow = new Graphics(), ring = new Graphics();
   const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
   const rain = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
-  app.stage.addChild(ground, live, life, movers, carried, rain, night, glow, ring);
+  // everything is drawn in the world, which the step up's zoom-out moves; the garden's last picture shrinks over it
+  const world = new Container();
+  world.addChild(ground, live, life, movers, carried, rain, night, glow, ring);
+  app.stage.addChild(world);
+  let level = -1, zoom: {start: number; shot: Sprite | null} | null = null, highlight = 0;
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null;
   let person: Texture | null = null, drop: Texture | null = null, still = false, garden: Box | null = null;
   const drops: Particle[] = [];
@@ -203,6 +212,57 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     return true;
   };
 
+  // the step up's zoom-out (part 7): the garden, as it was last drawn, shrinks into the player's plot while the camera
+  // pulls back from that plot to the whole allotment, about three seconds; a tap skips it; reduced motion cuts straight
+  // to the allotment, the plot ringed for a few seconds either way
+  const ZOOM_MS = 3000, HIGHLIGHT_MS = 5000;
+  const holder = canvas.parentElement;
+  const endZoom = () => {
+    if (!zoom) return false;
+    zoom.shot?.destroy({texture: true});
+    zoom = null;
+    world.scale.set(1);
+    world.position.set(0, 0);
+    if (holder) delete holder.dataset.zooming;
+    return true;
+  };
+  const startZoom = () => {
+    // the garden's picture: the part of the canvas its places cover
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const n of drawn) {
+      const b = n.box!;
+      x0 = Math.min(x0, cam!.x + b.x * cam!.s);
+      y0 = Math.min(y0, cam!.y + b.y * cam!.s);
+      x1 = Math.max(x1, cam!.x + (b.x + b.w) * cam!.s);
+      y1 = Math.max(y1, cam!.y + (b.y + b.h) * cam!.s);
+    }
+    let shot: Sprite | null = null;
+    if (Number.isFinite(x0) && x1 > x0 && y1 > y0) {
+      const tex = app.renderer.generateTexture({target: world, frame: new Rectangle(x0, y0, x1 - x0, y1 - y0), resolution: window.devicePixelRatio || 1});
+      shot = new Sprite(tex);
+      app.stage.addChild(shot);
+    }
+    zoom = {start: performance.now(), shot};
+    if (holder) holder.dataset.zooming = '1';
+  };
+  const stepZoom = () => {
+    const box = boxes.get(PLAYER_PLOT);
+    if (!zoom || !box || !cam) return void endZoom();
+    const t = Math.min(1, (performance.now() - zoom.start) / ZOOM_MS), e = t * t * (3 - 2 * t);
+    const pw = box.w * cam.s, ph = box.h * cam.s, P = {x: cam.x + (box.x + box.w / 2) * cam.s, y: cam.y + (box.y + box.h / 2) * cam.s};
+    const k0 = Math.min(width / pw, height / ph) * 0.92, k = Math.pow(k0, 1 - e);
+    const Q = {x: width / 2 + (P.x - width / 2) * e, y: height / 2 + (P.y - height / 2) * e};
+    world.scale.set(k);
+    world.position.set(Q.x - k * P.x, Q.y - k * P.y);
+    if (zoom.shot) {
+      zoom.shot.width = k * pw;
+      zoom.shot.height = k * ph;
+      zoom.shot.position.set(Q.x - (k * pw) / 2, Q.y - (k * ph) / 2);
+      zoom.shot.alpha = t < 0.45 ? 1 : Math.max(0, 1 - (t - 0.45) / 0.4);
+    }
+    if (t >= 1) endZoom();
+  };
+
   return {
     kind: app.renderer.name,
     resize(nw, nh) {
@@ -222,6 +282,14 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       const t0 = performance.now(), cur = v.cur;
       // the ground: redrawn when the graph changes, or a bed plot is dug (checked once a snapshot)
       const key = keyOf === cur.nodes ? drawnKey : groundKey(cur.nodes);
+      // the step up: the garden's picture taken before the allotment is drawn
+      const stepped = level === 1 && cur.level === 2;
+      if (stepped && !still && cam) startZoom();
+      if (cur.level !== level) {
+        if (level !== -1 && cur.level === 2) highlight = performance.now() + (still ? 0 : ZOOM_MS) + HIGHLIGHT_MS;
+        if (cur.level !== 2) endZoom();
+        level = cur.level;
+      }
       if (cur.rev !== drawnRev || key !== drawnKey || !cam) {
         rebuild(cur.nodes);
         drawnRev = cur.rev;
@@ -279,12 +347,13 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       night.alpha = dusk * pal.nightMax;
       // the Explain card's place: a ring growing out from it and fading, once a second (held still under reduced motion)
       ring.clear();
-      const box = pulse ? boxes.get(pulse) : undefined;
+      const ringAt = pulse ?? (performance.now() < highlight ? PLAYER_PLOT : null), box = ringAt ? boxes.get(ringAt) : undefined;
       if (box) {
         const k = still ? 0.5 : (performance.now() / 1000) % 1, grow = (0.1 + 0.5 * k) * c.s, t = Math.max(2, 0.06 * c.s);
         ring.roundRect(c.x + box.x * c.s - grow, c.y + box.y * c.s - grow, box.w * c.s + 2 * grow, box.h * c.s + 2 * grow, 0.2 * c.s + grow)
           .stroke({width: t, color: pal.pulse.color, alpha: pal.pulse.alpha * (1 - k * 0.8)});
       }
+      if (zoom) stepZoom();
       app.render();
       frames.push(performance.now() - t0);
       if (frames.length > 240) frames.shift();
@@ -312,7 +381,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     setPulse(at) {
       pulse = at;
     },
-    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather, crops, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse}),
+    skipZoom: endZoom,
+    stats: () => ({frames: frames.slice(), movers: lastMovers, cam, weather, crops, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level,
+      zoom: zoom ? Math.min(1, (performance.now() - zoom.start) / ZOOM_MS) : null}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
     },

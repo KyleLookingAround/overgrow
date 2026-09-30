@@ -42,8 +42,8 @@ export function createLoop(sim: SimClient): Loop {
 
   const take = (s: Snapshot) => {
     const top = queue[queue.length - 1];
-    if (!top || s.hours < top.hours || s.seed !== top.seed) {
-      queue = [s]; // a new game, a load, or the bench starting: start the view here
+    if (!top || s.hours < top.hours || s.seed !== top.seed || s.level !== top.level) {
+      queue = [s]; // a new game, a load, a step up to the next level, or the bench starting: start the view here
       target = s.hours;
     } else if (s.hours === top.hours) queue[queue.length - 1] = s;
     else queue.push(s);
