@@ -171,13 +171,15 @@ export const answerBeds: Policy = ({snap}) => bedCardOf(snap)?.actions[0]?.cmds 
 /** What an engaged player answers the week's decisions with: fleece for a frost, a glut preserved while the freezer has
  *  room (it feeds the winter) and given away when it's full, water sooner in a dry spell, and blight-resistant seed. */
 export const ANSWERS: Record<string, string> = {frost: 'fleece', glut: 'preserve', dry: 'water', catalogue: 'resistant', chit: 'chit', mulch: 'mulch', warm: 'warm',
-  leaves: 'rake', 'bare-root': 'plant', 'dig-over': 'no-dig', prune: 'prune', sets: 'order', clean: 'clean', sill: 'sow', 'hen-care': 'care', box: 'stock'};
+  leaves: 'rake', 'bare-root': 'plant', 'dig-over': 'no-dig', prune: 'prune', sets: 'order', clean: 'clean', sill: 'sow', 'hen-care': 'care', force: 'force', box: 'stock'};
 export const decideAll: Policy = ({snap}) => [...yearCards(snap), ...decisionsOf(snap).flatMap((d) => {
     let want = ANSWERS[d.id]!;
     if (d.id === 'glut' && Number(snap.nodes.find((n) => n.id === 'kitchen')?.stocks['food.preserves']?.amount ?? 0) >= PRESERVE.cap - 1) want = 'give';
     // a glut sold when the purse is short of the next rung
     const rung = nextRung(snap);
     if (d.id === 'glut' && rung && snap.money < UPGRADES[rung].price) want = 'sell';
+    // the box kept stocked only while the purse is short of the rung (sellWhenShort's rule)
+    if (d.id === 'box' && (!rung || snap.money >= UPGRADES[rung].price + RESERVE)) want = 'spare';
     // next year's seed only once the purse has its price and the reserve
     if (d.id === 'catalogue' && snap.money < cataloguePrice(graphOf(snap), 'resistant') + RESERVE) want = 'later';
     const pick = d.actions.find((a) => (a.cmd as {answer?: string}).answer === want)?.cmd ?? (want === (d.dismiss as {answer?: string}).answer ? d.dismiss : d.actions[0]!.cmd);

@@ -7,8 +7,8 @@
 // leaves raked onto the heap from mid-October, a cordon redcurrant in bare-root season (November to March, every three
 // weeks while the fence has room), and in December and January the empty beds dug over or left no-dig; and midwinter's
 // jobs (round four), each from its own date so they come days apart: the hens' winter care, the currants pruned, the pots
-// washed, seed potatoes by post and salad on the windowsill; and when the purse is short of the money ladder's next
-// rung, the honesty box kept stocked. The glut card says what each choice gives, selling first when money's short. Pure, so a Vitest test holds it; App.tsx queues the first one due as a notice, and the
+// washed or the chicory forced (the pots serve one or the other), seed potatoes by post and salad on the windowsill; and, once
+// a surplus has been seen, the honesty box kept stocked. The glut card says what each choice gives, selling first when money's short. Pure, so a Vitest test holds it; App.tsx queues the first one due as a notice, and the
 // bot answers them (tools/bot/player.ts).
 import {CLEAN, FLEECE, FORCE, HEN_CARE, inWinter, PRUNE, SETS, SILL, UPGRADES} from '../data/shed';
 import {BOX, PRESERVE} from '../data/kitchen';
@@ -143,7 +143,7 @@ export function decisionsOf(snap: Snapshot): Decision[] {
       actions: [{label: 'Wash them', cmd: card('clean', 'clean')}], dismiss: card('clean', 'no')});
   }
   if (forceOpen(g, date) && asked('force') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.shed')) {
-    out.push({id: 'force', at: 'shed', text: `Pale chicory: force a dozen roots under the pots in the dark, about ${(FORCE.kg * FORCE.days).toFixed(1)} kg of leaves in three weeks (${FORCE.minutes} minutes)? The pots then can’t be washed for slugs this winter.`,
+    out.push({id: 'force', at: 'shed', text: `Pale chicory: force a dozen roots under the pots in the dark, about ${(FORCE.kg * FORCE.days).toFixed(1)} kg of leaves, cut from three weeks on (${FORCE.minutes} minutes)? The pots then can’t be washed for slugs this winter.`,
       actions: [{label: 'Force them', cmd: card('force', 'force')}], dismiss: card('force', 'no')});
   }
   if (setsOpen(g, date) && asked('sets') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.money') && purse >= SETS.gbp) {
@@ -159,7 +159,7 @@ export function decisionsOf(snap: Snapshot): Decision[] {
   const rung = nextRung(snap);
   if (boxPolicy(g) === 'spare' && (l?.glutFrom != null || (l?.sold ?? 0) > 0) && asked('box') < snap.hours - BOX_AGAIN && unfolded(snap.seen, 'garden.money') && (l?.firstHarvest ?? null) !== null) {
     const why = rung && purse < UPGRADES[rung].price ? `${UPGRADES[rung].name} is ${money(UPGRADES[rung].price - purse)} away: ` : '';
-    out.push({id: 'box', at: 'gate', text: `${why}keep the honesty box stocked with some of what the garden has, eggs and jars too? Passers-by pay about £1 a week in winter, more in summer.`,
+    out.push({id: 'box', at: 'gate', text: `${why}keep the honesty box stocked with some of what the garden has, eggs and jars too? It earns a little, about £1 a week in winter.`,
       actions: [{label: 'Keep it stocked', cmd: card('box', 'stock')}], dismiss: card('box', 'spare')});
   }
   // seed potatoes to chit in February and March, once a spring

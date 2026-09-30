@@ -374,7 +374,7 @@ const forcing = (g: Graph, year: number) => { const t = kitOf(g).forced; return 
 export const forceOpen = (g: Graph, d: CalendarDate) => inWinter(FORCE, d.month, d.day) && kitOf(g).cleaned !== d.year + 1 && !forcing(g, d.year);
 /** Puts chicory roots to force under the pots, which then can't be washed. Why not, or null. */
 export function forceChicory(g: Graph, d: CalendarDate, hours: number): string | null {
-  if (!forceOpen(g, d)) return kitOf(g).cleaned === d.year + 1 ? 'the pots are washed already this winter' : 'chicory is forced in January';
+  if (!forceOpen(g, d)) return kitOf(g).cleaned === d.year + 1 ? 'the pots are washed already this winter' : forcing(g, d.year) ? 'the chicory is forcing already' : 'chicory is forced in January';
   setKit(g, {forced: hours});
   return null;
 }

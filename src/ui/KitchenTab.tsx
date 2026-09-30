@@ -54,7 +54,7 @@ function Rows({rows, label, onExplain}: {rows: Row[]; label?: string; onExplain:
     <dl aria-label={label}>
       {rows.map(([k, v, cause]) => (
         <div class="row">
-          <dt>{k}{HINT[k] && <span class="soft row-hint"> {HINT[k]}</span>}</dt>
+          <dt>{k}{HINT[k] && <span class="soft row-hint">{HINT[k]}</span>}</dt>
           <dd><Num v={v} cause={cause} at="kitchen" onExplain={onExplain} label={k} /></dd>
         </div>
       ))}
