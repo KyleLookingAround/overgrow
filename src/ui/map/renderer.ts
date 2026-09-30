@@ -282,6 +282,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     if (!zoom) return false;
     zoom.shot?.destroy({texture: true});
     zoom = null;
+    world.cacheAsTexture(false);
     world.scale.set(1);
     world.position.set(0, 0);
     if (holder) delete holder.dataset.zooming;
@@ -304,6 +305,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       app.stage.addChild(shot);
     }
     zoom = {start: performance.now(), shot};
+    // for the zoom's three seconds the world is one cached texture: its frames only move and scale it, so a tap to skip
+    // is answered at once even where the allotment's ground is slow to rasterise
+    world.cacheAsTexture(true);
     if (holder) holder.dataset.zooming = '1';
   };
   const stepZoom = () => {
