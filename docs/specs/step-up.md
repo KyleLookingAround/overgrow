@@ -40,7 +40,7 @@ When the garden's offer is met, the offer card becomes the step-up card. It has 
 - **The command:** `step-up` is refused until the offer is latched. The goal latches the first week the offer is met (`Goal.offered`).
 - **Sealing:** it seals `windowTotals()` of the garden's year, with Reliability as the offer counted it (the weeks' shares of the veg met, not the ring's spread), the garden's land as it stands, and the household's veg mix.
 - **What stays below:** the garden's graph is kept in `State.ladder` for part 9's zoom back in. The household's money and members carry over.
-- **The clock:** level 2 runs at 4 s a day with an hourly step (`src/data/ladder.ts`). The garden's systems rest there; the `allotment` system and `sealedSystem` run.
+- **The clock:** level 2 runs at 6 s a day at its widest view (4 s until the one map's spike made the zoom the speed), with an hourly step (`src/data/ladder.ts`). The garden's systems rest there; the `allotment` system and `sealedSystem` run.
 - **The neighbours** come from the household model (`allotment(rng(seed))`, the same draw as `neglectedPlot(seed)`), with their totals from `layoutRng(seed, 'allotment')`. The household with least time holds the neglected plot, whose Health is 35 or less.
 - **The household's week at level 2:**
   - wages come in;
@@ -48,7 +48,7 @@ When the garden's offer is met, the offer card becomes the step-up card. It has 
   - the rest of life goes out;
   - the plot's rent (about £100 a year) comes out daily.
 - **Level 2's own `History`** samples the player's plot weekly, for its own offer at part 10.
-- **Level 2's length:** about two years (730 days, about 49 minutes at 1×). Part 8 fills them:
+- **Level 2's length:** about two years (730 days, about 73 minutes at the allotment's widest view, less its quiet nights and skips). Part 8 fills them:
   - the first season: the trough and the watering rota, the swap shed, the neglected plot's slugs, the second plot with its helper, and the committee;
   - the second year: the committee's vote and the plot's own offer.
 

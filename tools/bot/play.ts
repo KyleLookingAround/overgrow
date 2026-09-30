@@ -3,6 +3,7 @@
 // each milestone was reached, the days it saw, the sealed garden's would-be totals, `PLAY` (a fingerprint of the saved
 // state that affects play) and `ERR` (flows the sim couldn't move, and commands it refused). The same seed, player and
 // code always give the same run: the only dice are the game's own.
+import {Pace, type LevelPace} from './pace';
 import {START} from '../../src/data/ladder';
 import {calendar} from '../../src/sim/clock';
 import {createSim, type Command} from '../../src/sim/index';
@@ -43,6 +44,8 @@ export interface Run {
   carbon: number;
   /** The longest run of whole game days with nothing for the player to do or see (tools/bot/measure.ts's Quiet). */
   quiet: {days: number; from: number};
+  /** Each level's real time on the page, at its widest view and with the skips offered taken (tools/bot/pace.ts). */
+  pace: ReadonlyMap<number, LevelPace>;
   /** Every quiet stretch of a week or more. */
   stretches: {days: number; from: number}[];
   /** The game day each thing was bought, in order. */
@@ -160,7 +163,7 @@ export function fingerprint(s: string): string {
 }
 
 export function play({seed, hours, player = PLAYERS.sensible!, systems = SYSTEMS, keepSave = false}: Options): Run {
-  const sim = createSim(seed, systems), diary = new Diary(), quiet = new Quiet(), reached: Record<string, number> = {}, err: string[] = [], bought: Run['bought'] = [];
+  const sim = createSim(seed, systems), diary = new Diary(), quiet = new Quiet(), pace = new Pace(), reached: Record<string, number> = {}, err: string[] = [], bought: Run['bought'] = [];
   const policies = policiesOf(player), watching = MILESTONES.filter((m) => m.reached);
   let snap = sim.snapshot();
   const send = (cmd: Command, day: number) => {
@@ -195,6 +198,7 @@ export function play({seed, hours, player = PLAYERS.sensible!, systems = SYSTEMS
     if (snap.level === 1 && !down) gardenOffer = offerOf(snap);
     const before = snap;
     snap = sim.apply({type: 'tick', hours: snap.step});
+    pace.watch(before, snap);
     for (const e of snap.errors) err.push(`day ${day}: ${e}`);
     // the garden's diary keeps the garden's days; the allotment's are counted from the player's plot
     if (down) {
@@ -219,7 +223,7 @@ export function play({seed, hours, player = PLAYERS.sensible!, systems = SYSTEMS
   quiet2?.close(calendar(snap.hours).dayIndex + 1);
   return {
     seed, player: player.name, hours: snap.hours, reached, days, sealed: sealed(days),
-    wasted: days.reduce((a, d) => a + d.wasted, 0), preserved: snap.kitchen?.preserved ?? 0, given: snap.kitchen?.given ?? 0, carbon: snap.carbon, quiet: quiet.longest, stretches: quiet.stretches, bought, offer: snap.level === 1 ? offerOf(snap) : gardenOffer, beds: snap.nodes.filter(isDug).length,
+    wasted: days.reduce((a, d) => a + d.wasted, 0), preserved: snap.kitchen?.preserved ?? 0, given: snap.kitchen?.given ?? 0, carbon: snap.carbon, quiet: quiet.longest, stretches: quiet.stretches, pace: pace.levels, bought, offer: snap.level === 1 ? offerOf(snap) : gardenOffer, beds: snap.nodes.filter(isDug).length,
     play: fingerprint(playState(sim.save())), err, allotment: allotmentOf(snap, steppedUp, plotKg, plotDays, secondKg, quiet2?.longest ?? {days: 0, from: 0}, daily, went), ...(keepSave ? {save: sim.save()} : {}),
   };
 }
