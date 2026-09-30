@@ -16,7 +16,8 @@ export function quietUntil(snap: Snapshot, hours: number, hour: WeatherHour | nu
   if (LEVELS[snap.level - 1]?.stepHours !== 1 || snap.speed === 0) return null;
   // hour 0 is 06:00: the next dawn, and after dawn the day's own
   const dawn = Math.floor(hours / 24 + 1) * 24, d = calendar(hours);
-  if (d.hour >= 6 && darkness(d) < 0.5) return null;
+  // after dark in the evening, until 06:00: a dark winter morning after 06:00 is the day's, not the night's
+  if (d.hour >= 6 && (d.hour < 12 || darkness(d) < 0.5)) return null;
   // the gardener's latest activity to have started: gone to bed until dawn
   let bed = null;
   for (const a of snap.activities) if (a.who === 'gardener' && a.start <= hours && (!bed || a.start >= bed.start)) bed = a;

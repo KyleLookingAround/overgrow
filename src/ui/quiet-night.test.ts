@@ -26,6 +26,10 @@ describe('the quiet night', () => {
 
   it('never by day, paused, or at a level that steps by the day', () => {
     expect(quietUntil(at(noon), noon, null)).toBeNull();
+    // 07:00 on a December weekend: still dark and the gardener resting all day, but the night ended at 06:00
+    const morning = 279 * 24 + 1, dawn = at(morning);
+    expect(dawn.activities.some((a) => a.who === 'gardener' && a.doing === 'rest' && a.start <= morning && a.end >= 280 * 24)).toBe(true);
+    expect(quietUntil(dawn, morning, null)).toBeNull();
     const s = at(night);
     expect(quietUntil({...s, speed: 0}, night, null)).toBeNull();
     expect(quietUntil({...s, level: 3}, night, null)).toBeNull();

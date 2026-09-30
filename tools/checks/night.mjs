@@ -36,16 +36,21 @@ export default async function({ok,open,out}){
     await page.waitForTimeout(300);await clear(page);
     // at 1×: the gardener goes to bed and the night passes quickly, with the moon and its notice
     await send(page,{type:'speed',speed:1});await clear(page);
-    const on=await quiet(page,true);
-    await page.screenshot({path:join(out,'night-quiet-1440x900.png')});
-    const fast=on?await rate(page):0,m=await moon(page);
+    // the night lasts under two seconds at this pace: read the moon and the notice the moment it's quiet, then the pace,
+    // and the screenshot last
+    const on=await quiet(page,true),m=await moon(page);
     const note=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Quiet nights pass quickly/.test(n.textContent)));
+    const fast=on?await rate(page,300):0;
+    await page.screenshot({path:join(out,'night-quiet-1440x900.png')});
     ok('night: a quiet night passes at four times 1× (8 game hours a second), with the moon on the pressed speed and one notice',
       on&&fast>5&&fast<12&&m?.title==='Quiet night: passing quickly'&&m.on&&m.inBar&&/quiet night/.test(m.label)&&note,JSON.stringify({on,fast:+fast.toFixed(1),m,note}));
-    // pause still pauses
+    // pause still pauses, from the start of the next quiet night (this one is nearly over by now, so the pause, which
+    // lands a frame or two later, still lands in the night)
+    await quiet(page,false,5000);
+    const during=await quiet(page,true,20000);
     await send(page,{type:'speed',speed:0});
     const off=await quiet(page,false,3000),h0=(await view(page)).hours;await page.waitForTimeout(400);const h1=(await view(page)).hours;
-    ok('night: pause still pauses a quiet night, and the moon goes',off&&h1===h0&&!(await moon(page)),JSON.stringify({off,h0,h1}));
+    ok('night: pause still pauses a quiet night, and the moon goes',during&&off&&h1===h0&&!(await moon(page)),JSON.stringify({during,off,h0,h1,clock:(h0+6)%24}));
     // something needs the player: an Explain card open hands the pace back
     const tap=await page.$('.topbar .money, .topbar .dial, .num[data-cause]');
     if(tap)await tap.click();

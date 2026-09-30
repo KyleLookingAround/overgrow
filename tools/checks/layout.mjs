@@ -44,11 +44,13 @@ export default async function({ok,open:bare,out}){
       // the folded button cycles every speed: 1× → 2× → 4× → 8× → 16× → pause → 1×
       const seen=[await page.evaluate(()=>window.__sim.snapshot()?.speed)];
       for(let i=0;i<6;i++){
-        // measured each time: the button widens at 16×, and it sits at the bar's right end
-        const c=await box(page,'.topbar .speed-cycle');
-        await page.touchscreen.tap(c.x+c.w/2,c.y+c.h/2);
+        // tapped where the button is now: it widens at 16× and sits at the bar's right end, and it redraws a frame after
+        // the speed changes, so wait for its label to name the speed before the next tap
+        await page.locator('.topbar .speed-cycle').tap();
         await page.waitForFunction(b=>{const s=window.__sim.snapshot()?.speed;return s!==undefined&&s!==b},seen[seen.length-1],{timeout:5000}).catch(()=>{});
-        seen.push(await page.evaluate(()=>window.__sim.snapshot()?.speed));
+        const now=await page.evaluate(()=>window.__sim.snapshot()?.speed);
+        await page.waitForFunction(s=>(document.querySelector('.topbar .speed-cycle')?.getAttribute('aria-label')??'').startsWith(s===0?'Speed: paused':`Speed: ${s}×`),now,{timeout:5000}).catch(()=>{});
+        seen.push(now);
       }
       ok(`layout: at ${w}×${h} a tap on the folded speed button cycles every speed`,seen.join()==='1,2,4,8,16,0,1',seen.join(' → '));
     }
