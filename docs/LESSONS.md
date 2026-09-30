@@ -57,6 +57,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Not sorted yet
 
+- [Scale the allotment day's budget by a garden day timed alongside it (#93) · 30 Sep 2026](lessons/93-steady-allotment-budget.md)
 - [The playable garden, round five · 30 Sep 2026](lessons/86-playable-garden-5.md)
 - [Steady the light check and split CI (#85) · 30 Sep 2026](lessons/85-steady-ci.md)
 - [A steady light at speed (#81) · 30 Sep 2026](lessons/81-steady-light.md)
