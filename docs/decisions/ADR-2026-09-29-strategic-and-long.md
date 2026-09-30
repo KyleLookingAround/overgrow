@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted when the PR that adds it merges (the brief `docs/briefs/spec-answers.md`, closing #29). It writes together the owner's decision of 29 Sep 2026 that the game should be strategic and long, and never boring (decision 12 of `docs/briefs/coordinator-first-slice-2.md`), and the owner's answer to #29's question 15.
+Accepted when the PR that adds it merges (the brief `docs/briefs/spec-answers.md`, closing #29). It writes together the owner's decision of 29 Sep 2026 that the game should be strategic and long, and never boring (decision 12 of `docs/briefs/coordinator-first-slice-2.md`), and the owner's answer to #29's question 15. Decision 2's rates are amended by `docs/decisions/ADR-2026-09-30-zoom-is-the-speed.md` (30 Sep 2026): the zoom sets them, and each level's length is judged at its widest view.
 
 ## Context
 

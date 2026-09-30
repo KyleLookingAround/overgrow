@@ -4,36 +4,40 @@ The first part of `docs/specs/one-map.md` (#94), approved by the owner on 30 Sep
 
 ## Goal and what it may touch
 
-- **Deliver** one PR on `feature/one-map-spike` from `main` (or the session's designated branch, restarted from `main`), closing the spike's part of #94.
+- **Deliver** one PR on `feature/one-map-spike` from `main` (or the session's designated branch, restarted from `main`), referring to #94 (it stays open for the later parts).
 - **In priority order.** Items 1 to 3 go together: the speed buttons can't go before the zoom and the skips replace them. Trim from item 4 if it runs long, and say in the PR what was trimmed.
   1. **One camera from the garden to the allotment.**
      - A zoom the player drives: pinch, wheel, the + and − buttons and the breadcrumb. It's a page setting, not game state.
-     - At level 2 it runs from the garden fence out to the whole allotment. At level 1 it runs from close on one bed out to the garden fence, which is level 1's limit.
+     - At level 2 it runs from one plot filling the view (your garden, or a neighbour's, item 4) out to the whole allotment. At level 1 it runs from close on one bed out to the garden fence, which is level 1's limit.
+     - The breadcrumb is new: it takes the level's name's place in the top bar, each step a tap to fly there. At 320 px it shows only where you are, with a back arrow.
      - Your plot's garden is drawn inside the allotment from what `State.ladder` kept, blended into its plot with no box and a small golden tag, never an outline.
-     - The step up's zoom-out becomes this camera pulling out, and part 9's dive becomes it pushing in. Their taps to skip and their reduced-motion cuts stay.
+     - The step up's zoom-out becomes this camera pulling out, and part 9's dive becomes it pushing in. A tap still ends either early, and reduced motion still cuts.
      - Detail comes by size on screen: a crop's silhouette, the gardener, the slugs at dusk appear as they grow big enough to see and fade the same way.
   2. **The clock follows the zoom.**
      - The rate comes from the camera, interpolated in log space between the spec's bands: the garden 12 s a day, the allotment 6 s a day (from 4 s at 1× today).
-     - The top bar loses its speed buttons. Pause stays; `State.speed` keeps only pause and run.
+     - The top bar loses its speed buttons. Pause stays; `State.speed` keeps its name (the bot's `PLAY` strips it) and only pause and run.
      - The "try faster" nudge becomes a pointer to zooming out (level 2) or to a skip (level 1).
-     - The quiet night's four-times boost goes; item 3's "Skip to morning" replaces it.
-     - The light holds steady wherever a day passes in about a second or less (decision 22). That's none of these two levels, but the rule goes in the code.
+     - A quiet night still passes faster on its own, as today (`src/ui/quiet-night.ts`).
+     - The light holds steady wherever a day passes in under 8 s (`STEADY_DAY_S`, decision 22), as today: the allotment already does.
+     - With no speed buttons a garden year is at most about 53 minutes, less the skips taken. The bot reports it; longer than that goes back to the owner on #94.
   3. **Skips at levels 1 and 2.**
      - A `skip` command with the hour to run to.
-     - The sim's own foresight names the next thing that needs you: a crop ready, a sowing window opening, the honesty box empty, a frost forecast, or the morning.
-     - It's offered as a chip by the clock only when no pin is open, no card is waiting and no event is running.
-     - It runs as a time-lapse of about 2.5 s in the clock loop, every hour simulated as normal.
-     - It stops early on anything that would pin. It goes at most 14 days, and it's hidden where it can't be offered.
+     - The sim's own foresight names the next thing that needs you: a crop ready, a sowing window opening, the honesty box empty, or a frost forecast.
+     - It's offered as a chip by the clock only when no card is waiting, no event is running and no notice is up.
+     - It runs as a time-lapse of about 2.5 s in the clock loop, every hour simulated as normal, and never faster than the worker's steps come back (`QUIET_MOST`'s reason): on a slow phone a long skip takes a few seconds more.
+     - It stops at the first wake the sim records: a card waiting, an event starting, or a cause the notices would show (a pest's first sighting, a frost on a crop, a crop ready), from a table in `src/sim/skip.ts`, never read from the page.
+     - It goes at most 14 days, it's hidden where it can't be offered, and it isn't saved: a save taken during one keeps the hour reached.
      - The bot, which plays without a clock, doesn't use it.
-  4. **A neighbour's plot, opened in detail from its totals.** Zoom into any plot and it's drawn as a garden of beds on its seeded layout (`layoutKey`), crops sized by its Output and tinted by its Health. This is looking only: no sim runs and nothing is saved. A test holds the drawn totals to the node's within 5 % (the founding spec's "Inflating").
+  4. **A neighbour's plot, opened in detail from its totals.** Zoom into any plot and it's drawn as a garden of beds on its seeded layout (`layoutKey` in `src/sim/ladder.ts`), crops sized by its Output and tinted by its Health. This is looking only: no sim runs and nothing is saved. A test holds the drawn totals to the node's within 5 % (`inflateTarget` and `carryCheck`, the founding spec's "Inflating").
   5. **Budgets and checks.** Measure the frame with the garden composed inside the allotment and every zoom between, and the one-off cost of drawing a plot from its totals. Update the check groups that drive the clock with speeds, and add a `camera` group.
 - **It may touch:**
-  - `src/app/clock-loop.ts`, `src/data/ladder.ts`, `src/app/main.tsx`.
-  - `src/sim/`: `state.ts`, `save.ts`, `commands.ts`, a new `src/sim/skip.ts`, and the foresight it needs from the crops, kitchen and weather models, read-only.
-  - `src/ui/`: `TopBar.tsx`, `App.tsx`, the quiet night (`src/ui/quiet-night.ts` and its test), the renderer and its allotment drawing (`src/ui/map/`), a new camera file there, and the first-minute card's words.
+  - `src/app/clock-loop.ts`, `src/app/main.tsx`, `src/app/bench.ts` (its speed), `src/data/ladder.ts`, `src/sim/clock.ts` (`hoursPerSecond`).
+  - `src/sim/`: `state.ts`, `save.ts`, `commands.ts`, a new `src/sim/skip.ts`, the foresight it needs from the crops, kitchen and weather models (read-only), and `src/sim/ladder.ts` read-only for item 4. Their tests: `src/sim/commands.test.ts`, `src/sim/save.test.ts`, `src/sim/strategy.test.ts`.
+  - `src/ui/`: `TopBar.tsx`, `App.tsx`, `MapView.tsx` (the gestures), `PlotLabels.tsx`, `Notices.tsx`, the quiet night (`src/ui/quiet-night.ts` and its test), the renderer, `src/ui/map/daylight.ts` and its test, `src/ui/map/allotment.ts` (the tile's outline becomes a tag), a new camera file in `src/ui/map/`, the first-minute card's words, `src/ui/styles/page.css` (the speeds' styles go) and `src/ui/styles/tokens.css` (the tag's gold).
   - `src/data/unfold.ts` (the core no longer lists the speeds; the skip's key) and `src/data/explain.ts`.
+  - `tools/bot/`: the report's real-time length and the skips offered.
   - `tools/checks/`: the groups that set speeds (dig, explain, first-minute, garden, layout, night, scene, season, shed, stepup, unfold, zoom) move to a check-only fast clock, never a player control. Plus a new `camera` group.
-  - Docs: `docs/systems/clock.md`, `docs/systems/map.md`, `docs/SYSTEMS.md` (the speed line and the budget), `docs/roadmap.d/`, `src/updates.d/`, this brief, and `docs/lessons/`.
+  - Docs: `docs/systems/clock.md`, `docs/systems/map.md`, `docs/systems/unfolding.md`, `docs/systems/commands.md`, `docs/systems/saving.md`, `docs/specs/step-up.md` (the allotment's length at 1×), the weather row of the systems web ("a moon by the speeds"), `docs/SYSTEMS.md` (the speed line, the budget and the source-file rows), `docs/roadmap.d/`, `src/updates.d/`, this brief, and `docs/lessons/`.
 - **Nothing else:** no hex land, no ghosts, no standing, no globe. Those are the spec's later parts.
 
 ## Read first
@@ -45,7 +49,7 @@ The first part of `docs/specs/one-map.md` (#94), approved by the owner on 30 Sep
 
 ## How it fits and grows
 
-Its rows in the systems web (`docs/specs/overgrow/systems-web.md`): "The step-up at every level" (the zoom-out becomes a camera you can stay in) and "Zooming back in" (the dive becomes the same camera pushing in).
+Its rows in the systems web (`docs/specs/overgrow/systems-web.md`): "The ladder and sealing" and "The step-up at every level" (the zoom-out becomes a camera you can stay in), and "Zooming back in" (the dive becomes the same camera pushing in).
 
 1. **Born where.** The garden and the allotment (levels 1 and 2). It moves no flows: it's the camera, the clock's rate and a skip command. Every flow keeps running as it does.
 2. **Across the ladder.** Every later level adds its band to the camera and its rate to the table. At level 8 the camera reaches the globe, and anywhere on it opens from its totals, as item 4 opens a plot.

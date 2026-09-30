@@ -23,15 +23,16 @@ Until now each level has its own screen: the garden, then the allotment after a 
 
 Option 3 (the owner, 30 Sep 2026):
 
-1. **One map, one fixed planet.** The planet is invented and the same in every game, as data in `src/data/`. The seed sets the weather, the neighbours, the events and where a game starts, never the geography.
+1. **One map, one fixed planet.** The planet is invented and the same in every game, as data in `src/data/`. The seed sets the weather, the neighbours, the events and where a game starts, never the geography. This amends the founding spec's world generated from the seed (#2's answer).
 2. **The level sets the camera's limit.** Nothing beyond it is drawn. At level 8 the map is a 3D globe the player spins.
 3. **No visible layers.** Detail comes by its size on screen. Places inside places blend into their surroundings. Your own plot is marked by a tag, never an outline. The breadcrumb is the only sign of level.
-4. **Only the place under the camera runs in detail.** Places only watched are built from their totals when the camera arrives (the inverse of summing a node's children, within 5 %) and dropped when it leaves. They aren't saved unless the player changed them.
-5. **Land is hex cells drawn by code.** A field is any connected set of cells, next to fields of any kind. The art (outlines, hedges, furrows, woods, water, stock) is generated from the cells and cached until they change. Straight things stay straight: beds, plots, planned streets.
+4. **Only the level being played, or a place gone down into, runs in detail.** Places only watched are drawn from their totals when the camera arrives (the inverse of summing a node's children, within 5 %), with no sim running for them, and dropped when it leaves. They aren't saved unless the player changed them.
+5. **Land that was never laid out on paper is hex cells drawn by code**, from the smallholding's fields out. A field is any connected set of cells, next to fields of any kind. The art (outlines, hedges, furrows, woods, water, stock) is generated from the cells and cached until they change. Straight things stay straight: beds, plots, planned streets.
 
 ## Consequences
 
 - The renderer composes nested frames into one zoom. Each level's layout says where its children sit, in its own units.
 - A place's parcel history is saved once decisions have changed it. Untouched places are rebuilt from the seed.
 - The step-up and the zoom back in keep their rules, and read as moves on one world.
-- Each part that builds a level adds its band to the camera, its cut to the land and its rows to the spec's build order. The spike (`docs/briefs/one-map-spike.md`) proves the frame and sim budgets first; if it can't, this record goes back to the owner.
+- No new runtime dependency (`docs/decisions/ADR-2026-09-28-static-site-typescript.md`): the globe is drawn in PixiJS with a shader, and the hex index is our own code in the H3 scheme, not a library. Anything more needs its own record.
+- Each part that builds a level adds its band to the camera, the way its land is split into cells, and its rows to the spec's build order. The spike (`docs/briefs/one-map-spike.md`) proves the frame and sim budgets first; if it can't, this record goes back to the owner.
