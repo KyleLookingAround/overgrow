@@ -21,6 +21,7 @@ Work through these steps in order. Small fixes (a label, a nit, an obvious bug) 
 - Say which level of the ladder it belongs to, which node type and flows it touches, and how it shows once that level is zoomed out (the founding spec's carry-over rule). A feature with no answer to that doesn't fit the game yet.
 - Then follow it up the whole ladder, not only one level: start from its rows in the systems web (`docs/specs/overgrow/systems-web.md`) and answer the brief's "How it fits and grows" (`docs/briefs/TEMPLATE.md`). Say where it comes back higher up (an aggregate or a reversal on the web's spine), and name its seed below if it arrives at level 4 or above. Edit its rows in the web in the same PR. A dead end, a missing seed or a change to the founding spec's model goes to the owner as a proposal (`docs/decisions/ADR-2026-09-29-born-small-grows-up.md`).
 - Name the real-world mechanism behind it and its sources (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`). No mechanism, no feature.
+- A spec that changes a rule already in the code or the docs (a rate, a threshold, a named constant) quotes the code's value, and points the founding spec, the systems web and any older decision record at the change in the same PR (the one map's steady light, `lessons/95-one-map.md`).
 - Get the owner's approval before writing code, and mark the spec `Approved` when they agree. A brief that approves a spec in advance counts: mark it `Approved`, say so in the spec, and build.
 
 ## 3. Build

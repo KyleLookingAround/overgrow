@@ -50,6 +50,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Spec
 
+- [The one map, designed with the owner and recorded (#94, #95) · 30 Sep 2026](lessons/95-one-map.md)
 - [The founding spec, the systems web and the owner's answers (#3, #31, #37) · 28–29 Sep 2026](lessons/37-spec-and-systems-web.md)
 
 ### Tidy
