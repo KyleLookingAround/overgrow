@@ -26,4 +26,6 @@ The list is joined from the files here by `node tools/join.mjs` (`npm run build`
 | [ADR-2026-09-29-ui-from-final-call](ADR-2026-09-29-ui-from-final-call.md) | The UI and multi-device rules Overgrow takes from Final Call |
 | [ADR-2026-09-29-ui-overhaul](ADR-2026-09-29-ui-overhaul.md) | The shell's rules from the UI overhaul |
 | [ADR-2026-09-29-unfolding](ADR-2026-09-29-unfolding.md) | Instruments unfold as the player gains influence, from one table, gated in the sim |
+| [ADR-2026-09-30-one-map](ADR-2026-09-30-one-map.md) | The ladder is one continuous map of one fixed planet, with no visible layers, and land built from hexes drawn by code |
+| [ADR-2026-09-30-zoom-is-the-speed](ADR-2026-09-30-zoom-is-the-speed.md) | The zoom is the only speed control, with skips where the zoom can't reach |
 <!-- /joined:decisions -->

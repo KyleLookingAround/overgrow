@@ -1,0 +1,2 @@
+Section: next
+- **One map, the spike** (its brief in `docs/briefs/one-map-spike.md`; the spec `docs/specs/one-map.md`; #94): the garden and the allotment on one camera, with no seam between them. The clock follows the zoom, and there are no speed buttons: a skip to the next thing that needs you takes their place at levels 1 and 2. A neighbour's plot opens in detail from its totals. It proves the frame and sim budgets for the one map; if they can't be held, the spec goes back to the owner.

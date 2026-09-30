@@ -480,6 +480,8 @@ The spec's farm adds insurance and credit, and the nation must stay solvent, but
 
 Spec settles it; the maths is PR #20. A sealed node keeps its totals and runs by them alone.
 
+On the one map (`docs/specs/one-map.md`, **O**, 30 Sep 2026) the zoom-out becomes the camera pulling back, and the level reached sets how far it goes; the zoom back in is the same camera pushing in.
+
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
 | 1–8 · S | H: the step-up offer, then sealing: the level shrinks into its tile. The lever is the plan left for the sealed node, which its Health drifts towards. | The zoom-out | The five numbers, Freshness, carbon and land | Fast: none. Slow: Health drifting a point a season. What you built keeps running, by its numbers. | The goal bar with the first harvest; the offer when it comes |
