@@ -2,7 +2,8 @@
 // a sheet on portrait phones, as the garden's is. Two tabs: "Your plot", with the plot's numbers and its plan's three
 // levers (care, the mix, the feed), each unfolding in turn over the first weeks and each with its Explain card, and what
 // the plot has saved the household; and "The allotment", every plot with its holder and its numbers, the neglected one
-// marked. A short "Coming soon at the allotment" line says what part 8 brings, so the level isn't a dead end. The plan is
+// marked. The first season's sections (src/ui/SeasonPanel.tsx) sit in each tab, and a short "Coming soon" line says what's
+// left for parts 9 and 10. The plan is
 // sent as commands; nothing here reaches into the sim.
 import {useState} from 'preact/hooks';
 import {CARE, FEEDS, LEVER_DAYS, MIXES, PLAYER_PLOT, type Care, type Feed, type Mix} from '../data/allotment';
@@ -13,6 +14,8 @@ import {baseOf, holderOf, leverOpen, planFor, sealedOf, type AllotmentLedger} fr
 import {membersIn, weekGardenHours} from '../sim/models/household';
 import {money, num} from './format';
 import {Num} from './Num';
+import {COMING, Neighbours, SeasonSections} from './SeasonPanel';
+import {keptOf} from '../sim/season';
 import './styles/allotment.css';
 
 type Tab = 'plot' | 'allotment';
@@ -49,7 +52,7 @@ function consequence(n: GraphNode, lever: Lever, value: string | number): string
   return `${num(then.output * 1000)} g a day, ${money(then.upkeep)} a day, Health heads for ${Math.round(then.health)}${then.carbon > now.carbon + 1e-9 ? ', more carbon' : ''}.`;
 }
 
-function PlotTab({nodes, hours, send, onExplain}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain}) {
+function PlotTab({nodes, hours, send, onExplain, seen, all}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain; seen: readonly string[]; all: boolean}) {
   const n = nodes.find((x) => x.id === PLAYER_PLOT), home = nodes.find((x) => x.id === 'household');
   if (!n) return null;
   const t = n.totals, l = home?.levers.ledger as unknown as AllotmentLedger | undefined;
@@ -103,12 +106,13 @@ function PlotTab({nodes, hours, send, onExplain}: {nodes: GraphNode[]; hours: nu
           </dl>
         </section>
       )}
-      <p class="soft coming-soon">Coming soon at the allotment: the shared trough, the swap shed, the neighbours’ slugs and the committee’s vote.</p>
+      <SeasonSections nodes={nodes} seen={seen} all={all} send={send} onExplain={onExplain} />
+      <p class="soft coming-soon">{COMING}</p>
     </>
   );
 }
 
-function AllotmentTab({nodes, onExplain, onSelect}: {nodes: GraphNode[]; onExplain: Explain; onSelect: (id: string) => void}) {
+function AllotmentTab({nodes, onExplain, onSelect, seen, all: details}: {nodes: GraphNode[]; onExplain: Explain; onSelect: (id: string) => void; seen: readonly string[]; all: boolean}) {
   const plots = nodes.filter((n) => n.kind === 'plot').sort((a, b) => Number(a.id.slice(5)) - Number(b.id.slice(5)));
   const all = plots.reduce((s, n) => s + n.totals.output, 0);
   return (
@@ -116,25 +120,29 @@ function AllotmentTab({nodes, onExplain, onSelect}: {nodes: GraphNode[]; onExpla
       <p class="soft">Twelve plots, {num(all)} kg a day between them. Each is kept as well as its household has time.</p>
       <ul class="plot-list" aria-label="The plots">
         {plots.map((n) => {
-          const h = holderOf(n), mine = n.id === PLAYER_PLOT;
+          // overgrown by how kept its holder's week leaves it (src/sim/season.ts), not only as drawn at the step up
+          const h = holderOf(n), mine = n.id === PLAYER_PLOT, k = keptOf(n), overgrown = k ? k.kept < 0.6 : !!h?.neglected;
           return (
-            <li class={mine ? 'plot-row mine' : 'plot-row'} data-plot={n.id} data-neglected={h?.neglected ? 'yes' : undefined}>
+            <li class={mine ? 'plot-row mine' : 'plot-row'} data-plot={n.id} data-neglected={overgrown ? 'yes' : undefined}>
               <button type="button" class="plain plot-name" onClick={() => onSelect(n.id)}>{mine ? 'Your plot' : n.name}</button>
-              <span class="soft plot-who">{mine ? 'you' : h ? `${HABITS[h.habit].name.toLowerCase()}, ${num(h.hours)} h a week${h.neglected ? ', overgrown' : ''}` : ''}</span>
+              <span class="soft plot-who">{mine ? 'you' : h ? `${HABITS[h.habit].name.toLowerCase()}, ${num(k?.hours ?? h.hours)} h a week${overgrown ? ', overgrown' : ''}` : ''}</span>
               <span class="plot-num"><Num v={`${num(n.totals.output * 1000)} g`} cause={mine ? 'harvest' : 'a neighbour’s harvest'} at={n.id} onExplain={onExplain} label={`${n.name}’s Output`} /></span>
               <span class="plot-num soft">Health {Math.round(n.totals.health)}{trend(n)}</span>
             </li>
           );
         })}
       </ul>
-      <p class="soft coming-soon">Coming soon at the allotment: the shared trough, the swap shed, the neighbours’ slugs and the committee’s vote.</p>
+      <Neighbours nodes={nodes} seen={seen} all={details} onExplain={onExplain} />
+      <p class="soft coming-soon">{COMING}</p>
     </>
   );
 }
 
 export function AllotmentPanel(props: {
   nodes: GraphNode[]; hours: number; open: boolean; onToggle: () => void; send: (cmd: Command) => void; onExplain: Explain; onSelect: (id: string) => void;
+  seen?: readonly string[]; all?: boolean;
 }) {
+  const seen = props.seen ?? [], all = props.all ?? false;
   const [tab, setTab] = useState<Tab>('plot');
   const tabs: [Tab, string][] = [['plot', 'Your plot'], ['allotment', 'The allotment']];
   return (
@@ -154,8 +162,8 @@ export function AllotmentPanel(props: {
         </button>
       </div>
       <div class="panel-body" id="panel-body">
-        {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} />
-          : <AllotmentTab nodes={props.nodes} onExplain={props.onExplain} onSelect={(id) => {
+        {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} seen={seen} all={all} />
+          : <AllotmentTab nodes={props.nodes} onExplain={props.onExplain} seen={seen} all={all} onSelect={(id) => {
             props.onSelect(id);
             if (id === PLAYER_PLOT) setTab('plot');
           }} />}

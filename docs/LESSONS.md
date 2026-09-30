@@ -38,6 +38,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 ### Not sorted yet
 
 - [The rotation and field-soil model, ahead of part 11 (#43) · 29 Sep 2026](lessons/2026-09-29-10-rotation-and-fields-model.md)
+- [Part 8, the allotment's first season (#77, #79) · 30 Sep 2026](lessons/79-allotment-season.md)
 - [A beautiful map · 30 Sep 2026](lessons/72-map-art.md)
 - [Part 7, sealing and the step up (#69, #70) · 30 Sep 2026](lessons/70-step-up.md)
 - [A shorter garden year (#65) · 29 Sep 2026](lessons/65-shorter-garden-year.md)

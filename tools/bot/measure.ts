@@ -12,6 +12,9 @@ import type {Snapshot} from '../../src/sim/state';
 
 /** Events the player can answer with a lever: a sign on the map or a card that asks for something. */
 const ANSWER = new Set(['frost damage', 'Smith period', 'beds full', 'empty autumn bed', 'butt dry', 'slugs thriving', 'nematodes spent', 'buying', 'drought']);
+/** The same at the allotment (level 2, src/sim/season.ts): a plot offered, the trough leaving plots short, a motion put, a
+ *  swap made, a quarter of the second plot reclaimed, and pests creeping in from next door. */
+export const ALLOTMENT_ANSWER = new Set(['second plot offered', 'trough short', 'motion put', 'from the swap shed', 'reclaimed', 'pests from next door']);
 
 /**
  * The quiet stretch (docs/decisions/ADR-2026-09-29-strategic-and-long.md): the longest run of whole game days with no
@@ -21,6 +24,10 @@ const ANSWER = new Set(['frost damage', 'Smith period', 'beds full', 'empty autu
  */
 export class Quiet {
   private last = 0;
+  /** What counts as an event to answer; the garden's by default. `from` is the day the measure starts (the step up). */
+  constructor(private readonly answer: ReadonlySet<string> = ANSWER, from = 0) {
+    this.last = from;
+  }
   longest = {days: 0, from: 1};
   /** Every stretch of a week or more, for reading where the quiet is. */
   stretches: {days: number; from: number}[] = [];
@@ -34,7 +41,7 @@ export class Quiet {
   /** Compares a tick's snapshot with the one before it. */
   watch(before: Snapshot, after: Snapshot) {
     const day = dayOf(after.hours, after.step);
-    if (after.seen.length > before.seen.length || after.effects.some((e) => ANSWER.has(e.cause))) return this.mark(day);
+    if (after.seen.length > before.seen.length || after.effects.some((e) => this.answer.has(e.cause))) return this.mark(day);
     for (const n of after.nodes) {
       if (n.kind !== 'bed') continue;
       const was = before.nodes.find((b) => b.id === n.id), a = n.levers.crop as {sown: number; dd: number; id: string} | null, b = was?.levers.crop as typeof a | undefined;

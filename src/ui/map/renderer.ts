@@ -21,6 +21,7 @@ import {darkness, warmth} from './daylight';
 import type {Stage} from '../../sim/models/crops';
 import {camera, drawGround, drawGrown, drawItem, drawLive, drawOver, drawPerson, drawTilth, groundKey, itemOf, weatherAt, type Camera} from './draw';
 import {drawLife, type Creature, type LifeStats} from './life';
+import {drawBarrow} from './season';
 import type {Palette} from './palette';
 import type {Shape} from './plants';
 
@@ -416,7 +417,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
         p.y = at.y - (frame ? 0.02 * s : 0);
         if (out.length < 16) out.push({id: a.id, x: at.x, y: at.y});
         const item = itemOf(a.carry);
-        if (item) drawItem(carried, item, at.x + 0.2 * s, at.y + 0.02 * s, s, pal);
+        // the helper's barrow, heaped by what they carry against what they said (src/ui/map/season.ts)
+        if (a.carry?.product === 'barrow') drawBarrow(carried, a.carry, at.x + 0.3 * s, at.y + 0.02 * s, s, pal);
+        else if (item) drawItem(carried, item, at.x + 0.2 * s, at.y + 0.02 * s, s, pal);
         if (a.who === 'gardener') gardener = {id: a.id, doing: a.doing, to: a.to, x: at.x, y: at.y, item, frame};
         // out after dark with a torch: a pool of light on the ground ahead of them, over the night
         if (a.doing === 'torch') {

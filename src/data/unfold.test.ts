@@ -14,7 +14,7 @@ describe('unfold', () => {
   it('names every key by level and system, with a cause the Explain table knows and a short line on why', () => {
     const known = new Set(Object.values(CAUSES).flatMap((e) => e.causes));
     for (const [k, u] of Object.entries(UNFOLD)) {
-      expect(k).toMatch(/^(garden|household|shed)\.[a-z-]+$/);
+      expect(k).toMatch(/^(garden|household|shed|allotment|agency|committee)\.[a-z-]+$/);
       expect(u.causes.length).toBeGreaterThan(0);
       for (const c of u.causes) expect(known.has(c), `${k}: ${c}`).toBe(true);
       expect(u.why.length).toBeLessThan(90);

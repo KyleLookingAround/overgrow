@@ -9,6 +9,10 @@ The FAO-56 soil water balance for each bed and the lawn, and the butt filling fr
 - **Its speed.** With the soil and the weather, about 0.17 ms a garden game day headless (185 flows a day, most of them the hourly evapotranspiration; about a third of that since the balance's three-hour step, #61), inside the part's 0.25 ms. The step-length test runs the weather, water and soil alone: the gardener's watering belongs to the garden's hourly step.
 - **Explain.** Rain, evapotranspiration, drainage, runoff, overflow and watering are effects at each soil and the butt, and a bed's moisture opens its card (`docs/systems/explain.md`).
 
+## The allotment's trough (part 8)
+
+`plotNeed()` and `troughDay()` are the trough's half (`docs/systems/season.md`): a plot's use by FAO-56 over its watered share once its soil has had three dry days, and a day's water shared by first come, equal slots or by need, the mains refilling up to the brim. The weather runs at the allotment for them; the soil water balance doesn't (a plot is a sealed node).
+
 ## The playable garden (#54)
 
 A bed under the cold frame (its `cover` lever) gets no rain; the gardener waters it (`docs/systems/shed.md`).

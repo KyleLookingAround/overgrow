@@ -32,7 +32,7 @@
 //   a share of the stand, to grown crops grams of what's ripe; aphids as one population a bed with no winged or wingless
 //   forms, their damage a share of the day's growth; blight as the share of the tops infected, growing logistically,
 //   with no strains, no spread between beds and no tuber blight in store; the garden's own populations only, with
-//   none arriving from the neighbours' gardens yet (the allotment's slugs from a neglected plot are part 8's); slugs
+//   none arriving from the neighbours' gardens (the allotment's pests from next door are below, and its slugs in the garden part 9's); slugs
 //   are hourly at the garden's hour step and skipped at longer ones (their nights need hours); a soil-borne pest is one
 //   number a bed for its family, doubling as each crop of it finishes and halving over its years without one.
 //   Fast effect: a seedling bed nibbled on one wet night, aphids thick on the bean tips in a warm week, and a potato bed's
@@ -409,3 +409,25 @@ export const pests: System = {
     return undefined;
   },
 };
+
+// ---- pests from next door (part 8) ----
+// Sources: RHS, "Slugs and snails" and "Weeds": untended ground is a reservoir of slugs and weed-borne pests that move a
+//   few metres a night into the ground beside it. Simplifies: each plot is one source, as strong as it is untended
+//   (a plot half untended harbours as much as one gone wild), and the pressure on a plot is the sources
+//   about it falling off exponentially with the distance between the plots' centres; no season of its own (the allotment
+//   applies it in the damp months). Fast effect: a week's harvest nibbled next to a neglected plot. Slow effect: the
+//   plots about it losing Health until it's kept or reclaimed.
+
+/** How strongly a plot harbours pests, 0 to 1, from how kept it is: `wild` untended is as bad as it gets. */
+export const pestSource = (kept: number, wild = 0.5) => Math.min(1, (1 - Math.min(1, Math.max(0, kept))) / wild);
+
+/** The pressure on each plot from the sources about it (not its own), by distance: `Σ source × e^(−d / reach)`, capped at 1. */
+export function spreadPressure(plots: readonly {id: string; x: number; y: number; source: number}[], reach: number): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const p of plots) {
+    let s = 0;
+    for (const q of plots) if (q !== p && q.source > 0) s += q.source * Math.exp(-Math.hypot(p.x - q.x, p.y - q.y) / reach);
+    out[p.id] = Math.min(1, s);
+  }
+  return out;
+}

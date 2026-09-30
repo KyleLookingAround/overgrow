@@ -19,6 +19,7 @@
 //   soil's evaporation reads the whole layer's dryness instead of a separate surface layer; the butt loses nothing.
 //   Fast effect: beds wetting in the rain and drying in the sun, draining after a downpour, and a full butt overflowing.
 //   Slow effect: the season's balance, from wet winters that drain and leach to summers that dry the soil down.
+import {TROUGH} from '../../data/season';
 import {ROOF} from '../../data/garden';
 import {STATION} from '../../data/climate-normals';
 import {calendar, type System, type TickContext} from '../clock';
@@ -152,3 +153,62 @@ export const water: System = {
     },
   },
 };
+
+// ---- the allotment's shared trough (part 8) ----
+// Sources: FAO-56 for a plot's use as the reference rate times a crop coefficient over the ground watered; Ostrom (1990)
+//   for a common-pool resource shared by first come, by rota or by need. Simplifies: a plot is watered by can once its
+//   soil has had a few dry days, the whole day's need at once; the mains refills the trough at a flat rate a day; a queue
+//   is one order a day. Fast effect: the plots at the back of a first-come queue go short in a dry week. Slow effect: a
+//   plot short week after week loses Health (src/sim/season.ts).
+
+/** What a plot of `m2` draws from a trough on a day, L: FAO-56's crop use over the watered share, none until its soil has
+ *  had `TROUGH.dryDays` dry days, and less for a plot with fewer crops (a weedy one). */
+export function plotNeed(et0mm: number, m2: number, kept: number, dryDays: number): number {
+  if (dryDays < TROUGH.dryDays) return 0;
+  return et0mm * TROUGH.kc * m2 * TROUGH.watered * (TROUGH.floor + (1 - TROUGH.floor) * Math.min(1, Math.max(0, kept)));
+}
+
+export type Rota = 'open' | 'slots' | 'need';
+export interface TroughDay {
+  /** L each plot took, by id, in the order they came. */
+  given: Record<string, number>;
+  /** L left in the trough at the day's end. */
+  left: number;
+  /** L the mains put in. */
+  refill: number;
+}
+
+/**
+ * A day at a shared trough of `water` L (up to `cap`), refilled by the mains through the day: the plots' needs (in the
+ * order they come) met by the rota. First come: each takes what it needs, up to the limit, while there's water, so the
+ * back of the queue goes short. Slots: each gets an equal share (what one leaves goes to the rest). By need: each gets
+ * the same share of what it needs. No plot takes more than `limit` L.
+ */
+export function troughDay(o: {water: number; cap: number; refill: number; needs: {id: string; need: number}[]; rota: Rota; limit: number}): TroughDay {
+  // the day's mains flow is there to draw on as it comes in; the ballcock shuts once the trough is full at the day's end
+  const have = o.water + Math.max(0, o.refill), given: Record<string, number> = {};
+  const want = o.needs.map((p) => ({id: p.id, need: Math.min(o.limit, Math.max(0, p.need))}));
+  let left = have;
+  if (o.rota === 'open') {
+    for (const p of want) left -= given[p.id] = Math.min(p.need, left);
+  } else if (o.rota === 'need') {
+    const all = want.reduce((s, p) => s + p.need, 0), k = all > 0 ? Math.min(1, left / all) : 0;
+    for (const p of want) left -= given[p.id] = p.need * k;
+  } else {
+    // equal shares, water-filled: the plots needing less than a share take what they need and the rest share what's over
+    let open = [...want].sort((a, b) => a.need - b.need);
+    for (const p of want) given[p.id] = 0;
+    while (open.length && left > 1e-9) {
+      const share = left / open.length, small = open.filter((p) => p.need - given[p.id]! <= share);
+      if (!small.length) {
+        for (const p of open) given[p.id]! += share;
+        left = 0;
+        break;
+      }
+      for (const p of small) (left -= p.need - given[p.id]!), (given[p.id] = p.need);
+      open = open.filter((p) => !small.includes(p));
+    }
+  }
+  const end = Math.min(o.cap, Math.max(0, left));
+  return {given, left: end, refill: Math.max(0, end + (have - left) - o.water)};
+}

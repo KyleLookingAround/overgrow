@@ -13,6 +13,7 @@ import type {Camera} from './draw';
 import * as kit from './kit';
 import type {Paint, Palette} from './palette';
 import {leaves, plant} from './plants';
+import {drawQueue, drawSeasonPlot, seasonKey} from './season';
 
 const px = (n: GraphNode, c: Camera) => ({x: c.x + n.box!.x * c.s, y: c.y + n.box!.y * c.s, w: n.box!.w * c.s, h: n.box!.h * c.s});
 
@@ -27,7 +28,7 @@ const holderNeglected = (n: GraphNode) => (n.levers.holder as {neglected?: boole
 export function allotmentKey(nodes: readonly GraphNode[]): string {
   let k = '';
   for (const n of nodes) if (n.kind === 'plot') k += `${Math.round(n.totals.health / 4)}.${Math.round((n.totals.output / FULL_KG) * 8)},`;
-  return k;
+  return k + seasonKey(nodes);
 }
 
 /** Draws an allotment node if it is one, and says whether it did. */
@@ -46,6 +47,7 @@ export function drawAllotmentNode(g: Graphics, n: GraphNode, c: Camera, pal: Pal
     g.roundRect(r.x, r.y, r.w, r.h, 0.2 * s).fill(pal.tank);
     g.roundRect(r.x + inset * 0.5, r.y + inset * 0.5, r.w - inset, r.h * 0.3, 0.1 * s).fill(pal['butt-rim']);
     g.roundRect(r.x + inset, r.y + inset, (r.w - 2 * inset) * Math.max(0.1, full), r.h - 2 * inset, 0.1 * s).fill(pal.water);
+    drawQueue(g, n, c, pal); // the queue for the trough in a dry spell (part 8, src/ui/map/season.ts)
     return true;
   }
   // a plot: dug soil tinted by Health, rows of plants for its Output, weeds where it's neglected
@@ -73,6 +75,7 @@ export function drawAllotmentNode(g: Graphics, n: GraphNode, c: Camera, pal: Pal
     }
     g.fill(pal['lawn-tuft']);
   }
+  drawSeasonPlot(g, n, c, pal); // the season's marks on a plot (part 8)
   if (n.id === PLAYER_PLOT) g.roundRect(r.x - 0.15 * s, r.y - 0.15 * s, r.w + 0.3 * s, r.h + 0.3 * s, round + 0.15 * s).stroke({width: Math.max(2, 0.2 * s), color: pal.pulse.color, alpha: 1});
   return true;
 }
