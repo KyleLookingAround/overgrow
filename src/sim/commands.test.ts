@@ -105,6 +105,6 @@ describe('unfolding and the cards', () => {
     const i = s.seen.indexOf('garden.soil');
     expect(before).toBe(0);
     expect(i).toBeGreaterThan(0);
-    expect(s.seen.slice(i)).toEqual(['garden.soil', 'garden.carbon', 'household.footprint', 'shed.compost-bin', 'shed.hens']);
+    expect(s.seen.slice(i)).toEqual(['garden.soil', 'garden.carbon', 'household.footprint', 'shed.compost-bin', 'shed.coop']);
   });
 });

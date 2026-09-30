@@ -45,6 +45,9 @@ export interface State {
   settings: Record<string, LeverValue>;
   /** Cards, hints and instruments already shown: what has unfolded (src/data/unfold.ts). */
   seen: string[];
+  /** Spacing what unfolds (round four): the game day the last batch unfolded, and the keys waiting for a later day, since
+   *  from the third day on no more than one batch unfolds a day (src/sim/commands.ts). */
+  unfolding: {day: number; waiting: string[]};
   /** The game hour each of the week's decision cards was last answered (the glut, the catalogue, a frost, a dry spell),
    *  so each asks once for what it's about (src/sim/commands.ts). */
   answered: Record<string, number>;
@@ -81,7 +84,7 @@ export function gardenGraph(): Graph {
     if (p.id === 'lawn') spec.levers = {...LAWN_PEST_LEVERS(), ...LAWN_LEVERS()};
     // the kitchen's ledger, and the level's history for the goal (src/sim/goal.ts)
     // the goal's year counts from the game's first day: the first Monday's sample takes in the days before it
-    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: startGoal() as unknown as LeverValue, quality: {}, glut: 'sell', purse: newPurse() as unknown as LeverValue};
+    if (p.id === 'kitchen') spec.levers = {ledger: newLedger() as unknown as LeverValue, goal: startGoal() as unknown as LeverValue, quality: {}, glut: 'sell', box: 'spare', purse: newPurse() as unknown as LeverValue};
     if (p.id === 'gate') spec.levers = {quality: {}};
     // the garden's kit: what's been bought from the shed (src/sim/kit.ts)
     if (p.id === 'shed') spec.levers = {kit: {...NO_KIT, owned: []} as unknown as LeverValue};
@@ -117,7 +120,7 @@ export function newState(seed: number, speed: Speed = 1): State {
     seed, rng: rng(seed), hours: 0, level: 1, speed, home: 'kitchen', graph: gardenGraph(), flows: [], ladder: [],
     // the gardener stands by the shed on the first morning
     activities: [{id: 'g-start', who: GARDENER, kind: 'person', doing: 'rest', from: 'shed', to: 'shed', start: 0, end: 0.5}],
-    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], answered: {}, rejected: null, errors: [], effects: [],
+    upgrades: [], laws: [], goals: {}, settings: {}, seen: [], unfolding: {day: -1, waiting: []}, answered: {}, rejected: null, errors: [], effects: [],
   };
 }
 

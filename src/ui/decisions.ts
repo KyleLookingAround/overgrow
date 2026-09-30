@@ -5,9 +5,14 @@
 // cheaper, or blight-resistant); from November, the heap's compost as a winter mulch; and in February and March,
 // seed potatoes to chit and empty beds' soil to warm under fleece; and the autumn and winter's jobs (round three): the
 // leaves raked onto the heap from mid-October, a cordon redcurrant in bare-root season (November to March, every three
-// weeks while the fence has room), and in December and January the empty beds dug over or left no-dig. Pure, so a Vitest test holds it; App.tsx queues the first one due as a notice, and the
+// weeks while the fence has room), and in December and January the empty beds dug over or left no-dig; and midwinter's
+// jobs (round four), each from its own date so they come days apart: the hens' winter care, the currants pruned, the pots
+// washed, seed potatoes by post and salad on the windowsill; and when the purse is short of the money ladder's next
+// rung, the honesty box kept stocked. The glut card says what each choice gives, selling first when money's short. Pure, so a Vitest test holds it; App.tsx queues the first one due as a notice, and the
 // bot answers them (tools/bot/player.ts).
-import {FLEECE, UPGRADES} from '../data/shed';
+import {CLEAN, FLEECE, HEN_CARE, inWinter, PRUNE, SETS, SILL, UPGRADES} from '../data/shed';
+import {BOX, PRESERVE} from '../data/kitchen';
+import {PRICE} from '../data/household';
 import {unfolded} from '../data/unfold';
 import {calendar} from '../sim/clock';
 import {DRY_LINE, type Command} from '../sim/commands';
@@ -15,14 +20,15 @@ import {GARDENER, MULCH_MIN, mulchBeds} from '../sim/gardener';
 import {compostOn} from '../sim/models/carbon';
 import type {Graph, GraphNode} from '../sim/graph';
 import {kitOf} from '../sim/kit';
-import {KITCHEN} from '../sim/models/kitchen';
+import {boxPolicy, KITCHEN, surplusOf} from '../sim/models/kitchen';
+import {nextRung} from './goal';
 import {forecastOf, tonight, type WeatherDay} from '../sim/models/weather';
-import {cataloguePrice, catalogueOpen, chitOpen, digOverBeds, frostBeds, leavesOpen, refuseBuy, warmBeds} from '../sim/shed';
+import {cataloguePrice, catalogueOpen, chitOpen, digOverBeds, frostBeds, henCareOpen, leavesOpen, pruneCount, pruneOpen, refuseBuy, setsOpen, sillOpen, warmBeds} from '../sim/shed';
 import type {Snapshot} from '../sim/state';
 import {money} from './format';
 
 export interface Decision {
-  id: 'frost' | 'glut' | 'dry' | 'catalogue' | 'chit' | 'mulch' | 'warm' | 'leaves' | 'bare-root' | 'dig-over';
+  id: 'frost' | 'glut' | 'dry' | 'catalogue' | 'chit' | 'mulch' | 'warm' | 'leaves' | 'bare-root' | 'dig-over' | 'prune' | 'sets' | 'clean' | 'sill' | 'hen-care' | 'box';
   text: string;
   /** Where on the map it's about. */
   at: string;
@@ -40,7 +46,21 @@ const YEARLY = 200 * 24;
 /** Where a glut goes by each of the kitchen's policies, and each choice's button. */
 const GLUT_TO: Record<string, string> = {sell: 'the honesty box', preserve: 'the freezer', give: 'a neighbour'};
 const GLUT_LABEL: Record<string, string> = {preserve: 'Preserve it', give: 'Give it away', sell: 'Sell at the box'};
+/** What each glut choice gives for `kg`: £ at the box, jars (and the £ they save in the winter, at the shop's price for
+ *  green veg), or the neighbours' goodwill. */
+export function glutGives(choice: string, kg: number): string {
+  // the box sells a few days' worth before the rest goes off
+  if (choice === 'sell') return `up to ${money(Math.min(kg, BOX.perDay * GLUT_DAYS) * BOX.price)}`;
+  if (choice === 'preserve') return `${Math.max(1, Math.round(kg / PRESERVE.jarKg))} jars, ${money(kg * PRICE.greens)} saved in winter`;
+  return 'goodwill next door';
+}
+/** The days of the box's sales a glut's money is counted over. */
+const GLUT_DAYS = 3;
+/** The box card asks again no sooner than this after an answer, game hours. */
+const BOX_AGAIN = 60 * 24;
 
+/** The glut card's least kg, for its words while the glut is being carried off. */
+const GLUT_MIN = 3;
 const graphOf = (nodes: readonly GraphNode[]): Graph => ({nodes: Object.fromEntries(nodes.map((n) => [n.id, n])), edges: [], rev: 0});
 const card = (id: Decision['id'], answer: string): Command => ({type: 'card', id, answer} as Command);
 
@@ -61,10 +81,12 @@ export function decisionsOf(snap: Snapshot): Decision[] {
   // a glut: once a glut, while it lasts
   const l = snap.kitchen;
   if (l?.glutFrom != null && l.glutAt != null && snap.hours - l.glutAt <= 48 && asked('glut') < l.glutFrom) {
-    const now = String(snap.nodes.find((n) => n.id === KITCHEN)?.levers.glut ?? 'sell');
-    // the two choices besides what's done now, each with its button
-    const actions: Decision['actions'] = ['preserve', 'give', 'sell'].filter((a) => a !== now).map((a) => ({label: GLUT_LABEL[a]!, cmd: card('glut', a)}));
-    out.push({id: 'glut', at: KITCHEN, text: `A glut: more is ready than the kitchen can eat fresh, and it goes to ${GLUT_TO[now] ?? 'the honesty box'}. ${actions.map((a, i) => (i ? a.label[0]!.toLowerCase() + a.label.slice(1) : a.label)).join(' or ')} instead?`,
+    const now = String(snap.nodes.find((n) => n.id === KITCHEN)?.levers.glut ?? 'sell'), kg = Math.max(GLUT_MIN, surplusOf(g).reduce((a, x) => a + x.kg, 0));
+    // the two choices besides what's done now, each with what it gives; selling first when the purse is short of the next rung
+    const rung = nextRung(snap), short = !!rung && purse < UPGRADES[rung].price;
+    const actions: Decision['actions'] = (short ? ['sell', 'preserve', 'give'] : ['preserve', 'give', 'sell']).filter((a) => a !== now)
+      .map((a) => ({label: `${GLUT_LABEL[a]!} (${glutGives(a, kg)})`, cmd: card('glut', a)}));
+    out.push({id: 'glut', at: KITCHEN, text: `A glut: ${Math.round(kg)} kg more than the kitchen can eat fresh, going to ${GLUT_TO[now] ?? 'the honesty box'} (${glutGives(now, kg)}). Or instead:`,
       actions, dismiss: card('glut', now)});
   }
   // a dry spell in the growing months, none forecast, and the gardener not already watering early: once a spell
@@ -105,6 +127,35 @@ export function decisionsOf(snap: Snapshot): Decision[] {
   if (bare.length && asked('dig-over') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.soil')) {
     out.push({id: 'dig-over', at: bare[0]!.id, text: `Winter: dig the ${bare.length === 1 ? 'empty bed' : `${bare.length} empty beds`} over, turning up slugs’ eggs, or leave the soil undisturbed?`,
       actions: [{label: 'Dig them over', cmd: card('dig-over', 'dig')}, {label: 'Leave them no-dig', cmd: card('dig-over', 'no-dig')}], dismiss: card('dig-over', 'no-dig')});
+  }
+  // midwinter's jobs, each once a winter from its own date
+  if (henCareOpen(g, date, snap.hours) && asked('hen-care') < snap.hours - YEARLY && purse >= HEN_CARE.gbp) {
+    out.push({id: 'hen-care', at: 'hens', text: `Winter for the hens: fresh straw deep in the house and a check for red mite (${money(HEN_CARE.gbp)}), to keep them well through the cold?`,
+      actions: [{label: `Do it (${money(HEN_CARE.gbp)})`, cmd: card('hen-care', 'care')}], dismiss: card('hen-care', 'no')});
+  }
+  if (pruneOpen(g, date, snap.hours) && asked('prune') < snap.hours - YEARLY) {
+    const n = pruneCount(g, snap.hours);
+    out.push({id: 'prune', at: snap.nodes.some((x) => x.id === 'cordons') ? 'cordons' : 'bush', text: `The currants are dormant: prune ${n === 1 ? 'it' : `all ${n}`} back to a bud or two, for a fuller crop next summer (${PRUNE.minutes * n} minutes)?`,
+      actions: [{label: 'Prune them', cmd: card('prune', 'prune')}], dismiss: card('prune', 'no')});
+  }
+  if (inWinter(CLEAN, date.month, date.day) && kitOf(g).cleaned !== date.year + 1 && asked('clean') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.shed')) {
+    out.push({id: 'clean', at: 'shed', text: 'A midwinter job: wash the pots, the trays and the glass, where slugs hide through the winter?',
+      actions: [{label: 'Wash them', cmd: card('clean', 'clean')}], dismiss: card('clean', 'no')});
+  }
+  if (setsOpen(g, date) && asked('sets') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.money') && purse >= SETS.gbp) {
+    out.push({id: 'sets', at: 'shed', text: `Seed potatoes by post: a bag of first earlies for ${money(SETS.gbp)}, cheaper than the spring’s packs, in time to chit?`,
+      actions: [{label: `Order them (${money(SETS.gbp)})`, cmd: card('sets', 'order')}], dismiss: card('sets', 'no')});
+  }
+  if (sillOpen(g, date, snap.hours) && asked('sill') < snap.hours - YEARLY && unfolded(snap.seen, 'garden.kitchen') && purse >= SILL.gbp) {
+    const warm = kitOf(g).owned.includes('propagator') ? ' in the propagator' : '';
+    out.push({id: 'sill', at: KITCHEN, text: `A winter sowing: salad leaves in trays${warm} on the windowsill, to cut from in a fortnight (${money(SILL.gbp)})?`,
+      actions: [{label: `Sow them (${money(SILL.gbp)})`, cmd: card('sill', 'sow')}], dismiss: card('sill', 'no')});
+  }
+  // the purse short of the next rung for a while: the honesty box kept stocked for money now
+  const rung = nextRung(snap);
+  if (rung && boxPolicy(g) === 'spare' && purse < UPGRADES[rung].price / 2 && asked('box') < snap.hours - BOX_AGAIN && unfolded(snap.seen, 'garden.money') && (l?.firstHarvest ?? null) !== null) {
+    out.push({id: 'box', at: 'gate', text: `${UPGRADES[rung].name} is ${money(UPGRADES[rung].price - purse)} away: keep the honesty box stocked with some of what the garden has, eggs and jars too?`,
+      actions: [{label: 'Keep it stocked', cmd: card('box', 'stock')}], dismiss: card('box', 'spare')});
   }
   // seed potatoes to chit in February and March, once a spring
   if (chitOpen(g, date, snap.hours) && asked('chit') < snap.hours - 200 * 24 && unfolded(snap.seen, 'garden.money')) {

@@ -82,9 +82,14 @@ export const UNFOLD: Record<string, Unfold> = {
   // flowers (it grows the fruit the household buys); the hens once the heap is making compost
   'shed.raised-bed': {what: 'raised beds in the shed', why: 'A new bed is dug: a raised one drains faster and warms sooner.', causes: ['digging']},
   'shed.water-tank': {what: 'a rainwater tank in the shed', why: 'The butt ran dry: a tank on the house’s downpipe takes far more rain.', causes: ['butt dry']},
-  'shed.greenhouse': {what: 'a greenhouse in the shed', why: 'Frost or blight took a crop: under glass it’s kept off.', causes: ['frost damage', 'blight']},
-  'shed.fruit-cage': {what: 'a fruit cage in the shed', why: 'Bees are working the flowers: soft fruit would set well, for the household’s fruit.', causes: ['pollination']},
-  'shed.hens': {what: 'a hen house in the shed', why: 'The heap is making compost: hens add eggs, and droppings for the heap.', causes: ['spreading compost']},
+  'shed.greenhouse': {what: 'a greenhouse in the shed', why: 'The lean-to raises plants: a greenhouse grows them, and keeps frost and blight off.', causes: ['bought lean-to']},
+  'shed.fruit-cage': {what: 'a fruit cage in the shed', why: 'The blackcurrant is in: a cage of canes and bushes grows the household’s fruit.', causes: ['bought fruit-bush']},
+  // round four's ladder: each big buy in steps, the next shown once the one before is bought (the buy's `bought <id>`)
+  'shed.coop': {what: 'a hen house in the shed', why: 'The heap is making compost: a hen house first, then hens for eggs and droppings.', causes: ['spreading compost']},
+  'shed.hens': {what: 'hens for the house', why: 'The hen house is up: two hens to start, since hens are never kept alone.', causes: ['bought coop']},
+  'shed.hen': {what: 'a third hen', why: 'The house takes three: one more for more eggs.', causes: ['bought hens']},
+  'shed.lean-to': {what: 'a lean-to growhouse in the shed', why: 'Frost or blight took a crop: plants raised under cover go out stronger.', causes: ['frost damage', 'blight']},
+  'shed.fruit-bush': {what: 'a blackcurrant bush in the shed', why: 'The garden is feeding the household: a fruit bush would add fruit.', causes: ['groceries saved', 'pollination']},
   // the mid-priced kit, each when it first helps: the fork with the first bed dug; cloches with the first empty autumn
   // bed or a frost; the propagator once next year's seed is ordered; the bee hotel with the first bees on the flowers;
   // cordon redcurrants when bare-root season opens in November

@@ -30,7 +30,7 @@ import {BERRIES, ripeFruit} from './models/fruit';
 import {clearOut, herdOf, LIVE} from './models/livestock';
 import {chitStart} from './kit';
 import {aphidsOn, control, draws, pestsOf, slugsOn} from './models/pests';
-import {GATE, give, glutPolicy, KITCHEN, mixQuality, preserve, preserveRoom, qualityAt, recordGlut, recordPick, surplusOf} from './models/kitchen';
+import {GATE, give, glutPolicy, KITCHEN, mixQuality, preserve, preserveRoom, qualityAt, recordGlut, recordPick, stockFor, surplusOf} from './models/kitchen';
 import {GLUT, PRESERVE} from '../data/kitchen';
 import {areaOf, limitsOf, moisture, SOIL} from './models/soil';
 import {hourOf, sunOn, weatherOf} from './models/weather';
@@ -479,7 +479,7 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
   const p = new Planner(g, pos, t, left - (night.length ? patrol : 0), next, date.dayIndex, awayOn(g, date, t)), line = Number(g.nodes[GARDENER]?.levers.waterBelow ?? 0.5);
   // 0. the hens first thing: fed, watered and their eggs brought in, and cleaned out on a Saturday
   const hens = g.nodes[HENS_NODE];
-  if (hens && herdOf(hens)) {
+  if (hens && (herdOf(hens)?.head ?? 0) > 0) {
     const clean = date.weekday === 5;
     p.job((j) => {
       j.walk(HENS_NODE);
@@ -554,6 +554,7 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
     let items = surplusOf(g);
     // the household's glut policy first: preserved in the kitchen while the freezer has room, or given over the fence
     const policy = glutPolicy(g);
+    let preserving: {product: string; kg: number}[] = [];
     if (policy === 'preserve' && items.length) {
       let room = preserveRoom(g);
       const jar: {product: string; kg: number}[] = [], rest: {product: string; kg: number}[] = [];
@@ -570,28 +571,37 @@ function plan(g: Graph, date: CalendarDate, pos: NodeId, t: number, left: number
       })) {
         p.money -= kg * PRESERVE.gbpPerKg;
         items = rest;
+        preserving = jar;
       }
     }
-    const neighbour = policy === 'give';
-    while (items.length) {
-      let room = carry.trip ?? Infinity;
-      const load: {product: string; kg: number}[] = [], rest: {product: string; kg: number}[] = [];
-      for (const it of items) {
-        const kg = Math.min(it.kg, room);
-        if (kg > 0.01) load.push({product: it.product, kg});
-        room -= kg;
-        if (it.kg - kg > 0.01) rest.push({product: it.product, kg: it.kg - kg});
+    // the surplus to the box, or over the fence to a neighbour; then, with the box kept stocked, a share of what the
+    // kitchen has beyond the next days' meals to the box as well (none of what's being preserved or given)
+    const taken = [...items, ...preserving];
+    const trips = (list: {product: string; kg: number}[], neighbour: boolean) => {
+      while (list.length) {
+        let room = carry.trip ?? Infinity;
+        const load: {product: string; kg: number}[] = [], rest: {product: string; kg: number}[] = [];
+        for (const it of list) {
+          const kg = Math.min(it.kg, room);
+          if (kg > 0.01) load.push({product: it.product, kg});
+          room -= kg;
+          if (it.kg - kg > 0.01) rest.push({product: it.product, kg: it.kg - kg});
+        }
+        const kg = load.reduce((s, x) => s + x.kg, 0);
+        const ok = p.job((j) => {
+          j.walk(KITCHEN);
+          j.work('load', carry.load ?? 0, {unit: 'kgFood', amount: kg, product: load[0]!.product});
+          // to the box by the gate, or over the fence there to the neighbour
+          j.walk(GATE, neighbour ? 'give' : 'carry', {unit: 'kgFood', amount: kg, product: load[0]!.product}, neighbour ? {kind: 'give', items: load} : {kind: 'box', items: load});
+        });
+        if (!ok) return;
+        list = rest;
       }
-      const kg = load.reduce((s, x) => s + x.kg, 0);
-      const ok = p.job((j) => {
-        j.walk(KITCHEN);
-        j.work('load', carry.load ?? 0, {unit: 'kgFood', amount: kg, product: load[0]!.product});
-        // to the box by the gate, or over the fence there to the neighbour
-        j.walk(GATE, neighbour ? 'give' : 'carry', {unit: 'kgFood', amount: kg, product: load[0]!.product}, neighbour ? {kind: 'give', items: load} : {kind: 'box', items: load});
-      });
-      if (!ok) break;
-      items = rest;
-    }
+    };
+    if (policy === 'give') {
+      trips(items, true);
+      trips(stockFor(g, taken), false);
+    } else trips([...items, ...stockFor(g, taken)], false);
     if (wasteOn(kitchen) >= 1) clear(p, kitchen, false);
   }
   for (const b of dug) if (!sown.has(b.id) && wasteOn(b) >= 0.5) clear(p, b, true);

@@ -162,21 +162,38 @@ describe('digging', () => {
 describe('the big buys', () => {
   it('puts the greenhouse, the hens and the fruit cage on the lawn, its land and soil moved, not made', () => {
     const sim = game(undefined, 2000), lawn0 = node(sim, 'lawn');
-    for (const id of ['greenhouse', 'hens', 'fruit-cage']) expect(sim.apply({type: 'buy', id}).rejected).toBeNull();
+    for (const id of ['lean-to', 'greenhouse', 'coop', 'fruit-bush', 'fruit-cage']) expect(sim.apply({type: 'buy', id}).rejected).toBeNull();
     const s = sim.snapshot(), lawn = node(sim, 'lawn'), area = (id: string) => Object.entries(node(sim, id).stocks).filter(([k]) => k.startsWith('land.')).reduce((a, [, x]) => a + x.amount, 0);
     // the three sites' land came out of the lawn's grass
-    expect(lawn0.stocks['land.grass']!.amount - lawn.stocks['land.grass']!.amount).toBeCloseTo(area('greenhouse') + area('hens') + area('fruit'), 6);
+    expect(lawn0.stocks['land.grass']!.amount - lawn.stocks['land.grass']!.amount).toBeCloseTo(area('greenhouse') + area('hens') + area('fruit') + area('bush'), 6);
     // the greenhouse's soil is the lawn's that was under it: the two together hold what the lawn held
     expect(lawn.stocks.water!.amount + node(sim, 'greenhouse').stocks.water!.amount).toBeCloseTo(lawn0.stocks.water!.amount, 6);
     expect(node(sim, 'greenhouse').levers.cover).toBe('greenhouse');
     expect(s.rev).toBeGreaterThan(1);
-    expect(sim.apply({type: 'buy', id: 'hens'}).rejected).toMatch(/already/);
+    expect(sim.apply({type: 'buy', id: 'coop'}).rejected).toMatch(/already/);
     expect(sim.apply({type: 'plan', node: 'greenhouse', lever: 'cover', value: null}).rejected).toMatch(/greenhouse/);
+  });
+
+  it('climbs to the hens in steps: the house first, empty and keeping the compost dry, then a pair, then a third', () => {
+    const sim = game(undefined, 400);
+    expect(sim.apply({type: 'buy', id: 'hens'}).rejected).toMatch(/after the hen house/);
+    expect(sim.apply({type: 'buy', id: 'coop'}).rejected).toBeNull();
+    expect((node(sim, 'hens').levers.herd as any).head).toBe(0);
+    const empty = run(sim, 24 * 7, 1);
+    // an empty house: no chores, no feed, no eggs
+    expect(sum(empty, 'hen feed', 'GBP')).toBe(0);
+    expect(sum(empty, 'collecting eggs', 'kgFood')).toBe(0);
+    expect(sim.apply({type: 'buy', id: 'hen'}).rejected).toMatch(/after the two hens/);
+    expect(sim.apply({type: 'buy', id: 'hens'}).rejected).toBeNull();
+    expect((node(sim, 'hens').levers.herd as any).head).toBe(2);
+    expect(sim.apply({type: 'buy', id: 'hen'}).rejected).toBeNull();
+    expect((node(sim, 'hens').levers.herd as any).head).toBe(3);
+    expect(sim.snapshot().errors).toEqual([]);
   });
 
   it('keeps the hens: fed from the purse, eggs to the kitchen and eaten, droppings to the heap', () => {
     const sim = game(undefined, 400);
-    sim.apply({type: 'buy', id: 'hens'});
+    for (const id of ['coop', 'hens', 'hen']) sim.apply({type: 'buy', id});
     const flows = run(sim, 24 * 30, 1);
     expect(sum(flows, 'hen feed', 'GBP')).toBeGreaterThan(3);
     expect(sum(flows, 'hen feed', 'GBP')).toBeLessThan(15);
@@ -191,16 +208,30 @@ describe('the big buys', () => {
 
   it('crops the fruit cage lightly the next summer and fully the one after', () => {
     const sim = game(undefined, 400);
+    sim.apply({type: 'buy', id: 'fruit-bush'});
     sim.apply({type: 'buy', id: 'fruit-cage'});
     const years = [0, 1, 2].map(() => sum(run(sim, 24 * 365, 24), 'fruit ripening', 'kgFood'));
     expect(years[0]).toBe(0);
     expect(years[1]).toBeGreaterThan(2);
     expect(years[2]).toBeGreaterThan(years[1]! * 2);
-    expect(years[2]).toBeLessThan(15);
+    expect(years[2]).toBeLessThan(20);
+  });
+
+  it('crops the blackcurrant bush lightly the next summer and about 4 kg the one after', () => {
+    const sim = game(undefined, 400);
+    expect(sim.apply({type: 'buy', id: 'fruit-cage'}).rejected).toMatch(/after the blackcurrant/);
+    expect(sim.apply({type: 'buy', id: 'fruit-bush'}).rejected).toBeNull();
+    const years = [0, 1, 2].map(() => sum(run(sim, 24 * 365, 24), 'fruit ripening', 'kgFood'));
+    expect(years[0]).toBe(0);
+    expect(years[1]).toBeGreaterThan(1);
+    // unpruned in its second winter, it crops a sixth less than a full 4 kg
+    expect(years[2]).toBeGreaterThan(3);
+    expect(years[2]).toBeLessThan(4);
   });
 
   it('grows tomatoes under glass faster, with less blight and more frost kept off than in the open', () => {
-    const sim = game(undefined, 400);
+    const sim = game(undefined, 600);
+    sim.apply({type: 'buy', id: 'lean-to'});
     sim.apply({type: 'buy', id: 'greenhouse'});
     const gh = node(sim, 'greenhouse');
     expect(shelter(gh)).toBeGreaterThan(shelter(node(sim, 'bed-1')) + 3);

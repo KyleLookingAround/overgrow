@@ -204,7 +204,7 @@ Loops: diet, intensification, trade. Spec: from 1.
 
 ### Livestock
 
-Loops: diet (the pivot), waste (manure), energy. Spec: from 1 (hens), 3. The model is PR #25.
+Loops: diet (the pivot), waste (manure), energy. Spec: from 1 (hens), 3. The model is PR #25. The garden's hens come in steps since round four (#83): the house, a pair, a third.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
@@ -249,7 +249,7 @@ Loops: energy (gas → fertiliser), intensification. Spec: from 1 (compost), 3.
 
 ### Labour
 
-Loops: agency (delegating costs trust). Spec: from 3; labour hours are a flow from the first bed. The model is PR #26.
+Loops: agency (delegating costs trust). Spec: from 3; labour hours are a flow from the first bed. The model is PR #26. Midwinter's jobs at level 1 since round four (#83).
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
@@ -296,7 +296,7 @@ Loops: energy, trade. Spec: from 5. The gardener's baskets and the van come earl
 
 ### Markets, prices and demand
 
-Loops: diet, trade, waste. Spec: from 1 (the kitchen), 5.
+Loops: diet, trade, waste. Spec: from 1 (the kitchen), 5. At level 1 since round four (#83): the honesty box kept stocked year-round, and the shed's money ladder priced a few weeks' saving apart.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |
@@ -326,7 +326,7 @@ Loop: trade. Spec: from 8. Seeded from 1 (**O·Q10**).
 
 ### Waste and circularity
 
-Loop: waste. Spec: from 1.
+Loop: waste. Spec: from 1. At level 1 since round four (#83): a glut sold, preserved or given, the card saying what each gives.
 
 | Lv | Shows · lever · who acts | Drawn | Seals as | Fast / slow · lesson | Unfolds when |
 | --- | --- | --- | --- | --- | --- |

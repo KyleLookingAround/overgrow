@@ -7,16 +7,18 @@
 // The hose (src/sim/gardener.ts), the compost bin (src/sim/models/carbon.ts), the frame's frost, rain and sowing
 // windows (src/sim/models/crops.ts, src/sim/models/water.ts) are read where they act. docs/systems/shed.md says how.
 import {CROPS, type CropId} from '../data/crops';
-import {BEER_TRAP, CATALOGUE, CHIT, CORDON, DIG_OVER, FLEECE, LEAVES, PROPAGATOR, WARM, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, bareRoot, type UpgradeId, type Variety} from '../data/shed';
+import {BEER_TRAP, BUSH, CATALOGUE, CHIT, CLEAN, CORDON, DIG_OVER, FLEECE, HEN_CARE, LEAVES, PROPAGATOR, PRUNE, SETS, SILL, WARM, HENS, NEMATODES, SECOND_BUTT, TANK, UPGRADES, bareRoot, inWinter, type UpgradeId, type Variety} from '../data/shed';
 import type {CalendarDate} from './clock';
 import {cropOf} from './models/crops';
 import type {System, TickContext} from './clock';
 import {note} from './effects';
 import {SITES, SITE_WAYS} from '../data/garden';
-import {applyFlow, makeNode, qty, touch, type Flow, type Graph, type LeverValue, type NodeSpec, type Stock} from './graph';
+import {applyFlow, makeNode, qty, touch, type Flow, type Graph, type GraphNode, type LeverValue, type NodeSpec, type Stock} from './graph';
 import {BED_FLOWER_LEVERS} from './models/biodiversity';
 import {BED_LEVERS} from './models/crops';
-import {LIVE, newHerd} from './models/livestock';
+import {herdOf, LIVE, newHerd} from './models/livestock';
+import {bushesOf, BERRIES} from './models/fruit';
+import {recordPick} from './models/kitchen';
 import {BED_PEST_LEVERS} from './models/pests';
 import {ATMOSPHERE} from './state';
 import {kitOf, owns, setKit} from './kit';
@@ -27,10 +29,19 @@ import {weatherOf} from './models/weather';
 
 const isUpgrade = (id: string): id is UpgradeId => id in UPGRADES;
 const dugBeds = (g: Graph) => Object.values(g.nodes).filter((n) => n.kind === 'bed' && (n.stocks['land.crops']?.amount ?? 0) > 0);
+/** A bed dug right through: no grass left in it (a raised bed goes only on one). */
+const wholeBed = (n: GraphNode) => (n.stocks['land.grass']?.amount ?? 0) <= 1e-6;
 const purse = (g: Graph) => g.nodes[KITCHEN]?.stocks.money?.amount ?? 0;
 
 /** The next dug bed a raised bed goes on: the first not raised yet (never the greenhouse's border). */
-export const nextRaised = (g: Graph) => dugBeds(g).find((b) => b.levers.raised !== true && b.levers.cover !== 'greenhouse') ?? null;
+export const nextRaised = (g: Graph) => dugBeds(g).find((b) => wholeBed(b) && b.levers.raised !== true && b.levers.cover !== 'greenhouse') ?? null;
+/** The hens in the house: none until they're bought, two, then three. */
+export const hensIn = (g: Graph) => {
+  const n = g.nodes.hens;
+  return n ? (herdOf(n)?.head ?? 0) : 0;
+};
+/** Where each thing that stands on the lawn goes (src/data/garden.ts's SITES): the hen house's is the hens'. */
+const SITE_OF: Partial<Record<UpgradeId, keyof typeof SITES>> = {greenhouse: 'greenhouse', coop: 'hens', 'fruit-cage': 'fruit-cage', 'fruit-bush': 'fruit-bush'};
 
 /** The cordons planted along the fence. */
 export const cordons = (g: Graph) => kitOf(g).owned.filter((x) => x === 'cordon').length;
@@ -45,6 +56,7 @@ export function refuseBuy(g: Graph, id: string): string | null {
   if (!isUpgrade(id)) return `no upgrade ${id}`;
   const u = UPGRADES[id];
   if (u.kept && owns(g, id)) return `the garden has ${u.name.toLowerCase()} already`;
+  if (u.after && !owns(g, u.after)) return `${u.name} comes after the ${UPGRADES[u.after].name.toLowerCase()}`;
   if (id === 'raised-bed' && !nextRaised(g)) return 'every dug bed is raised already';
   if (id === 'cordon') {
     if (!kitOf(g).bare) return 'bare-root cordons are planted from November to March';
@@ -53,7 +65,7 @@ export function refuseBuy(g: Graph, id: string): string | null {
   }
   if (id === 'cloches' && !nextCovered(g)) return 'every dug bed has a cover already';
   // a big buy needs its ground on the lawn
-  const site = id === 'cordon' ? null : (SITES as Record<string, {box: {w: number; h: number}}>)[id];
+  const at = SITE_OF[id], site = at ? SITES[at] : null;
   if (site && (g.nodes.lawn?.stocks['land.grass']?.amount ?? 0) < site.box.w * site.box.h) return 'the lawn has no room for it';
   if (id === 'nematodes' && kitOf(g).nematodes > 0) return 'the last pack is still at work';
   if (purse(g) < u.price) return `${u.name} costs £${u.price.toFixed(2)}`;
@@ -65,8 +77,15 @@ export function refuseBuy(g: Graph, id: string): string | null {
 export function placeOf(g: Graph, id: UpgradeId): string {
   switch (id) {
     case 'greenhouse':
-    case 'hens':
       return id;
+    case 'coop':
+    case 'hens':
+    case 'hen':
+      return 'hens';
+    case 'fruit-bush':
+      return SITES['fruit-bush'].id;
+    case 'lean-to':
+      return KITCHEN;
     case 'fruit-cage':
       return 'fruit';
     case 'hose':
@@ -114,7 +133,16 @@ function buy(g: Graph, id: UpgradeId) {
     if (butt?.cap !== undefined) butt.cap = qty(butt.cap + TANK.litres, 'L');
     touch(g, 'butt');
   }
-  if (id === 'greenhouse' || id === 'hens' || id === 'fruit-cage') addSite(g, id);
+  if (id === 'greenhouse' || id === 'fruit-cage' || id === 'fruit-bush') addSite(g, id);
+  if (id === 'coop') addSite(g, 'hens');
+  // the hens into their house: a pair, then a third
+  if (id === 'hens' || id === 'hen') {
+    const n = g.nodes.hens, h = n && herdOf(n);
+    if (n && h) {
+      n.levers.herd = {...h, head: id === 'hens' ? HENS.pair : HENS.head} as unknown as LeverValue;
+      touch(g, 'hens');
+    }
+  }
   // the hose and the fork join the gardener's tools: the fastest they have for a job is the one they use (src/data/jobs.ts)
   if (id === 'hose' || id === 'fork') {
     const me = g.nodes.gardener, tools = (me?.levers.tools as string[] | undefined) ?? [];
@@ -139,7 +167,7 @@ function buy(g: Graph, id: UpgradeId) {
 /** What a bed's sowing of a crop costs from the purse, £: its seed, plants or sets (src/data/crops.ts), a packet for
  *  what the propagator raises, or nothing when the winter catalogue's order covers this garden year. */
 export const seedCost = (g: Graph, crop: CropId, year: number) =>
-  kitOf(g).seeds?.year === year ? 0 : CROPS[crop].seed * (owns(g, 'propagator') && PROPAGATOR.crops.includes(crop) ? PROPAGATOR.share : 1);
+  kitOf(g).seeds?.year === year || (kitOf(g).sets === year && (SETS.crops as readonly string[]).includes(crop)) ? 0 : CROPS[crop].seed * (owns(g, 'propagator') && PROPAGATOR.crops.includes(crop) ? PROPAGATOR.share : 1);
 
 /** The catalogue's order for next year: its price, for every bed plot the garden has (dug or to be dug, and the
  *  greenhouse's border), and the variety. */
@@ -226,7 +254,8 @@ function addSite(g: Graph, id: keyof typeof SITES) {
   if (site.id === 'greenhouse') spec.levers = {...BED_LEVERS('tomatoes'), ...BED_PEST_LEVERS(), ...BED_FLOWER_LEVERS(), cover: 'greenhouse'};
   if (site.id === 'hens') {
     spec.stocks = {[LIVE.feed]: {unit: 'kgFeed', amount: qty(0, 'kgFeed'), product: 'feed'}, [LIVE.water]: {unit: 'L', amount: qty(0, 'L')}};
-    spec.levers = {herd: newHerd('hen', HENS.head, HENS.area, {disease: false}) as unknown as LeverValue, cleaned: null};
+    // the house and run first, empty until the hens are bought (a herd of none)
+    spec.levers = {herd: newHerd('hen', 0, HENS.area, {disease: false}) as unknown as LeverValue, cleaned: null};
   }
   g.nodes[site.id] = makeNode(spec);
   for (const w of [...SITE_WAYS[id], {from: site.id, to: ATMOSPHERE, carries: ['kgCO2e' as const]}])
@@ -244,6 +273,8 @@ function addSite(g: Graph, id: keyof typeof SITES) {
     for (const [k, st] of Object.entries(lawn.stocks)) if (!k.startsWith('land.')) move(k, k, st.unit, st.amount * share, st.product);
   // the canes and bushes go in: the fruit system dates the planting on its next day (src/sim/models/fruit.ts)
   if (site.id === 'fruit') g.nodes.fruit!.levers.bushes = null;
+  // the blackcurrant goes in, dated like a cordon, with its own kg a summer
+  if (id === 'fruit-bush') g.nodes[site.id]!.levers.bushes = {planted: null, plants: [null], kg: BUSH.kg} as unknown as LeverValue;
   touch(g, 'lawn');
   touch(g, site.id);
 }
@@ -297,6 +328,86 @@ export function digOver(g: Graph, d: CalendarDate): string | null {
   return null;
 }
 
+// ---- midwinter's jobs (round four), each a card asked once a winter (src/ui/decisions.ts) ----
+
+/** Whether a winter pruning is due: currants planted before the summer, not pruned this winter. */
+export const pruneOpen = (g: Graph, d: CalendarDate, hours: number) =>
+  inWinter(PRUNE, d.month, d.day) && kitOf(g).pruned !== d.year + 1 && pruneCount(g, hours) > 0;
+/** The currants that need pruning: planted before the summer (so fruiting next summer on wood more than a year old). */
+export function pruneCount(g: Graph, hours: number) {
+  let n = 0;
+  for (const node of Object.values(g.nodes)) for (const t of bushesOf(node)?.plants ?? []) if (t !== null && hours - t > 150 * 24) n++;
+  return n;
+}
+/** Prunes the currants for next summer. Why not, or null. */
+export function prune(g: Graph, d: CalendarDate, hours: number): string | null {
+  if (!pruneOpen(g, d, hours)) return 'the currants are pruned in winter, a year after planting';
+  setKit(g, {pruned: d.year + 1});
+  return null;
+}
+/** Whether seed potatoes can be ordered by post now: January and February, when the catalogue hasn't covered them. */
+export const setsOpen = (g: Graph, d: CalendarDate) => inWinter(SETS, d.month, d.day) && kitOf(g).seeds?.year !== d.year + 1 && kitOf(g).sets !== d.year + 1;
+/** Orders the seed potatoes: the price from the purse, the spring's potato plantings paid for. Why not, or null. */
+export function orderSets(g: Graph, d: CalendarDate): string | null {
+  if (!setsOpen(g, d)) return 'seed potatoes are ordered in January and February';
+  if (purse(g) < SETS.gbp) return `seed potatoes cost £${SETS.gbp.toFixed(2)}`;
+  applyFlow(g, {what: 'seed potatoes', unit: 'GBP', amount: qty(SETS.gbp, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
+  setKit(g, {sets: d.year + 1});
+  return null;
+}
+/** Washing the pots and the frame: a share of each dug bed's slugs, sheltering under them, go. Why not, or null. */
+export function cleanPots(g: Graph, d: CalendarDate): string | null {
+  if (!inWinter(CLEAN, d.month, d.day)) return 'the pots are washed in midwinter';
+  if (kitOf(g).cleaned === d.year + 1) return 'the pots are washed already this winter';
+  for (const b of dugBeds(g)) {
+    const slugs = slugsOn(b) * CLEAN.slugs;
+    if (slugs > 1e-9) applyFlow(g, {what: 'washing pots', unit: 'pests', product: 'slugs', amount: qty(slugs, 'pests'), from: {node: b.id, stock: SLUG_KEY}, to: {boundary: 'decay'}});
+    touch(g, b.id);
+  }
+  setKit(g, {cleaned: d.year + 1});
+  return null;
+}
+/** Whether salad can be sown on the windowsill now, and isn't already growing there. */
+export const sillOpen = (g: Graph, d: CalendarDate, hours: number) => {
+  const t = kitOf(g).sill;
+  return inWinter(SILL, d.month, d.day) && !(t != null && hours - t < (SILL.wait + SILL.days) * 24);
+};
+/** Sows salad in trays on the windowsill, its seed from the purse. Why not, or null. */
+export function sowSill(g: Graph, d: CalendarDate, hours: number): string | null {
+  if (!sillOpen(g, d, hours)) return 'salad goes on the windowsill in midwinter';
+  if (purse(g) < SILL.gbp) return `a packet of seed costs £${SILL.gbp.toFixed(2)}`;
+  applyFlow(g, {what: 'seed', unit: 'GBP', amount: qty(SILL.gbp, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
+  setKit(g, {sill: hours});
+  return null;
+}
+/** Whether the hens are due their winter care: in the house, and not cared for this winter. */
+export const henCareOpen = (g: Graph, d: CalendarDate, hours: number) => {
+  const t = kitOf(g).henCare;
+  return inWinter(HEN_CARE, d.month, d.day) && hensIn(g) > 0 && !(t != null && hours - t < 100 * 24);
+};
+/** The hens' winter care: straw and a mite check from the purse, their welfare mended. Why not, or null. */
+export function henCare(g: Graph, d: CalendarDate, hours: number): string | null {
+  if (!henCareOpen(g, d, hours)) return 'the hens’ winter care is from mid-December, once there are hens';
+  if (purse(g) < HEN_CARE.gbp) return `straw and mite powder cost £${HEN_CARE.gbp.toFixed(2)}`;
+  applyFlow(g, {what: 'hen care', unit: 'GBP', amount: qty(HEN_CARE.gbp, 'GBP'), from: {node: KITCHEN, stock: 'money'}, to: {boundary: 'bought'}});
+  const n = g.nodes.hens!, h = herdOf(n)!;
+  n.levers.herd = {...h, welfare: 1} as unknown as LeverValue;
+  setKit(g, {henCare: hours});
+  touch(g, 'hens');
+  return null;
+}
+
+/** The windowsill's salad, cut each day once it's ready, into the kitchen. */
+function sill(c: TickContext) {
+  const t = kitOf(c.graph).sill;
+  if (t == null) return;
+  const age = (c.hours - t) / 24;
+  if (age < SILL.wait || age > SILL.wait + SILL.days) return;
+  const kg = (owns(c.graph, 'propagator') ? SILL.warm : SILL.kg) * Math.max(1, Math.round(c.dt / 24));
+  c.flow({what: 'windowsill salad', unit: 'kgFood', product: 'salad', amount: qty(kg, 'kgFood'), from: {boundary: 'growth'}, to: {node: KITCHEN, stock: 'food.salad'}});
+  recordPick(c.graph, c.hours, kg);
+}
+
 /** Pays for the beer traps' week from the purse; they go dry for the week if it can't. */
 function beerWeek(c: TickContext) {
   if (!owns(c.graph, 'beer-trap')) return;
@@ -308,6 +419,7 @@ function beerWeek(c: TickContext) {
 /** The day's work of what's in the beds: the traps' catch of last night's slugs, and the nematodes'; and bare-root season
  *  opening in November and closing after March. */
 function day(c: TickContext) {
+  sill(c);
   const g = c.graph, kit = kitOf(g), trap = kit.owned.includes('beer-trap') && !kit.dry, bare = bareRoot(c.date.month);
   if (!!kit.bare !== bare) {
     setKit(g, {bare});
