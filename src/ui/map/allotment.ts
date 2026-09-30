@@ -8,6 +8,7 @@ import {PLAYER_PLOT} from '../../data/allotment';
 import type {GraphNode} from '../../sim/graph';
 import type {Camera} from './draw';
 import type {Paint, Palette} from './palette';
+import {drawQueue, drawSeasonPlot, seasonKey} from './season';
 
 const px = (n: GraphNode, c: Camera) => ({x: c.x + n.box!.x * c.s, y: c.y + n.box!.y * c.s, w: n.box!.w * c.s, h: n.box!.h * c.s});
 
@@ -25,7 +26,7 @@ const holderNeglected = (n: GraphNode) => (n.levers.holder as {neglected?: boole
 export function allotmentKey(nodes: readonly GraphNode[]): string {
   let k = '';
   for (const n of nodes) if (n.kind === 'plot') k += `${Math.round(n.totals.health / 4)}.${Math.round((n.totals.output / FULL_KG) * 8)},`;
-  return k;
+  return k + seasonKey(nodes);
 }
 
 /** Draws an allotment node if it is one, and says whether it did. */
@@ -46,6 +47,7 @@ export function drawAllotmentNode(g: Graphics, n: GraphNode, c: Camera, pal: Pal
     g.roundRect(r.x + 0.08 * c.s, r.y + 0.12 * c.s, r.w, r.h, 0.2 * c.s).fill(pal.shadow);
     g.roundRect(r.x, r.y, r.w, r.h, 0.2 * c.s).fill(pal.tank);
     g.roundRect(r.x + inset, r.y + inset, (r.w - 2 * inset) * Math.max(0.1, full), r.h - 2 * inset, 0.1 * c.s).fill(pal.water);
+    drawQueue(g, n, c, pal);
     return true;
   }
   // a plot: its ground tinted by Health, rows of crop for its Output, weeds where it's neglected
@@ -61,6 +63,7 @@ export function drawAllotmentNode(g: Graphics, n: GraphNode, c: Camera, pal: Pal
       const fx = ((i * 7919) % 97) / 97, fy = ((i * 104729) % 89) / 89;
       g.circle(r.x + pad + fx * (r.w - 2 * pad), r.y + pad + fy * (r.h - 2 * pad), (0.45 + 0.3 * ((i * 31) % 7) / 7) * c.s).fill(pal['bed-grass']);
     }
+  drawSeasonPlot(g, n, c, pal);
   if (n.id === PLAYER_PLOT) g.roundRect(r.x - 0.15 * c.s, r.y - 0.15 * c.s, r.w + 0.3 * c.s, r.h + 0.3 * c.s, round + 0.15 * c.s).stroke({width: Math.max(2, 0.2 * c.s), color: pal.pulse.color, alpha: 1});
   return true;
 }

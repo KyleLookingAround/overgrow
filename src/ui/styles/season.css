@@ -1,0 +1,70 @@
+/* The allotment's first season in the panel (src/ui/SeasonPanel.tsx): the neighbours' column of names with a face each,
+   the second plot's card, the trough, the motion's card and the room's hands, and the swap shed. Colours and sizes from
+   the tokens (tokens.css) only. */
+.neighbour-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.neighbour {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 var(--gap-small);
+  align-items: baseline;
+  padding: var(--gap-tiny) 0;
+  border-bottom: 1px solid var(--line);
+}
+.neighbour-face {
+  grid-row: span 2;
+  font-size: var(--text-heading);
+  line-height: 1;
+}
+.neighbour-name {
+  font-weight: 600;
+}
+.neighbour-what {
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+.second-plot .reclaim strong {
+  color: var(--accent);
+}
+.trough .warn {
+  color: var(--warn);
+}
+.second-plot .watching {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-small);
+  margin: var(--gap-small) 0;
+}
+.second-plot select {
+  min-height: var(--touch);
+  max-width: 100%;
+}
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-small);
+}
+.card-actions button,
+.let-go {
+  min-height: var(--touch);
+}
+.motion .talk,
+.swap-shed .swap {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+  min-height: var(--touch);
+}
+.motion .hands {
+  margin: var(--gap-small) 0;
+  font-size: var(--text-heading);
+  
+  overflow-wrap: anywhere;
+}
+.motion .hands .against {
+  opacity: 0.45;
+}

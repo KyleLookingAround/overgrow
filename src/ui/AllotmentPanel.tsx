@@ -13,6 +13,7 @@ import {baseOf, holderOf, leverOpen, planFor, sealedOf, type AllotmentLedger} fr
 import {membersIn, weekGardenHours} from '../sim/models/household';
 import {money, num} from './format';
 import {Num} from './Num';
+import {COMING, Neighbours, SeasonSections} from './SeasonPanel';
 import './styles/allotment.css';
 
 type Tab = 'plot' | 'allotment';
@@ -49,7 +50,7 @@ function consequence(n: GraphNode, lever: Lever, value: string | number): string
   return `${num(then.output * 1000)} g a day, ${money(then.upkeep)} a day, Health heads for ${Math.round(then.health)}${then.carbon > now.carbon + 1e-9 ? ', more carbon' : ''}.`;
 }
 
-function PlotTab({nodes, hours, send, onExplain}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain}) {
+function PlotTab({nodes, hours, send, onExplain, seen, all}: {nodes: GraphNode[]; hours: number; send: (c: Command) => void; onExplain: Explain; seen: readonly string[]; all: boolean}) {
   const n = nodes.find((x) => x.id === PLAYER_PLOT), home = nodes.find((x) => x.id === 'household');
   if (!n) return null;
   const t = n.totals, l = home?.levers.ledger as unknown as AllotmentLedger | undefined;
@@ -103,12 +104,13 @@ function PlotTab({nodes, hours, send, onExplain}: {nodes: GraphNode[]; hours: nu
           </dl>
         </section>
       )}
-      <p class="soft coming-soon">Coming soon at the allotment: the shared trough, the swap shed, the neighbours’ slugs and the committee’s vote.</p>
+      <SeasonSections nodes={nodes} seen={seen} all={all} send={send} onExplain={onExplain} />
+      <p class="soft coming-soon">{COMING}</p>
     </>
   );
 }
 
-function AllotmentTab({nodes, onExplain, onSelect}: {nodes: GraphNode[]; onExplain: Explain; onSelect: (id: string) => void}) {
+function AllotmentTab({nodes, onExplain, onSelect, seen, all: details}: {nodes: GraphNode[]; onExplain: Explain; onSelect: (id: string) => void; seen: readonly string[]; all: boolean}) {
   const plots = nodes.filter((n) => n.kind === 'plot').sort((a, b) => Number(a.id.slice(5)) - Number(b.id.slice(5)));
   const all = plots.reduce((s, n) => s + n.totals.output, 0);
   return (
@@ -127,14 +129,17 @@ function AllotmentTab({nodes, onExplain, onSelect}: {nodes: GraphNode[]; onExpla
           );
         })}
       </ul>
-      <p class="soft coming-soon">Coming soon at the allotment: the shared trough, the swap shed, the neighbours’ slugs and the committee’s vote.</p>
+      <Neighbours nodes={nodes} seen={seen} all={details} onExplain={onExplain} />
+      <p class="soft coming-soon">{COMING}</p>
     </>
   );
 }
 
 export function AllotmentPanel(props: {
   nodes: GraphNode[]; hours: number; open: boolean; onToggle: () => void; send: (cmd: Command) => void; onExplain: Explain; onSelect: (id: string) => void;
+  seen?: readonly string[]; all?: boolean;
 }) {
+  const seen = props.seen ?? [], all = props.all ?? false;
   const [tab, setTab] = useState<Tab>('plot');
   const tabs: [Tab, string][] = [['plot', 'Your plot'], ['allotment', 'The allotment']];
   return (
@@ -154,8 +159,8 @@ export function AllotmentPanel(props: {
         </button>
       </div>
       <div class="panel-body" id="panel-body">
-        {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} />
-          : <AllotmentTab nodes={props.nodes} onExplain={props.onExplain} onSelect={(id) => {
+        {tab === 'plot' ? <PlotTab nodes={props.nodes} hours={props.hours} send={props.send} onExplain={props.onExplain} seen={seen} all={all} />
+          : <AllotmentTab nodes={props.nodes} onExplain={props.onExplain} seen={seen} all={all} onSelect={(id) => {
             props.onSelect(id);
             if (id === PLAYER_PLOT) setTab('plot');
           }} />}
