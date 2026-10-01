@@ -75,6 +75,8 @@ export interface MapRenderer {
     zoomed: Zoom | null; inner: number; detailed: NodeId[]; detailMs: number[];
     /** The land scene's last few drawings' times, ms, and how many times it has been drawn. */
     landMs: number[]; landDrawn: number;
+    /** Whether the land scene is showing. */
+    scene: boolean;
   };
   destroy(): void;
 }
@@ -749,8 +751,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       if (frameTimes.length > 240) frameTimes.shift();
     },
     hit(x, y) {
+      // the land scene has none of the level's places
       const c = view ?? cam;
-      if (!c) return null;
+      if (!c || scene) return null;
       const wx = (x - c.x) / c.s, wy = (y - c.y) / c.s;
       for (let i = drawn.length - 1; i >= 0; i--) {
         const b = drawn[i]!.box!;
@@ -759,6 +762,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       return null;
     },
     creatureAt(sx, sy) {
+      if (scene) return null;
       // the creatures were placed at the camera the world was drawn at; the tap is on the view
       const r = view && cam ? cam.s / view.s : 1, x = view && cam ? cam.x + (sx - view.x) * r : sx, y = view && cam ? cam.y + (sy - view.y) * r : sy;
       let best: Creature | null = null, d = CREATURE_PX * CREATURE_PX * r * r;
@@ -787,7 +791,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     },
     flyTo(id) {
       if (!bounds || zoom || dive) return;
-      const box = id ? boxes.get(id) : undefined;
+      const box = id && !scene ? boxes.get(id) : undefined;
       flyTo(box ? fillWith(box, bounds, width, height, most) : widest(bounds));
     },
     zoomStep(inwards) {
@@ -810,7 +814,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       return () => void watchers.splice(watchers.indexOf(fn) >>> 0, 1);
     },
     stats: () => ({frames: frameTimes.slice(), movers: lastMovers, stepping, cam: view ?? cam, zoomed, inner: inner.visible ? inner.alpha : 0,
-      detailed: [...detailed].filter(([, d]) => d.g.visible).map(([id]) => id), detailMs: detailMs.slice(), landMs: landMs.slice(), landDrawn, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
+      detailed: [...detailed].filter(([, d]) => d.g.visible).map(([id]) => id), detailMs: detailMs.slice(), landMs: landMs.slice(), landDrawn, scene: !!scene && landG.visible, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
       zoom: zoom ? Math.min(1, (performance.now() - zoom.start) / ZOOM_MS) : null, dive: dive ? Math.min(1, (performance.now() - dive.start) / ZOOM_MS) : null, trace: traced}),
     destroy() {
       app.destroy(false, {children: true, texture: true});

@@ -75,7 +75,7 @@ if (window.__seed !== undefined)
         hours: v?.hours ?? null, alpha: v?.alpha ?? null, prev: v?.prev.hours ?? null, cur: v?.cur.hours ?? null, renderer: renderer?.kind ?? null,
         frames: st?.frames ?? [], movers: st?.movers ?? [], stepping: st?.stepping ?? 0, cam: st?.cam ?? null, weather: st?.weather ?? null, crops: st?.crops ?? null, shapes: st?.shapes ?? null,
         gardener: st?.gardener ?? null, life: st?.life ?? null, creatures: st?.creatures ?? [], torch: st?.torch ?? false, pulse: st?.pulse ?? null, quiet: v?.quiet ?? false, night: st?.night ?? null, trace: st?.trace ?? false, dive: st?.dive ?? null,
-        skip: v?.skip ?? false, day: v?.day ?? null, zoomed: st?.zoomed ?? null, inner: st?.inner ?? 0, detailed: st?.detailed ?? [], detailMs: st?.detailMs ?? [], landMs: st?.landMs ?? [], landDrawn: st?.landDrawn ?? 0,
+        skip: v?.skip ?? false, day: v?.day ?? null, zoomed: st?.zoomed ?? null, inner: st?.inner ?? 0, detailed: st?.detailed ?? [], detailMs: st?.detailMs ?? [], landMs: st?.landMs ?? [], landDrawn: st?.landDrawn ?? 0, scene: st?.scene ?? false,
       };
     },
     bench: (n: number, m?: number, speed?: number) => loop.bench(n, m, speed),

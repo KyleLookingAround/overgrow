@@ -208,6 +208,9 @@ function index(cells: readonly Cell[], fields: readonly Field[]): string[] {
   return of;
 }
 
+/** Whether a field is farmed: in crops or grass. */
+const farmed = (f: Field) => f.kind === 'arable' || f.kind === 'grass';
+
 /**
  * A smallholding's land from a seed: the yard by the lane along the top edge, a pond, a wood in a corner, then fields of
  * three to twelve cells grown from the rest, about two in five of them grass and the others in crops. A scrap too small to
@@ -220,7 +223,7 @@ export function makeLand(seed: number, w: number = SMALLHOLDING.w, h: number = S
   // the yard: the cell nearest the middle of the top edge, and a neighbour
   const top = cells.reduce((b, c) => (Math.hypot(c.x - w / 2, c.y) < Math.hypot(b.x - w / 2, b.y) ? c : b));
   field('yard', grow(cells, free, top.id, SMALLHOLDING.yardCells, dice));
-  // a wood grown from the corner furthest from the yard, and a pond in a cell away from the edges
+  // a wood grown from a bottom corner, far from the yard, and a pond in a cell away from the edges
   const corner = cells.reduce((b, c) => (Math.hypot(c.x, c.y - h) < Math.hypot(b.x, b.y - h) ? c : b));
   const [lo, hi] = SMALLHOLDING.woodCells;
   field('wood', grow(cells, free, corner.id, lo + Math.floor(dice.next() * (hi - lo + 1)), dice));
@@ -240,13 +243,13 @@ export function makeLand(seed: number, w: number = SMALLHOLDING.w, h: number = S
     grassCells += grown[i]!.length;
   }
   grown.forEach((g, i) => (grass.has(i) ? field('grass', g) : field('arable', g, pickCrop(dice))));
-  // scraps under the smallest field join a farmed neighbour
+  // scraps under the smallest field join their smallest farmed neighbour, or, boxed in by the wood or the yard, that
   let land: Land = {seed, w, h, cells, fields, fieldOf: index(cells, fields), changes: [], next};
   for (const f of [...land.fields]) {
     if (f.cells.length >= few || (f.kind !== 'arable' && f.kind !== 'grass')) continue;
     const by = [...new Set(f.cells.flatMap((c) => neighbours(cells, c)).map((c) => land.fieldOf[c]!))].map((id) => land.fields.find((x) => x.id === id)!)
-      .filter((x) => x.id !== f.id && (x.kind === 'arable' || x.kind === 'grass'));
-    const into = by.sort((a, b) => a.cells.length - b.cells.length)[0];
+      .filter((x) => x.id !== f.id && x.kind !== 'water').sort((a, b) => Number(!farmed(a)) - Number(!farmed(b)) || a.cells.length - b.cells.length);
+    const into = by[0];
     if (!into) continue;
     const fs = land.fields.filter((x) => x.id !== f.id).map((x) => (x.id === into.id ? {...x, cells: [...x.cells, ...f.cells].sort((a, b) => a - b)} : x));
     land = {...land, fields: fs, fieldOf: index(cells, fs)};
@@ -268,8 +271,6 @@ export function connected(land: Land, ids: readonly number[]): boolean {
   while (todo.length) for (const n of neighbours(land.cells, todo.pop()!)) if (want.has(n) && !seen.has(n)) (seen.add(n), todo.push(n));
   return seen.size === want.size;
 }
-
-const farmed = (f: Field) => f.kind === 'arable' || f.kind === 'grass';
 
 /** Consolidation: two neighbouring farmed fields joined into one, the bigger one's use kept, up to JOIN_MOST cells.
  *  The new land, or why not. */
@@ -402,7 +403,7 @@ function rim(land: Land, ids: readonly number[]): [number, number, number, numbe
 export const outlines = (land: Land, f: Field): number[][] => chain(rim(land, f.cells)).map((l) => l.pts);
 
 /** The hedges: every boundary between two fields and along the land's edge, as lines that run from junction to junction,
- *  except round the pond and the yard, which have their own edges. */
+ *  except round the pond, which has its shore instead. */
 export function hedges(land: Land): Line[] {
   const kind = new Map(land.fields.map((f) => [f.id, f.kind])), edges: [number, number, number, number][] = [];
   for (const cell of land.cells) {

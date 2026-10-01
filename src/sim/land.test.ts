@@ -43,6 +43,12 @@ describe('the land as organic parcels', () => {
       for (const f of land.fields) if (f.kind === 'arable') expect(f.crop).not.toBeNull();
       expect(Math.abs(total(land) - W * H) / (W * H)).toBeLessThan(0.001);
     }
+    // no farmed field under the smallest, even boxed in by the wood or the yard, over many seeds
+    for (let seed = 1; seed <= 120; seed++) {
+      const land = makeLand(seed);
+      for (const f of land.fields) if (f.kind === 'arable' || f.kind === 'grass') expect(f.cells.length, `seed ${seed} ${f.id}`).toBeGreaterThanOrEqual(LAND.fieldCells[0]);
+      expect(Math.abs(total(land) - W * H) / (W * H)).toBeLessThan(0.001);
+    }
   });
 
   it('joins two neighbouring fields into one, keeping the area, and refuses fields that don’t touch or would be too big', () => {

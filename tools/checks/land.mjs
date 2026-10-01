@@ -61,10 +61,16 @@ export default async function({ok,open,out}){
     // the scene's frame, for the speed budget
     const frames=await page.evaluate(()=>new Promise(r=>setTimeout(()=>r(window.__sim.view().frames),2500)));
     ok('land: speed, the land scene\'s frame at 1440 × 900',frames.length>0&&!errs.length,`draw ${median(frames).toFixed(2)} ms a frame`);
-    // leaving the scene returns to the game's map
-    await page.evaluate(()=>window.__sim.land(null));await page.waitForTimeout(500);
-    const back=await page.evaluate(()=>window.__sim.view().crops&&Object.keys(window.__sim.view().crops).length);
-    ok('land: leaving the scene returns to the game\'s map',back>0&&!errs.length,`crops drawn ${back}`);
+    // a tap on the land selects none of the game's places under it
+    await page.mouse.click(720,450);await page.waitForTimeout(300);
+    const picked=await page.evaluate(()=>document.querySelector('.place h3')?.textContent??null);
+    // leaving the scene returns to the game's map: its frames drawn again, at the garden's own camera
+    const inScene=(await view(page)).scene,landS=(await view(page)).cam.s;
+    await page.evaluate(()=>window.__sim.land(null));
+    // the camera back on the garden: no longer the land's, which is a different size
+    const back=await page.waitForFunction(s=>{const v=window.__sim.view();return !v.scene&&v.cam&&Math.abs(v.cam.s-s)>1e-6},landS,{timeout:5000}).then(()=>true,()=>false);
+    const after=await view(page),garden=await page.evaluate(()=>window.__sim.snapshot().nodes.filter(n=>n.kind==='bed').length);
+    ok('land: a tap on the scene picks none of the game\'s places, and leaving it returns to the game\'s map',inScene&&!picked&&back&&!after.scene&&garden>0&&!errs.length,JSON.stringify({inScene,picked,back,scene:after.scene,err:errs[0]}));
     await ctx.close()}
 
   // phones: the scene fits, and the one-offs on a throttled phone
@@ -77,6 +83,6 @@ export default async function({ok,open,out}){
     await cdp.send('Emulation.setCPUThrottlingRate',{rate:1});
     await page.screenshot({path:join(out,`land-${vp.width}x${vp.height}.png`)});
     ok(`land: speed, at ${vp.width}×${vp.height} on a phone at 4× CPU throttling a smallholding's land is made and drawn inside the budget, and nothing spills`,
-      gen<40&&Math.max(...drawn)<40&&!(await spill(page))&&!errs.length,`made and first shown ${gen.toFixed(1)} ms each (setLand only queues the drawing); drawn ${drawn.map(x=>x.toFixed(1)).join(', ')} ms ${errs[0]||''}`);
+      gen<20&&Math.max(...drawn)<40&&!(await spill(page))&&!errs.length,`made and first shown ${gen.toFixed(1)} ms each (setLand only queues the drawing); drawn ${drawn.map(x=>x.toFixed(1)).join(', ')} ms ${errs[0]||''}`);
     await ctx.close()}
 }
