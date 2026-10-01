@@ -40,7 +40,12 @@ jobs:
       matrix:
         include:
           - {name: layout, groups: layout}
-          - {name: scene and night, groups: scene night}
+          - {name: scene, groups: scene}
+          - {name: zoom, groups: zoom}
+          - {name: camera and build, groups: camera build}
+          - {name: season and step up, groups: season stepup}
+          - {name: explain and unfold, groups: explain unfold}
+          - {name: night garden dig and land, groups: night garden dig land}
           - {name: the rest, rest: true}
     steps:
       - uses: actions/checkout@v4
@@ -65,7 +70,7 @@ jobs:
           mkdir -p build
           set -o pipefail
           if [ "${{ matrix.rest }}" = "true" ]; then
-            (node tools/build.mjs && npx tsc --noEmit && npx vitest run && node tools/check.mjs --except layout scene night) 2>&1 | tee build/check.log
+            (node tools/build.mjs && npx tsc --noEmit && npx vitest run && node tools/check.mjs --except layout scene zoom camera build season stepup explain unfold night garden dig land) 2>&1 | tee build/check.log
           else
             (node tools/build.mjs && node tools/check.mjs ${{ matrix.groups }}) 2>&1 | tee build/check.log
           fi

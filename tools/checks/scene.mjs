@@ -33,8 +33,9 @@ async function midday(page){
 // the day of weather on the newest snapshot's air node
 const air=page=>page.evaluate(()=>window.__sim.snapshot().nodes.find(n=>n.kind==='atmosphere').levers.weather);
 // a new game, paused, then on to 01:00 on day 2, and day by day until the day passes a test; null if none does in time
-async function findDay(page,test,days){
-  await page.evaluate(async()=>{await window.__sim.send({type:'new-game',seed:1,speed:0});await window.__sim.send({type:'tick',hours:19})});
+// (from a later day in one tick when asked: each day searched costs a frame or two, over a second on CI's runner)
+async function findDay(page,test,days,from=0){
+  await page.evaluate(async from=>{await window.__sim.send({type:'new-game',seed:1,speed:0});await window.__sim.send({type:'tick',hours:19+24*from})},from);
   for(let i=0;i<days;i++){const w=await air(page);if(w&&await page.evaluate(test,w))return w;await page.evaluate(()=>window.__sim.send({type:'tick',hours:24}))}
   return null;
 }
@@ -144,7 +145,8 @@ export default async function({ok,open,out}){
     if(dry){await showHour(page,15);parched=await drawn(page);await page.screenshot({path:join(out,'scene-dry-1440x900.png')})}
     const pale=parched?.weather.soil['bed-1'];
     ok('scene: a dug bed is drawn darker in the rain than on a dry sunny afternoon',soaked!==null&&pale!==undefined&&soaked>pale+0.2,`bed 1 soil ${soaked} in the rain, ${pale} on a dry afternoon (−1 dry, 1 soaked)`);
-    const cold=await findDay(page,w=>w.tmin<-1&&w.sun>2,400);let rime=null;
+    // frost from about late September (the game starts in early spring), since a frosty morning is an autumn or winter one
+    const cold=await findDay(page,w=>w.tmin<-1&&w.sun>2,200,200);let rime=null;
     if(cold){const rise=Math.floor(12-cold.length/2);await showHour(page,rise);rime=await drawn(page);await page.screenshot({path:join(out,'scene-frost-1440x900.png')})}
     ok('scene: frost lies on the garden on a frosty morning',cold&&rime.weather.frost>0&&!errs.length,cold?`day ${cold.day}, minimum ${cold.tmin.toFixed(1)} °C: frost ${rime.weather.frost.toFixed(2)}`:'no frosty day in 400');
     // the light: a warm glow as the sun rises, none at midday or mid-afternoon; puddles on the path in the rain, none on a dry afternoon
