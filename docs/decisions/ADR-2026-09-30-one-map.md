@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted when the PR that adds it merges. It records the owner's approval of `docs/specs/one-map.md` (#94) on 30 Sep 2026.
+Accepted when the PR that adds it merges. It records the owner's approval of `docs/specs/one-map.md` (#94) on 30 Sep 2026. Decision 5 (land as hex cells) is superseded by `docs/decisions/ADR-2026-10-01-organic-parcels.md` (organic parcels, the owner, 1 Oct 2026).
 
 ## Context
 

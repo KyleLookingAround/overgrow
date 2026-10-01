@@ -13,6 +13,7 @@ import type {Snapshot} from '../sim/state';
 import {createLoop} from './clock-loop';
 import {connectSim} from './sim-client';
 import {readSave, writeSave} from './storage';
+import {joinFields, makeLand, splitField, type Land} from '../sim/land';
 
 // The checks set window.__seed so a run repeats, and then get window.__sim (docs/SYSTEMS.md, "The sim in a worker").
 declare global {
@@ -61,6 +62,8 @@ async function start() {
 void start().then(save);
 
 let renderer: MapRenderer | null = null;
+// the check-only land scene (docs/briefs/organic-land.md): the land shown, and its day of the year
+let land: Land | null = null, landDay = 1;
 if (window.__seed !== undefined)
   window.__sim = {
     send,
@@ -72,7 +75,7 @@ if (window.__seed !== undefined)
         hours: v?.hours ?? null, alpha: v?.alpha ?? null, prev: v?.prev.hours ?? null, cur: v?.cur.hours ?? null, renderer: renderer?.kind ?? null,
         frames: st?.frames ?? [], movers: st?.movers ?? [], stepping: st?.stepping ?? 0, cam: st?.cam ?? null, weather: st?.weather ?? null, crops: st?.crops ?? null, shapes: st?.shapes ?? null,
         gardener: st?.gardener ?? null, life: st?.life ?? null, creatures: st?.creatures ?? [], torch: st?.torch ?? false, pulse: st?.pulse ?? null, quiet: v?.quiet ?? false, night: st?.night ?? null, trace: st?.trace ?? false, dive: st?.dive ?? null,
-        skip: v?.skip ?? false, day: v?.day ?? null, zoomed: st?.zoomed ?? null, inner: st?.inner ?? 0, detailed: st?.detailed ?? [], detailMs: st?.detailMs ?? [],
+        skip: v?.skip ?? false, day: v?.day ?? null, zoomed: st?.zoomed ?? null, inner: st?.inner ?? 0, detailed: st?.detailed ?? [], detailMs: st?.detailMs ?? [], landMs: st?.landMs ?? [], landDrawn: st?.landDrawn ?? 0, scene: st?.scene ?? false,
       };
     },
     bench: (n: number, m?: number, speed?: number) => loop.bench(n, m, speed),
@@ -81,6 +84,33 @@ if (window.__seed !== undefined)
     // the camera, as the + and − buttons and the breadcrumb move it: fly to a place (or out, null), or zoom about a point
     fly: (id: string | null) => renderer?.flyTo(id),
     zoomBy: (factor: number, x: number, y: number) => renderer?.zoomBy(factor, x, y),
+    // the land as organic parcels, shown in place of the level: a seed's smallholding on a day of the year (null returns
+    // to the game), a join or a split of its fields (the new land's fields, or why not), and the land as it stands
+    land: (seed: number | null, day = 1) => {
+      land = seed === null ? null : makeLand(seed);
+      landDay = day;
+      renderer?.setLand(land && {land, day});
+      return land?.fields ?? null;
+    },
+    landDay: (day: number) => {
+      landDay = day;
+      renderer?.setLand(land && {land, day});
+    },
+    landJoin: (a: string, b: string) => {
+      const r = land ? joinFields(land, a, b, landDay) : 'no land';
+      if (typeof r === 'string') return r;
+      land = r;
+      renderer?.setLand({land, day: landDay});
+      return r.fields;
+    },
+    landSplit: (id: string, n: number, angle: number) => {
+      const r = land ? splitField(land, id, n, angle, landDay) : 'no land';
+      if (typeof r === 'string') return r;
+      land = r;
+      renderer?.setLand({land, day: landDay});
+      return r.fields;
+    },
+    landNow: () => land,
     copyTimes: () => sim.copyTimes(),
   };
 

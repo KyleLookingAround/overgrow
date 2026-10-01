@@ -25,6 +25,8 @@ import {between, boundsOf, clampZoom, closest, depth, detailAlpha, fillWith, fit
 import {tag} from './allotment';
 import {detailOf, drawDetail, PLANT_KG} from './detail';
 import {TILE} from '../../data/allotment';
+import {drawLand, landKey} from './land';
+import type {Land} from '../../sim/land';
 import {drawLife, type Creature, type LifeStats} from './life';
 import {drawBarrow} from './season';
 import type {Palette} from './palette';
@@ -56,6 +58,9 @@ export interface MapRenderer {
   zoomStep(inwards: boolean): void;
   /** Called with the camera whenever it moves or the map is redrawn; returns a function that stops it. */
   onCamera(fn: (c: CameraState) => void): () => void;
+  /** Check-only: show a piece of land drawn by code (src/ui/map/land.ts) on a day of the year in place of the level,
+   *  through the same camera; null returns to the game. Never a player's view. */
+  setLand(scene: {land: Land; day: number} | null): void;
   /** For the checks: the last frames' times in ms, where the first movers are drawn (in CSS pixels) and how many are mid-step, the weather, each
    *  dug bed's crop stage and the shape it's drawn in, and the gardener: what they're doing, where, and what they carry. */
   stats(): {
@@ -68,6 +73,10 @@ export interface MapRenderer {
     /** The player's zoom, how much of the kept garden shows inside the player's plot, 0–1, the neighbours' plots drawn
      *  from their totals, and the last few of those drawings' times, ms. */
     zoomed: Zoom | null; inner: number; detailed: NodeId[]; detailMs: number[];
+    /** The land scene's last few drawings' times, ms, and how many times it has been drawn. */
+    landMs: number[]; landDrawn: number;
+    /** Whether the land scene is showing. */
+    scene: boolean;
   };
   destroy(): void;
 }
@@ -178,7 +187,12 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   // scales as one picture until the camera rests again and it's redrawn crisp (src/ui/map/camera.ts)
   const world = new Container(), lens = new Container();
   world.addChild(ground, live, tilth, inner, details, marks, grown, over, life, movers, crowd, carried, rain, night, dawn, glow, ring);
-  lens.addChild(world);
+  // the check-only land scene, in place of the world while it shows
+  const landG = new Graphics();
+  landG.visible = false;
+  lens.addChild(world, landG);
+  let scene: {land: Land; day: number} | null = null, sceneKey = '', landCam: Camera | null = null, paletteN = 0, landDrawn = 0;
+  const landMs: number[] = [];
   app.stage.addChild(lens);
   let level = -1, zoom: {start: number; shot: Sprite | null} | null = null, highlight = 0, grownAt = 0, grownRev = -1;
   const light = steadyLight(), dawnLight = steadyLight(); // the night's and the dawn's opacity, never flashing (src/ui/map/daylight.ts)
@@ -352,6 +366,45 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     } else fly = {from: zoomed, to, start: performance.now()};
   };
 
+  const stepFly = (t0: number) => {
+    if (!fly || !zoomed || !bounds) return;
+    const t = Math.min(1, (t0 - fly.start) / FLY_MS), e = t * t * (3 - 2 * t);
+    zoomed = clampZoom(between(fly.from, fly.to, e), bounds, width, height, most);
+    moved = t0;
+    if (t >= 1) fly = null;
+  };
+  // the land scene: the land drawn by code at the camera it last rested at, redrawn when the land, its season's stage, the
+  // size or the colours change, or the camera rests somewhere new; the camera goes in until about 60 m fills the view
+  const drawScene = (sc: {land: Land; day: number}, t0: number) => {
+    const key = `${landKey(sc.land, sc.day)}|${width}x${height}|${paletteN}`;
+    if (key !== sceneKey) {
+      const first = !sceneKey || !bounds || bounds.w !== sc.land.w || bounds.h !== sc.land.h;
+      bounds = {x: 0, y: 0, w: sc.land.w, h: sc.land.h};
+      most = Math.max(1, (Math.min(width, height) * 0.92) / 60 / fit(bounds, width, height).s);
+      zoomed = clampZoom(first || !zoomed ? widest(bounds) : zoomed, bounds, width, height, most);
+      sceneKey = key;
+      landCam = null;
+    }
+    stepFly(t0);
+    view = viewOf(bounds!, width, height, zoomed!);
+    const resting = !fly && t0 - moved >= REST_MS;
+    if (!landCam || (resting && (view.s !== landCam.s || view.x !== landCam.x || view.y !== landCam.y))) {
+      landCam = view;
+      const t = performance.now();
+      landG.clear();
+      drawLand(landG, sc.land, landCam, pal, sc.day);
+      landMs.push(performance.now() - t);
+      if (landMs.length > 24) landMs.shift();
+      landDrawn++;
+    }
+    const r = view.s / landCam.s;
+    lens.scale.set(r);
+    lens.position.set(view.x - r * landCam.x, view.y - r * landCam.y);
+    app.render();
+    frameTimes.push(performance.now() - t0);
+    if (frameTimes.length > 240) frameTimes.shift();
+  };
+
   // where an actor is, in CSS pixels: straight from start to end with its ends looked up once per activity, or along
   // the way through placeAt (people are drawn from above, the same whichever way they face)
   const at = {x: 0, y: 0};
@@ -493,12 +546,22 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     setPalette(p) {
       pal = p;
       drawnRev = -1;
+      paletteN++;
     },
     setReducedMotion(on) {
       still = on;
     },
     draw(v) {
       const t0 = performance.now(), cur = v.cur;
+      if (scene) return drawScene(scene, t0);
+      if (!world.visible) {
+        // back from the land scene: the level afresh at its widest view
+        world.visible = true;
+        landG.visible = false;
+        landG.clear();
+        zoomed = null;
+        cam = null;
+      }
       last = cur;
       // the ground: redrawn when the graph changes, or a bed plot is dug (checked once a snapshot)
       const key = keyOf === cur.nodes ? drawnKey : groundKey(cur.nodes);
@@ -519,12 +582,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       }
       // the camera: a flight moves it each frame; the world is redrawn at the view's camera once it rests, and moves as one
       // picture through the lens until then
-      if (fly && zoomed && bounds) {
-        const t = Math.min(1, (t0 - fly.start) / FLY_MS), e = t * t * (3 - 2 * t);
-        zoomed = clampZoom(between(fly.from, fly.to, e), bounds, width, height, most);
-        moved = t0;
-        if (t >= 1) fly = null;
-      }
+      stepFly(t0);
       const resting = !fly && t0 - moved >= REST_MS && !zoom && !dive;
       if (cur.rev !== drawnRev || key !== drawnKey || !cam || (resting && view && cam && (view.s !== cam.s || view.x !== cam.x || view.y !== cam.y))) {
         rebuild(cur);
@@ -693,8 +751,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       if (frameTimes.length > 240) frameTimes.shift();
     },
     hit(x, y) {
+      // the land scene has none of the level's places
       const c = view ?? cam;
-      if (!c) return null;
+      if (!c || scene) return null;
       const wx = (x - c.x) / c.s, wy = (y - c.y) / c.s;
       for (let i = drawn.length - 1; i >= 0; i--) {
         const b = drawn[i]!.box!;
@@ -703,6 +762,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       return null;
     },
     creatureAt(sx, sy) {
+      if (scene) return null;
       // the creatures were placed at the camera the world was drawn at; the tap is on the view
       const r = view && cam ? cam.s / view.s : 1, x = view && cam ? cam.x + (sx - view.x) * r : sx, y = view && cam ? cam.y + (sy - view.y) * r : sy;
       let best: Creature | null = null, d = CREATURE_PX * CREATURE_PX * r * r;
@@ -731,13 +791,21 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     },
     flyTo(id) {
       if (!bounds || zoom || dive) return;
-      const box = id ? boxes.get(id) : undefined;
+      const box = id && !scene ? boxes.get(id) : undefined;
       flyTo(box ? fillWith(box, bounds, width, height, most) : widest(bounds));
     },
     zoomStep(inwards) {
       if (!zoomed || !bounds || zoom || dive) return;
       const from = fly ? fly.to : zoomed;
       flyTo(zoomAbout(from, inwards ? STEP : 1 / STEP, width / 2, height / 2, bounds, width, height, most));
+    },
+    setLand(sc) {
+      scene = sc;
+      if (sc) {
+        world.visible = false;
+        landG.visible = true;
+      } else sceneKey = '';
+      fly = null;
     },
     onCamera(fn) {
       watchers.push(fn);
@@ -746,7 +814,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       return () => void watchers.splice(watchers.indexOf(fn) >>> 0, 1);
     },
     stats: () => ({frames: frameTimes.slice(), movers: lastMovers, stepping, cam: view ?? cam, zoomed, inner: inner.visible ? inner.alpha : 0,
-      detailed: [...detailed].filter(([, d]) => d.g.visible).map(([id]) => id), detailMs: detailMs.slice(), weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
+      detailed: [...detailed].filter(([, d]) => d.g.visible).map(([id]) => id), detailMs: detailMs.slice(), landMs: landMs.slice(), landDrawn, scene: !!scene && landG.visible, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
       zoom: zoom ? Math.min(1, (performance.now() - zoom.start) / ZOOM_MS) : null, dive: dive ? Math.min(1, (performance.now() - dive.start) / ZOOM_MS) : null, trace: traced}),
     destroy() {
       app.destroy(false, {children: true, texture: true});

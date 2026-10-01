@@ -109,14 +109,16 @@ export default async function({ok,open,out}){
     // a day with no frost forecast, then hands back the garden's pace)
     await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null&&s.hours>120)break}});
     await send(page,{type:'speed',speed:1});await page.evaluate(()=>window.__sim.clock(8));
-    let chip=null;for(let i=0;i<60&&!chip;i++){await clear(page);chip=await page.$('.skip-chip .skip-go');if(!chip)await page.waitForTimeout(400)}
+    let chip=false;for(let i=0;i<60&&!chip;i++){await clear(page);chip=await page.evaluate(()=>!!document.querySelector('.skip-chip .skip-go'));if(!chip)await page.waitForTimeout(400)}
     await page.evaluate(()=>window.__sim.clock(1));
     const line=await page.evaluate(()=>document.querySelector('.skip-chip .skip-line')?.textContent??null),pre=await snap(page);
     await page.screenshot({path:join(out,'first-minute-skip.png')});
     // every frame watched from before the tap: a skip woken at once runs for a frame or two
     await page.evaluate(()=>{window.__ran=false;const f=()=>{if(window.__sim.view().skip)window.__ran=true;else requestAnimationFrame(f)};requestAnimationFrame(f)});
-    if(chip)await chip.click().catch(()=>{});
-    const ran=await page.waitForFunction(()=>window.__ran,null,{timeout:4000}).then(()=>true,()=>false);
+    // the chip found and tapped in one step in the page, so a re-render between finding and tapping can't lose the tap;
+    // tried again (notices cleared) until the skip runs
+    let ran=false;for(let i=0;i<5&&chip&&!ran;i++){if(i)await clear(page);await page.evaluate(()=>document.querySelector('.skip-chip .skip-go')?.click());
+      ran=await page.waitForFunction(()=>window.__ran,null,{timeout:2000}).then(()=>true,()=>false)}
     const done=await page.waitForFunction(()=>!window.__sim.view().skip,null,{timeout:20000}).then(()=>true,()=>false);
     const s3=await snap(page),again=await page.evaluate(()=>!!document.querySelector('.skip-chip .skip-line'));
     ok('first minute: once nothing is waiting, a chip offers a skip to what’s next with one line; a tap runs it as a time-lapse, and the line goes',

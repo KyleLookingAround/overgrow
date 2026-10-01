@@ -237,6 +237,19 @@
   --map-rescued: #d9a520; /* the Rescued badge's rosette on a plot */
   --map-tag: #e0a82e; /* your plot's golden tag at the allotment, never an outline (docs/specs/one-map.md) */
   --map-tag-edge: #8a5a12;
+  /* the land as organic parcels (src/ui/map/land.ts): a field through its crop's year, the grass, a wood's canopy and the
+     furrows across arable land */
+  --map-field-ploughed: #8a6a4a;
+  --map-field-drilled: #9b7d58;
+  --map-field-green: #79ad57;
+  --map-field-rape: #e9d44a;
+  --map-field-bean: #dfe4c8;
+  --map-field-ripe: #d9b85e;
+  --map-field-stubble: #d6c48e;
+  --map-field-grass: #97c27a;
+  --map-furrow: #00000022;
+  --map-canopy: #3f7a3a;
+  --map-canopy-lit: #5f9a4e;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -363,6 +376,17 @@
     --map-rescued: #e8bb3a;
     --map-tag: #f0c04a;
     --map-tag-edge: #6b4510;
+    --map-field-ploughed: #5e4834;
+    --map-field-drilled: #6a5640;
+    --map-field-green: #4f7c3b;
+    --map-field-rape: #b8a738;
+    --map-field-bean: #a9ae95;
+    --map-field-ripe: #a88c46;
+    --map-field-stubble: #a4966c;
+    --map-field-grass: #63894e;
+    --map-furrow: #0000002e;
+    --map-canopy: #2b5328;
+    --map-canopy-lit: #3f6c36;
   }
 }
 /* a touch screen: 44 px targets (the spec; the UI record's 40 px stays for a mouse) */

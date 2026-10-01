@@ -4,6 +4,10 @@ import {createSim} from './index';
 import {SYSTEMS} from './systems';
 import {parseGameTime, play} from '../../tools/bot/play';
 
+/** The long headless runs' time limit: they check what the game does, not how fast (the budget test below does that), and a
+ *  slow runner takes them past Vitest's 5 s default (two three-year bot runs take about 3 s on a fast machine). */
+const LONG_RUN_MS = 30_000;
+
 describe('sim', () => {
   it('plays a long headless run without errors and repeats it from the seed', () => {
     const play = () => {
@@ -18,7 +22,7 @@ describe('sim', () => {
     expect(a.kitchen!.picked).toBeGreaterThan(40);
     expect(a.kitchen!.eaten).toBeGreaterThan(20);
     expect(a.kitchen!.sold).toBeGreaterThan(0);
-  });
+  }, LONG_RUN_MS);
 
   it('crosses the step up with a player and plays the allotment on, without errors, repeating from the seed', () => {
     const run = () => play({seed: 7, hours: parseGameTime('3y')});
@@ -29,7 +33,7 @@ describe('sim', () => {
     expect(a.allotment!.output).toBeGreaterThan(0.1);
     expect(b.play).toBe(a.play);
     expect(b.allotment).toEqual(a.allotment);
-  });
+  }, LONG_RUN_MS);
 
   it('plays on exactly as it would have after a save and load mid-run', () => {
     const straight = createSim(7, [churn]), broken = createSim(7, [churn]);
@@ -47,7 +51,7 @@ describe('sim', () => {
     expect(b).toEqual(a);
     expect(b.errors).toEqual([]);
     expect(b.activities.length).toBeGreaterThan(0);
-  });
+  }, LONG_RUN_MS);
 
   it('starts a new game from a chosen seed, on the garden on day 1', () => {
     const sim = createSim(1);

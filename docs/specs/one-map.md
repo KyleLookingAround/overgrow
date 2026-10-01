@@ -26,7 +26,7 @@ Every level. The level a player has reached sets how far out the camera goes: th
 ## What they see
 
 - **One continuous world, no visible layers.** Detail comes by its size on screen, as in a map app, never by level. A place inside another melts into its surroundings, and your plot has a small golden tag, not a box. The breadcrumb is the only sign of level, and a scale bar shows true widths, from a 2 m bed to the 13,000 km planet.
-- **Land built from hexes, drawn by code.** Land that was never laid out on paper, from the smallholding's fields out, is a grid of hex cells, each with a kind; a field is any connected set of cells, of any shape, next to fields of any kind. Beds, plots and planned streets stay straight. The art is generated from the cells: outlines traced, corners nudged and rounded, then hedges, furrows at each field's angle, stock, woods, water, trees and birds. It is cached as a texture and redrawn only when cells change or a season turns. On the globe the cells follow the H3 index.
+- **Land as organic parcels, drawn by code** (the owner, 1 Oct 2026, `docs/decisions/ADR-2026-10-01-organic-parcels.md`; it replaces the hex cells of 30 Sep). Land that was never laid out on paper, from the smallholding's fields out, is a seeded mosaic of irregular cells, no grid and no two alike; a field is any connected set of them, of any shape, next to fields of any kind. Beds, plots and planned streets stay straight. The cells are never drawn: the art is generated from the fields' outlines, traced and smoothed, then hedges, furrows at each field's angle, stock, woods, water, trees and birds. It is cached as a texture and redrawn only when a field changes or a season turns. How the nation and the globe are drawn is decided with level 8.
 - **Everything joins up.** Paths, roads, motorways, rail, air routes and shipping lanes are drawn from flows. Factories work, and people walk, drive and commute, each from a real flow.
 - **Decisions redraw the map.** Diet, where food comes from, fishing, how land is held and whether towns spread all change what's drawn, field by field over seasons.
 - **The globe.** It is lit, with an atmosphere, clouds, cities, flights arcing above the surface and ships on their lanes. Drag or flick to spin it, tilt it to the poles, tap a continent to turn it to you, or use the arrow keys.
@@ -49,7 +49,7 @@ Every level. The level a player has reached sets how far out the camera goes: th
 11. **Reaching down:** an upgrade below your level costs its own price, plus standing that roughly doubles with each level down (2^gap − 1: 1, 3, 7 … 127) and, from the town up, political capital that triples with each level you're on above it (3^(your level − 4): 3 at the town, 81 at the planet).
 12. **Decisions earn and spend:** each lever carries an effect now on political capital (how it lands) and a yearly effect on standing (the trust it builds). Outcomes pay out again when they show on the map. Below the town only standing and goodwill move.
 13. **History follows the decisions:** hazards come from the game's `Rng`, but their rates rise and fall with named factors (warming, cleared land, reserves). Tension between neighbours fills with food-price stress and contested resources, and drains with trade and treaties. A tension pin warns well before a war. You never start one; wars show through their effects on food and people, never the fighting.
-14. **Land that remembers:** smallholdings split fields into strips; consolidation joins neighbouring fields up to about eighteen cells (a cell about a third of a hectare on the smallholding, larger further out). Villages grow and join a spreading town, or build denser behind a green belt. The shape opens its own upgrades and choices, hidden until then:
+14. **Land that remembers:** smallholdings split fields into strips; consolidation joins neighbouring fields up to about eighteen cells (a cell about a third of a hectare on the smallholding, larger further out), along the cells' own edges. Villages grow and join a spreading town, or build denser behind a green belt. The shape opens its own upgrades and choices, hidden until then:
     - consolidated fields: a combine, a silo, centre-pivot irrigation, hedge replanting, and a supermarket's contract;
     - smallholdings: a machinery ring, a farm gate stall, fruit trees, a veg box round, and a co-operative;
     - a joined-up town: a bus route, a food bank, a rooftop farm, and building up against building out;
@@ -93,7 +93,7 @@ Wherever a day passes in under 8 s the light holds steady (`STEADY_DAY_S` in `sr
 
 ## Files
 
-- **New, in the parts that build them:** the camera and its frames in `src/ui/map/`, the hex land and its generated art in `src/ui/map/`, and the planet's data in `src/data/`.
+- **New, in the parts that build them:** the camera and its frames in `src/ui/map/`, the land's parcels in `src/sim/land.ts` and their generated art in `src/ui/map/`, and the planet's data in `src/data/`.
 - **New systems in `src/sim/`:** standing and currencies, skips, parcel history, and history's hazards and tension.
 - **New models in `src/sim/models/`:** one for each mechanism in item 9.
 - **Changed:** the clock loop (`src/app/clock-loop.ts`, the zoom's rate), the renderer, the top bar (no speed buttons; Pause), and the shop, garden and kitchen tabs (cards opened from the map).
@@ -101,7 +101,7 @@ Wherever a day passes in under 8 s the light holds steady (`STEADY_DAY_S` in `sr
 ## Build order
 
 1. **The spike** (its brief in `docs/briefs/one-map-spike.md`): the garden and the allotment on one camera, the clock following the zoom, skips in place of the speed buttons at levels 1 and 2, a neighbour's plot opened in detail from its totals, and no visible layer between the two.
-2. **Land built from hexes and drawn by code**, with seasons, land that remembers and skips at level 3, starting with the smallholding's fields (part 11).
+2. **Land built from organic parcels and drawn by code**, first ahead of its level (`docs/briefs/organic-land.md`), then with seasons, land that remembers and skips at level 3, starting with the smallholding's fields (part 11).
 3. **Standing, presence and nudges, and decisions earning and spending** standing (from the allotment's goodwill) and political capital (from the town).
 4. **Upgrades on the map** and reaching down, the shed's ghosts first.
 5. **The wider world:** routes, factories and people from flows, settlements, the supply chain's region and the nation.
