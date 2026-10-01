@@ -1,0 +1,28 @@
+# The land as organic parcels
+
+The land beyond the garden and the allotment, from the smallholding's fields out, as a seeded mosaic of irregular cells with fields of any shape on it (`src/sim/land.ts`, tested in `src/sim/land.test.ts`), its numbers and each farm crop's year (`src/data/land.ts`), and its art drawn by code from the fields' outlines (`src/ui/map/land.ts`, tested in `src/ui/map/land.test.ts`). Built ahead of level 3 (`docs/briefs/organic-land.md`): today it shows only in a check-only scene (`window.__sim.land`, the `land` check group), and part 11 wires it into the smallholding. The owner chose organic parcels over hex cells on 1 Oct 2026 (`docs/decisions/ADR-2026-10-01-organic-parcels.md`).
+
+- **The mosaic** (`makeCells`): jittered points over the land's rectangle, relaxed twice by Lloyd's algorithm (`LAND.relax`), cut into a Voronoi diagram by our own code: each cell is the rectangle clipped by the half-plane nearer its point than each other point, nearest first, stopping once the rest are too far to cut it. Cells average `LAND.cellM2` (3,300 m², a third of a hectare) with five to seven sides and no two alike. The vertices the cells share are snapped together, so every edge records the cell across it (or -1 at the land's edge): neighbours, outlines and hedges all come from that.
+- **A smallholding's first layout** (`makeLand`, `SMALLHOLDING`: 300 × 400 m): the yard (two cells by the lane in the middle of the top edge), a wood of four to six cells grown from the far corner, a pond in a cell away from the edges, then fields of three to twelve cells grown from the lowest free cell by the dice. The fields are shared out, in an order the dice shuffle, as grass until it has about two fifths of the farmed cells and arable on the rest, each with a crop from `SMALLHOLDING.crops`' weights. A scrap under three cells joins its smallest farmed neighbour. The same seed always makes the same land.
+- **Land that remembers.** Both return a new land, or why not, and add a record (`LandChange`: the day, a join or a split, the fields taken and made) for part 11 to save.
+  - `joinFields`: consolidation. Two touching fields in crops or grass become one, the bigger one's use kept, up to `LAND.joinMost` (18) cells. The hedge between them goes.
+  - `splitField`: inheritance. A farmed field split into n strips running at an angle. The cells are ordered across the strips' direction and cut into equal areas; then any strip in pieces gives its smaller pieces to the strip they touch most, until each is one piece. A shape that won't split that way is refused, never broken.
+  - Area is conserved by construction: a field's area is its cells'.
+- **Outlines and hedges.** `outlines` traces a field's boundary as closed rings (more than one round a hole). `hedges` runs along every boundary between two fields and round the land's edge, chained into lines from junction to junction. There are none inside a field, and none round the pond, which has a shore instead.
+- **The season** (`CALENDAR`, `stageOn`): each farm crop's year in lowland England as the stages it shows from a day of the year. Ploughed, drilled, green, flowering, ripe and stubble, from AHDB's growth guides, the Potato Council and PGRO. Oilseed rape flowers yellow from late April into May, winter wheat is ripe in July, and stubble lies in August.
+- **The art** (`drawLand`), from the outlines, never the cells:
+  - Each field filled by its use and its crop's stage, its corners rounded (Chaikin's corner-cutting, `smooth`).
+  - Furrows across bare and young arable land every 6 m, or tramlines through a standing crop every 24 m. Both run at the field's own angle and are clipped to its rounded outline (`stripes`).
+  - A wood of overlapping canopies; the pond as water inside a soft shore; the yard as gravel with a house and a barn (the kit's sheds).
+  - The hedges smoothed and drawn in one stroke, with a hedgerow tree every 70 m or so.
+  - It is drawn once into one Graphics and kept until the land, a field's stage, the size, the colours or the camera's resting place changes (`landKey`). The colours are the `--map-field-*`, `--map-furrow` and `--map-canopy*` tokens.
+- **The scene** (check-only, never a player's view): `window.__sim.land(seed, day)` shows a seed's smallholding on a day of the year in place of the level, through the same camera, which goes in until about 60 m fills the view. `landDay(day)`, `landJoin(a, b)` and `landSplit(id, n, angle)` change it, `landNow()` returns it, and `land(null)` returns to the game.
+- **Speed.**
+  - A smallholding's land is made in about 2 ms headless, about 12 ms on a phone at 4× CPU throttling (budget 20 ms).
+  - It is drawn in at most about 24 ms there (budget 40 ms).
+  - The scene's frame at 1440 × 900 is 0.3 ms.
+- **Wiring, for part 11.**
+  - Each field becomes a node whose land use is its area, its year plan from `src/sim/models/rotation.ts`, and its hedges a share of the wildlife part of Health (`WILDLIFE_PARTS`).
+  - The land's changes are saved (the one map's spec, "Saved state").
+  - Joining and splitting become choices that cost hours and money.
+  - The scene's camera band becomes level 3's (`UNIT` in `src/ui/map/camera.ts`), and the art is drawn in the renderer's level layers instead of the scene.

@@ -1,2 +1,2 @@
-Section: next
+Section: done
 - **The land as organic parcels, built ahead** (its brief in `docs/briefs/organic-land.md`; `docs/decisions/ADR-2026-10-01-organic-parcels.md`; #94): the owner chose organic parcels over hexes on 1 Oct 2026. A seeded mosaic of irregular cells, fields of any shape that join and split along their cells' edges, and their art drawn by code from the outlines (hedges, furrows, woods, a pond, the yard) following each crop's year, proved in a check-only scene of a smallholding's fields. Part 11 wires it into level 3.

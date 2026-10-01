@@ -28,4 +28,5 @@ The list is joined from the files here by `node tools/join.mjs` (`npm run build`
 | [ADR-2026-09-29-unfolding](ADR-2026-09-29-unfolding.md) | Instruments unfold as the player gains influence, from one table, gated in the sim |
 | [ADR-2026-09-30-one-map](ADR-2026-09-30-one-map.md) | The ladder is one continuous map of one fixed planet, with no visible layers, and land built from hexes drawn by code |
 | [ADR-2026-09-30-zoom-is-the-speed](ADR-2026-09-30-zoom-is-the-speed.md) | The zoom is the only speed control, with skips where the zoom can't reach |
+| [ADR-2026-10-01-organic-parcels](ADR-2026-10-01-organic-parcels.md) | Land is organic parcels drawn by code, not hex cells |
 <!-- /joined:decisions -->
