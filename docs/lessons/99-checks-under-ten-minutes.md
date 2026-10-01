@@ -10,3 +10,4 @@ Theme: process
 - **Lessons:**
   - **A runner's speed varies by two times or more between runs, so a part sized from one run can still overshoot.** `layout` doubled between two runs with no change to it. → Size each part at about two thirds of the target from the slowest run seen, and split a group by an environment variable (as `layout` now is) rather than letting one part carry it.
   - **A check that searches the game for a day should start near it.** Every day searched on CI costs over a second. → The "CI's limit" notes now say so.
+  - **A part's time limit is also how long a hang costs.** The third run's `season` and `stepup` part sat 40 minutes in the browser's system-library install, on a stalled Ubuntu mirror, before any check ran. → The installs have 5 minutes of their own and each part 20, about twice the slowest part on a slow runner.

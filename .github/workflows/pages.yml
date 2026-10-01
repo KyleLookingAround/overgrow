@@ -34,7 +34,7 @@ jobs:
   # Split across parallel jobs by time like Checks (docs/SYSTEMS.md, "CI's limit"); `check` below gathers them.
   parts:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -64,8 +64,10 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
       - run: npx playwright install --with-deps chromium
         if: steps.pw-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5 # a stalled package mirror fails here, not at the job's limit
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 5 # a stalled package mirror fails here, not at the job's limit
       - name: ${{ matrix.name }}
         env:
           LAYOUT_PART: ${{ matrix.layout }}
