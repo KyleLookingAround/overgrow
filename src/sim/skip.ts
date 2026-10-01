@@ -64,6 +64,8 @@ function bedNext(n: GraphNode, hours: number): {days: number; why: string} | nul
     const c = CROPS[s.id as CropId];
     return {days: Math.max(0, c.dd.mature - s.dd) / ddPerDay(d.month, c.base), why: `${c.name.toLowerCase()} ready in ${n.name.toLowerCase()}`};
   }
+  // only a dug bed is sown (and asking an undug one searches the whole year)
+  if ((n.stocks['land.crops']?.amount ?? 0) <= 0 || n.levers.sow === 'none') return null;
   const next = nextSowing(n, d);
   if (!next) return null;
   const ahead = (next.day - d.dayOfYear + 365) % 365;
@@ -71,7 +73,7 @@ function bedNext(n: GraphNode, hours: number): {days: number; why: string} | nul
 }
 
 /** Each state's last answer, kept for the game day: the foresight is asked every snapshot. */
-const kept = new WeakMap<State, {day: number; level: number; rev: number; due: Due | null}>();
+const kept = new WeakMap<State, {day: number; level: number; due: Due | null}>();
 
 /**
  * What's next that needs the player at a level where skips are offered, at least a day off and at most SKIP.mostDays;
@@ -80,10 +82,10 @@ const kept = new WeakMap<State, {day: number; level: number; rev: number; due: D
  */
 export function dueOf(s: State): Due | null {
   if (s.level > SKIP.levels || s.zoom?.down) return null;
-  const day = calendar(s.hours).dayIndex, had = kept.get(s), rev = s.graph.rev;
-  if (had && had.day === day && had.level === s.level && had.rev === rev) return had.due;
+  const day = Math.floor(s.hours / 24), had = kept.get(s);
+  if (had && had.day === day && had.level === s.level) return had.due;
   const due = foresee(s);
-  kept.set(s, {day, level: s.level, rev, due});
+  kept.set(s, {day, level: s.level, due});
   return due;
 }
 
