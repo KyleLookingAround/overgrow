@@ -62,8 +62,8 @@ export function lawn(g: Graphics, r: Rect, s: number, pal: Palette, seed: number
 }
 
 /** The hedge round the outside: the edge's green with leaf dabs along the garden's boundary, two rows deep. */
-export function hedge(g: Graphics, garden: Rect, w: number, h: number, s: number, pal: Palette, seed: number) {
-  g.rect(0, 0, w, h).fill(pal.edge);
+export function hedge(g: Graphics, garden: Rect, area: Rect, s: number, pal: Palette, seed: number) {
+  g.rect(area.x, area.y, area.w, area.h).fill(pal.edge);
   const step = 0.32 * s, rad = 0.17 * s;
   if (rad < 1.5) return;
   const x0 = garden.x - rad * 0.4, x1 = garden.x + garden.w + rad * 0.4, y0 = garden.y - rad * 0.4, y1 = garden.y + garden.h + rad * 0.4;

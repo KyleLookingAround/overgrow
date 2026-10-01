@@ -5,8 +5,8 @@
    media queries choose only the sheet or the side panel; everything inside steps by its own container's width (the top
    bar, the map, the panel: the owner's win W2), and the safe areas are kept clear on every side. The steps' widths are
    written in the queries, since a custom property can't be used in a query's condition. Over the map, from the bottom:
-   the badges and the small rewards, the goal bar at its foot (with the folded speed button beside it on a phone), the
-   notices at its top (clear of the fullscreen button at its top right corner), and one card docked away from the
+   the badges and the small rewards, the goal bar at its foot (with Pause beside it on a phone), the notices or the
+   skip's chip at its top (clear of the fullscreen button and the zoom's + and − down its right edge), and one card docked away from the
    place it's about (data-dock on the layer). The safe areas: the top bar pads the top, the sheet's foot or the map's
    chrome pads the bottom, and the page pads the sides; nothing inside the map pads the top, since the bar is above it.
    One screen-width query styles the top bar's own gap, since a container can't be styled by its own query. Every tap
@@ -212,34 +212,21 @@ meter {
   stroke: var(--soft);
   stroke-width: var(--bag-handle);
 }
-/* the speeds: a segmented control at the bar's right end */
+/* Pause at the bar's right end, the one clock control (the zoom sets the pace), and the moon on its corner while a
+   quiet night passes quickly: a small badge taking no room in the bar, glowing softly (still under reduced motion) */
 .speeds {
   display: inline-flex;
   margin-left: auto;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r);
-  overflow: hidden;
 }
 .speeds .speed {
-  border: 0;
-  border-radius: 0;
   min-width: var(--control);
   padding: 0 var(--s-2);
 }
-.speeds .speed + .speed {
-  border-left: 1px solid var(--line-strong);
-}
 .speed,
-.speed-cycle,
-.speed-pill {
+.pause-pill {
+  position: relative;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-}
-/* the moon while a quiet night passes quickly: a small badge inside the pressed speed's corner (or the map's speed pill
-   on a phone), taking no room in the bar, glowing softly (still under reduced motion) */
-.speed,
-.speed-cycle {
-  position: relative;
 }
 .quiet-night {
   position: absolute;
@@ -270,73 +257,49 @@ meter {
     animation: none;
   }
 }
-.speed-cycle {
-  display: none;
-  margin-left: auto;
-}
-.speed-fast {
-  display: none;
-}
 .pause {
   font-size: var(--text-sm);
   letter-spacing: var(--pause-squeeze);
 }
-/* the moon while a quiet night passes quickly: a small badge inside the pressed speed's corner (or the map's speed pill
-   on a phone), taking no room in the bar, glowing softly (still under reduced motion) */
-.speed,
-.speed-cycle,
-.speed-pill {
-  position: relative;
+/* the breadcrumb in the level's place once the camera has zoomed into somewhere: the level, a tap back out to its
+   widest view, and the place; on the narrowest bar only the back arrow and the place (docs/specs/one-map.md) */
+.level {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
 }
-.quiet-night {
-  position: absolute;
-  top: var(--gap-hair);
-  left: var(--gap-hair);
-  display: grid;
-  place-items: center;
-  width: var(--moon);
-  height: var(--moon);
-  border-radius: 50%;
-  background: var(--bg);
+.crumb-up {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-hair);
+  min-height: var(--touch);
+  min-width: var(--touch);
+  padding: 0;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+.crumb-back {
+  font-size: var(--text-sm);
+}
+.crumb-sep {
+  margin: 0 var(--s-1);
+}
+.crumb-here {
   color: var(--ink);
-  pointer-events: none;
-  animation: moon-glow var(--moon-ms) ease-in-out infinite alternate;
+  white-space: nowrap;
 }
-.quiet-night svg {
-  width: calc(var(--moon) * 0.75);
-  height: calc(var(--moon) * 0.75);
-  fill: currentColor;
-}
-@keyframes moon-glow {
-  from {
-    opacity: var(--moon-low);
-  }
-}
-.speed-fast {
-  display: none;
-}
-/* the bar's steps by its own width (the owner's wins W2 and W11): the temperature goes first; then 4×, 8× and 16× fold
-   into one button that cycles them (six 44 px speeds want about 1,000 px with December's money and dial); then pause
-   and the speeds fold into one button */
+/* the bar's steps by its own width (the owner's wins W2 and W11): the temperature goes first, then the breadcrumb keeps
+   only its back arrow and the place */
 @container topbar (max-width: 599px) {
   .temp {
     display: none;
   }
 }
-@container topbar (max-width: 1023px) {
-  .speeds .speed.fast {
+@container topbar (max-width: 479px) {
+  .crumb-name,
+  .crumb-sep {
     display: none;
-  }
-  .speeds .speed-fast {
-    display: inline-block;
-  }
-}
-@container topbar (max-width: 699px) {
-  .speeds {
-    display: none;
-  }
-  .speed-cycle {
-    display: inline-block;
   }
 }
 /* a phone's bar: the money and the dial sit tighter, the type steps down, the shop's footprint leaves the dial, and on
@@ -366,7 +329,7 @@ meter {
   }
 }
 @container topbar (max-width: 399px) {
-  .level:has(~ .money) {
+  .level:not(:has(.crumb-here)):has(~ .money) {
     display: none;
   }
 }
@@ -408,8 +371,10 @@ meter {
 .card-overlay,
 .notice,
 .goal-bar,
-.speed-pill,
-.fullscreen {
+.pause-pill,
+.fullscreen,
+.zoom-buttons button,
+.skip-chip {
   pointer-events: auto;
 }
 .badge {
@@ -439,15 +404,17 @@ meter {
 .badge-flowers svg {
   fill: var(--badge-ink);
 }
-/* the map's own controls at its corners: fullscreen (only where the browser has it) and, on a phone, the speed; their
-   focus ring gets a halo of surface, so it reads on the lawn */
+/* the map's own controls at its corners: fullscreen (only where the browser has it), the zoom's + and − under it, and,
+   on a phone, Pause; their focus ring gets a halo of surface, so it reads on the lawn */
 .badge:focus-visible,
 .fullscreen:focus-visible,
-.speed-pill:focus-visible {
+.zoom-buttons button:focus-visible,
+.pause-pill:focus-visible {
   box-shadow: 0 0 0 calc(var(--focus-ring) + var(--focus-halo)) var(--surface);
 }
 .fullscreen,
-.speed-pill {
+.zoom-buttons button,
+.pause-pill {
   position: absolute;
   width: var(--touch);
   height: var(--touch);
@@ -462,7 +429,26 @@ meter {
   top: var(--s-2);
   right: var(--s-2);
 }
-.fullscreen svg {
+.zoom-buttons {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.map-over:has(.fullscreen) .zoom-buttons {
+  top: calc(2 * var(--s-2) + var(--touch));
+}
+.zoom-buttons button {
+  position: static;
+}
+/* a zoom button at its end is hidden, keeping its place so the other doesn't move */
+.zoom-buttons [data-end] {
+  visibility: hidden;
+}
+.fullscreen svg,
+.zoom-buttons svg {
   width: var(--icon);
   height: var(--icon);
   fill: none;
@@ -471,10 +457,68 @@ meter {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.speed-pill {
+.pause-pill {
   display: none;
   right: var(--s-2);
   bottom: max(var(--s-2), env(safe-area-inset-bottom));
+}
+/* the skip's chip at the map's top, in the notices' place (it's offered only when none is up): what's next and a tap to
+   skip to it, with its one line until the first is taken, and Explain; while it runs, what it runs to and Stop */
+.skip-chip {
+  position: absolute;
+  top: var(--s-2);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin: 0;
+  max-width: calc(100% - 4 * var(--s-2) - 2 * var(--touch));
+  padding: 0 var(--s-1) 0 0;
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-3);
+  font-size: var(--text-sm);
+  animation: card-in var(--motion) ease-out;
+}
+.skip-chip.on {
+  padding-left: var(--s-3);
+}
+.skip-go {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  padding: var(--s-1) var(--s-2) var(--s-1) var(--s-3);
+  background: none;
+  border: 0;
+  border-radius: var(--r-pill);
+  color: inherit;
+  text-align: left;
+}
+.skip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.skip-line {
+  opacity: 0.85;
+}
+.skip-why,
+.skip-stop {
+  flex: none;
+  min-width: var(--touch);
+  min-height: var(--touch);
+  padding: 0 var(--s-2);
+  background: none;
+  border: 0;
+  border-radius: var(--r-pill);
+  color: inherit;
+  font-weight: 600;
 }
 
 /* the one overlay card (the owner's win W13), docked away from its place: at the foot of the map, or at its top when
@@ -623,7 +667,8 @@ meter {
   font-size: var(--text-sm);
   animation: card-in var(--motion) ease-out;
 }
-.map-over:has(.fullscreen) .notices {
+.map-over:has(.fullscreen) .notices,
+.map-over:has(.zoom-buttons) .notices {
   right: calc(2 * var(--s-2) + var(--touch));
 }
 .notice-text {
@@ -1250,7 +1295,7 @@ button.dig {
   }
   /* the map doesn't reach the screen's foot here: its chrome needs no bottom inset */
   .goal-bar,
-  .speed-pill,
+  .pause-pill,
   .card-overlay {
     bottom: var(--s-2);
   }
@@ -1264,12 +1309,11 @@ button.dig {
     display: grid;
     place-items: center;
   }
-  /* the speed in thumb reach: the folded button leaves the bar for the map's corner, beside the goal bar */
-  .topbar .speed-cycle,
+  /* Pause in thumb reach: it leaves the bar for the map's corner, beside the goal bar */
   .topbar .speeds {
     display: none;
   }
-  .speed-pill {
+  .pause-pill {
     display: grid;
   }
   .goal-bar {
@@ -1288,7 +1332,7 @@ button.dig {
     display: none;
   }
 }
-.map-over:has(.card-overlay):not([data-dock='top']) .speed-pill {
+.map-over:has(.card-overlay):not([data-dock='top']) .pause-pill {
   bottom: auto;
   top: calc(2 * var(--s-2) + var(--touch));
 }

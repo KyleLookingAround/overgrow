@@ -3,14 +3,19 @@
 // map sit the badges, the notices, the goal bar and one card at a time (win W5's queue): the first plan's card first,
 // while nothing else is shown over it, then the Explain card (opened by a tap on any effect, badge or number); no notice
 // shows while a card is up, and the goal bar gives way to a card but stays under a notice (the spec
-// docs/specs/ui-overhaul.md). On a phone the folded speed button sits at the map's foot, in thumb reach. What the
-// player sees unfolds from the snapshot's `seen` (src/data/unfold.ts), one sign a batch; the page keeps a week's log of
-// effects for the places' panels (src/ui/effects-log.ts). A quiet night, with no card or notice waiting, passes quickly
-// (src/ui/quiet-night.ts), with the moon by the speeds and one short notice the first time on this device.
+// docs/specs/ui-overhaul.md). On a phone Pause sits at the map's foot, in thumb reach. What the player sees unfolds from
+// the snapshot's `seen` (src/data/unfold.ts), one sign a batch; the page keeps a week's log of effects for the places'
+// panels (src/ui/effects-log.ts). There are no speeds: the camera's zoom sets the pace (src/ui/map/camera.ts), and the
+// top bar's breadcrumb names the place it's zoomed into. A quiet night, with no card or notice waiting, passes quickly
+// (src/ui/quiet-night.ts), with the moon on Pause and one short notice the first time on this device. When nothing needs
+// the player for longer, a chip at the map's top offers a skip to what does (the sim's foresight, src/sim/skip.ts), only
+// while no card, notice or event is up, with one short line on what it does until the first is taken; it runs as the
+// clock loop's time-lapse, and Stop, a card or a notice ends it. Zoomed in at the allotment, one notice the first time
+// on this device says time runs slower there.
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
 import type {Loop} from '../app/clock-loop';
 import type {SimClient} from '../app/sim-client';
-import {LEVELS, START, type Speed} from '../data/ladder';
+import {START, type Speed} from '../data/ladder';
 import {CARDS} from '../data/unfold';
 import type {Command} from '../sim/commands';
 import type {NodeId} from '../sim/graph';
@@ -31,7 +36,7 @@ import {AllotmentPanel} from './AllotmentPanel';
 import {ZoomCard, ZoomStrip} from './ZoomCard';
 import {TRACE, zoomOpen} from '../sim/zoom';
 import {YEAR_HOURS} from '../sim/commands';
-import type {MapRenderer} from './map/renderer';
+import type {CameraState, MapRenderer} from './map/renderer';
 import {MapView} from './MapView';
 import {current, push, today, unfoldSign, type Notice} from './notices';
 import {markOf, momentsOf, type SeasonMark} from './moments';
@@ -43,23 +48,27 @@ import {quietUntil} from './quiet-night';
 
 let noticeId = 0;
 
-/** A speed's label on the map's folded button, as the top bar writes it. */
-const speedLabel = (s: Speed) => (s === 0 ? 'paused' : `${s}×`);
-
-/** The game hours after which the first minute is over and the "try faster" nudge may show (win W17): a real minute at
- *  1× in the garden. */
-const FIRST_MINUTE = (60 * 24) / LEVELS[0]!.secondsPerDay;
-/** The device's note that the quiet night's notice has shown, once (a convenience of the page's, not the game's). */
-const QUIET_SEEN = 'overgrow-quiet-night-seen';
-let quietNoted = false;
-const quietSeen = () => {
+/** The device's notes that a one-time notice has shown (a convenience of the page's, not the game's): the quiet night's,
+ *  and the one saying time runs slower zoomed in. */
+const QUIET_SEEN = 'overgrow-quiet-night-seen', CLOSER_SEEN = 'overgrow-closer-seen';
+const noted = new Set<string>();
+const once = (key: string) => {
+  if (noted.has(key)) return false;
+  noted.add(key);
   try {
-    return quietNoted || localStorage.getItem(QUIET_SEEN) === '1';
+    if (localStorage.getItem(key) === '1') return false;
+    localStorage.setItem(key, '1');
   } catch {
-    return quietNoted;
+    // storage blocked: it may say so again on another visit
   }
+  return true;
 };
 const QUIET_TEXT = 'Quiet nights pass quickly';
+/** What woke a skip, as its notice says it (something new has its own sign). */
+const WOKE: Record<string, string> = {
+  'frost damage': 'frost on a crop', 'Smith period': 'blight weather', 'slugs in your garden': 'slugs in your garden', 'slugs from next door': 'slugs from next door',
+  'frost forecast': 'a frost forecast',
+};
 /** A jump in game hours between two snapshots past which the page starts its signs and moments afresh. */
 const JUMP_HOURS = 24 * 7;
 
@@ -73,7 +82,10 @@ function hourNow(snap: Snapshot, hours: number) {
 }
 
 export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRenderer: (r: MapRenderer) => void}) {
-  const [shown, setShown] = useState<{snap: Snapshot; hour: number; speed: Speed; quiet: boolean} | null>(null);
+  const [shown, setShown] = useState<{snap: Snapshot; hour: number; speed: Speed; quiet: boolean; skip: boolean} | null>(null);
+  // the place the camera has zoomed into (the breadcrumb's), and the map's renderer, to fly back out
+  const [place, setPlace] = useState<CameraState['place']>(null);
+  const map = useRef<MapRenderer | null>(null);
   const [selected, setSelected] = useState<NodeId | null>(null);
   // the sheet's resting height on a phone (src/ui/Panel.tsx); a side panel ignores it
   const [sheet, setSheet] = useState<Sheet>('half');
@@ -84,16 +96,17 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const log = useMemo(() => new EffectsLog(), []);
   useEffect(() => sim.onSnapshot((s) => log.add(s)), [sim]);
   useEffect(() => {
-    let snap: Snapshot | null = null, hour = -1, speed = -1, quiet = false;
+    let snap: Snapshot | null = null, hour = -1, speed = -1, quiet = false, skip = false;
     return loop.onFrame((v) => {
       if (loop.benching()) return;
       const h = Math.floor(v.hours + 1e-9), s = loop.latest()?.speed ?? v.cur.speed;
-      if (v.cur !== snap || h !== hour || s !== speed || v.quiet !== quiet) {
+      if (v.cur !== snap || h !== hour || s !== speed || v.quiet !== quiet || v.skip !== skip) {
         snap = v.cur;
         hour = h;
         speed = s;
         quiet = v.quiet;
-        setShown({snap, hour, speed: s, quiet});
+        skip = v.skip;
+        setShown({snap, hour, speed: s, quiet, skip});
       }
     });
   }, [loop]);
@@ -128,6 +141,8 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
     const m = fresh ? {moments: [], mark: markOf(s)} : momentsOf(before!.snap, s, before!.mark);
     was.current = {seed: s.seed, seen: s.seen, snap: s, mark: m.mark};
     if (fresh) return;
+    // a skip woken before its hour says why
+    if (s.woke && WOKE[s.woke]) setNotices((l) => push(l, {id: ++noticeId, text: `Skip stopped: ${WOKE[s.woke!]}`, at: Date.now(), day: calendar(s.hours).dayIndex}));
     // the step up: the garden is a plot now, and the garden's moments and rewards stay behind with it; going down and back
     // up (part 9) change the level too, with a line of their own
     if (before!.snap.level !== s.level) {
@@ -164,14 +179,6 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   const stay = !!snap && !first && snap.seen.includes(CARDS.year) && latched(snap);
   // the garden's first year, on its anniversary, when the offer isn't won yet: once a save
   const firstYear = !!snap && !first && !year && !allot && snap.hours >= YEAR_HOURS && !snap.seen.includes(CARDS.year) && !snap.seen.includes(CARDS.firstYear);
-  // the one "try faster" nudge: once the first minute is over (the first cut is in by then), before the wait for the
-  // spring sowings, at 1×, once a save
-  const nudge = !!snap && !first && !allot && snap.hours > FIRST_MINUTE && shown!.speed === 1 && snap.seen.includes(CARDS.firstPlan) &&
-    !snap.seen.includes(CARDS.tryFaster);
-  const faster: Notice | null = nudge ? {
-    id: -1, at: 0, choice: true, text: 'The spring sowings take weeks to grow. Try 2× to watch the season go by faster.',
-    actions: [{label: 'Try 2×', run: () => send({type: 'card', id: 'try-faster', answer: 'yes'})}],
-  } : null;
   // the bed card: an empty bed without the player's say asks what's next, in the queue like the rest
   const bed = snap && !first && !allot ? bedCardOf(snap) : null;
   const bedNotice: Notice | null = bed ? {
@@ -189,37 +196,50 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
   useEffect(() => {
     if (!cardUp) setNotices((l) => l.map((n) => ({...n, at: Date.now()})));
   }, [cardUp]);
-  const shownNotices = cardUp ? [] : [...notices, ...(faster ? [faster] : []), ...(dueNotice ? [dueNotice] : []), ...(bedNotice ? [bedNotice] : [])];
+  const shownNotices = cardUp ? [] : [...notices, ...(dueNotice ? [dueNotice] : []), ...(bedNotice ? [bedNotice] : [])];
   // on a phone a card folds the sheet while it's up (page.css); the panel says so, and a tap on it closes an Explain card
   const sheetShown: Sheet = cardUp ? 'peek' : sheet;
   const onSheet = (s: Sheet) => {
     if (explain) setExplain(null);
     setSheet(s);
   };
+  // a skip under way (the newest snapshot's, a step or two ahead of the map), and one to offer: what's next that needs
+  // the player, while the clock runs and no card, notice or event is up
+  const skipping = shown ? loop.latest()?.skip ?? null : null;
+  const stopSkip = () => {
+    loop.endSkip();
+    send({type: 'skip', until: null});
+  };
+  const quietNow = !!snap && !cardUp && !shownNotices.some((n) => n.text !== QUIET_TEXT);
   // a quiet night: nothing live on the map, and no card or notice waiting but its own; the loop passes it quickly
-  const until = snap && !cardUp && !shownNotices.some((n) => n.text !== QUIET_TEXT) ? quietUntil(snap, shown!.hour, hourNow(snap, shown!.hour)) : null;
+  const until = snap && quietNow && !skipping ? quietUntil(snap, shown!.hour, hourNow(snap, shown!.hour)) : null;
   useEffect(() => loop.setQuiet(until), [loop, until]);
   // the first quiet night on this device says so, once
   useEffect(() => {
-    if (until === null || quietSeen()) return;
-    quietNoted = true;
-    try {
-      localStorage.setItem(QUIET_SEEN, '1');
-    } catch {
-      // storage blocked: it may say so again on another visit
-    }
-    setNotices((l) => push(l, {id: ++noticeId, text: QUIET_TEXT, at: Date.now()}));
+    if (until !== null && once(QUIET_SEEN)) setNotices((l) => push(l, {id: ++noticeId, text: QUIET_TEXT, at: Date.now()}));
   }, [until]);
+  const offer = snap && !skipping && quietNow && !shownNotices.length && shown!.speed > 0 && until === null && !zoomOpen(zoom) && !down ? snap.due : null;
+  // a card or a notice turning up ends a skip where it is
+  const interrupt = !!skipping && (cardUp || shownNotices.length > 0);
+  useEffect(() => {
+    if (interrupt) stopSkip();
+  }, [interrupt]);
+  // zoomed in at the allotment for the first time on this device: time runs slower closer in
+  useEffect(() => {
+    if (allot && place && once(CLOSER_SEEN))
+      setNotices((l) => push(l, {id: ++noticeId, text: 'Closer in, time runs slower', more: 'Zoom out to hurry the weeks: a day takes 12 s on one plot and 6 s over the whole allotment.', at: Date.now()}));
+  }, [allot, place]);
   return (
     <div class="page" data-sim={shown ? 'ready' : 'waiting'}>
       <h1 class="visually-hidden">Overgrow</h1>
-      {shown ? <TopBar snap={shown.snap} hours={shown.hour} speed={shown.speed} flash={flash} quiet={shown.quiet} onSpeed={speed} onExplain={explainAt} /> : <header class="topbar"><span class="soft">Starting…</span></header>}
+      {shown ? <TopBar snap={shown.snap} hours={shown.hour} speed={shown.speed} flash={flash} quiet={shown.quiet} place={place?.name ?? null} onSpeed={speed}
+        onOut={() => map.current?.flyTo(null)} onExplain={explainAt} /> : <header class="topbar"><span class="soft">Starting…</span></header>}
       <main class="main">
-        <MapView loop={loop} onSelect={(id) => { setSelected(id); if (sheet === 'peek') setSheet('half'); }} onReady={onRenderer} onExplain={explainAt} nodes={nodes} badges={badges}
+        <MapView loop={loop} onSelect={(id) => { setSelected(id); if (sheet === 'peek') setSheet('half'); }} onReady={(r) => { map.current = r; onRenderer(r); }} onExplain={explainAt}
+          onPlace={setPlace} nodes={nodes} badges={badges}
           pulse={explain && !first && !year ? explain.at : null} juice={first ? [] : juice}>
           <Notices list={shownNotices} onDismiss={(id) => {
-            if (id === -1) send({type: 'card', id: 'try-faster', answer: 'no'});
-            else if (id === -2) bed?.dismiss.forEach(send);
+            if (id === -2) bed?.dismiss.forEach(send);
             else if (id === -3 && due) send(due.dismiss);
             else setNotices((l) => l.filter((n) => n.id !== id));
           }} />
@@ -239,10 +259,28 @@ export function App({sim, loop, onRenderer}: {sim: SimClient; loop: Loop; onRend
               }
             }} />}
           {down && <ZoomStrip z={zoom!} hours={shown!.hour} onUp={() => send({type: 'back-up'})} />}
+          {(offer || skipping) && (
+            <p class={skipping ? 'skip-chip on' : 'skip-chip'} data-until={skipping?.until ?? offer!.hours}>
+              {skipping ? (
+                <>
+                  <span class="skip-text">Skipping ahead: {skipping.why}</span>
+                  <button type="button" class="skip-stop" onClick={stopSkip}>Stop</button>
+                </>
+              ) : (
+                <>
+                  <button type="button" class="skip-go" onClick={() => send({type: 'skip', until: offer!.hours})}>
+                    <span class="skip-text">Skip ahead: {offer!.why}</span>
+                    {!snap!.seen.includes(CARDS.skip) && <small class="skip-line">Every hour still runs, just quicker.</small>}
+                  </button>
+                  <button type="button" class="skip-why" aria-label="Why skip? Explain" onClick={() => explainAt('skip', null)}>?</button>
+                </>
+              )}
+            </p>
+          )}
           {shown && !first && (
-            <button type="button" class="speed-pill" aria-label={`Speed: ${speedLabel(shown.speed)}${shown.quiet ? ', quiet night: passing quickly' : ''}. Next: ${nextSpeed(shown.speed) === 0 ? 'pause' : speedLabel(nextSpeed(shown.speed))}`}
+            <button type="button" class="pause-pill" aria-pressed={shown.speed === 0} aria-label={`Pause${shown.quiet && shown.speed > 0 ? ', quiet night: passing quickly' : ''}`}
               onClick={() => speed(nextSpeed(shown.speed))}>
-              {shown.speed === 0 ? <span aria-hidden="true" class="pause">❚❚</span> : speedLabel(shown.speed)}
+              <span aria-hidden="true" class="pause">{shown.speed === 0 ? '▶' : '❚❚'}</span>
               {shown.quiet && (
                 <span class="quiet-night" title="Quiet night: passing quickly">
                   <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M 10.5 2 A 6 6 0 1 0 14 11.5 A 5 5 0 0 1 10.5 2 Z" /></svg>

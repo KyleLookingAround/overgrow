@@ -72,9 +72,15 @@ if (window.__seed !== undefined)
         hours: v?.hours ?? null, alpha: v?.alpha ?? null, prev: v?.prev.hours ?? null, cur: v?.cur.hours ?? null, renderer: renderer?.kind ?? null,
         frames: st?.frames ?? [], movers: st?.movers ?? [], stepping: st?.stepping ?? 0, cam: st?.cam ?? null, weather: st?.weather ?? null, crops: st?.crops ?? null, shapes: st?.shapes ?? null,
         gardener: st?.gardener ?? null, life: st?.life ?? null, creatures: st?.creatures ?? [], torch: st?.torch ?? false, pulse: st?.pulse ?? null, quiet: v?.quiet ?? false, night: st?.night ?? null, trace: st?.trace ?? false, dive: st?.dive ?? null,
+        skip: v?.skip ?? false, day: v?.day ?? null, zoomed: st?.zoomed ?? null, inner: st?.inner ?? 0, detailed: st?.detailed ?? [], detailMs: st?.detailMs ?? [],
       };
     },
     bench: (n: number, m?: number, speed?: number) => loop.bench(n, m, speed),
+    // the checks' fast clock: k times the zoom's pace, never a player's control (1 to stop)
+    clock: (k: number) => loop.checkClock(k),
+    // the camera, as the + and − buttons and the breadcrumb move it: fly to a place (or out, null), or zoom about a point
+    fly: (id: string | null) => renderer?.flyTo(id),
+    zoomBy: (factor: number, x: number, y: number) => renderer?.zoomBy(factor, x, y),
     copyTimes: () => sim.copyTimes(),
   };
 

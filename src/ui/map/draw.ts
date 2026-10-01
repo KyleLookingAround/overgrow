@@ -24,28 +24,14 @@ import type {View} from '../../app/clock-loop';
 import type {Palette, Paint} from './palette';
 import * as kit from './kit';
 import {leaves, plant, seedling, sward, SHAPE, type Shape} from './plants';
+import {boundsOf, fit, type Camera} from './camera';
 
-/** Metres to CSS pixels: x = cam.x + metres × cam.s. */
-export interface Camera {
-  x: number;
-  y: number;
-  s: number;
-}
+export type {Camera} from './camera';
 
-/** Fits every drawn node on the canvas with a margin, centred. */
+/** Fits every drawn node on the canvas with a margin, centred: the level's widest view (src/ui/map/camera.ts). */
 export function camera(nodes: readonly GraphNode[], w: number, h: number): Camera {
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const n of nodes) {
-    const b = n.box!;
-    x0 = Math.min(x0, b.x);
-    y0 = Math.min(y0, b.y);
-    x1 = Math.max(x1, b.x + b.w);
-    y1 = Math.max(y1, b.y + b.h);
-  }
-  if (!Number.isFinite(x0)) return {x: 0, y: 0, s: 1};
-  const bw = x1 - x0, bh = y1 - y0, margin = Math.min(w, h) * 0.04;
-  const s = Math.max(0.01, Math.min((w - 2 * margin) / bw, (h - 2 * margin) / bh));
-  return {x: (w - bw * s) / 2 - x0 * s, y: (h - bh * s) / 2 - y0 * s, s};
+  const b = boundsOf(nodes);
+  return b ? fit(b, w, h) : {x: 0, y: 0, s: 1};
 }
 
 /** A bed plot is dug once most of it is cropland rather than grass (the panel and the map agree on this). */
@@ -78,19 +64,27 @@ function dashes(g: Graphics, r: kit.Rect, c: Camera, pal: Palette) {
   g.fill(pal['plot-line']);
 }
 
-/** The ground: the hedge round the outside, then every node with a box in the graph's order (the lawn first, under
- *  everything), and the fence along the lawn's sides with a gap at the side gate. */
-export function drawGround(g: Graphics, nodes: readonly GraphNode[], w: number, h: number, c: Camera, pal: Palette, seed: number) {
+/** The ground: the hedge round the outside (the edge's green filling `area`, the whole view at the level's widest, in
+ *  the camera's pixels), then the level's own ground (drawInside). */
+export function drawGround(g: Graphics, nodes: readonly GraphNode[], area: kit.Rect, c: Camera, pal: Palette, seed: number) {
   const lawn = nodes.find((n) => n.kind === 'lawn')?.box;
-  if (lawn) kit.hedge(g, px(lawn, c), w, h, c.s, pal, seed);
+  if (lawn) kit.hedge(g, px(lawn, c), area, c.s, pal, seed);
   else {
     // a level with no lawn of its own (the allotment): a hedge round everything drawn, and grass between the places
     const site = bounds(nodes, c);
     if (site) {
-      kit.hedge(g, site, w, h, c.s, pal, seed);
+      kit.hedge(g, site, area, c.s, pal, seed);
       kit.lawn(g, site, c.s, pal, seed, 'site', false);
-    } else g.rect(0, 0, w, h).fill(pal.edge);
+    } else g.rect(area.x, area.y, area.w, area.h).fill(pal.edge);
   }
+  drawInside(g, nodes, c, pal, seed);
+}
+
+/** A level's ground inside its hedge: every node with a box in the graph's order (the lawn first, under everything), and
+ *  the fence along the lawn's sides with a gap at the side gate. Drawn alone for a garden inside its plot at the
+ *  allotment, where the plot's own ground is round it. */
+export function drawInside(g: Graphics, nodes: readonly GraphNode[], c: Camera, pal: Palette, seed: number) {
+  const lawn = nodes.find((n) => n.kind === 'lawn')?.box;
   for (const n of nodes) if (n.box) drawNode(g, n, c, pal, seed);
   if (lawn) {
     const r = px(lawn, c), wall = nodes.find((n) => n.kind === 'kitchen')?.box, top = wall ? c.y + (wall.y + wall.h) * c.s : r.y;

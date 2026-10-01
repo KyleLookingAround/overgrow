@@ -120,12 +120,21 @@ export const CAUSES = {
   outbreak: {kind: 'pest', causes: ['slugs in your garden', 'slugs from next door', 'slugs back to normal']},
   goingDown: {kind: 'household', causes: ['going down', 'back up', 'rescued']},
   adviserSent: {kind: 'household', causes: ['an adviser’s fee']},
+  pace: {kind: 'household', causes: ['the pace', 'skip']},
 } satisfies Record<string, Pick<Explanation, 'kind' | 'causes'>>;
 
 export type Entry = keyof typeof CAUSES;
 
 /** What each entry says. */
 export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>> = {
+  pace: {
+    title: 'Time runs with the view',
+    says: 'The wider you look, the faster the days go: a garden day takes 12 s, and 6 s over the whole allotment. A skip runs every hour to what’s next, quickly.',
+    mechanism: 'A wider view is a longer view of time: a bed changes by the hour, an allotment by the week, a country by the season. The clock follows the camera, stepping evenly between each level’s pace. A skip runs the same hours watching would, and stops at the first thing you’d act on: a frost, a pest, a crop ready, something new.',
+    fast: 'Zoom out to hurry a quiet week, or zoom in to watch closely.',
+    slow: 'Further out, a year passes in minutes, then seconds.',
+    source: 'The game’s pacing: each level’s widest view sets its pace (a garden day in 12 s, an allotment day in 6 s), after the founding spec’s ladder.',
+  },
   sealing: {
     title: 'Your garden, as one plot',
     says: 'This is your garden’s last year, as one plot: its food, its steadiness and its soil, carried up as numbers.',
@@ -818,6 +827,7 @@ export const WORDS: Record<Entry, Omit<Explanation, 'kind' | 'causes' | 'helps'>
 
 /** The lever that helps, in a line: what the Explain card offers after what happened. */
 export const HELPS: Record<Entry, string> = {
+  pace: 'Zoom out to speed up, or skip ahead when nothing needs you.',
   secondPlot: 'Take it on, and reclaim it yourself or with the helper.',
   helper: 'Watch them: a glance or an audit narrows what goes unreported.',
   watching: 'Audit to learn how far to trust them, then glance or trust.',

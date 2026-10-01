@@ -42,7 +42,7 @@ export default async function({ok,open}){
   // on a phone, one tap on the goal bar's button digs the next bed once that's the step
   {const {ctx,page,errs}=await open({width:390,height:844},{touch:true});await ready(page);
     const save=JSON.parse(await page.evaluate(()=>window.__sim.save()));
-    save.seen=['card.first-plan','card.try-faster','garden.dig','garden.money','garden.water','garden.slugs','garden.shed','shed.beer-trap','garden.kitchen','household.commute'];
+    save.seen=['card.first-plan','card.skip','garden.dig','garden.money','garden.water','garden.slugs','garden.shed','shed.beer-trap','garden.kitchen','household.commute'];
     save.graph.nodes.kitchen.stocks.money.amount=200;save.graph.nodes.kitchen.levers.ledger.firstHarvest=0;
     await send(page,{type:'load',save:JSON.stringify(save)});await send(page,{type:'speed',speed:0});
     await send(page,{type:'tick',hours:3});

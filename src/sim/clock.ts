@@ -3,7 +3,7 @@
 // season, year). A system is its own file with a `System` value listed in src/sim/systems.ts; adding one never edits
 // another's. The real-time loop that turns seconds into steps is src/app/clock-loop.ts, not the sim.
 // docs/systems/clock.md says how it works.
-import {LEVELS, START, type LevelClock, type Speed} from '../data/ladder';
+import {LEVELS, START, type LevelClock} from '../data/ladder';
 import type {Graph, Flow} from './graph';
 import type {Activity} from './activity';
 import type {Command} from './commands';
@@ -20,9 +20,10 @@ export function levelClock(level: number): LevelClock {
   return LEVELS[Math.min(Math.max(level, 1), LEVELS.length) - 1]!;
 }
 
-/** Game hours that pass in one real second at a speed. */
-export function hoursPerSecond(level: number, speed: Speed): number {
-  return (24 / levelClock(level).secondsPerDay) * speed;
+/** Game hours that pass in one real second, running (1) or paused (0), at a level's widest view or at a day's length in
+ *  real seconds the camera sets (src/data/ladder.ts's secondsPerDayAt). */
+export function hoursPerSecond(level: number, run: number, secondsPerDay = levelClock(level).secondsPerDay): number {
+  return (24 / secondsPerDay) * run;
 }
 
 export interface CalendarDate {

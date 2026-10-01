@@ -25,6 +25,7 @@ import {applyFlow, mergeFlows, touch, type Flow, type LeverValue, type NodeId} f
 import {fromSave} from './save';
 import {newState, type State} from './state';
 import {spent, tally} from './purse';
+import {dueOf, wakeOf} from './skip';
 
 export type Command =
   /** Advance the clock by whole steps (the level's step; any part of a step left over is dropped). */
@@ -33,16 +34,19 @@ export type Command =
   | {type: 'new-game'; seed: number; speed?: Speed}
   /** Carry on from a save (src/sim/save.ts). */
   | {type: 'load'; save: string}
-  /** Pause (0), 1×, 2× or 4×. The real-time loop reads it; the sim itself only ticks when told. */
+  /** Pause (0) or run (1). The real-time loop reads it, at the pace the camera's zoom sets; the sim itself only ticks
+   *  when told. */
   | {type: 'speed'; speed: Speed}
+  /** Skip to what's next that needs the player (src/sim/skip.ts): to an hour no later than the snapshot's `due`, run as a
+   *  time-lapse by the real-time loop and ended by the first wake; null stops one under way. */
+  | {type: 'skip'; until: number | null}
   /** Set a lever a system has declared on a node: what to grow, when to water, a rule the people follow, a law. */
   | {type: 'plan' | 'policy' | 'law'; node: NodeId; lever: string; value: LeverValue}
   /** Buy something from the system that sells it (the shed's upgrades), once it has unfolded. */
   | {type: 'buy'; id: string}
   /** Answer a card that's asked once a save: the first plan ('accept' the card's plan, or 'choose' to let the gardener
-   *  follow the rotation), and the one "try faster" nudge ('yes' goes to 2×, 'no' leaves it). */
+   *  follow the rotation). */
   | {type: 'card'; id: 'first-plan'; answer: 'accept' | 'choose'}
-  | {type: 'card'; id: 'try-faster'; answer: 'yes' | 'no'}
   /** The garden's year done: the allotment offer's requirements met and latched (src/sim/goal.ts); 'ok' stays in the
    *  garden a while, the offer kept on the goal bar. */
   | {type: 'card'; id: 'year'; answer: 'ok'}
@@ -140,8 +144,19 @@ function tick(s: State, systems: readonly System[], hours: number) {
   // each flow is an effect of its `what` at its place, and the systems' events besides
   s.effects = flowEffects(s.graph, s.flows).concat(effects.list(), zoomed);
   // an instrument unfolds the first time one of its causes happens (src/data/unfold.ts), one batch a day
+  const seen = s.seen.length;
   unfold(s, revealed(s.seen, causesOf(s.effects)));
   s.errors = errors;
+  // a skip ends at its hour, or at the first wake: an effect the player would act on, a frost forecast on tender crops,
+  // or something newly unfolded (src/sim/skip.ts)
+  s.woke = null;
+  if (s.skip) {
+    const done = s.hours >= s.skip.until - 1e-9, woke = done ? null : wakeOf(s) ?? (s.seen.length > seen ? 'something new' : null);
+    if (done || woke) {
+      s.skip = null;
+      s.woke = woke;
+    }
+  }
 }
 
 /** Carries out a command on the state, in place. A refusal leaves the state as it was and says why in `rejected`. */
@@ -152,6 +167,10 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       tick(s, systems, cmd.hours);
       return s;
     case 'new-game': {
+      if (cmd.speed !== undefined && !(SPEEDS as readonly number[]).includes(cmd.speed)) {
+        s.rejected = `no speed ${cmd.speed}`;
+        return s;
+      }
       // the page's settings carry over to the new game
       const n = newState(cmd.seed, cmd.speed ?? 1);
       n.settings = {...s.settings};
@@ -168,12 +187,25 @@ export function applyCommand(s: State, cmd: Command, systems: readonly System[])
       if (!(SPEEDS as readonly number[]).includes(cmd.speed)) s.rejected = `no speed ${cmd.speed}`;
       else {
         s.speed = cmd.speed;
-        // starting the clock from the first morning keeps the card's plan; any way of reaching a faster speed answers
-        // the "try faster" nudge
+        // starting the clock from the first morning keeps the card's plan
         if (cmd.speed > 0 && s.hours === 0) seeOnce(s, CARDS.firstPlan);
-        if (cmd.speed >= 2) seeOnce(s, CARDS.tryFaster);
       }
       return s;
+    case 'skip': {
+      if (cmd.until === null) {
+        s.skip = null;
+        return s;
+      }
+      const due = dueOf(s);
+      if (!due) s.rejected = 'nothing to skip to';
+      else if (!(cmd.until > s.hours)) s.rejected = 'a skip runs only to what’s next';
+      else {
+        // the page asks from a snapshot a step or two behind: past what's next now, it runs to what's next
+        s.skip = {until: Math.min(cmd.until, due.hours), why: due.why};
+        seeOnce(s, CARDS.skip);
+      }
+      return s;
+    }
     case 'plan':
     case 'policy':
     case 'law': {
@@ -353,7 +385,7 @@ export function unfold(s: State, fresh: readonly string[]) {
 
 function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readonly System[]): State {
   if (isDecision(cmd)) return decide(s, cmd, systems);
-  const key = cmd.id === 'first-plan' ? CARDS.firstPlan : cmd.id === 'try-faster' ? CARDS.tryFaster : cmd.id === 'year' ? CARDS.year : cmd.id === 'first-year' ? CARDS.firstYear : null;
+  const key = cmd.id === 'first-plan' ? CARDS.firstPlan : cmd.id === 'year' ? CARDS.year : cmd.id === 'first-year' ? CARDS.firstYear : null;
   if (!key) s.rejected = `no card ${String(cmd.id)}`;
   else if (s.seen.includes(key)) s.rejected = 'that’s been answered';
   else if (cmd.id === 'year') {
@@ -375,10 +407,6 @@ function answer(s: State, cmd: Extract<Command, {type: 'card'}>, systems: readon
         seeOnce(s, key);
       }
     }
-  } else if (cmd.answer !== 'yes' && cmd.answer !== 'no') s.rejected = 'yes or no';
-  else {
-    if (cmd.answer === 'yes') s.speed = 2;
-    seeOnce(s, key);
   }
   return s;
 }

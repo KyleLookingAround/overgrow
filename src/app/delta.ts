@@ -4,6 +4,7 @@
 // founding spec's fallback applies from the start. A new game, a load, a changed graph (its rev) or level (the step up, going down and back up) sends it whole again.
 // A changed node sends only the stocks that changed. An activity never changes once started (a system ends it and
 // starts another with a new id); one that reaches its end time is dropped on both sides, so only one cut short is sent.
+// The level kept below (the garden inside the player's plot) crosses only when the worker's copy of it changes.
 import type {Activity} from '../sim/activity';
 import type {GraphNode, LeverValue, Stock, Totals} from '../sim/graph';
 import type {Snapshot} from '../sim/state';
@@ -12,7 +13,9 @@ import type {Snapshot} from '../sim/state';
 export type NodePatch = Pick<GraphNode, 'id'> & Partial<Pick<GraphNode, 'stocks' | 'levers' | 'totals'>> & {allStocks?: true};
 
 export interface SnapshotDelta {
-  base: Omit<Snapshot, 'nodes' | 'edges' | 'activities'>;
+  base: Omit<Snapshot, 'nodes' | 'edges' | 'activities' | 'below'>;
+  /** The level kept below, when it changed (null when there's none now). */
+  below?: Snapshot['below'];
   /** The whole graph and every activity: the first time, and after a new game, a load or a change to the graph. */
   whole?: Pick<Snapshot, 'nodes' | 'edges' | 'activities'>;
   changed?: NodePatch[];
@@ -44,8 +47,9 @@ const sameTotals = (a: Totals, b: Totals) =>
 
 /** The worker's side: what changed from the last snapshot sent to the next. */
 export function diff(prev: Snapshot | null, next: Snapshot): SnapshotDelta {
-  const {nodes, edges, activities, ...base} = next;
-  const whole = () => ({base, whole: {nodes, edges, activities}});
+  const {nodes, edges, activities, below, ...base} = next;
+  const kept = !prev || prev.below !== below ? {below} : {};
+  const whole = () => ({base, whole: {nodes, edges, activities}, ...kept});
   if (!prev || prev.rev !== next.rev || prev.level !== next.level || prev.seed !== next.seed || next.hours < prev.hours || prev.nodes.length !== nodes.length) return whole();
   const changed: NodePatch[] = [];
   for (let i = 0; i < nodes.length; i++) {
@@ -58,19 +62,20 @@ export function diff(prev: Snapshot | null, next: Snapshot): SnapshotDelta {
   }
   const had = new Set(prev.activities.map((a) => a.id)), has = new Set(activities.map((a) => a.id)), expired = next.hours - next.step;
   return {
-    base, changed, started: activities.filter((a) => !had.has(a.id)),
+    base, ...kept, changed, started: activities.filter((a) => !had.has(a.id)),
     ended: prev.activities.filter((a) => !has.has(a.id) && a.end >= expired).map((a) => a.id),
   };
 }
 
 /** The page's side: keeps the last snapshot and patches it with each delta. */
 export function patcher() {
-  let cur: Snapshot | null = null, index = new Map<string, number>();
+  let cur: Snapshot | null = null, index = new Map<string, number>(), below: Snapshot['below'] = null;
   return (d: SnapshotDelta): Snapshot => {
+    if ('below' in d) below = d.below ?? null;
     if (d.whole || !cur) {
       const w = d.whole ?? {nodes: [], edges: [], activities: []};
       index = new Map(w.nodes.map((n, i) => [n.id, i]));
-      return (cur = {...d.base, ...w});
+      return (cur = {...d.base, ...w, below});
     }
     let nodes = cur.nodes, activities = cur.activities;
     if (d.changed?.length) {
@@ -85,6 +90,6 @@ export function patcher() {
     const expired = d.base.hours - d.base.step, gone = new Set(d.ended);
     if (gone.size || activities.some((a) => a.end < expired)) activities = activities.filter((a) => a.end >= expired && !gone.has(a.id));
     if (d.started?.length) activities = activities.concat(d.started);
-    return (cur = {...d.base, nodes, edges: cur.edges, activities});
+    return (cur = {...d.base, nodes, edges: cur.edges, activities, below});
   };
 }

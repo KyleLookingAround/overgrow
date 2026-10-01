@@ -19,7 +19,7 @@ const until=(page,cond,days)=>page.evaluate(async([c,d])=>{const f=new Function(
 async function allotment(page){
   await page.waitForFunction(()=>window.__sim?.snapshot()?.seed!==undefined&&!!document.querySelector('.card-overlay'),null,{timeout:8000}).catch(()=>{});
   const save=JSON.parse(await page.evaluate(()=>window.__sim.save()));
-  save.hours=24*364;save.seen=['card.first-plan','card.try-faster'];
+  save.hours=24*364;save.seen=['card.first-plan','card.skip'];
   const samples=Array.from({length:52},(_,w)=>({output:2*(0.5+(w%4)/4),quality:0,upkeep:0,carbon:0.3,health:{soil:62}}));
   save.graph.nodes.kitchen.levers.goal={history:{level:1,sampleDays:7,cap:52,samples,land:{}},mark:{delivered:0,carbon:0},fed:Array(52).fill(0.6),offered:save.hours};
   for(let i=0;i<5;i++){await send(page,{type:'load',save:JSON.stringify(save)});await send(page,{type:'speed',speed:0});

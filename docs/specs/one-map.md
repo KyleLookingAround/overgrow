@@ -1,6 +1,6 @@
 # One map, from a bed to the globe
 
-Issue: #94 · Status: Approved (the owner, 30 Sep 2026) · PRs: added as they open
+Issue: #94 · Status: Approved (the owner, 30 Sep 2026) · PRs: #96 (the spike)
 
 Longer than a page, and approved at this length: it changes how the founding spec's ladder is presented at every level (`docs/specs/overgrow.md`), so each part's brief builds one of its sections. The founding spec's model is unchanged: one graph at every scale, sealed nodes that carry their five numbers, carbon and land, and inflating any node from its totals on a seeded layout.
 

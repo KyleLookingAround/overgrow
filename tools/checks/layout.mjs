@@ -2,16 +2,15 @@
 // 360×640, 375×667, 390×844, 414×896 and 430×932 upright and on their side, the tablets 768×1024, 1024×768, 820×1180 and
 // 1024×1366, and 1280×800, 1440×900, 1920×1080, 2560×1440 and 3440×1440, phones and tablets with touch, isMobile and a
 // device scale factor of 3 or 2. At each: the top bar, the map and the panel inside the viewport with no overflow or
-// errors; the top bar one row (at most 60 px) with the date, the money, the dial and exactly one speed control (the six
-// speeds, four with 4×, 8× and 16× sharing one below 1024 px, the folded button below 700 px, or on a sheet layout the
-// pill at the map's foot); the panel as a sheet below the map on
+// errors; the top bar one row (at most 60 px) with the date, the money, the dial and Pause, the one clock control (at the
+// bar's end, or on a sheet layout at the map's foot); the panel as a sheet below the map on
 // phones and tablets held upright and beside it otherwise; the map's share of the screen above its class's floor (42 %
 // on a phone with the sheet at rest, 50 % on a phone on its side or a tablet held upright, 60 % beside a side panel, 70 %
 // from 1920 px and 78 % from 2560 px); every tap target at least 44 px on touch (the UI record's 40 px on a mouse); the
-// goal bar at the map's foot, clear of the speed pill; three notices at once showing one, inside the map, over less
+// goal bar at the map's foot, clear of Pause; three notices at once showing one, inside the map, over less
 // than a quarter of it; and on a touch page the sheet's three resting heights (half at rest, tall, then peek with the
 // map grown), tapped. At 390×844 and 1440×900 a card docks away from its place (a low bed's card at the top, a high
-// bed's at the foot) and folds a phone's sheet while it's up, the speed pill kept clear of it; the fullscreen button shows only where the browser has the
+// bed's at the foot) and folds a phone's sheet while it's up, Pause kept clear of it; the fullscreen button shows only where the browser has the
 // API, and there it goes in and out; the dark scheme swaps the colours; the top bar and panel work by keyboard alone
 // with the focus shown; and the safe areas are named on every side. Each page answers the first plan's card and shows
 // every detail, the fullest the chrome gets (src/data/unfold.ts).
@@ -42,8 +41,8 @@ export default async function({ok,open:bare,out}){
   const measure=page=>page.evaluate(()=>{
     const box=s=>{const e=document.querySelector(s);if(!e||!e.getClientRects().length)return null;const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,r:b.right,b:b.bottom}};
     const vis=s=>[...document.querySelectorAll(s)].filter(e=>e.getClientRects().length).length;
-    return {top:box('.topbar'),map:box('.map'),panel:box('.panel'),head:box('.panel-head'),body:box('.panel-body'),goal:box('.goal-bar'),pill:box('.speed-pill'),full:box('.fullscreen'),
-      date:vis('.topbar .date'),money:vis('.topbar .money'),dial:vis('.topbar .dial'),speeds:vis('.topbar .speeds .speed'),cycle:vis('.topbar .speed-cycle'),pillOn:vis('.speed-pill'),
+    return {top:box('.topbar'),map:box('.map'),panel:box('.panel'),head:box('.panel-head'),body:box('.panel-body'),goal:box('.goal-bar'),pill:box('.pause-pill'),full:box('.fullscreen'),
+      date:vis('.topbar .date'),money:vis('.topbar .money'),dial:vis('.topbar .dial'),speeds:vis('.topbar .speeds .speed'),pillOn:vis('.pause-pill'),
       canFull:!!document.fullscreenEnabled,flow:{sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,sh:document.documentElement.scrollHeight,ch:document.documentElement.clientHeight}}});
   for(const [w,h,touch,dsf] of SIZES){
     const cls=classOf(w,h),{ctx,page,errs}=await open({width:w,height:h},{touch,dsf});
@@ -55,15 +54,13 @@ export default async function({ok,open:bare,out}){
       m.flow.sw>m.flow.cw&&`scroll width ${m.flow.sw}`,m.flow.sh>m.flow.ch&&`scroll height ${m.flow.sh}`,errs[0]].filter(Boolean);
     ok(`layout: at ${w}×${h} (${cls.name}) the top bar, map and ${cls.sheet?'sheet below':'panel beside'} are in view, with no overflow or errors`,!bad.length,bad.join('; '));
     ok(`layout: at ${w}×${h} the map takes ${Math.round(100*share)} % of the screen, at least ${Math.round(100*cls.floor)} %`,share>=cls.floor,m.map&&`${Math.round(m.map.w)}×${Math.round(m.map.h)}`);
-    // the top bar: one row, its parts, and exactly one speed control where the layout puts it
-    // the speeds: six buttons on a wide bar, four with 4×, 8× and 16× sharing one below 1024 px, one folded button below 700 px, the pill on a sheet
-    const bar=m.top.w-24,full=bar>=1024?6:4;
-    const controls=(m.speeds>0?1:0)+(m.cycle?1:0)+(m.pillOn?1:0),want=cls.sheet?'the pill at the map\'s foot':bar<700?'the folded button':full===6?'the six speeds':'four buttons, the fast speeds sharing one';
-    const right=cls.sheet?m.pillOn&&!m.cycle&&m.speeds===0:bar<700?m.cycle&&!m.pillOn&&m.speeds===0:m.speeds===full&&!m.cycle&&!m.pillOn;
-    ok(`layout: at ${w}×${h} the top bar is one row with the date, the money and the dial, and the speed is ${want}`,m.top&&m.top.h<=60&&m.date&&m.money&&m.dial&&controls===1&&right,
-      JSON.stringify({h:m.top&&Math.round(m.top.h),date:m.date,money:m.money,dial:m.dial,speeds:m.speeds,cycle:m.cycle,pill:m.pillOn}));
-    // the goal bar at the map's foot, clear of the speed pill
-    ok(`layout: at ${w}×${h} the goal bar sits inside the map at its foot${m.pillOn?', clear of the speed pill':''}`,within(m.goal,m.map)&&m.goal.b>=m.map.b-60&&(!m.pill||m.goal.r<=m.pill.x+0.5),JSON.stringify({goal:m.goal,pill:m.pill}));
+    // the top bar: one row, its parts, and Pause, the one clock control, where the layout puts it (no speeds: the zoom
+    // sets the pace)
+    const want=cls.sheet?'at the map\'s foot':'at the bar\'s end',right=cls.sheet?m.pillOn===1&&m.speeds===0:m.speeds===1&&!m.pillOn;
+    ok(`layout: at ${w}×${h} the top bar is one row with the date, the money and the dial, and Pause is ${want}`,m.top&&m.top.h<=60&&m.date&&m.money&&m.dial&&right,
+      JSON.stringify({h:m.top&&Math.round(m.top.h),date:m.date,money:m.money,dial:m.dial,speeds:m.speeds,pill:m.pillOn}));
+    // the goal bar at the map's foot, clear of Pause
+    ok(`layout: at ${w}×${h} the goal bar sits inside the map at its foot${m.pillOn?', clear of Pause':''}`,within(m.goal,m.map)&&m.goal.b>=m.map.b-60&&(!m.pill||m.goal.r<=m.pill.x+0.5),JSON.stringify({goal:m.goal,pill:m.pill}));
     if(touch){
       const small=await page.evaluate(()=>[...document.querySelectorAll('button,select,summary,[role=button]')].filter(b=>b.getClientRects().length).map(b=>{const r=b.getBoundingClientRect();return [b.textContent.trim().slice(0,24)||b.getAttribute('aria-label'),Math.round(r.width),Math.round(r.height)]}).filter(([,bw,bh])=>bw<44||bh<44));
       ok(`layout: at ${w}×${h} every tap target is at least 44 px`,!small.length,small.slice(0,4).map(s=>`${s[0]} ${s[1]}×${s[2]}`).join(', '));
@@ -113,7 +110,7 @@ export default async function({ok,open:bare,out}){
       ok(`layout: at ${w}×${h} a low bed's card docks at the top of the map and a high bed's at its foot, each inside the map with the goal bar gone`,
         low.up&&low.dock==='top'&&within(low.card,low.map)&&low.card.y<=low.map.y+60&&!low.goal&&high.up&&high.dock==='bottom'&&within(high.card,high.map)&&high.card.b>=high.map.b-60,
         JSON.stringify({low:{dock:low.dock,card:low.card,map:low.map,goal:low.goal},high:{dock:high.dock,card:high.card}}));
-      if(cls.sheet)ok(`layout: at ${w}×${h} a card folds the sheet to its head while it's up, keeps the speed pill clear of it, and the card's body has room`,
+      if(cls.sheet)ok(`layout: at ${w}×${h} a card folds the sheet to its head while it's up, keeps Pause clear of it, and the card's body has room`,
         low.body==='none'&&low.pill&&!low.pillOver&&low.card.h>=200&&high.pill&&!high.pillOver,`body ${low.body}, pill ${low.pill} over ${low.pillOver}/${high.pillOver}, card ${low.card&&Math.round(low.card.h)} px`);
       // fullscreen: the button only where the browser has the API, and there it goes in and out
       const f=await box(page,'.fullscreen');
@@ -157,7 +154,7 @@ export default async function({ok,open:bare,out}){
   // the keyboard alone: tab to the pause button and press it, then to a place and open it
   {const {ctx,page,errs}=await open({width:1440,height:900});
     await page.waitForSelector('[data-sim="ready"]',{timeout:8000}).catch(()=>{});
-    const reach=async(test)=>{for(let i=0;i<40;i++){await page.keyboard.press('Tab');if(await page.evaluate(test))return true}return false};
+    const reach=async(test)=>{for(let i=0;i<60;i++){await page.keyboard.press('Tab');if(await page.evaluate(test))return true}return false};
     const toPause=await reach(()=>document.activeElement?.getAttribute('aria-label')==='Pause');
     if(toPause)await page.keyboard.press('Enter');
     // the top bar follows the map's frames, which software WebGL on CI draws a few times a second: wait for it

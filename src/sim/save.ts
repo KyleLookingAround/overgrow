@@ -13,7 +13,7 @@ export const SAVE_KEY = 'overgrow-save-v1';
 export const SAVE_VERSION = 15;
 
 /** What's written: the state less what's runtime only, with the generator's state in place of the generator. */
-export type SaveFile = Omit<State, 'rng' | 'rejected' | 'errors' | 'effects'> & {version: number; rng: number};
+export type SaveFile = Omit<State, 'rng' | 'skip' | 'woke' | 'rejected' | 'errors' | 'effects'> & {version: number; rng: number};
 
 export type Migration = (save: Record<string, unknown>) => Record<string, unknown>;
 
@@ -63,7 +63,8 @@ export function fromSave(text: string): State {
   if (!isObj(raw)) throw new SaveError("it isn't a save");
   const f = migrate(raw) as unknown as SaveFile;
   for (const k of ['seed', 'rng', 'hours', 'level'] as const) if (typeof f[k] !== 'number' || !Number.isFinite(f[k])) throw new SaveError(`${k} isn't a number`);
-  if (!(SPEEDS as readonly number[]).includes(f.speed)) throw new SaveError(`no speed ${String(f.speed)}`);
+  // a save from before the zoom set the pace may hold 2× to 16×: it was running, and runs
+  if (typeof f.speed !== 'number' || !Number.isInteger(f.speed) || f.speed < 0 || f.speed > 16) throw new SaveError(`no speed ${String(f.speed)}`);
   if (!isObj(f.graph) || !isObj(f.graph.nodes) || !Array.isArray(f.graph.edges)) throw new SaveError('the graph is missing');
   for (const [id, n] of Object.entries(f.graph.nodes)) {
     if (!isObj(n) || !isObj(n.stocks) || !isObj(n.levers) || !isObj(n.totals)) throw new SaveError(`node ${id} is malformed`);
@@ -73,8 +74,8 @@ export function fromSave(text: string): State {
   for (const k of ['flows', 'activities', 'ladder', 'upgrades', 'laws', 'seen'] as const) if (!Array.isArray(f[k])) throw new SaveError(`${k} isn't a list`);
   for (const k of ['goals', 'settings', 'answered', 'unfolding'] as const) if (!isObj(f[k])) throw new SaveError(`${k} is missing`);
   return {
-    seed: f.seed, rng: rng(f.rng), hours: f.hours, level: f.level, speed: f.speed, home: f.home, graph: f.graph, flows: f.flows,
+    seed: f.seed, rng: rng(f.rng), hours: f.hours, level: f.level, speed: (f.speed > 0 ? 1 : 0) as (typeof SPEEDS)[number], home: f.home, graph: f.graph, flows: f.flows,
     activities: f.activities, ladder: f.ladder, zoom: isObj(f.zoom) ? f.zoom : null, upgrades: f.upgrades, laws: f.laws, goals: f.goals, settings: f.settings,
-    seen: f.seen, unfolding: f.unfolding, answered: f.answered, rejected: null, errors: [], effects: [],
+    seen: f.seen, unfolding: f.unfolding, answered: f.answered, skip: null, woke: null, rejected: null, errors: [], effects: [],
   };
 }

@@ -15,7 +15,7 @@ async function latched(page){
   // the page's first morning is up (its first plan's card) before the save goes in, so its start can't land after it
   await page.waitForFunction(()=>window.__sim?.snapshot()?.seed!==undefined&&!!document.querySelector('.card-overlay'),null,{timeout:8000}).catch(()=>{});
   const save=JSON.parse(await page.evaluate(()=>window.__sim.save()));
-  save.hours=24*364;save.seen=['card.first-plan','card.try-faster'];
+  save.hours=24*364;save.seen=['card.first-plan','card.skip'];
   const samples=Array.from({length:52},(_,w)=>({output:2*(0.5+(w%4)/4),quality:0,upkeep:0,carbon:0.3,health:{soil:62}}));
   save.graph.nodes.kitchen.levers.goal={history:{level:1,sampleDays:7,cap:52,samples,land:{}},mark:{delivered:0,carbon:0},fed:Array(52).fill(0.6),offered:save.hours};
   // the page's own start (a new game) may land after a load sent too early: load until it holds
@@ -65,8 +65,9 @@ export default async function({ok,open,out,url,browser}){
     await ctx.addInitScript(()=>{window.__seed=1});
     const page=await ctx.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));
     await page.goto(url);await ready(page);await latched(page);
-    // under reduced motion a paused view holds the step before a jump: a moment at 1× brings it up to the save
-    await send(page,{type:'speed',speed:4});await page.waitForTimeout(1200);await send(page,{type:'speed',speed:0});
+    // under reduced motion a paused view holds the step before a jump: a moment running (on the checks' fast clock)
+    // brings it up to the save
+    await page.evaluate(()=>window.__sim.clock(4));await send(page,{type:'speed',speed:1});await page.waitForTimeout(1200);await send(page,{type:'speed',speed:0});await page.evaluate(()=>window.__sim.clock(1));
     await shows(page,'.step-up-card');await page.screenshot({path:join(out,`stepup-card-${name}.png`)});
     const cardSpill=await spill(page);
     await page.click('.card-overlay .step-up-take');

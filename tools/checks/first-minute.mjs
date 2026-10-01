@@ -5,13 +5,16 @@
 // move it) and the gardener goes out with a torch; a tap on a slug's badge opens the first Explain card; by the next
 // morning the Shed tab shows the beer trap and the goal's line counts down to the first harvest; the kitchen's first ask
 // comes on day 2; the gardener leaves for work at 08:30 on day 1 with no sign, and their job unfolds in the kitchen's
-// sign on day 2's evening, not one of its own; no "try faster" nudge shows in the first minute, and once it's over it
-// shows once, at 1×, and goes when answered. "Let them choose" hands bed 2 to the gardener's rotation.
+// sign on day 2's evening, not one of its own; once the first cut is in and nothing is waiting, a chip offers a skip to
+// what's next with its one line, a tap runs it as a time-lapse, and the line goes. "Let them choose" hands bed 2 to the
+// gardener's rotation.
 import {join} from 'node:path';
 
 const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).then(()=>page.waitForSelector('[data-sim="ready"]',{timeout:8000})).catch(()=>{});
 const send=(page,cmd)=>page.evaluate(c=>window.__sim.send(c),cmd);
 const snap=page=>page.evaluate(()=>window.__sim.snapshot());
+// dismiss every notice waiting (the signs, the week's decisions, a bed's card), so the skip can be offered
+async function clear(page){for(let i=0;i<12;i++){const b=await page.$('.notice .notice-close');if(!b)return;await b.click().catch(()=>{});await page.waitForTimeout(150)}}
 // every activity over some hours, an hour at a time
 const hourly=(page,h)=>page.evaluate(async h=>{const acts=new Map();for(let i=0;i<h;i++){const s=await window.__sim.send({type:'tick',hours:1});for(const a of s.activities)acts.set(a.id,a)}return [...acts.values()]},h);
 // a paused view jumps only on a tick of more than four steps: tick on to an hour that way, and wait until it's drawn
@@ -101,25 +104,24 @@ export default async function({ok,open,out}){
     ok('first minute: the kitchen’s first ask comes on the second evening',noAsk&&/The day’s ask/.test(ask),`before ${!noAsk}, ${ask}`);
     ok('first minute: the gardener’s job unfolds in the kitchen’s sign on the second evening, not in a sign of its own',noJob&&/household\.commute/.test(sign??''),`before ${!noJob}, sign ${sign}`);
     await page.click('#tab-garden').catch(()=>{});
-    // no nudge in the first minute
-    const early=await page.evaluate(()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)));
-    // once the first minute is over and the first cut is in, before the wait for the spring sowings: the nudge once at 1×,
-    // gone when answered, never back (other choices, a frost's or a bed's, may wait in the queue beside it)
+    // the skip: once the first cut is in and nothing is waiting, the chip at the map's top offers what's next, with its
+    // one line; a tap runs every hour to it as a time-lapse, and the line doesn't come back (the check's fast clock finds
+    // a day with no frost forecast, then hands back the garden's pace)
     await page.evaluate(async()=>{for(let i=0;i<14;i++){const s=await window.__sim.send({type:'tick',hours:24});if(s.kitchen?.firstHarvest!=null&&s.hours>120)break}});
-    await send(page,{type:'speed',speed:1});
-    // the nudge waits its turn in the queue behind the fortnight's signs
-    const nudgeSel='button.notice-action:text-is("Try 2×")';
-    const nudge=await page.waitForSelector(nudgeSel,{timeout:30000}).then(()=>true,()=>false);
-    if(nudge)await page.click(nudgeSel);
-    // the answer reaches the worker and the page redraws: wait for the nudge to go, then back at 1× it must stay gone
-    const hasNudge=()=>[...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent));
-    await page.waitForFunction(()=>![...document.querySelectorAll('.notice')].some(n=>/Try 2×/.test(n.textContent)),null,{timeout:5000}).catch(()=>{});
-    const s3=await snap(page);
-    await send(page,{type:'speed',speed:1});
-    await page.waitForTimeout(600);
-    const back=await page.evaluate(hasNudge);
-    ok('first minute: no “try faster” nudge in the first minute; once it’s over it shows once at 1× and goes when answered',
-      !early&&nudge&&s3.speed===2&&s3.seen.includes('card.try-faster')&&!back&&!errs.length,JSON.stringify({early,nudge,speed:s3.speed,back,err:errs[0]}));
+    await send(page,{type:'speed',speed:1});await page.evaluate(()=>window.__sim.clock(8));
+    let chip=null;for(let i=0;i<60&&!chip;i++){await clear(page);chip=await page.$('.skip-chip .skip-go');if(!chip)await page.waitForTimeout(400)}
+    await page.evaluate(()=>window.__sim.clock(1));
+    const line=await page.evaluate(()=>document.querySelector('.skip-chip .skip-line')?.textContent??null),pre=await snap(page);
+    await page.screenshot({path:join(out,'first-minute-skip.png')});
+    // every frame watched from before the tap: a skip woken at once runs for a frame or two
+    await page.evaluate(()=>{window.__ran=false;const f=()=>{if(window.__sim.view().skip)window.__ran=true;else requestAnimationFrame(f)};requestAnimationFrame(f)});
+    if(chip)await chip.click().catch(()=>{});
+    const ran=await page.waitForFunction(()=>window.__ran,null,{timeout:4000}).then(()=>true,()=>false);
+    const done=await page.waitForFunction(()=>!window.__sim.view().skip,null,{timeout:20000}).then(()=>true,()=>false);
+    const s3=await snap(page),again=await page.evaluate(()=>!!document.querySelector('.skip-chip .skip-line'));
+    ok('first minute: once nothing is waiting, a chip offers a skip to what’s next with one line; a tap runs it as a time-lapse, and the line goes',
+      !!chip&&/Every hour still runs/.test(line??'')&&ran&&done&&s3.hours>pre.hours&&s3.seen.includes('card.skip')&&!again&&!errs.length,
+      JSON.stringify({chip:!!chip,line,due:pre.due,ran,done,from:pre.hours,to:s3.hours,again,err:errs[0]}));
     await ctx.close()}
 
   // "Let them choose": bed 2 follows the gardener's rotation, and a phone shows the card inside the map

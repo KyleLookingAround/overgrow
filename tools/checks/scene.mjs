@@ -2,8 +2,9 @@
 // it interpolates between snapshots, gliding between ticks and jumping per tick under prefers-reduced-motion; the
 // weather is drawn from the sim's (rain crossing the garden only while it rains, still but shown under reduced motion,
 // frost on a frosty morning, the dug beds paling as they dry and darkening when soaked, puddles on the path, the dawn's glow);
-// each dug bed's crop drawn in its crop's silhouette; the steady light (at 16× the night layer holds a steady daylight across
-// two game days, with and without reduced motion, changing no faster than its limit, and at 1× the night still falls); a
+// each dug bed's crop drawn in its crop's silhouette; the steady light (at sixteen times the garden's pace on the checks'
+// fast clock, as quick as a skip, the night layer holds a steady daylight across two game days, with and without reduced
+// motion, changing no faster than its limit, and at the garden's own pace the night still falls); a
 // seeded, paused screenshot
 // repeats exactly; and a check-only synthetic scene of 5,000 nodes and 5,000 people runs, logging the speed budget's
 // figures (frame time, and the snapshot's copy across the worker boundary at 4× CPU throttling).
@@ -25,9 +26,9 @@ const ready=page=>page.waitForSelector('.map[data-renderer]',{timeout:8000}).the
 const view=page=>page.evaluate(()=>window.__sim.view());
 // a new game run to midday and paused, so the light is full and every colour is the token's own
 async function midday(page){
-  await page.evaluate(()=>window.__sim.send({type:'new-game',seed:1,speed:4}));
+  await page.evaluate(()=>{window.__sim.clock(4);return window.__sim.send({type:'new-game',seed:1,speed:1})});
   await page.waitForFunction(()=>window.__sim.view().hours>=6,null,{timeout:8000}).catch(()=>{});
-  await page.evaluate(()=>window.__sim.send({type:'speed',speed:0}));await page.waitForTimeout(200);
+  await page.evaluate(()=>{window.__sim.clock(1);return window.__sim.send({type:'speed',speed:0})});await page.waitForTimeout(200);
 }
 // the day of weather on the newest snapshot's air node
 const air=page=>page.evaluate(()=>window.__sim.snapshot().nodes.find(n=>n.kind==='atmosphere').levers.weather);
@@ -92,32 +93,38 @@ export default async function({ok,open,out}){
     // apart from the renderer's own clock, so a stretch rather than one frame; a snap of the night in one frame still
     // reads at over five times the limit), whether it showed day, and the swings between day (under a quarter of the
     // night) and night (over three quarters)
-    const watch=(speed,hour,ms,until)=>page.evaluate(async([speed,hour,ms,until,full])=>{
+    const watch=async(speed,hour,ms,until,reduce=false)=>{
       // a new game runs a few game hours at the last game's speed before its pause lands, so it is not at a known hour: wait
       // for it to stand still, tick on to the hour, then wait for the view to reach it and the night layer to stop moving
-      // (it eases away from the last case's night at LIGHT_MOST a second, slower still on a busy runner), never a fixed sleep
-      const frames=(ok,ms)=>new Promise(done=>{const t0=performance.now();let n=0,prev=null;const f=()=>{const v=window.__sim.view(),k=v.cur+':'+v.hours+':'+v.night;
-        n=k===prev?n+1:0;prev=k;if(ok(v,n)||performance.now()-t0>ms)done(v);else requestAnimationFrame(f)};requestAnimationFrame(f)});
-      await window.__sim.send({type:'new-game',seed:1,speed:0});
-      let v=await frames((v,n)=>v.cur<48&&n>=15,20000);
-      const ahead=(hour-v.cur%24+24)%24;
-      if(ahead)await window.__sim.send({type:'tick',hours:ahead});
-      await frames((v,n)=>v.cur%24===hour&&n>=15,20000);
-      await window.__sim.send({type:'speed',speed});
+      // (it eases away from the last case's night at LIGHT_MOST a second, slower still on a busy runner), never a fixed
+      // sleep; with motion on, since a paused view under reduced motion holds the snapshot before a jump
+      await page.emulateMedia({reducedMotion:'no-preference'});
+      await page.evaluate(async hour=>{
+        const frames=(ok,ms)=>new Promise(done=>{const t0=performance.now();let n=0,prev=null;const f=()=>{const v=window.__sim.view(),k=v.cur+':'+v.hours+':'+v.night;
+          n=k===prev?n+1:0;prev=k;if(ok(v,n)||performance.now()-t0>ms)done(v);else requestAnimationFrame(f)};requestAnimationFrame(f)});
+        await window.__sim.send({type:'new-game',seed:1,speed:0});
+        let v=await frames((v,n)=>v.cur<48&&n>=15,20000);
+        const ahead=(hour-v.cur%24+24)%24;
+        if(ahead)await window.__sim.send({type:'tick',hours:ahead});
+        await frames((v,n)=>v.cur%24===hour&&n>=15,20000);
+      },hour);
+      if(reduce)await page.emulateMedia({reducedMotion:'reduce'});
+      return page.evaluate(async([speed,ms,until,full])=>{
+      // the pace: the garden's own (1), or the checks' fast clock that many times it
+      window.__sim.clock(speed);await window.__sim.send({type:'speed',speed:speed>0?1:0});
       return new Promise(done=>{const seen=[],t0=performance.now();const f=t=>{const v=window.__sim.view();seen.push({t,night:v.night,hours:v.hours});
         if(t-t0<ms&&!(until&&v.night>=until*full))requestAnimationFrame(f);else{
           let fastest=0,swings=0,side=null,first=seen[0],last=seen[seen.length-1];
           for(let i=0,j=0;i<seen.length;i++){while(j<seen.length&&seen[j].t-seen[i].t<300)j++;if(j<seen.length)fastest=Math.max(fastest,Math.abs(seen[j].night-seen[i].night)/((seen[j].t-seen[i].t)/1000))}
           for(const x of seen){const s=x.night<0.25*full?'day':x.night>0.75*full?'night':side;if(side&&s!==side)swings++;side=s}
-          done({fastest,swings,day:seen.some(x=>x.night<0.25*full),top:Math.max(...seen.map(x=>x.night)),hours:last.hours-first.hours,secs:(last.t-first.t)/1000,end:last.night})}};requestAnimationFrame(f)})},[speed,hour,ms,until,full]);
+          window.__sim.clock(1);done({fastest,swings,day:seen.some(x=>x.night<0.25*full),top:Math.max(...seen.map(x=>x.night)),hours:last.hours-first.hours,secs:(last.t-first.t)/1000,end:last.night})}};requestAnimationFrame(f)})},[speed,ms,until,full]);
+    };
     const fast=await watch(16,12,3500),fmt=r=>`${r.hours.toFixed(0)} game hours in ${r.secs.toFixed(1)} s, darkest ${r.top.toFixed(3)} of ${full}, fastest change ${r.fastest.toFixed(3)} a second (at most ${most}), ${r.swings} swings`;
-    ok('scene: at 16× the map holds a steady light across two game days from noon, changing no faster than the limit',fast.hours>=48&&fast.fastest<=most*1.15&&fast.swings<=fast.secs/3&&fast.top<0.25*full&&!errs.length,fmt(fast));
-    await page.emulateMedia({reducedMotion:'reduce'});
-    const still=await watch(16,12,3500);
-    ok('scene: under reduced motion at 16× the light is as steady',still.hours>=48&&still.fastest<=most*1.15&&still.swings<=still.secs/3&&still.top<0.25*full&&!errs.length,fmt(still));
-    await page.emulateMedia({reducedMotion:'no-preference'});
+    ok('scene: at sixteen times the garden\'s pace the map holds a steady light across two game days from noon, changing no faster than the limit',fast.hours>=48&&fast.fastest<=most*1.15&&fast.swings<=fast.secs/3&&fast.top<0.25*full&&!errs.length,fmt(fast));
+    const still=await watch(16,12,3500,0,true);
+    ok('scene: under reduced motion at sixteen times the garden\'s pace the light is as steady',still.hours>=48&&still.fastest<=most*1.15&&still.swings<=still.secs/3&&still.top<0.25*full&&!errs.length,fmt(still));
     const dusk=await watch(1,12,15000,0.75);
-    ok('scene: at 1× the night still falls, no faster than the limit',dusk.day&&dusk.end>=0.75*full&&dusk.fastest<=most*1.15&&!errs.length,`from a day (${dusk.day}) the night reached ${dusk.end.toFixed(3)} of ${full} in ${dusk.secs.toFixed(1)} s, fastest change ${dusk.fastest.toFixed(3)} a second (at most ${most})`);
+    ok('scene: at the garden\'s own pace the night still falls, no faster than the limit',dusk.day&&dusk.end>=0.75*full&&dusk.fastest<=most*1.15&&!errs.length,`from a day (${dusk.day}) the night reached ${dusk.end.toFixed(3)} of ${full} in ${dusk.secs.toFixed(1)} s, fastest change ${dusk.fastest.toFixed(3)} a second (at most ${most})`);
     await ctx.close()}
 
   // the weather, drawn from the sim's: rain while it rains and not after, moving between frames even while paused; the
@@ -180,7 +187,7 @@ export default async function({ok,open,out}){
     const cdp=await ctx.newCDPSession(page);if(throttle)await cdp.send('Emulation.setCPUThrottlingRate',{rate:throttle});
     if(n)await page.evaluate(([n,m])=>window.__sim.bench(n,m),[n,m]);
     // the garden's own game opens paused on the first plan's card: answering it starts the clock
-    else await page.evaluate(async s=>{await window.__sim.send({type:'card',id:'first-plan',answer:'accept'});if(s!==1)await window.__sim.send({type:'speed',speed:s})},speed);
+    else await page.evaluate(async s=>{window.__sim.clock(s);await window.__sim.send({type:'card',id:'first-plan',answer:'accept'})},speed);
     await page.waitForTimeout(1500);
     const h0=(await page.evaluate(()=>window.__sim.view())).hours,c0=(await page.evaluate(()=>window.__sim.copyTimes())).read.length,f0=await page.evaluate(()=>{window.__fps=0;const f=()=>{window.__fps++;requestAnimationFrame(f)};requestAnimationFrame(f);return performance.now()});
     await page.waitForTimeout(3000);
@@ -199,7 +206,8 @@ export default async function({ok,open,out}){
   ok('scene: speed, 5,000 people over 5,000 nodes on a phone at 4× CPU throttling',phone.movers>=16&&!phone.errs.length,fmt(phone));
   const nodes=await measure({width:390,height:844},true,4,5000,50);
   ok('scene: speed, 50 people over 5,000 nodes on a phone at 4× CPU throttling',nodes.movers>=16&&!nodes.errs.length,fmt(nodes));
-  // the garden at 16×, its fastest speed (32 game hours a second), on the throttled phone: the worker keeps up
+  // the garden at sixteen times its pace on the checks' clock (32 game hours a second, as quick as a skip's time-lapse or
+  // the old 16×), on the throttled phone: the worker keeps up
   const top=await measure({width:390,height:844},true,4,0,0,16);
-  ok('scene: speed, the garden at 16× on a phone at 4× CPU throttling keeps up (32 game hours a second)',top.rate>=28&&!top.errs.length,`${fmt(top)}; the view ran ${top.rate.toFixed(1)} game hours a second, and the worker gives up to ${top.most.toFixed(0)}`);
+  ok('scene: speed, the garden at sixteen times its pace on a phone at 4× CPU throttling keeps up (32 game hours a second)',top.rate>=28&&!top.errs.length,`${fmt(top)}; the view ran ${top.rate.toFixed(1)} game hours a second, and the worker gives up to ${top.most.toFixed(0)}`);
 }

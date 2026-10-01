@@ -17,9 +17,9 @@ export interface Unfold {
   causes: string[];
 }
 
-/** Shown from the first morning: the level, the date and time, the speeds, the gardener's card, the plan's sowing lines,
- *  the places, and the goal bar. */
-export const CORE = 'the map, the date, the speeds, the gardener, the sowing plan, the places and the goal bar';
+/** Shown from the first morning: the level, the date and time, Pause and the zoom, the gardener's card, the plan's sowing
+ *  lines, the places, and the goal bar. The skip's chip comes with the first quiet stretch (CARDS.skip). */
+export const CORE = 'the map and its zoom, the date, Pause, the gardener, the sowing plan, the places and the goal bar';
 
 export const UNFOLD: Record<string, Unfold> = {
   // the gardener waters the first sowing in on the first morning: the first say the player has over the soil's water
@@ -122,9 +122,10 @@ export const UNFOLD: Record<string, Unfold> = {
   'zoom.dive': {what: 'the deadline strip and Back up', why: 'You’re down in your garden: fix it before the deadline, then go back up.', causes: ['going down']},
 };
 
-/** Cards answered once a save (src/sim/commands.ts): the first plan, the one "try faster" nudge, the garden's year done
- *  (the level's end, once the allotment offer's requirements are met), and the garden's first year, on its anniversary. */
-export const CARDS = {firstPlan: 'card.first-plan', tryFaster: 'card.try-faster', year: 'card.year', firstYear: 'card.first-year'} as const;
+/** Cards answered once a save (src/sim/commands.ts): the first plan, the skip's one line (answered by the first skip
+ *  taken), the garden's year done (the level's end, once the allotment offer's requirements are met), and the garden's
+ *  first year, on its anniversary. */
+export const CARDS = {firstPlan: 'card.first-plan', skip: 'card.skip', year: 'card.year', firstYear: 'card.first-year'} as const;
 
 /** The levers each key gates: a command on one is refused until its key has unfolded (`except` a value that's always
  *  allowed, `only` the one value that's gated). */

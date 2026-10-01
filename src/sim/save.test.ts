@@ -6,13 +6,13 @@ import {fromSave, migrate, SAVE_VERSION, SaveError, toSave} from './save';
 describe('save', () => {
   it('round-trips a game, the generator included', () => {
     const sim = createSim(11, [churn]);
-    sim.apply({type: 'speed', speed: 2});
+    sim.apply({type: 'speed', speed: 0});
     sim.apply({type: 'tick', hours: 100});
     const text = sim.save(), state = fromSave(text);
     expect(JSON.parse(text).version).toBe(SAVE_VERSION);
     expect(toSave(state)).toBe(text);
     expect(state.hours).toBe(100);
-    expect(state.speed).toBe(2);
+    expect(state.speed).toBe(0);
     const again = createSim(1, [churn]);
     again.apply({type: 'load', save: text});
     expect(again.apply({type: 'tick', hours: 50})).toEqual(sim.apply({type: 'tick', hours: 50}));

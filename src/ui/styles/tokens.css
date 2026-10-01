@@ -235,6 +235,8 @@
   --map-steam: #ffffffa0; /* steam off the heap on a cold morning */
   --map-trace: #c2410c; /* the zoom back in's trace, from the shortfall to the failing plot */
   --map-rescued: #d9a520; /* the Rescued badge's rosette on a plot */
+  --map-tag: #e0a82e; /* your plot's golden tag at the allotment, never an outline (docs/specs/one-map.md) */
+  --map-tag-edge: #8a5a12;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -359,6 +361,8 @@
     --map-steam: #ffffff80;
     --map-trace: #f08a4b;
     --map-rescued: #e8bb3a;
+    --map-tag: #f0c04a;
+    --map-tag-edge: #6b4510;
   }
 }
 /* a touch screen: 44 px targets (the spec; the UI record's 40 px stays for a mouse) */

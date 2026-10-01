@@ -8,6 +8,7 @@
 // every seed against tools/baseline.json; how long each seed took goes to stderr, so two runs' output diff cleanly.
 // --markdown writes the same as Markdown (the Balance workflow's summary), --json every run in full. It exits 1 if any seed's ERR isn't empty, and never on a number. Run by vite-node, which
 // Vitest brings, so the sim's TypeScript runs as it is, without a build step. The run itself is tools/bot/play.ts.
+import {paceLine} from './bot/pace';
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -45,7 +46,7 @@ export function block(run: Run): string {
   const reached = MILESTONES.filter((m) => m.reached).map((m) => `${m.id}: ${m.id in run.reached ? `day ${run.reached[m.id]}` : '—'}`);
   const bought = run.bought.map((b) => `${b.id}: day ${b.day}`).join(', ');
   const food = `eaten ${run.days.reduce((a, d) => a + d.eaten, 0).toFixed(1)}, sold ${run.days.reduce((a, d) => a + d.sold, 0).toFixed(1)}, preserved ${run.preserved.toFixed(1)}, given ${run.given.toFixed(1)}, wasted ${run.wasted.toFixed(1)}`;
-  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `FOOD kg {${food}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, ...purseLines(run), ...(run.allotment ? [allotmentLine(run.allotment)] : []), `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
+  return [`SEED ${run.seed}`, `REACHED {${reached.join(', ')}}`, `BOUGHT {${bought}}`, `FOOD kg {${food}}`, `QUIET ${run.quiet.days} days from day ${run.quiet.from}`, paceLine(run.pace), ...purseLines(run), ...(run.allotment ? [allotmentLine(run.allotment)] : []), `PLAY ${run.play}`, `ERR ${JSON.stringify(run.err)}`].join('\n');
 }
 
 /** The purse (round four): its £ at each 30 days, the longest run of days it sat under £1, and the longest wait between

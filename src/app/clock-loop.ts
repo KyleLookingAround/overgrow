@@ -1,13 +1,17 @@
-// The real-time loop: turns real seconds into the sim's fixed steps at the level's rate and the chosen speed (the
-// ladder, src/data/ladder.ts), and gives the map a view time between two snapshots to interpolate at. The sim is kept up
+// The real-time loop: turns real seconds into the sim's fixed steps at the rate the camera's zoom sets (the ladder,
+// src/data/ladder.ts's secondsPerDayAt; the zoom is the speed, docs/decisions/ADR-2026-09-30-zoom-is-the-speed.md) while
+// running, and gives the map a view time between two snapshots to interpolate at. The sim is kept up
 // to two steps ahead of what's shown (two frames' worth at a fast pace), so the map never waits on it; pausing freezes
 // the view at once. The game only runs while the page is open and showing: a hidden tab gets no frames, and a long gap
 // between frames counts as a short one.
 // A quiet night the page names (src/ui/quiet-night.ts) passes QUIET_BOOST times faster (at most QUIET_MOST game hours a
-// second), up to its dawn: the same steps.
+// second), up to its dawn: the same steps. A skip (the `skip` command, src/sim/skip.ts) runs to its hour as a time-lapse
+// of about SKIP.seconds, never faster than the worker's steps come back (under reduced motion, as fast as they come),
+// and ends where the sim ended it: at its hour, or at the first wake, the hour of the first snapshot without it: the
+// same steps again. The checks can run the clock faster with a check-only multiplier; players never can.
 // docs/systems/clock.md says how it works.
 import {hoursPerSecond} from '../sim/clock';
-import {QUIET_BOOST, QUIET_MOST, type Speed} from '../data/ladder';
+import {QUIET_BOOST, QUIET_MOST, SKIP, secondsPerDayAt} from '../data/ladder';
 import type {Snapshot} from '../sim/state';
 import type {SimClient} from './sim-client';
 
@@ -21,6 +25,10 @@ export interface View {
   alpha: number;
   /** A quiet night passing quickly now. */
   quiet: boolean;
+  /** A skip running now. */
+  skip: boolean;
+  /** Real seconds a game day takes at this moment's pace (Infinity paused), for the steady light. */
+  day: number;
 }
 
 export interface Loop {
@@ -38,18 +46,34 @@ export interface Loop {
   setReducedMotion(on: boolean): void;
   /** A quiet night up to a game hour (its dawn), passing QUIET_BOOST times faster until then; null when it isn't. */
   setQuiet(until: number | null): void;
+  /** How far the camera is zoomed into its level, 0 at its widest view to 1 at its closest: the pace follows it. */
+  setZoom(t: number): void;
+  /** Ends a skip's time-lapse at once (the player's Stop, sent to the sim as well). */
+  endSkip(): void;
+  /** Check-only: run the clock this many times faster than the zoom's pace (1 to stop). */
+  checkClock(k: number): void;
 }
 
 const AHEAD = 2, MAX_STEPS = 8, MAX_GAP = 0.25, JUMP = 4;
+/** A skip's pace under reduced motion, game hours a real second: as fast as the worker's steps come back. */
+const LAPSE_MOST = 1e4;
 
 export function createLoop(sim: SimClient): Loop {
   let queue: Snapshot[] = [], target = 0, inFlight = false, last = 0, reduced = false, benchN = 0, benchM = 0, benchRate = 4;
   let quiet: number | null = null, fast = false, asked = 0; // asked: the furthest hour the loop has asked the sim for // the quiet night's dawn, and whether it's passing quickly now
+  // the camera's depth, the checks' multiplier, a day's real seconds now, and a skip's time-lapse: the hour it started at
+  // on the view and the hour it runs to
+  let zoomT = 0, check = 1, day = Infinity, lapse: {from: number; until: number} | null = null, stopped = -1;
   let game: Snapshot | null = null; // the game's latest, kept while a bench runs
   const frames: ((v: View, now: number) => void)[] = [];
 
   const take = (s: Snapshot) => {
     const top = queue[queue.length - 1];
+    // a skip the sim has ended before its hour (a wake) ends the time-lapse at the hour it ended at; a new one starts here
+    if (!benchN && s.skip && s.skip.until !== stopped && (!lapse || lapse.until !== s.skip.until)) lapse = {from: target, until: s.skip.until};
+    else if (lapse && !s.skip && s.hours < lapse.until) lapse.until = Math.max(target, s.hours);
+    // the sim has the stop: the same skip asked for again runs
+    if (!s.skip) stopped = -1;
     if (!top || s.hours < top.hours || s.seed !== top.seed || s.level !== top.level) {
       queue = [s]; // a new game, a load, a step up to the next level, or the bench starting: start the view here
       target = s.hours;
@@ -86,8 +110,9 @@ export function createLoop(sim: SimClient): Loop {
     while (i > 0 && queue[i - 1]!.hours >= target) i--;
     const cur = queue[i]!, prev = queue[Math.max(0, i - 1)]!;
     const span = cur.hours - prev.hours, alpha = span > 0 ? Math.min(1, Math.max(0, (target - prev.hours) / span)) : 1;
-    if (reduced) return alpha >= 1 ? {prev: cur, cur, hours: cur.hours, alpha: 1, quiet: fast} : {prev, cur: prev, hours: prev.hours, alpha: 1, quiet: fast};
-    return {prev, cur, hours: target, alpha, quiet: fast};
+    const skip = !!lapse;
+    if (reduced) return alpha >= 1 ? {prev: cur, cur, hours: cur.hours, alpha: 1, quiet: fast, skip, day} : {prev, cur: prev, hours: prev.hours, alpha: 1, quiet: fast, skip, day};
+    return {prev, cur, hours: target, alpha, quiet: fast, skip, day};
   };
 
   const frame = (now: number) => {
@@ -96,11 +121,15 @@ export function createLoop(sim: SimClient): Loop {
     last = now;
     const top = queue[queue.length - 1];
     if (!top) return;
-    const base = benchN ? benchRate : hoursPerSecond(top.level, top.speed);
+    const run = top.speed > 0 ? check : 0, base = benchN ? benchRate : hoursPerSecond(top.level, run, secondsPerDayAt(top.level, zoomT));
+    // a skip runs to its hour as a time-lapse, handing back there or at the first wake; paused, it waits
+    if (lapse && (target >= lapse.until - 1e-9 || benchN)) lapse = null;
+    const skip = base > 0 && lapse ? Math.max(base, reduced ? LAPSE_MOST : (lapse.until - lapse.from) / SKIP.seconds) : 0;
     // a quiet night passes faster, handing back at its dawn
-    fast = !benchN && base > 0 && quiet !== null && target < quiet;
-    const rate = fast ? Math.max(base, Math.min(base * QUIET_BOOST, QUIET_MOST)) : base;
-    target = Math.min(target + dt * rate, fast ? quiet! : Infinity, top.hours);
+    fast = !benchN && !skip && base > 0 && quiet !== null && target < quiet;
+    const rate = skip || (fast ? Math.max(base, Math.min(base * QUIET_BOOST, QUIET_MOST)) : base);
+    day = rate > 0 ? 24 / rate : Infinity;
+    target = Math.min(target + dt * rate, fast ? quiet! : skip ? lapse!.until : Infinity, top.hours);
     // moved far ahead by a command, past what the loop asked for itself: catch up at once
     if (top.hours - target > JUMP * top.step && top.hours > asked + 1e-9) target = top.hours - top.step;
     // drop what's behind the view, keeping the one just before it to interpolate from
@@ -120,9 +149,15 @@ export function createLoop(sim: SimClient): Loop {
     },
     setReducedMotion: (on) => void (reduced = on),
     setQuiet: (until) => void (quiet = until),
+    setZoom: (t) => void (zoomT = Math.min(1, Math.max(0, t))),
+    endSkip() {
+      stopped = lapse?.until ?? queue[queue.length - 1]?.skip?.until ?? -1;
+      lapse = null;
+    },
+    checkClock: (k) => void (check = Math.max(1, k)),
     benching: () => benchN > 0,
     bench(n, m = n, speed = 4) {
-      benchRate = hoursPerSecond(1, speed as Speed);
+      benchRate = hoursPerSecond(1, speed);
       if (n === benchN && m === benchM) return;
       if (!benchN && n) game = queue[queue.length - 1] ?? null;
       benchN = n;

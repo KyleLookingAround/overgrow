@@ -26,7 +26,7 @@ describe('the bot', () => {
     const sim = createSim(1);
     sim.apply({type: 'tick', hours: 5});
     const before = fingerprint(playState(sim.save()));
-    sim.apply({type: 'speed', speed: 4});
+    sim.apply({type: 'speed', speed: 0});
     expect(fingerprint(playState(sim.save()))).toBe(before);
     sim.apply({type: 'tick', hours: 1});
     expect(fingerprint(playState(sim.save()))).not.toBe(before);

@@ -17,9 +17,14 @@ import {placeAt, type Activity} from '../../sim/activity';
 import {calendar} from '../../sim/clock';
 import type {Box, GraphNode, NodeId} from '../../sim/graph';
 import type {View} from '../../app/clock-loop';
-import {darkness, daySeconds, steadyLight, warmth} from './daylight';
+import type {Snapshot} from '../../sim/state';
+import {darkness, steadyLight, warmth} from './daylight';
 import type {Stage} from '../../sim/models/crops';
-import {camera, drawGround, drawGrown, drawItem, drawLive, drawOver, drawPerson, drawTilth, groundKey, itemOf, weatherAt, type Camera} from './draw';
+import {drawGround, drawGrown, drawInside, drawItem, drawLive, drawOver, drawPerson, drawTilth, groundKey, itemOf, weatherAt} from './draw';
+import {between, boundsOf, clampZoom, closest, depth, detailAlpha, fillWith, fit, inside, panBy, placeIn, viewOf, widest, zoomAbout, type Camera, type Zoom} from './camera';
+import {tag} from './allotment';
+import {detailOf, drawDetail, PLANT_KG} from './detail';
+import {TILE} from '../../data/allotment';
 import {drawLife, type Creature, type LifeStats} from './life';
 import {drawBarrow} from './season';
 import type {Palette} from './palette';
@@ -41,6 +46,16 @@ export interface MapRenderer {
   setPulse(at: NodeId | null): void;
   /** Skips the step up's zoom-out if it's running; says whether it was. */
   skipZoom(): boolean;
+  /** The player's camera (src/ui/map/camera.ts): zoom by a factor about a point on screen, px (the wheel, a pinch). */
+  zoomBy(factor: number, x: number, y: number): void;
+  /** Move the view by a drag, px. */
+  panBy(dx: number, dy: number): void;
+  /** Fly in to a place, filling the view with it, or out to the level's widest view (null); a jump under reduced motion. */
+  flyTo(id: NodeId | null): void;
+  /** Fly in or out a step (the + and − buttons), about the view's centre. */
+  zoomStep(inwards: boolean): void;
+  /** Called with the camera whenever it moves or the map is redrawn; returns a function that stops it. */
+  onCamera(fn: (c: CameraState) => void): () => void;
   /** For the checks: the last frames' times in ms, where the first movers are drawn (in CSS pixels) and how many are mid-step, the weather, each
    *  dug bed's crop stage and the shape it's drawn in, and the gardener: what they're doing, where, and what they carry. */
   stats(): {
@@ -50,6 +65,9 @@ export interface MapRenderer {
     night: number;
     /** The level drawn, the step up's zoom-out and the dive: running, and how far through, 0–1; and the trace drawn. */
     level: number; zoom: number | null; dive: number | null; trace: boolean;
+    /** The player's zoom, how much of the kept garden shows inside the player's plot, 0–1, the neighbours' plots drawn
+     *  from their totals, and the last few of those drawings' times, ms. */
+    zoomed: Zoom | null; inner: number; detailed: NodeId[]; detailMs: number[];
   };
   destroy(): void;
 }
@@ -66,6 +84,16 @@ export interface WeatherStats {
   puddles: number;
   leaves: number;
   soil: Record<string, number>;
+}
+
+/** Where the camera is: the view's camera, how far in (0 at the level's widest view to 1 at its closest, the clock's
+ *  pace follows it), whether it can go further in or out, and the place it has zoomed into, for the breadcrumb. */
+export interface CameraState {
+  cam: Camera;
+  t: number;
+  canIn: boolean;
+  canOut: boolean;
+  place: {id: NodeId; name: string} | null;
 }
 
 export interface GardenerStats {
@@ -121,6 +149,9 @@ const SNOW_C = 1;
 const STRIDE_M = 0.22, WALK: (0 | 1 | 2)[] = [1, 0, 2, 0], WALK_MAX = 200;
 /** How often at most the plants are redrawn, ms. */
 const GROWN_MS = 250;
+/** The camera: a flight's length, how long it must rest before the map is redrawn crisp at its new scale (it moves as
+ *  one picture until then), and how far a + or − button goes. */
+const FLY_MS = 450, REST_MS = 160, STEP = 2;
 // a fixed scatter for the drops, from a hash of their index (cosmetic, and the same every frame): where each crosses,
 // where it starts falling and how fast, worked out once
 const SCATTER = new Float32Array(DROPS.max * 3).map((_, j) => {
@@ -139,10 +170,16 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   const movers = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: true, color: false}});
   const crowd = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
   const rain = new ParticleContainer({dynamicProperties: {position: true, vertex: false, rotation: false, uvs: false, color: false}});
-  // everything is drawn in the world, which the step up's zoom-out moves; the garden's last picture shrinks over it
-  const world = new Container();
-  world.addChild(ground, live, tilth, grown, over, life, movers, crowd, carried, rain, night, dawn, glow, ring);
-  app.stage.addChild(world);
+  // the garden kept inside the player's plot at the allotment, the neighbours' plots opened from their totals, and the
+  // player's plot's golden tag over them (docs/specs/one-map.md)
+  const inner = new Graphics(), marks = new Graphics(), details = new Container();
+  // everything is drawn in the world, which the step up's zoom-out moves; the garden's last picture shrinks over it. The
+  // lens carries the player's camera while it moves: the world is drawn at the camera it last rested at, and moves and
+  // scales as one picture until the camera rests again and it's redrawn crisp (src/ui/map/camera.ts)
+  const world = new Container(), lens = new Container();
+  world.addChild(ground, live, tilth, inner, details, marks, grown, over, life, movers, crowd, carried, rain, night, dawn, glow, ring);
+  lens.addChild(world);
+  app.stage.addChild(lens);
   let level = -1, zoom: {start: number; shot: Sprite | null} | null = null, highlight = 0, grownAt = 0, grownRev = -1;
   const light = steadyLight(), dawnLight = steadyLight(); // the night's and the dawn's opacity, never flashing (src/ui/map/daylight.ts)
   let pal = palette, width = w, height = h, cam: Camera | null = null, drawnRev = -1, drawnKey = '', keyOf: GraphNode[] | null = null, grownOf: GraphNode[] | null = null;
@@ -156,22 +193,61 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
   let boxes = new Map<NodeId, Box>(), drawn: GraphNode[] = [];
   const pool: Particle[] = [], crowdPool: Particle[] = [], frameTimes: number[] = [];
   let lastMovers: {id: string; x: number; y: number}[] = [], stepping = 0;
+  // the camera: the level's bounds, how close it goes, the player's zoom, a flight under way, when it last moved, the view's
+  // camera (cam is the one the world was drawn at), and what was last said about it
+  let bounds: Box | null = null, most = 1, zoomed: Zoom | null = null, fly: {from: Zoom; to: Zoom; start: number} | null = null, moved = 0;
+  let view: Camera | null = null, told = '', innerOf: Snapshot['below'] | undefined;
+  const watchers: ((c: CameraState) => void)[] = [];
+  // each neighbour's plot drawn from its totals while it's big enough on screen, with what it was drawn from, and the
+  // last few drawings' times (the one-off budget)
+  const detailed = new Map<NodeId, {g: Graphics; key: string}>(), detailMs: number[] = [];
+  const dropDetails = () => {
+    for (const d of detailed.values()) d.g.destroy();
+    detailed.clear();
+  };
   let creatures: Creature[] = [], lifeStats: LifeStats = {slugs: 0, slime: 0, aphids: 0, bees: 0, ladybirds: 0, cat: false, butterfly: false, robin: false, steam: false}, torch = false, pulse: NodeId | null = null;
 
   const resolution = () => window.devicePixelRatio || 1;
-  const rebuild = (s: {nodes: GraphNode[]; seed: number}) => {
+  // the garden kept below the allotment, drawn inside the player's plot from what the ladder kept (the snapshot's
+  // `below`), blended into it with no box: redrawn when it changes or the camera rests; and the plot's golden tag
+  const drawInner = (s: Snapshot) => {
+    inner.clear();
+    marks.clear();
+    dropDetails();
+    innerOf = s.below;
+    const box = s.level === 2 ? boxes.get(PLAYER_PLOT) : undefined;
+    if (!box || !cam) return;
+    tag(marks, cam.x + box.x * cam.s, cam.y + box.y * cam.s, cam.s, pal);
+    const kept = s.below?.nodes.filter((n) => n.box) ?? [], lay = boundsOf(kept);
+    if (!lay) return;
+    const c = inside(lay, box, cam);
+    drawInside(inner, kept, c, pal, s.seed);
+    drawTilth(inner, kept, c, pal, s.seed);
+    drawGrown(inner, {...s, nodes: s.below!.nodes, hours: s.below!.hours}, c, pal);
+  };
+  const rebuild = (s: Snapshot) => {
     drawn = s.nodes.filter((n) => n.box);
     boxes = new Map(drawn.map((n) => [n.id, n.box!]));
     ends = new WeakMap();
-    cam = camera(drawn, width, height);
+    bounds = boundsOf(drawn);
+    most = bounds ? closest(drawn, s.level, bounds, width, height) : 1;
+    zoomed = bounds ? clampZoom(zoomed ?? widest(bounds), bounds, width, height, most) : null;
+    cam = bounds && zoomed ? viewOf(bounds, width, height, zoomed) : {x: 0, y: 0, s: 1};
+    view = cam;
+    lens.scale.set(1);
+    lens.position.set(0, 0);
+    // the edge's green and the night fill the widest view, in this camera's pixels: every view lies inside it
+    const all = bounds ? fit(bounds, width, height) : cam, k = cam.s / all.s, pad = 4;
+    const area = {x: cam.x - all.x * k - pad, y: cam.y - all.y * k - pad, w: width * k + 2 * pad, h: height * k + 2 * pad};
     ground.clear();
-    drawGround(ground, drawn, width, height, cam, pal, s.seed);
+    drawGround(ground, drawn, area, cam, pal, s.seed);
     tilth.clear();
     drawTilth(tilth, drawn, cam, pal, s.seed);
+    drawInner(s);
     grownOf = null;
     grownAt = 0;
-    night.clear().rect(0, 0, width, height).fill({color: pal.night.color, alpha: 1});
-    dawn.clear().rect(0, 0, width, height).fill({color: pal.dawn.color, alpha: 1});
+    night.clear().rect(area.x, area.y, area.w, area.h).fill({color: pal.night.color, alpha: 1});
+    dawn.clear().rect(area.x, area.y, area.w, area.h).fill({color: pal.dawn.color, alpha: 1});
     // the figures: one atlas of six frames (the gardener and the household, standing and stepping either foot)
     for (const f of frames) f.destroy(false);
     atlas?.destroy(true);
@@ -248,6 +324,34 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     }
     return {n, out, snow};
   };
+  // the camera said to whoever watches it, when it has moved (the badges and labels over the map, the breadcrumb, the
+  // clock's pace)
+  const state = (s: Snapshot): CameraState | null => {
+    if (!view || !zoomed) return null;
+    const p = placeIn(drawn, s.level, zoomed, most);
+    return {cam: view, t: depth(zoomed, most), canIn: zoomed.k < most - 1e-6, canOut: zoomed.k > 1 + 1e-6, place: p ? {id: p.id, name: p.name} : null};
+  };
+  const tell = (s: Snapshot) => {
+    if (!watchers.length || !view || !zoomed) return;
+    const key = `${view.x.toFixed(2)},${view.y.toFixed(2)},${view.s.toFixed(4)},${most.toFixed(3)},${s.level}`;
+    if (key === told) return;
+    told = key;
+    const st = state(s);
+    if (st) for (const fn of watchers) fn(st);
+  };
+  let last: Snapshot | null = null;
+  const move = (next: Zoom) => {
+    zoomed = next;
+    moved = performance.now();
+  };
+  const flyTo = (to: Zoom) => {
+    if (!zoomed) return;
+    if (still) {
+      fly = null;
+      move(to);
+    } else fly = {from: zoomed, to, start: performance.now()};
+  };
+
   // where an actor is, in CSS pixels: straight from start to end with its ends looked up once per activity, or along
   // the way through placeAt (people are drawn from above, the same whichever way they face)
   const at = {x: 0, y: 0};
@@ -313,7 +417,9 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     }
     let shot: Sprite | null = null;
     if (Number.isFinite(x0) && x1 > x0 && y1 > y0) {
-      const tex = app.renderer.generateTexture({target: world, frame: new Rectangle(x0, y0, x1 - x0, y1 - y0), resolution: window.devicePixelRatio || 1});
+      // zoomed in, the garden spans several screens: its picture at no more than a texture's safe size
+      const res = Math.min(window.devicePixelRatio || 1, 4096 / Math.max(x1 - x0, y1 - y0));
+      const tex = app.renderer.generateTexture({target: world, frame: new Rectangle(x0, y0, x1 - x0, y1 - y0), resolution: res});
       shot = new Sprite(tex);
       app.stage.addChild(shot);
     }
@@ -393,6 +499,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
     },
     draw(v) {
       const t0 = performance.now(), cur = v.cur;
+      last = cur;
       // the ground: redrawn when the graph changes, or a bed plot is dug (checked once a snapshot)
       const key = keyOf === cur.nodes ? drawnKey : groundKey(cur.nodes);
       // the step up: the garden's picture taken before the allotment is drawn
@@ -401,18 +508,66 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       // going down: the allotment's picture taken before the garden is drawn
       if (level === 2 && cur.level === 1 && !still && cam) startDive();
       if (cur.level !== level) {
+        // a new level opens at its widest view
+        zoomed = null;
+        fly = null;
+        cam = null;
         if (level !== -1 && cur.level === 2) highlight = performance.now() + (still ? 0 : ZOOM_MS) + HIGHLIGHT_MS;
         if (cur.level !== 2) endZoom(true);
         if (cur.level !== 1) endDive();
         level = cur.level;
       }
-      if (cur.rev !== drawnRev || key !== drawnKey || !cam) {
+      // the camera: a flight moves it each frame; the world is redrawn at the view's camera once it rests, and moves as one
+      // picture through the lens until then
+      if (fly && zoomed && bounds) {
+        const t = Math.min(1, (t0 - fly.start) / FLY_MS), e = t * t * (3 - 2 * t);
+        zoomed = clampZoom(between(fly.from, fly.to, e), bounds, width, height, most);
+        moved = t0;
+        if (t >= 1) fly = null;
+      }
+      const resting = !fly && t0 - moved >= REST_MS && !zoom && !dive;
+      if (cur.rev !== drawnRev || key !== drawnKey || !cam || (resting && view && cam && (view.s !== cam.s || view.x !== cam.x || view.y !== cam.y))) {
         rebuild(cur);
         drawnRev = cur.rev;
-      }
+      } else if (cur.below !== innerOf) drawInner(cur);
       drawnKey = key;
       keyOf = cur.nodes;
       const c = cam!, w = weatherAt(v);
+      if (bounds && zoomed) {
+        view = viewOf(bounds, width, height, zoomed);
+        const r = view.s / c.s;
+        lens.scale.set(r);
+        lens.position.set(view.x - r * c.x, view.y - r * c.y);
+      }
+      // the kept garden shows as its plot grows big enough on screen to see it, and fades the same way; so does each
+      // neighbour's plot, drawn from its totals when it first shows and again only when they change
+      const plot = cur.level === 2 ? boxes.get(PLAYER_PLOT) : undefined;
+      inner.alpha = plot && view ? detailAlpha(plot.w * view.s) : 0;
+      inner.visible = inner.alpha > 0.01;
+      if (cur.level === 2 && view) {
+        for (const n of drawn) {
+          if (n.kind !== 'plot' || n.id === PLAYER_PLOT) continue;
+          const b = n.box!, a = detailAlpha(b.w * view.s), x = view.x + b.x * view.s, y = view.y + b.y * view.s;
+          const seen = a > 0.01 && x < width && y < height && x + b.w * view.s > 0 && y + b.h * view.s > 0;
+          let d = detailed.get(n.id);
+          if (!seen) {
+            if (d) d.g.visible = false;
+            continue;
+          }
+          const key = `${Math.round(n.totals.output / PLANT_KG)}.${Math.round(n.totals.health)}`;
+          if (!d || d.key !== key) {
+            const t = performance.now(), g = d?.g.clear() ?? new Graphics();
+            drawDetail(g, detailOf(cur.seed, n), n, inside({x: 0, y: 0, w: TILE.w, h: TILE.h}, b, c), pal, cur.seed);
+            if (!d) details.addChild(g);
+            detailed.set(n.id, (d = {g, key}));
+            detailMs.push(performance.now() - t);
+            if (detailMs.length > 24) detailMs.shift();
+          }
+          d.g.visible = true;
+          d.g.alpha = a;
+        }
+      } else if (detailed.size) dropDetails();
+      tell(cur);
       // what grows: redrawn once a snapshot, and at most a few times a second (at 16× a snapshot comes every frame, and
       // the plants change too slowly to show a lag of a quarter of a second)
       if (grownOf !== cur.nodes && (grownAt === 0 || t0 - grownAt >= GROWN_MS || cur.rev !== grownRev)) {
@@ -503,7 +658,7 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       stepping = steps;
       // the night falls with the sun, but at speed holds a steady light (a gentle dim through a quiet night), easing slowly;
       // the dawn's glow eases the same way and is held off at speed; both full-screen layers are skipped while clear
-      const day = daySeconds(cur.level, cur.speed, v.quiet);
+      const day = v.day;
       night.alpha = light(dusk * pal.nightMax, v.quiet ? pal.nightQuiet : 0, day, t0);
       night.visible = night.alpha > 0;
       dawn.alpha = dawnLight(warm, 0, day, t0);
@@ -538,16 +693,19 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       if (frameTimes.length > 240) frameTimes.shift();
     },
     hit(x, y) {
-      if (!cam) return null;
-      const wx = (x - cam.x) / cam.s, wy = (y - cam.y) / cam.s;
+      const c = view ?? cam;
+      if (!c) return null;
+      const wx = (x - c.x) / c.s, wy = (y - c.y) / c.s;
       for (let i = drawn.length - 1; i >= 0; i--) {
         const b = drawn[i]!.box!;
         if (wx >= b.x && wx <= b.x + b.w && wy >= b.y && wy <= b.y + b.h) return drawn[i]!.id;
       }
       return null;
     },
-    creatureAt(x, y) {
-      let best: Creature | null = null, d = CREATURE_PX * CREATURE_PX;
+    creatureAt(sx, sy) {
+      // the creatures were placed at the camera the world was drawn at; the tap is on the view
+      const r = view && cam ? cam.s / view.s : 1, x = view && cam ? cam.x + (sx - view.x) * r : sx, y = view && cam ? cam.y + (sy - view.y) * r : sy;
+      let best: Creature | null = null, d = CREATURE_PX * CREATURE_PX * r * r;
       for (const k of creatures) {
         const e = (k.x - x) ** 2 + (k.y - y) ** 2;
         if (e <= d) {
@@ -561,7 +719,34 @@ export async function createRenderer(canvas: HTMLCanvasElement, palette: Palette
       pulse = at;
     },
     skipZoom: () => endZoom() || endDive(),
-    stats: () => ({frames: frameTimes.slice(), movers: lastMovers, stepping, cam, weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
+    zoomBy(factor, x, y) {
+      if (!zoomed || !bounds || zoom || dive) return;
+      fly = null;
+      move(zoomAbout(zoomed, factor, x, y, bounds, width, height, most));
+    },
+    panBy(dx, dy) {
+      if (!zoomed || !bounds || zoom || dive) return;
+      fly = null;
+      move(panBy(zoomed, dx, dy, bounds, width, height, most));
+    },
+    flyTo(id) {
+      if (!bounds || zoom || dive) return;
+      const box = id ? boxes.get(id) : undefined;
+      flyTo(box ? fillWith(box, bounds, width, height, most) : widest(bounds));
+    },
+    zoomStep(inwards) {
+      if (!zoomed || !bounds || zoom || dive) return;
+      const from = fly ? fly.to : zoomed;
+      flyTo(zoomAbout(from, inwards ? STEP : 1 / STEP, width / 2, height / 2, bounds, width, height, most));
+    },
+    onCamera(fn) {
+      watchers.push(fn);
+      const st = last && state(last);
+      if (st) fn(st);
+      return () => void watchers.splice(watchers.indexOf(fn) >>> 0, 1);
+    },
+    stats: () => ({frames: frameTimes.slice(), movers: lastMovers, stepping, cam: view ?? cam, zoomed, inner: inner.visible ? inner.alpha : 0,
+      detailed: [...detailed].filter(([, d]) => d.g.visible).map(([id]) => id), detailMs: detailMs.slice(), weather, crops, shapes, gardener, life: lifeStats, creatures: creatures.slice(0, 40), torch, pulse, level, night: night.alpha,
       zoom: zoom ? Math.min(1, (performance.now() - zoom.start) / ZOOM_MS) : null, dive: dive ? Math.min(1, (performance.now() - dive.start) / ZOOM_MS) : null, trace: traced}),
     destroy() {
       app.destroy(false, {children: true, texture: true});
