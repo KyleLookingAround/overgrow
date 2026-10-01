@@ -8,6 +8,18 @@
 // The mosaic is a Voronoi diagram of jittered points relaxed by Lloyd's algorithm, cut by our own code: each cell is the
 // land's rectangle clipped by the half-plane nearer its point than each other point. Vertices the cells share are snapped
 // together, so every edge knows the cell across it (or the land's edge), which gives exact neighbours, outlines and hedges.
+//
+// The real mechanisms: field shapes are history. Rackham's "ancient countryside" of small, irregular fields grew piece by
+// piece from woodland and waste, and the mosaic stands in for it; inheritance shared holdings out into strips (partible
+// inheritance, such as Kent's gavelkind); and consolidation after the Second World War joined fields for machinery and
+// grubbed out the hedges between them: England lost about half its hedgerows in the decades after 1945 (CPRE), and the
+// Countryside Survey recorded further losses from 1978.
+// Sources: Rackham, "The History of the Countryside" (1986), for ancient and planned countryside and field sizes; the
+// Countryside Survey (1978 to 2007) and CPRE for hedgerow length and its loss; Defra's June Survey for field and holding
+// sizes in England.
+// Simplifies: one rectangle of land with no lanes or footpaths; boundaries follow the cells' edges, so there's no planned
+// countryside's ruler-straight enclosure hedges yet; a field's kind and crop are all it carries until part 11 makes it a
+// node. Fast effect: none (it's shape). Slow effect: the land's shape changes as fields join and split over the years.
 import {LAND, SMALLHOLDING, FIELD_CROPS, type FieldCrop, type FieldKind} from '../data/land';
 import {rng, type Rng} from './random';
 

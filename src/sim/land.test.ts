@@ -99,4 +99,32 @@ describe('the land as organic parcels', () => {
     const joined = ok(joinFields(land, a.id, b.id, 1)), after = hedges(joined).reduce((n, l) => n + l.pts.length, 0);
     expect(after).toBeLessThan(lines.reduce((n, l) => n + l.pts.length, 0));
   });
+
+  it('looks like real small-field country: fields of 1.5 to 4 ha, 80 to 200 m of hedge a hectare inside the land, and fewer hedges once fields are joined', () => {
+    // Rackham's ancient countryside: small irregular fields, before post-war consolidation took arable fields past 10 ha;
+    // its hedges run at about a hundred to two hundred metres a hectare
+    const length = (land: Land) => hedges(land).reduce((a, l) => {
+      let d = 0;
+      for (let i = 2; i < l.pts.length; i += 2) d += Math.hypot(l.pts[i]! - l.pts[i - 2]!, l.pts[i + 1]! - l.pts[i - 1]!);
+      return a + d;
+    }, 0);
+    const inner = (land: Land) => (length(land) - 2 * (land.w + land.h)) / ((land.w * land.h) / 1e4);
+    for (const seed of [1, 2, 3, 4, 5]) {
+      let land = makeLand(seed);
+      const farmed = land.fields.filter((f) => f.kind === 'arable' || f.kind === 'grass'), mean = farmed.reduce((a, f) => a + areaOf(land, f), 0) / farmed.length / 1e4;
+      expect(mean).toBeGreaterThan(1.5);
+      expect(mean).toBeLessThan(4);
+      const before = inner(land);
+      expect(before).toBeGreaterThan(80);
+      expect(before).toBeLessThan(200);
+      // consolidation: every join it can make takes a hedge out
+      for (let joins = 0; joins < 10; joins++) {
+        const fs = land.fields.filter((f) => f.kind === 'arable' || f.kind === 'grass');
+        const pair = fs.flatMap((a) => fs.filter((b) => b !== a && touching(land, a, b) && a.cells.length + b.cells.length <= LAND.joinMost).map((b) => [a, b] as const))[0];
+        if (!pair) break;
+        land = ok(joinFields(land, pair[0].id, pair[1].id, joins));
+      }
+      expect(inner(land)).toBeLessThan(before);
+    }
+  });
 });
