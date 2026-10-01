@@ -10,7 +10,7 @@ Copy this file to `docs/briefs/<short-name>.md` for every session or part you st
 
 ## Read first
 
-- The project notes, then `node tools/graph.mjs <fill: system, file or function>`, and only the files that lists. For a model, the founding spec's systems map entry and its sources.
+- The project notes, then `node tools/graph.mjs <fill: system, file or function>`, and only the files that lists. For a model, the founding spec's systems map entry and its sources; and anything that stands for a real thing (land, a crop's year, a market) is a model for the real-mechanisms rule wherever its file lives: sources, what it simplifies and a plausibility test (`docs/decisions/ADR-2026-09-28-real-mechanisms-rough-numbers.md`).
 - <fill: any spec, decision or lesson that matters>
 
 ## How it fits and grows

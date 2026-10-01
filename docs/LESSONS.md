@@ -15,6 +15,7 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 
 ### Build
 
+- [The land as organic parcels, built ahead (#94, #97) · 1 Oct 2026](lessons/97-organic-land.md)
 - [The one map's spike: one camera, the zoom as the speed, and skips (#94, #96) · 30 Sep 2026](lessons/96-one-map-spike.md)
 
 ### Checks
