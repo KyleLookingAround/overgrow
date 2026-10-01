@@ -39,7 +39,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: layout, groups: layout}
+          - {name: layout phones, groups: layout, layout: a}
+          - {name: layout larger, groups: layout, layout: b}
           - {name: scene, groups: scene}
           - {name: zoom, groups: zoom}
           - {name: camera and build, groups: camera build}
@@ -66,6 +67,8 @@ jobs:
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
       - name: ${{ matrix.name }}
+        env:
+          LAYOUT_PART: ${{ matrix.layout }}
         run: |
           mkdir -p build
           set -o pipefail

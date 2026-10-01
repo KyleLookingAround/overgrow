@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # the browser groups by time (docs/SYSTEMS.md, "CI's limit"): eight parts of about 4 to 7 minutes each, so a run takes under 10, the rest with the
+  # the browser groups by time (docs/SYSTEMS.md, "CI's limit"): nine parts of about 4 to 7 minutes each, so a run takes under 10, the rest with the
   # typecheck and the Vitest tests
   parts:
     if: github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft
@@ -28,7 +28,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: layout, groups: layout}
+          - {name: layout phones, groups: layout, layout: a}
+          - {name: layout larger, groups: layout, layout: b}
           - {name: scene, groups: scene}
           - {name: zoom, groups: zoom}
           - {name: camera and build, groups: camera build}
@@ -57,6 +58,8 @@ jobs:
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
       - name: ${{ matrix.name }}
+        env:
+          LAYOUT_PART: ${{ matrix.layout }}
         run: |
           if [ "${{ matrix.rest }}" = "true" ]; then
             node tools/build.mjs && npx tsc --noEmit && npx vitest run && node tools/check.mjs --except layout scene zoom camera build season stepup explain unfold night garden dig land

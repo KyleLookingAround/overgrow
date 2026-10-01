@@ -49,6 +49,10 @@ Before a PR merges, look back at the session that built it: what it cost, what s
 - [Weather, soil and water, the first slice's part 2 (#7) · 29 Sep 2026](lessons/7-weather-soil-water.md)
 - [The graph and the clock, the first slice's part 1 (#5) · 28 Sep 2026](lessons/5-graph-and-clock.md)
 
+### Process
+
+- [The checks under ten minutes (#99) · 1 Oct 2026](lessons/99-checks-under-ten-minutes.md)
+
 ### Runbook
 
 - [The runbook and the exchange with Final Call (#1, #14, #57) · 28–29 Sep 2026](lessons/57-runbook-and-final-call.md)
