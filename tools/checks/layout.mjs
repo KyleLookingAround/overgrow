@@ -25,6 +25,10 @@ const settle=page=>page.waitForTimeout(250);
 const PHONES=[[320,568],[360,640],[375,667],[390,844],[414,896],[430,932]];
 const SIZES=[...PHONES.map(([w,h])=>[w,h,true,3]),...PHONES.map(([w,h])=>[h,w,true,3]),[768,1024,true,2],[1024,768,true,2],[820,1180,true,2],[1024,1366,true,2],
   [1280,800,false,1],[1440,900,false,1],[1920,1080,false,1],[2560,1440,false,1],[3440,1440,false,1]];
+// CI runs the group in two halves at once (docs/SYSTEMS.md, "CI's limit"): LAYOUT_PART=a the phones held upright and the
+// one-offs below the sizes, b the rest of the sizes; unset, everything
+const PART=process.env.LAYOUT_PART||'';
+const upright=([w,h,touch])=>touch&&w<700&&h>w;
 /** The device class the stylesheet's queries give a size, and the map's floor for it. */
 function classOf(w,h){
   if(h<=500&&w>=500)return {name:'phone on its side',sheet:false,floor:0.5};
@@ -44,7 +48,7 @@ export default async function({ok,open:bare,out}){
     return {top:box('.topbar'),map:box('.map'),panel:box('.panel'),head:box('.panel-head'),body:box('.panel-body'),goal:box('.goal-bar'),pill:box('.pause-pill'),full:box('.fullscreen'),
       date:vis('.topbar .date'),money:vis('.topbar .money'),dial:vis('.topbar .dial'),speeds:vis('.topbar .speeds .speed'),pillOn:vis('.pause-pill'),
       canFull:!!document.fullscreenEnabled,flow:{sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,sh:document.documentElement.scrollHeight,ch:document.documentElement.clientHeight}}});
-  for(const [w,h,touch,dsf] of SIZES){
+  for(const [w,h,touch,dsf] of SIZES.filter(z=>PART==='a'?upright(z):PART==='b'?!upright(z):true)){
     const cls=classOf(w,h),{ctx,page,errs}=await open({width:w,height:h},{touch,dsf});
     const m=await measure(page);
     const placed=cls.sheet?m.panel&&m.map&&m.panel.y>=m.map.b-1&&m.panel.b<=h+0.5:m.panel&&m.map&&m.panel.x>=m.map.r-1&&m.panel.y>=m.top.b-1;
@@ -128,6 +132,7 @@ export default async function({ok,open:bare,out}){
     await ctx.close();
   }
 
+  if(PART==='b')return;
   // safe areas: the page's stylesheet keeps env(safe-area-inset-*) clear on every side
   {const {ctx,page}=await open({width:390,height:844},{touch:true,dsf:3});
     const sides=await page.evaluate(()=>{const css=[...document.styleSheets].flatMap(s=>{try{return [...s.cssRules].map(r=>r.cssText)}catch{return []}}).join('\n');

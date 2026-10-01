@@ -18,18 +18,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # the browser groups by time (docs/SYSTEMS.md, "CI's limit"): layout about 10 minutes, scene and night about 10, the rest
-  # (with the typecheck and the Vitest tests) about 12
+  # the browser groups by time (docs/SYSTEMS.md, "CI's limit"): nine parts of about 4 to 7 minutes each, so a run takes under 10, the rest with the
+  # typecheck and the Vitest tests
   parts:
     if: github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {name: layout, groups: layout}
-          - {name: scene and night, groups: scene night}
+          - {name: layout phones, groups: layout, layout: a}
+          - {name: layout larger, groups: layout, layout: b}
+          - {name: scene, groups: scene}
+          - {name: zoom, groups: zoom}
+          - {name: camera and build, groups: camera build}
+          - {name: season and step up, groups: season stepup}
+          - {name: explain and unfold, groups: explain unfold}
+          - {name: night garden dig and land, groups: night garden dig land}
           - {name: the rest, rest: true}
     steps:
       - uses: actions/checkout@v4
@@ -49,12 +55,16 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
       - run: npx playwright install --with-deps chromium
         if: steps.pw-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5 # a stalled package mirror fails here, not at the job's limit
       - run: npx playwright install-deps chromium
         if: steps.pw-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 5 # a stalled package mirror fails here, not at the job's limit
       - name: ${{ matrix.name }}
+        env:
+          LAYOUT_PART: ${{ matrix.layout }}
         run: |
           if [ "${{ matrix.rest }}" = "true" ]; then
-            node tools/build.mjs && npx tsc --noEmit && npx vitest run && node tools/check.mjs --except layout scene night
+            node tools/build.mjs && npx tsc --noEmit && npx vitest run && node tools/check.mjs --except layout scene zoom camera build season stepup explain unfold night garden dig land
           else
             node tools/build.mjs && node tools/check.mjs ${{ matrix.groups }}
           fi
